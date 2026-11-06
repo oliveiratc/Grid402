@@ -1,0 +1,167 @@
+# Grid402 // M2M Telemetry & Status Oracle (x402 Protocol)
+> Real-time latency and health telemetry oracle for autonomous AI agents and M2M systems operating across critical Brazilian digital infrastructure.
+
+## 1. Overview
+Grid402 allows AI agents, ERPs, and automated bots to inspect the real-time availability, latency (in ms), and status of Brazilian governmental and financial services (SEFAZ autorizadores fiscais, PIX / BACEN, payment gateways, and telecommunication providers) before committing high-volume transaction batches.
+
+- **Production Domain:** https://www.grid402.com.br
+- **Monetization Protocol:** HTTP 402 Payment Required (x402)
+- **Settlement Network:** Base Mainnet (EVM Chain ID: 8453)
+- **Accepted Token:** USDC (`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`)
+- **Cost per Detailed Query:** $0.0005 USDC (500 atomic units, 6 decimals)
+- **Oracle Wallet Address:** 0x22872365287e076632cda48512f451f26a152378
+
+---
+
+## 2. API Endpoints
+
+### 2.1. Free Summary Endpoint (Public Tier)
+Returns aggregated health status (UP, DEGRADED, DOWN) and category-level average latencies with zero payment required.
+- **URL:** `https://www.grid402.com.br/` or `https://www.grid402.com.br/status?format=json`
+- **Method:** `GET`
+- **Headers:** `Accept: application/json`
+- **Response Code:** `200 OK`
+
+#### Free Response Example:
+```json
+{
+  "protocol": "x402",
+  "network": "Base",
+  "chain_id": 8453,
+  "version": "1.0.0",
+  "timestamp": "2026-11-06T23:25:00Z",
+  "execution_time_ms": 480.25,
+  "total_targets": 18,
+  "healthy_targets": 18,
+  "system_status": "UP",
+  "categories": {
+    "SEFAZ": { "status": "UP", "avg_latency_ms": 195.4, "targets_up": 5, "targets_total": 5 },
+    "Gateways": { "status": "UP", "avg_latency_ms": 220.1, "targets_up": 5, "targets_total": 5 },
+    "Bancos & PIX": { "status": "UP", "avg_latency_ms": 185.7, "targets_up": 4, "targets_total": 4 },
+    "Telecom & Infra": { "status": "UP", "avg_latency_ms": 42.0, "targets_up": 4, "targets_total": 4 }
+  }
+}
+```
+
+---
+
+### 2.2. Detailed Telemetry Endpoint (x402 Paid Tier)
+Provides millisecond-precise latency, HTTP status codes, DNS/connect breakdowns, and stability scores for every individual target.
+- **URL:** `https://www.grid402.com.br/telemetry` or `https://www.grid402.com.br/?detail=true`
+- **Method:** `GET`
+- **Headers Required:**
+  - `Accept: application/json`
+  - `X-Payment: <base_tx_hash>` (required for 200 OK; omitting returns 402 challenge)
+
+#### x402 Challenge (Without Payment Header):
+- **Response Code:** `402 Payment Required`
+- **Headers Returned:**
+  - `WWW-Authenticate: x402`
+  - `X-Accept-Payment: base:usdc:0x22872365287e076632cda48512f451f26a152378:0.0005`
+```json
+{
+  "error": "PaymentRequired",
+  "protocol": "x402",
+  "network": "Base",
+  "chain_id": 8453,
+  "token": "USDC",
+  "token_contract": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "price_usdc": "0.0005",
+  "price_raw_units": 500,
+  "recipient_wallet": "0x22872365287e076632cda48512f451f26a152378",
+  "action_required": "Envie 0.0005 USDC para a carteira recipient_wallet na rede Base e refaça a requisição incluindo o cabeçalho 'X-Payment: <tx_hash>'."
+}
+```
+
+#### Detailed Response (With Valid `X-Payment` Header):
+- **Response Code:** `200 OK`
+- **Headers Returned:**
+  - `X-Payment-Status: Accepted`
+  - `X-Payment-Amount: 0.0005 USDC`
+  - `X-Payment-Network: Base (ChainID 8453)`
+```json
+{
+  "protocol": "x402",
+  "license": "PAID_QUERY",
+  "timestamp": "2026-11-06T23:25:00Z",
+  "total_targets": 18,
+  "healthy_targets": 18,
+  "targets": [
+    {
+      "id": "sefaz_sp",
+      "name": "SEFAZ São Paulo",
+      "category": "SEFAZ",
+      "status": "UP",
+      "http_code": 403,
+      "latency_ms": 192.3,
+      "connect_time_ms": 84.1,
+      "dns_time_ms": 22.0,
+      "primary_ip": "201.55.62.86",
+      "stability_score": 98
+    },
+    {
+      "id": "mercadopago",
+      "name": "Mercado Pago Core API",
+      "category": "Gateways",
+      "status": "UP",
+      "http_code": 200,
+      "latency_ms": 145.8,
+      "connect_time_ms": 52.0,
+      "dns_time_ms": 14.5,
+      "primary_ip": "54.232.112.18",
+      "stability_score": 98
+    }
+  ]
+}
+```
+
+---
+
+## 3. Autonomous Integration Examples
+
+### Python (M2M Agent Example)
+```python
+import requests
+from web3 import Web3
+
+# 1. Step 1: Probe the endpoint to fetch the 402 challenge
+url = "https://www.grid402.com.br/telemetry"
+resp = requests.get(url, headers={"Accept": "application/json"})
+
+if resp.status_code == 402:
+    challenge = resp.json()
+    recipient = challenge["recipient_wallet"]
+    amount_raw = challenge["price_raw_units"] # 500 units = 0.000500 USDC
+    
+    # 2. Step 2: Agent executes USDC transfer on Base (using agent's Web3 wallet)
+    # tx_hash = usdc_contract.functions.transfer(recipient, amount_raw).transact()
+    tx_hash = "0x..." 
+    
+    # 3. Step 3: Fetch paid telemetry payload with payment proof
+    paid_resp = requests.get(
+        url,
+        headers={
+            "Accept": "application/json",
+            "X-Payment": tx_hash
+        }
+    )
+    telemetry = paid_resp.json()
+    print("Telemetry received:", telemetry["targets"])
+```
+
+### cURL
+```bash
+# Obtain challenge
+curl -i https://www.grid402.com.br/telemetry -H "Accept: application/json"
+
+# Supply proof
+curl https://www.grid402.com.br/telemetry \
+  -H "Accept: application/json" \
+  -H "X-Payment: 0x4f8a...your_base_tx_hash_here..."
+```
+
+---
+
+## 4. Replay Attack & Integrity Policy
+Each transaction hash on Base can only unlock **one** detailed telemetry response. Once verified by our on-chain RPC auditor, the transaction hash is permanently logged to prevent replay attempts (returning HTTP 403 Forbidden).
+

@@ -1,0 +1,10 @@
+# Git ignore para Grid402
+.env
+.env.local
+.env.*.local
+*.log
+
+# Dados locais e temporários
+public_html/private_data/*.json
+!public_html/private_data/.htaccess
+
