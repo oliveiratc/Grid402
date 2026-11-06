@@ -9,7 +9,7 @@ Grid402 allows AI agents, ERPs, and automated bots to inspect the real-time avai
 - **Settlement Network:** Base Mainnet (EVM Chain ID: 8453)
 - **Accepted Token:** USDC (`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`)
 - **Cost per Detailed Query:** $0.0005 USDC (500 atomic units, 6 decimals)
-- **Oracle Wallet Address:** 0x22872365287e076632cda48512f451f26a152378
+- **Oracle Wallet Address:** 0xa31c31069c43ac1c0075a93c325b0dcd7744356c
 
 ---
 
@@ -57,7 +57,7 @@ Provides millisecond-precise latency, HTTP status codes, DNS/connect breakdowns,
 - **Response Code:** `402 Payment Required`
 - **Headers Returned:**
   - `WWW-Authenticate: x402`
-  - `X-Accept-Payment: base:usdc:0x22872365287e076632cda48512f451f26a152378:0.0005`
+  - `X-Accept-Payment: base:usdc:0xa31c31069c43ac1c0075a93c325b0dcd7744356c:0.0005`
 ```json
 {
   "error": "PaymentRequired",
@@ -68,7 +68,7 @@ Provides millisecond-precise latency, HTTP status codes, DNS/connect breakdowns,
   "token_contract": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
   "price_usdc": "0.0005",
   "price_raw_units": 500,
-  "recipient_wallet": "0x22872365287e076632cda48512f451f26a152378",
+  "recipient_wallet": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c",
   "action_required": "Envie 0.0005 USDC para a carteira recipient_wallet na rede Base e refaça a requisição incluindo o cabeçalho 'X-Payment: <tx_hash>'."
 }
 ```

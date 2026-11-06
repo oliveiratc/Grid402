@@ -46,7 +46,9 @@ if (!$prefersHtml || $isDetailRequested) {
     // Se NÃO pediu detalhes: Entrega gratuita imediata
     if (!$isDetailRequested) {
         if (!file_exists(GRID402_FILE_FREE)) {
-            // Se o coletor ainda não rodou, executa inline silenciosamente
+            if (!defined('GRID402_INTERNAL_BOOTSTRAP')) {
+                define('GRID402_INTERNAL_BOOTSTRAP', true);
+            }
             include_once __DIR__ . '/collector.php';
         }
         header('Content-Type: application/json; charset=utf-8');
@@ -66,8 +68,8 @@ if (!$prefersHtml || $isDetailRequested) {
     if (!$validation['valid']) {
         http_response_code($validation['code']);
         header('Content-Type: application/json; charset=utf-8');
-        if ($validation['code'] === 402 && php_sapi_name() !== 'cli-server') {
-            header('WWW-Authenticate: x402');
+        if ($validation['code'] === 402) {
+            header('X-Authenticate: x402');
         }
         echo json_encode([
             'error' => ($validation['code'] === 403) ? 'ReplayAttackDetected' : 'PaymentFailed',
@@ -79,6 +81,9 @@ if (!$prefersHtml || $isDetailRequested) {
 
     // Pagamento validado com sucesso!
     if (!file_exists(GRID402_FILE_PAID)) {
+        if (!defined('GRID402_INTERNAL_BOOTSTRAP')) {
+            define('GRID402_INTERNAL_BOOTSTRAP', true);
+        }
         include_once __DIR__ . '/collector.php';
     }
 

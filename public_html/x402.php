@@ -212,13 +212,8 @@ function grid402_validate_payment(string $txHash): array {
  */
 function grid402_respond_402(?string $errorMessage = null): void {
     http_response_code(402);
+    header('HTTP/1.1 402 Payment Required', true, 402);
     header('Content-Type: application/json; charset=utf-8');
-    
-    // O servidor CLI embutido do PHP reescreve qualquer resposta com 'WWW-Authenticate' para 401.
-    // Em LiteSpeed/Apache de produção, 'WWW-Authenticate: x402' é mantido normalmente com 402.
-    if (php_sapi_name() !== 'cli-server') {
-        header('WWW-Authenticate: x402');
-    }
     header('X-Authenticate: x402');
     header('X-Accept-Payment: base:usdc:' . GRID402_WALLET_ADDRESS . ':' . GRID402_PRICE_DISPLAY);
 

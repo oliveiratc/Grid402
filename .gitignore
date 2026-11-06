@@ -3,6 +3,7 @@
 .env.local
 .env.*.local
 *.log
+dist/
 
 # Dados locais e temporários
 public_html/private_data/*.json

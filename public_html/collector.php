@@ -15,7 +15,7 @@ require_once __DIR__ . '/config.php';
 $isCli = (php_sapi_name() === 'cli');
 $isAuthorized = false;
 
-if ($isCli) {
+if ($isCli || defined('GRID402_INTERNAL_BOOTSTRAP')) {
     $isAuthorized = true;
 } else {
     // Verificação via Query String ou Bearer Token
@@ -292,6 +292,9 @@ if ($isCli) {
         $totalUp,
         $systemOverall
     );
+} elseif (defined('GRID402_INTERNAL_BOOTSTRAP')) {
+    // Retorna para o index.php prosseguir com a leitura dos arquivos gerados
+    return;
 } else {
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode($responseInfo, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

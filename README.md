@@ -58,7 +58,7 @@ Suba todo o conteúdo da pasta `public_html/` para o diretório `public_html/` d
 Por questões de segurança, crie o arquivo `.env` um nível acima da raiz pública (ex: `/home/u123456789/.env`) ou dentro de `/home/u123456789/public_html/private_data/.env`:
 
 ```ini
-GRID402_WALLET_ADDRESS=0x22872365287e076632cda48512f451f26a152378
+GRID402_WALLET_ADDRESS=0xa31c31069c43ac1c0075a93c325b0dcd7744356c
 GRID402_CRON_SECRET=defina_um_token_secreto_longo_aqui_123456
 GRID402_BASE_RPC_URL=https://mainnet.base.org
 GRID402_USDC_CONTRACT=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
@@ -94,7 +94,7 @@ curl -i -H "Accept: application/json" https://www.grid402.com.br/telemetry
 ```http
 HTTP/1.1 402 Payment Required
 WWW-Authenticate: x402
-X-Accept-Payment: base:usdc:0x22872365287e076632cda48512f451f26a152378:0.0005
+X-Accept-Payment: base:usdc:0xa31c31069c43ac1c0075a93c325b0dcd7744356c:0.0005
 Content-Type: application/json
 
 {
@@ -103,7 +103,7 @@ Content-Type: application/json
   "chain_id": 8453,
   "token": "USDC",
   "price_usdc": "0.0005",
-  "recipient_wallet": "0x22872365287e076632cda48512f451f26a152378"
+  "recipient_wallet": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c"
 }
 ```
 
