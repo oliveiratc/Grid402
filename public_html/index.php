@@ -325,6 +325,83 @@ header('Content-Type: text/html; charset=utf-8');
             margin-bottom: 1.5rem;
             font-size: 0.95rem;
         }
+        .tabs-header {
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.65rem 1.1rem;
+            font-family: var(--font-sans);
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+        .tab-btn:hover { color: var(--text-main); }
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .console-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            flex-wrap: wrap;
+        }
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-main);
+            transition: all 0.2s ease;
+        }
+        .btn-sm:hover { background: var(--surface-hover); border-color: var(--accent); }
+        .btn-sm.active { background: var(--primary); color: #052e16; border-color: var(--primary); }
+        .input-group {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.25rem;
+            flex-wrap: wrap;
+        }
+        .console-input {
+            flex: 1;
+            min-width: 280px;
+            background: #030712;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.55rem 0.85rem;
+            color: var(--text-main);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+        }
+        .console-input:focus { outline: none; border-color: var(--accent); }
+        .response-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+        .status-badge {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            padding: 0.15rem 0.45rem;
+            border-radius: 4px;
+        }
         .code-block {
             background-color: #030712;
             border: 1px solid #1E293B;
@@ -335,6 +412,7 @@ header('Content-Type: text/html; charset=utf-8');
             color: #38BDF8;
             overflow-x: auto;
             line-height: 1.5;
+            max-height: 420px;
         }
         footer {
             border-top: 1px solid var(--border);
@@ -393,23 +471,135 @@ header('Content-Type: text/html; charset=utf-8');
         </div>
 
         <section class="protocol-box">
-            <h2>Como Consumir via Agentes Autônomos (HTTP x402)</h2>
-            <p>Faça uma consulta para obter o desafio HTTP 402, liquide $0.0005 em USDC na Base e envie o hash da transação no cabeçalho <code>X-Payment</code>.</p>
-            <div class="code-block">
-# 1. Solicite a telemetria detalhada (Recebe HTTP 402 Payment Required)
-curl -i https://www.grid402.com.br/telemetry \
-  -H "Accept: application/json"
+            <h2>Integração & Console de Teste em Tempo Real</h2>
+            <p>Interaja diretamente com o oráculo via navegador ou integre seus agentes utilizando nossos SDKs oficiais e snippets.</p>
+            
+            <div class="tabs-header">
+                <button class="tab-btn active" onclick="switchTab('console')">⚡ Console Interativo</button>
+                <button class="tab-btn" onclick="switchTab('python')">🐍 Python SDK</button>
+                <button class="tab-btn" onclick="switchTab('node')">🟢 Node.js SDK</button>
+                <button class="tab-btn" onclick="switchTab('curl')">💻 cURL CLI</button>
+            </div>
 
-# Resposta: HTTP 402 Payment Required
-# WWW-Authenticate: x402
-# { "recipient_wallet": "<?php echo GRID402_WALLET_ADDRESS; ?>", "price_usdc": "0.0005", "chain_id": 8453 }
+            <!-- Tab 1: Console Interativo -->
+            <div id="tab-console" class="tab-content active">
+                <div class="console-actions">
+                    <button class="btn-sm" onclick="runConsole('free')">⚡ Consultar Resumo Gratuito (GET /status)</button>
+                    <button class="btn-sm" onclick="runConsole('challenge')">🔒 Simular Desafio x402 (GET /telemetry)</button>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="tx-input" class="console-input" placeholder="Cole o hash da transação na Base (0x...) para testar X-Payment">
+                    <button class="btn-sm" onclick="runConsole('paid')">Enviar Comprovante</button>
+                </div>
+                <div class="response-header">
+                    <span id="console-status-text">Pronto para teste. Clique em uma das ações acima.</span>
+                    <span id="console-latency-badge" style="display:none;" class="status-badge status-up"></span>
+                </div>
+                <pre id="console-output" class="code-block">// Resposta da API aparecerá aqui...</pre>
+            </div>
 
-# 2. Reenvie o comprovante on-chain (Recebe HTTP 200 com payload detalhado)
+            <!-- Tab 2: Python SDK -->
+            <div id="tab-python" class="tab-content">
+                <div class="code-block">from grid402 import Grid402Client, PaymentRequiredError
+
+client = Grid402Client()
+
+# 1. Checagem prévia gratuita
+if client.is_healthy("SEFAZ"):
+    print("SEFAZ saudável! Processando lote...")
+
+# 2. Padrão Circuit Breaker (Guard)
+resultado = client.guard("SEFAZ", lambda: "Lote enviado")
+
+# 3. Telemetria paga via x402
+challenge = client.get_challenge()
+print(f"Preço: {challenge['price_usdc']} USDC | Carteira: {challenge['recipient_wallet']}")</div>
+            </div>
+
+            <!-- Tab 3: Node.js SDK -->
+            <div id="tab-node" class="tab-content">
+                <div class="code-block">import { Grid402Client } from './grid402.mjs';
+
+const client = new Grid402Client();
+
+// 1. Resumo gratuito
+const summary = await client.getSummary();
+console.log('Status geral:', summary.system_status);
+
+// 2. Circuit Breaker Guard
+const resultado = await client.guard('Gateways', async () => {
+    return 'Transações liquidadas com sucesso!';
+});
+
+// 3. Handshake x402
+const challenge = await client.getChallenge();
+console.log(`Preço: ${challenge.price_usdc} USDC na Base`);</div>
+            </div>
+
+            <!-- Tab 4: cURL CLI -->
+            <div id="tab-curl" class="tab-content">
+                <div class="code-block"># 1. Consulta gratuita
+curl -i https://www.grid402.com.br/status?format=json
+
+# 2. Desafio HTTP 402 (Telemetria Detalhada)
+curl -i https://www.grid402.com.br/telemetry -H "Accept: application/json"
+
+# 3. Envio do comprovante on-chain (HTTP 200)
 curl https://www.grid402.com.br/telemetry \
   -H "Accept: application/json" \
-  -H "X-Payment: 0x&lt;tx_hash_da_transferencia_na_base&gt;"
+  -H "X-Payment: 0x&lt;tx_hash_da_transferencia_na_base&gt;"</div>
             </div>
         </section>
+
+        <script>
+            function switchTab(name) {
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                event.target.classList.add('active');
+                document.getElementById('tab-' + name).classList.add('active');
+            }
+
+            async function runConsole(action) {
+                const out = document.getElementById('console-output');
+                const statusText = document.getElementById('console-status-text');
+                const badge = document.getElementById('console-latency-badge');
+
+                out.textContent = 'Carregando...';
+                badge.style.display = 'none';
+
+                let url = '/status?format=json';
+                let headers = { 'Accept': 'application/json' };
+
+                if (action === 'challenge') {
+                    url = '/telemetry';
+                } else if (action === 'paid') {
+                    url = '/telemetry';
+                    const tx = document.getElementById('tx-input').value.trim();
+                    if (!tx) {
+                        out.textContent = 'Erro: Por favor, insira o hash da transação no campo de texto.';
+                        return;
+                    }
+                    headers['X-Payment'] = tx;
+                }
+
+                const t0 = performance.now();
+                try {
+                    const res = await fetch(url, { headers });
+                    const duration = Math.round(performance.now() - t0);
+                    const json = await res.json();
+
+                    statusText.textContent = 'HTTP ' + res.status + ' ' + (res.status === 200 ? 'OK' : (res.status === 402 ? 'Payment Required' : (res.status === 403 ? 'Forbidden' : 'Error')));
+                    badge.style.display = 'inline-block';
+                    badge.textContent = duration + ' ms';
+                    badge.className = 'status-badge ' + (res.status === 200 ? 'status-up' : (res.status === 402 ? 'status-deg' : 'status-down'));
+
+                    out.textContent = JSON.stringify(json, null, 2);
+                } catch (err) {
+                    statusText.textContent = 'Erro na requisição';
+                    out.textContent = err.message;
+                }
+            }
+        </script>
 
         <footer>
             <div>Grid402 Telemetry Oracle • Hospedado sobre Hostinger LiteSpeed</div>
