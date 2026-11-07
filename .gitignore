@@ -5,6 +5,11 @@
 *.log
 dist/
 
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
 # Dados locais e temporários
 public_html/private_data/*.json
 !public_html/private_data/.htaccess
