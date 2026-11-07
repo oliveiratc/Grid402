@@ -41,6 +41,9 @@ jobs:
       - name: Run HTTP Integration Tests
         run: php tests/test_http_server.php
 
+      - name: Run Badge Generator Tests
+        run: php tests/test_badge.php
+
       - name: Run Master E2E Full Battery
         run: php tests/test_e2e_full.php
 

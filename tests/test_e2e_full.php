@@ -122,6 +122,14 @@ try {
     assert($replayData['error'] === 'ReplayAttackDetected', 'Deve acusar ReplayAttackDetected');
     echo "     ✓ Replay attack bloqueado com sucesso (HTTP 403)!\n";
 
+    // 3.5. Requisição de Badge SVG Dinâmico
+    echo "  -> Simulando requisição de Badge SVG dinâmico...\n";
+    $badgeReq = test_req("http://127.0.0.1:{$port}/badge.php?target=sefaz_sp");
+    assert($badgeReq['code'] === 200, "Badge deve retornar HTTP 200");
+    assert(str_contains($badgeReq['body'], '<svg'), "Badge deve conter tag <svg");
+    assert(str_contains($badgeReq['body'], 'SEFAZ'), "Badge deve conter SEFAZ");
+    echo "     ✓ Badge dinâmico SVG emitido em {$badgeReq['time_ms']} ms (HTTP 200)!\n";
+
     echo "  ✓ Todos os testes HTTP foram validados com êxito!\n\n";
 
 } finally {

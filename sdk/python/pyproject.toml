@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grid402"
+version = "1.0.0"
+description = "Official Python client for Grid402 - Real-time M2M Telemetry Oracle & x402 Micropayment Circuit Breaker for Brazilian Infrastructure (SEFAZ, PIX, Gateways)."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+    { name = "Grid402 Team", email = "contato@grid402.com.br" }
+]
+keywords = [
+    "sefaz",
+    "pix",
+    "telemetry",
+    "oracle",
+    "x402",
+    "http402",
+    "base",
+    "base-network",
+    "usdc",
+    "ai-agents",
+    "circuit-breaker",
+    "nfe",
+    "gateways"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: System :: Monitoring"
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://www.grid402.com.br"
+Documentation = "https://www.grid402.com.br/llms.txt"
+Repository = "https://github.com/oliveiratc/Grid402"
+"Bug Tracker" = "https://github.com/oliveiratc/Grid402/issues"
+
+[tool.setuptools]
+py-modules = ["grid402"]
+

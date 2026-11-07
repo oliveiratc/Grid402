@@ -1,0 +1,55 @@
+{
+  "name": "grid402",
+  "version": "1.0.0",
+  "description": "Official client for Grid402 - Real-time M2M Telemetry Oracle & x402 Micropayment Circuit Breaker for Brazilian Infrastructure (SEFAZ, PIX, Gateways).",
+  "main": "./grid402.mjs",
+  "module": "./grid402.mjs",
+  "types": "./grid402.d.ts",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./grid402.d.ts",
+      "import": "./grid402.mjs",
+      "default": "./grid402.mjs"
+    }
+  },
+  "files": [
+    "grid402.mjs",
+    "grid402.d.ts",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node test_sdk.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oliveiratc/Grid402.git"
+  },
+  "keywords": [
+    "sefaz",
+    "pix",
+    "telemetry",
+    "oracle",
+    "x402",
+    "http402",
+    "base",
+    "base-network",
+    "usdc",
+    "ai-agents",
+    "circuit-breaker",
+    "brazil-infrastructure",
+    "nfe",
+    "gateways"
+  ],
+  "author": "Grid402 Team <contato@grid402.com.br>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/oliveiratc/Grid402/issues"
+  },
+  "homepage": "https://www.grid402.com.br",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+

@@ -32,7 +32,9 @@ ServerSignature Off
     RewriteCond %{REQUEST_METHOD} OPTIONS
     RewriteRule ^(.*)$ $1 [R=204,L]
 
-    # Roteamento de rotas amigáveis para index.php
+    # Roteamento de rotas amigáveis para index.php e badges
+    RewriteRule ^badge/([a-zA-Z0-9_\-]+)\.svg$ badge.php?target=$1 [QSA,L]
+    RewriteRule ^badge/([a-zA-Z0-9_\-]+)/?$ badge.php?target=$1 [QSA,L]
     RewriteRule ^telemetry/?$ index.php?detail=true [QSA,L]
     RewriteRule ^status/?$ index.php [QSA,L]
 

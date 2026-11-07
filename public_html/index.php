@@ -33,6 +33,9 @@ if ($paymentProof === '') {
     }
 }
 
+// Cabeçalho Vary para garantir que proxies e CDNs respeitem o content negotiation
+header('Vary: Accept, User-Agent');
+
 // 1. Decisão de Rota: Máquina (JSON) vs Humano (HTML)
 $prefersHtml = str_contains($acceptHeader, 'text/html') && !$isJsonExplicit && !str_starts_with($userAgent, 'curl/') && !str_starts_with($userAgent, 'Wget/');
 
@@ -41,7 +44,7 @@ if (!$prefersHtml || $isDetailRequested) {
     header('Access-Control-Allow-Origin: *');
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment');
-    header('Access-Control-Expose-Headers: WWW-Authenticate, X-Payment-Status, X-Payment-Amount');
+    header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount');
 
     // Se NÃO pediu detalhes: Entrega gratuita imediata
     if (!$isDetailRequested) {
@@ -479,6 +482,7 @@ header('Content-Type: text/html; charset=utf-8');
                 <button class="tab-btn" onclick="switchTab('python')">🐍 Python SDK</button>
                 <button class="tab-btn" onclick="switchTab('node')">🟢 Node.js SDK</button>
                 <button class="tab-btn" onclick="switchTab('curl')">💻 cURL CLI</button>
+                <button class="tab-btn" onclick="switchTab('badges')">🛡️ Badges para GitHub</button>
             </div>
 
             <!-- Tab 1: Console Interativo -->
@@ -549,6 +553,57 @@ curl https://www.grid402.com.br/telemetry \
   -H "Accept: application/json" \
   -H "X-Payment: 0x&lt;tx_hash_da_transferencia_na_base&gt;"</div>
             </div>
+
+            <!-- Tab 5: Badges para GitHub -->
+            <div id="tab-badges" class="tab-content">
+                <p style="color: var(--text-muted); margin-bottom: 1.25rem;">
+                    Exiba o status em tempo real do ecossistema fiscal e bancário brasileiro no README do seu repositório no GitHub ou documentação. Atualização automática em tempo real.
+                </p>
+                <div class="input-group" style="margin-bottom: 1rem;">
+                    <select id="badge-select" class="console-input" style="cursor: pointer;" onchange="updateBadgeSnippet()">
+                        <optgroup label="Visão Geral & Categorias">
+                            <option value="system" selected>Grid402 (Status Global do Sistema)</option>
+                            <option value="sefaz">SEFAZ (Todos os Autorizadores Fiscais)</option>
+                            <option value="pix">Bancos & PIX (BACEN / BB / Itaú / Bradesco)</option>
+                            <option value="gateways">Gateways (Mercado Pago / Asaas / Cielo / Stone)</option>
+                            <option value="infra">Telecom & Infra (SERPRO / AWS SP / DNS)</option>
+                        </optgroup>
+                        <optgroup label="Alvos Individuais (SEFAZ)">
+                            <option value="sefaz_sp">SEFAZ São Paulo</option>
+                            <option value="sefaz_rs">SEFAZ Rio Grande do Sul</option>
+                            <option value="sefaz_mg">SEFAZ Minas Gerais</option>
+                            <option value="sefaz_pr">SEFAZ Paraná</option>
+                            <option value="sefaz_svan">SEFAZ SVAN (Maranhão / Pará / Outros)</option>
+                        </optgroup>
+                        <optgroup label="Alvos Individuais (Gateways & Bancos)">
+                            <option value="mercadopago">Mercado Pago Core API</option>
+                            <option value="asaas">Asaas Gestão Financeira</option>
+                            <option value="cielo">Cielo e-Commerce</option>
+                            <option value="stone">Stone Pagamentos</option>
+                            <option value="pagseguro">PagSeguro PagBank</option>
+                            <option value="bacen_dados">Banco Central (BACEN)</option>
+                            <option value="banco_brasil">Banco do Brasil</option>
+                            <option value="itau_pix">Itaú Unibanco</option>
+                            <option value="bradesco_pix">Bradesco</option>
+                        </optgroup>
+                        <optgroup label="Infraestrutura & Nuvem">
+                            <option value="serpro">SERPRO Infraestrutura</option>
+                            <option value="aws_sa_east">AWS São Paulo (sa-east-1)</option>
+                        </optgroup>
+                    </select>
+                </div>
+
+                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; font-weight: 600;">Pré-visualização do Badge:</div>
+                        <img id="badge-preview-img" src="/badge/system.svg" alt="Grid402 Badge Preview" style="height: 22px; display: block;" onerror="this.src='/badge.php?target=system'">
+                    </div>
+                    <button class="btn-sm" onclick="copyBadgeMarkdown()">📋 Copiar Markdown</button>
+                </div>
+
+                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Snippet Markdown para colar no seu <code>README.md</code>:</div>
+                <pre id="badge-markdown-code" class="code-block" style="user-select: all;">[![Grid402 Status](https://www.grid402.com.br/badge/system.svg)](https://www.grid402.com.br)</pre>
+            </div>
         </section>
 
         <script>
@@ -598,6 +653,35 @@ curl https://www.grid402.com.br/telemetry \
                     statusText.textContent = 'Erro na requisição';
                     out.textContent = err.message;
                 }
+            }
+
+            function updateBadgeSnippet() {
+                const select = document.getElementById('badge-select');
+                const target = select.value;
+                const label = select.options[select.selectedIndex].text.split('(')[0].trim();
+                const previewImg = document.getElementById('badge-preview-img');
+                const codeBlock = document.getElementById('badge-markdown-code');
+
+                const origin = window.location.origin;
+                const badgeUrl = origin + '/badge/' + target + '.svg';
+                const linkUrl = 'https://www.grid402.com.br';
+
+                previewImg.src = '/badge/' + target + '.svg?t=' + Date.now();
+                codeBlock.textContent = `[![${label} Status](${badgeUrl})](${linkUrl})`;
+            }
+
+            function copyBadgeMarkdown() {
+                const codeBlock = document.getElementById('badge-markdown-code');
+                navigator.clipboard.writeText(codeBlock.textContent).then(() => {
+                    alert('Snippet Markdown copiado para a área de transferência!');
+                }).catch(() => {
+                    const range = document.createRange();
+                    range.selectNode(codeBlock);
+                    window.getSelection().removeAllRanges();
+                    window.getSelection().addRange(range);
+                    document.execCommand('copy');
+                    alert('Snippet Markdown copiado!');
+                });
             }
         </script>
 
