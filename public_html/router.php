@@ -21,6 +21,12 @@ if (preg_match('#^/badge/([a-zA-Z0-9_\-]+)(\.svg)?$#', $uri, $matches)) {
     exit;
 }
 
-// 3. Fallback para o Gateway central (index.php)
+// 3. Roteamento do Painel Admin
+if (preg_match('#^/(admin|dashboard)(/.*)?$#', $uri)) {
+    require __DIR__ . '/admin.php';
+    exit;
+}
+
+// 4. Fallback para o Gateway central (index.php)
 require __DIR__ . '/index.php';
 

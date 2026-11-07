@@ -163,17 +163,19 @@ function grid402_get_used_transactions(): array {
 /**
  * Escrita atômica em arquivo via arquivo temporário e rename
  */
-function grid402_atomic_write(string $filePath, mixed $data): bool {
-    $dir = dirname($filePath);
-    if (!is_dir($dir)) {
-        @mkdir($dir, 0755, true);
+if (!function_exists('grid402_atomic_write')) {
+    function grid402_atomic_write(string $filePath, mixed $data): bool {
+        $dir = dirname($filePath);
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+        $content = is_array($data) ? (string) json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : (string)$data;
+        $tmp = $filePath . '.' . bin2hex(random_bytes(6)) . '.tmp';
+        if (file_put_contents($tmp, $content, LOCK_EX) === false) {
+            return false;
+        }
+        return @rename($tmp, $filePath);
     }
-    $content = is_array($data) ? (string) json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : (string)$data;
-    $tmp = $filePath . '.' . bin2hex(random_bytes(6)) . '.tmp';
-    if (file_put_contents($tmp, $content, LOCK_EX) === false) {
-        return false;
-    }
-    return @rename($tmp, $filePath);
 }
 
 /**
@@ -290,6 +292,9 @@ function grid402_validate_payment(string $txHash): array {
  * Emite a resposta HTTP 402 Payment Required estruturada
  */
 function grid402_respond_402(?string $serviceName = null, ?string $errorMessage = null): void {
+    if (function_exists('grid402_record_telemetry')) {
+        grid402_record_telemetry($serviceName ?? 'unknown', 402, false);
+    }
     http_response_code(402);
     header('HTTP/1.1 402 Payment Required', true, 402);
     header('Content-Type: application/json; charset=utf-8');

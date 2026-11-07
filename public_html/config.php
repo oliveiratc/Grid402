@@ -65,6 +65,24 @@ function grid402_env(string $key, mixed $default = null): mixed {
     return $_ENV[$key] ?? $_SERVER[$key] ?? $default;
 }
 
+/**
+ * Escrita atômica em arquivo via arquivo temporário e rename
+ */
+if (!function_exists('grid402_atomic_write')) {
+    function grid402_atomic_write(string $filePath, mixed $data): bool {
+        $dir = dirname($filePath);
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+        $content = is_array($data) ? (string) json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : (string)$data;
+        $tmp = $filePath . '.' . bin2hex(random_bytes(6)) . '.tmp';
+        if (file_put_contents($tmp, $content, LOCK_EX) === false) {
+            return false;
+        }
+        return @rename($tmp, $filePath);
+    }
+}
+
 // 2. Parâmetros x402 e Blockchain (Base / USDC)
 define('GRID402_WALLET_ADDRESS', strtolower((string) grid402_env('GRID402_WALLET_ADDRESS', '0xa31c31069c43ac1c0075a93c325b0dcd7744356c')));
 define('GRID402_BASE_RPC_URL', (string) grid402_env('GRID402_BASE_RPC_URL', 'https://mainnet.base.org'));
@@ -87,6 +105,8 @@ define('GRID402_FILE_PAID', GRID402_PRIVATE_DIR . '/telemetry_paid.json');
 define('GRID402_FILE_USED_TXS', GRID402_PRIVATE_DIR . '/used_txs.json');
 define('GRID402_FILE_FOREX', GRID402_PRIVATE_DIR . '/forex_cache.json');
 define('GRID402_FILE_CRYPTO', GRID402_PRIVATE_DIR . '/crypto_cache.json');
+define('GRID402_FILE_METRICS', GRID402_PRIVATE_DIR . '/metrics.json');
+define('GRID402_FILE_ADMIN_AUTH', GRID402_PRIVATE_DIR . '/admin_auth.json');
 
 // 5. Catálogo Oficial dos 6 Micro-Serviços Core de Dados Públicos e Rede
 function grid402_get_utility_services(): array {

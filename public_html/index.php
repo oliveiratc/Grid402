@@ -18,6 +18,7 @@ require_once __DIR__ . '/services/dns.php';
 require_once __DIR__ . '/services/ssl.php';
 require_once __DIR__ . '/services/asn.php';
 require_once __DIR__ . '/services/cep.php';
+require_once __DIR__ . '/metrics.php';
 
 // Leitura de cabeçalhos e rotas
 $acceptHeader = (string) ($_SERVER['HTTP_ACCEPT'] ?? '');
@@ -108,6 +109,7 @@ if (!$prefersHtml || $apiParam !== '') {
                 }
                 include_once __DIR__ . '/collector.php';
             }
+            grid402_record_telemetry('summary', 200, false);
             header('Content-Type: application/json; charset=utf-8');
             header('Cache-Control: public, max-age=30');
             readfile(GRID402_FILE_FREE);
@@ -124,6 +126,8 @@ if (!$prefersHtml || $apiParam !== '') {
     // Auditoria on-chain com trava atômica anti-replay
     $validation = grid402_validate_payment($paymentProof);
     if (!$validation['valid']) {
+        $serviceLabel = $apiParam !== '' ? $apiParam : 'technical-utility';
+        grid402_record_telemetry($serviceLabel, $validation['code'], false, $paymentProof);
         http_response_code($validation['code']);
         header('Content-Type: application/json; charset=utf-8');
         if ($validation['code'] === 402) {
@@ -139,6 +143,7 @@ if (!$prefersHtml || $apiParam !== '') {
     }
 
     // Pagamento validado com sucesso! Executa o micro-serviço requisitado
+    grid402_record_telemetry($apiParam, 200, true, $paymentProof, null, (float)GRID402_PRICE_DISPLAY);
     http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');
     header('X-Payment-Status: Accepted');
