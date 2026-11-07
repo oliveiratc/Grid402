@@ -52,13 +52,13 @@ A rede Base (Coinbase) possui um diretório oficial onde projetos pioneiros no u
 * **Campos preenchidos para copiar e colar:**
   - **Project Name:** Grid402
   - **Website:** https://www.grid402.com.br
-  - **Category:** Infrastructure / AI / DePIN
-  - **Short Tagline:** Real-time M2M telemetry oracle for Brazilian infrastructure powered by x402 micro-settlements on Base.
+  - **Category:** Infrastructure / AI / DePIN / Oracles
+  - **Short Tagline:** High-performance public data & network utilities hub for autonomous AI agents powered by x402 micropayments on Base.
   - **Network:** Base Mainnet (Chain ID 8453)
   - **Token Contract:** `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` (USDC)
   - **Oracle Wallet:** `0xa31c31069c43ac1c0075a93c325b0dcd7744356c`
   - **Description:**
-    > Grid402 is an autonomous telemetry oracle designed for AI agents and enterprise backends operating in Brazil. It provides millisecond-precise health and latency metrics across government tax authorities (SEFAZ), central bank payments (BACEN / PIX), and financial gateways. Queries are monetized autonomously via the HTTP 402 protocol at $0.0005 USDC per query, verified on-chain against Base Mainnet RPC.
+    > Grid402 is an autonomous open data and network utility hub tailored for AI agents, crawlers, and M2M automation pipelines. It provides high-speed, zero-PII queries across Foreign Exchange (USD/EUR/BRL), Spot Crypto Tickers, RFC 1035 DNS records, Port 443 TLS/SSL certificates, BGP/ASN routing, and Brazilian CEP/IBGE postal codes. Queries are settled via the HTTP 402 protocol at $0.0005 USDC per query, verified on-chain against Base Mainnet RPC with atomic anti-replay concurrency locks.
 
 ---
 
@@ -68,30 +68,45 @@ Canais prioritários no Farcaster: `/base`, `/dev`, `/ai-agents`.
 
 ### Modelo em Inglês (Farcaster `/base` & `/ai-agents`):
 ```text
-Built an autonomous M2M telemetry oracle on @base using the HTTP 402 protocol: Grid402 ⚡
+Built an autonomous open data & network utility hub on @base using the HTTP 402 protocol: Grid402 ⚡
 
-AI agents can now inspect the real-time availability of Brazilian digital infrastructure (SEFAZ tax authorizers, PIX/Central Bank, payment gateways) before firing transaction batches.
+AI agents and scraping pipelines can now resolve network utilities with zero signup, zero subscriptions, and instant on-chain micropayments:
+- Real-time Forex (USD, EUR, GBP to BRL)
+- Spot Crypto Tickers (BTC, ETH, SOL, USDC, BASE)
+- DNS Lookup (A, AAAA, MX, TXT, NS, CNAME)
+- TLS/SSL Inspector (Cert validity, issuer, days left)
+- ASN & BGP routing lookup
+- CEP & IBGE postal code resolution
 
-- Free tier: aggregated health summary
-- Paid tier: $0.0005 USDC micro-payment per query on Base Mainnet
-- Zero-DB, pure L1/L2 on-chain receipt verification
+⚡ $0.0005 USDC per technical query on Base Mainnet (Chain ID 8453)
+🔒 100% Zero-PII, open datasets, atomic anti-replay locking
 
-Live now: https://www.grid402.com.br
-Agent doc: https://www.grid402.com.br/llms.txt
+Live: https://www.grid402.com.br
+Crawler docs: https://www.grid402.com.br/llms.txt
+Free summary: https://www.grid402.com.br/api/v1/summary
 SDKs: Python & TypeScript
 ```
 
 ### Modelo em Português (LinkedIn / X / Comunidades Dev Brasil):
 ```text
-Lançamos o Grid402 (https://www.grid402.com.br): o primeiro oráculo de telemetria M2M para a infraestrutura digital brasileira usando micropagamentos HTTP 402 na rede Base.
+Lançamos o Grid402 (https://www.grid402.com.br): o primeiro hub de dados públicos e utilitários de rede M2M com micropagamentos HTTP 402 na rede Base.
 
-Sistemas de ERP, bots e agentes de IA agora podem checar a saúde e latência da SEFAZ (SP, RS, MG, PR), BACEN (PIX) e gateways antes de disparar lotes de transações.
+Agentes autônomos, robôs e esteiras de desenvolvimento agora contam com APIs ultrarrápidas sem burocracia de cadastro, cartão de crédito ou mensalidades:
+- Câmbio fiduciário (Dólar, Euro, Libra para Real)
+- Cotação spot de criptoativos (BTC, ETH, SOL)
+- Resolução completa de DNS
+- Inspeção de certificados TLS/SSL
+- Consulta de ASN/BGP de IPs
+- Busca de CEP e código IBGE do município
 
-Além da API, disponibilizamos badges SVG dinâmicos para você colocar no README do seu repositório open-source de NF-e ou PIX:
+Custo: apenas US$ 0.0005 USDC por consulta na Base Mainnet, validado on-chain.
 
-[![SEFAZ SP Status](https://www.grid402.com.br/badge/sefaz_sp.svg)](https://www.grid402.com.br)
+Badges dinâmicos SVG para repositórios:
+[![Câmbio USD/BRL](https://www.grid402.com.br/badge/forex.svg)](https://www.grid402.com.br)
+[![Cripto BTC/USD](https://www.grid402.com.br/badge/crypto.svg)](https://www.grid402.com.br)
+[![Grid402 Hub](https://www.grid402.com.br/badge/system.svg)](https://www.grid402.com.br)
 
-SDKs oficiais em Python e Node.js disponíveis!
+SDKs oficiais disponíveis em Python (`pip install grid402`) e Node.js (`npm install grid402`).
 ```
 
 ---
@@ -101,33 +116,19 @@ SDKs oficiais em Python e Node.js disponíveis!
 Crie um Pull Request simples adicionando o Grid402 nas listas mais populares:
 
 ### 4.1. Repositório: `awesome-base`
-Adicionar sob a seção **AI / Infrastructure**:
+Adicionar sob a seção **AI / Infrastructure / Micropayments**:
 ```markdown
-- [Grid402](https://www.grid402.com.br) - Real-time Brazilian digital infrastructure telemetry oracle with HTTP 402 USDC micro-settlement on Base.
+- [Grid402](https://www.grid402.com.br) - High-speed open data & network utility hub with HTTP 402 USDC micro-settlement on Base.
 ```
 
 ### 4.2. Repositório: `awesome-ai-agents` ou `awesome-ai-tools`
-Adicionar sob **Agent Infrastructure & Oracles**:
+Adicionar sob **Agent Infrastructure & Utility Hubs**:
 ```markdown
-- [Grid402](https://www.grid402.com.br) - Infrastructure telemetry oracle and circuit-breaker for autonomous AI agents with HTTP 402 micropayments.
+- [Grid402](https://www.grid402.com.br) - Public data & network utilities hub (forex, crypto, DNS, SSL, ASN, CEP) for autonomous AI agents with HTTP 402 micropayments.
 ```
 
 ### 4.3. Repositório: `awesome-brasil`
-Adicionar sob **APIs Públicas e Infraestrutura**:
+Adicionar sob **APIs Públicas e Utilitários**:
 ```markdown
-- [Grid402](https://www.grid402.com.br) - Monitoramento em tempo real de autorizadores fiscais (SEFAZ), PIX/BACEN e gateways de pagamento com badges dinâmicos para README.
+- [Grid402](https://www.grid402.com.br) - APIs públicas de alta performance (Câmbio, Cripto, DNS, SSL, ASN, CEP/IBGE) com micropagamentos x402 e badges dinâmicos em SVG.
 ```
-
----
-
-## 5. Viralização Passiva via Badges nos Repositórios de NF-e
-
-Muitos desenvolvedores mantêm repositórios de SPED / NF-e / PIX no GitHub. Você pode abrir uma issue ou PR sugerindo a inclusão do status da SEFAZ no topo do README deles:
-
-**Exemplo de sugestão gentil em issue:**
-> "Olá pessoal! Parabéns pelo projeto. Como muitos usuários costumam abrir issues achando que a biblioteca está com bug quando na verdade é a SEFAZ que caiu, sugiro adicionar o badge de status em tempo real no topo do README:
-> 
-> `[![SEFAZ SP Status](https://www.grid402.com.br/badge/sefaz_sp.svg)](https://www.grid402.com.br)`
-> 
-> Ele atualiza a cada 2 minutos automaticamente."
-

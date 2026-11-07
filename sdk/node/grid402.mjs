@@ -1,6 +1,7 @@
 /**
  * Grid402 Client SDK (Node.js / ESM / Browser)
  * Zero-dependency client for autonomous AI agents and M2M applications.
+ * Access public open data and network utilities via x402 micropayments on Base.
  */
 
 export const DEFAULT_GRID402_URL = 'https://orangered-jackal-900744.hostingersite.com';
@@ -33,6 +34,14 @@ export class ReplayAttackError extends Grid402Error {
     }
 }
 
+/**
+ * Cliente oficial para integração com o Hub de Utilitários e Dados Públicos Grid402.
+ * 
+ * AVISO LEGAL (AS-IS):
+ * Software e dados fornecidos 'NO ESTADO EM QUE SE ENCONTRAM' (AS-IS),
+ * sem garantias de qualquer natureza. O usuário assume total responsabilidade
+ * pelas decisões e operações tomadas com base nestes dados.
+ */
 export class Grid402Client {
     /**
      * @param {Object} [options]
@@ -54,7 +63,7 @@ export class Grid402Client {
                 method: 'GET',
                 headers: {
                     'Accept': 'application/json',
-                    'User-Agent': 'Grid402-Node-SDK/1.0',
+                    'User-Agent': 'Grid402-Node-SDK/2.0',
                     ...headers,
                 },
                 signal: controller.signal,
@@ -86,45 +95,21 @@ export class Grid402Client {
     }
 
     /**
-     * Obtém o resumo executivo gratuito (status e latências médias por categoria).
+     * Obtém o resumo executivo gratuito (status e latências dos 6 micro-serviços).
      * @returns {Promise<Object>}
      */
     async getSummary() {
-        return this._request('/status?format=json');
+        return this._request('/api/v1/summary');
     }
 
     /**
-     * Verifica rapidamente se um alvo específico ou categoria está saudável (UP).
-     * @param {string} targetOrCategory
-     * @returns {Promise<boolean>}
-     */
-    async isHealthy(targetOrCategory) {
-        const summary = await this.getSummary();
-        const categories = summary.categories || {};
-
-        if (categories[targetOrCategory]) {
-            return categories[targetOrCategory].status === 'UP';
-        }
-
-        const lower = targetOrCategory.toLowerCase();
-        if (lower.includes('sefaz')) {
-            return categories['SEFAZ']?.status === 'UP';
-        } else if (['mercado', 'asaas', 'stripe', 'pagbank', 'cora'].some(g => lower.includes(g))) {
-            return categories['Gateways']?.status === 'UP';
-        } else if (['bacen', 'pix', 'nubank', 'inter', 'openfinance'].some(b => lower.includes(b))) {
-            return categories['Bancos & PIX']?.status === 'UP';
-        }
-
-        return summary.system_status === 'UP';
-    }
-
-    /**
-     * Obtém o desafio x402 com as diretrizes de liquidação.
+     * Dispara consulta técnica sem pagamento para obter o desafio x402 e parâmetros da Base.
+     * @param {string} [endpoint]
      * @returns {Promise<Object>}
      */
-    async getChallenge() {
+    async getChallenge(endpoint = '/api/v1/forex') {
         try {
-            await this._request('/telemetry');
+            await this._request(endpoint);
             throw new Grid402Error('Esperado desafio HTTP 402, mas a rota respondeu sem restrição.');
         } catch (err) {
             if (err instanceof PaymentRequiredError) {
@@ -135,33 +120,102 @@ export class Grid402Client {
     }
 
     /**
-     * Resgata a telemetria detalhada enviando o comprovante da transação on-chain.
-     * @param {string} paymentTxHash
+     * Consulta cotações fiduciárias em tempo real (USD, EUR, GBP para BRL).
+     * @param {string} [paymentTxHash]
      * @returns {Promise<Object>}
      */
-    async getDetailedTelemetry(paymentTxHash) {
-        if (!paymentTxHash.startsWith('0x') || paymentTxHash.length !== 66) {
-            throw new Error('O paymentTxHash deve ser um hash hexadecimal válido de 32 bytes (66 caracteres).');
+    async getForex(paymentTxHash) {
+        const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+        return this._request('/api/v1/forex', headers);
+    }
+
+    /**
+     * Consulta preços de mercado spot de criptoativos (BTC, ETH, SOL, USDC, BASE).
+     * @param {string} [paymentTxHash]
+     * @returns {Promise<Object>}
+     */
+    async getCrypto(paymentTxHash) {
+        const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+        return this._request('/api/v1/crypto', headers);
+    }
+
+    /**
+     * Resolve registros DNS (A, AAAA, MX, TXT, NS, CNAME) para um domínio.
+     * @param {string} domain
+     * @param {string} [paymentTxHash]
+     * @returns {Promise<Object>}
+     */
+    async getDns(domain, paymentTxHash) {
+        const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+        const q = new URLSearchParams({ domain }).toString();
+        return this._request(`/api/v1/dns?${q}`, headers);
+    }
+
+    /**
+     * Inspeciona certificado TLS/SSL na porta 443 de um host (emissor, validade e dias restantes).
+     * @param {string} host
+     * @param {string} [paymentTxHash]
+     * @returns {Promise<Object>}
+     */
+    async getSsl(host, paymentTxHash) {
+        const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+        const q = new URLSearchParams({ host }).toString();
+        return this._request(`/api/v1/ssl?${q}`, headers);
+    }
+
+    /**
+     * Resolve metadados BGP, ASN e país para um endereço IP.
+     * @param {string} [ip]
+     * @param {string} [paymentTxHash]
+     * @returns {Promise<Object>}
+     */
+    async getAsn(ip, paymentTxHash) {
+        const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+        const q = ip ? `?${new URLSearchParams({ ip }).toString()}` : '';
+        return this._request(`/api/v1/asn${q}`, headers);
+    }
+
+    /**
+     * Resolve endereço público e código IBGE a partir de um CEP brasileiro.
+     * @param {string} code
+     * @param {string} [paymentTxHash]
+     * @returns {Promise<Object>}
+     */
+    async getCep(code, paymentTxHash) {
+        const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+        const q = new URLSearchParams({ code }).toString();
+        return this._request(`/api/v1/cep?${q}`, headers);
+    }
+
+    /**
+     * Verifica rapidamente se um serviço específico ou o hub está saudável (UP).
+     * @param {string} [serviceName]
+     * @returns {Promise<boolean>}
+     */
+    async isHealthy(serviceName = 'forex') {
+        const summary = await this.getSummary();
+        const services = summary.services || {};
+        if (services[serviceName]) {
+            return services[serviceName].status === 'UP';
         }
-        return this._request('/telemetry', { 'X-Payment': paymentTxHash });
+        return summary.status === 'OPERATIONAL';
     }
 
     /**
      * Circuit Breaker: Só executa a função action se o serviço estiver UP.
-     * @param {string} targetOrCategory
+     * @param {string} serviceName
      * @param {Function} action
      * @param {Function} [fallback]
      * @returns {Promise<any>}
      */
-    async guard(targetOrCategory, action, fallback) {
-        const healthy = await this.isHealthy(targetOrCategory);
+    async guard(serviceName, action, fallback) {
+        const healthy = await this.isHealthy(serviceName);
         if (healthy) {
             return action();
         }
         if (fallback) {
             return fallback();
         }
-        throw new Grid402Error(`Circuito aberto: O serviço '${targetOrCategory}' está instável ou indisponível no momento.`);
+        throw new Grid402Error(`Circuito aberto: O serviço '${serviceName}' está indisponível no momento.`);
     }
 }
-

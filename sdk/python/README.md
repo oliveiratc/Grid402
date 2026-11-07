@@ -1,24 +1,33 @@
 # Grid402 Python SDK ⚡
 
-[![PyPI version](https://img.shields.io/badge/pypi-v1.0.0-blue.svg)](https://pypi.org/project/grid402/)
+[![PyPI version](https://img.shields.io/badge/pypi-v2.0.0-blue.svg)](https://pypi.org/project/grid402/)
 [![Base Mainnet](https://img.shields.io/badge/Network-Base%20(8453)-0052FF.svg)](https://base.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Grid402 Status](https://www.grid402.com.br/badge/system.svg)](https://www.grid402.com.br)
 
-Official zero-dependency Python client for the **Grid402 Telemetry Oracle** — inspecting real-time health, latency, and availability of critical Brazilian digital infrastructure (SEFAZ autorizadores fiscais, PIX/BACEN, payment gateways, and cloud backbones) with built-in circuit-breaker patterns and x402 on-chain micro-settlement.
+SDK oficial em Python (zero dependências externas) para o **Grid402** — Hub de Alta Performance de Utilitários de Rede e Dados Públicos com micropagamentos via protocolo **x402** na rede **Base Mainnet** (US$ 0.0005 USDC por consulta).
+
+Ideal para robôs autônomos, agentes de IA (LangChain, CrewAI, AutoGen) e esteiras de automação M2M.
 
 ---
 
-## 🚀 Key Features
+## 🚀 Funcionalidades
 
-* **Zero External Dependencies:** Built entirely with Python's standard library (`urllib`).
-* **Circuit Breaker Pattern (`guard`):** Automatically halts bulk transaction/NF-e execution when upstream infrastructure drops or degrades.
-* **x402 Micropayment Protocol:** Seamlessly handles HTTP 402 handshakes on the **Base Mainnet** ($0.0005 USDC per detailed telemetry query).
-* **AI Agent Ready:** Native integration with LangChain, CrewAI, AutoGen, and LLM tool-calling.
+* **Zero Dependências:** Construído unicamente sobre a biblioteca padrão do Python (`urllib`, `ssl`, `json`).
+* **6 Micro-serviços Técnicos:**
+  1. `forex`: Cotações fiduciárias em tempo real (USD, EUR, GBP para BRL).
+  2. `crypto`: Preços spot de criptoativos (BTC, ETH, SOL, USDC, BASE).
+  3. `dns`: Resolução de registros RFC 1035 (A, AAAA, MX, TXT, NS, CNAME).
+  4. `ssl`: Inspeção TLS na porta 443 (validade, emissor, SANs e dias restantes).
+  5. `asn`: Resolução BGP de sistema autônomo, organização e país.
+  6. `cep`: Consulta de endereço público e código oficial IBGE do município.
+* **Resumo Gratuito:** Rota `/api/v1/summary` aberta para checagem rápida de saúde e discovery.
+* **Protocolo x402 Nativo:** Suporte a cabeçalhos `X-Payment` e tratamento automático de desafios HTTP 402.
+* **Circuit Breaker (`guard`):** Proteção defensiva de tarefas batch contra serviços indisponíveis.
 
 ---
 
-## 📦 Installation
+## 📦 Instalação
 
 ```bash
 pip install grid402
@@ -26,71 +35,71 @@ pip install grid402
 
 ---
 
-## ⚡ Quick Start
+## ⚡ Guia Rápido
 
-### 1. Free Public Health Check
+### 1. Resumo Gratuito e Checagem de Saúde
 ```python
 from grid402 import Grid402Client
 
 client = Grid402Client()
 
-# Check overall Brazilian infrastructure status
+# Resumo executivo gratuito
 summary = client.get_summary()
-print("Sistema:", summary["system_status"])  # UP / DEGRADED / DOWN
+print("Status do Hub:", summary["status"])
 
-# Fast boolean checks before batch jobs
-if client.is_healthy("SEFAZ"):
-    print("SEFAZ autorizadores operando normalmente!")
+# Checagem booleana rápida
+if client.is_healthy("forex"):
+    print("Módulo de câmbio operacional!")
 ```
 
-### 2. Circuit Breaker (`guard`)
-Prevent cascading failures when services (e.g., SEFAZ SP or PIX) are unstable:
-```python
-def emitir_lote_notas():
-    # Código que emite 500 notas fiscais eletrônicas
-    return "Lote processado com sucesso!"
+### 2. Consultas Técnicas via Micropagamento x402
+Cada consulta técnica custa **US$ 0.0005 USDC** liquidado diretamente na Base Mainnet.
 
-def salvar_em_contingencia():
-    # Fallback automático se a SEFAZ estiver instável
-    return "Notas salvas para emissão em contingência."
-
-# Só executa emitir_lote_notas se a SEFAZ estiver saudável
-resultado = client.guard("SEFAZ", emitir_lote_notas, fallback=salvar_em_contingencia)
-print(resultado)
-```
-
-### 3. Detailed Telemetry with x402 Micropayment
 ```python
 from grid402 import Grid402Client, PaymentRequiredError
 
 client = Grid402Client()
+tx_hash = "0x<sua_transacao_base_mainnet>"
 
 try:
-    # Query millisecond-level telemetry item by item
-    data = client.get_detailed_telemetry("0x<your_base_tx_hash>")
-    print("Métricas detalhadas:", data["targets"])
-except PaymentRequiredError as err:
-    # Handles HTTP 402 challenge
-    print(f"Envie {err.price_usdc} USDC para {err.recipient_wallet} na Base (Chain ID 8453).")
+    # 1. Câmbio fiduciário
+    forex = client.get_forex(payment_tx_hash=tx_hash)
+    print("USD/BRL:", forex["rates"]["USD"]["bid"])
+
+    # 2. Resolução DNS
+    dns = client.get_dns("github.com", payment_tx_hash=tx_hash)
+    print("Registros A:", dns["records"]["A"])
+
+    # 3. Inspetor SSL
+    ssl_info = client.get_ssl("base.org", payment_tx_hash=tx_hash)
+    print("Dias até expirar SSL:", ssl_info["certificate"]["days_remaining"])
+
+    # 4. Consulta CEP e IBGE
+    cep = client.get_cep("01310100", payment_tx_hash=tx_hash)
+    print("Município IBGE:", cep["ibge"])
+
+except PaymentRequiredError as p:
+    # Desafio 402 retornado caso não haja hash ou seja insuficiente
+    print(f"Envie {p.price_usdc} USDC para {p.recipient_wallet} na Base (Chain ID 8453).")
 ```
 
 ---
 
-## 🤖 AI Agent Tool Integration (LangChain / CrewAI)
+## 🤖 Conector para Agentes de IA (CrewAI / LangChain)
 
 ```python
-from grid402 import Grid402Client
+from grid402_tool import create_grid402_tool, GRID402_FUNCTION_SCHEMAS
 
-client = Grid402Client()
+# Função invocável pelo LLM
+grid_tool = create_grid402_tool()
 
-def check_brazil_infra_status(service_name: str) -> str:
-    """Useful tool for AI agents to check if SEFAZ, PIX, or Gateways are UP before executing financial actions."""
-    is_up = client.is_healthy(service_name)
-    return f"O serviço {service_name} está {'OPERANTE (UP)' if is_up else 'INSTÁVEL / FORA DO AR (DOWN)'}."
+# Exemplo de chamada pelo agente
+resultado_dns = grid_tool(service="dns", target="cloudflare.com")
+print(resultado_dns)
 ```
 
 ---
 
-## 📄 License
-MIT License. Developed for autonomous agents and resilient Brazilian financial engineering.
-
+## 📄 Termos e Conformidade Legal
+- **Pessoa Física / Isenção:** Dados disponibilizados estritamente no estado em que se encontram (AS-IS).
+- **Zero PII / LGPD:** Todos os endpoints processam exclusivamente dados públicos de domínio e protocolo de rede.

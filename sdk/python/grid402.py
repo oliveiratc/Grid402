@@ -1,10 +1,12 @@
 """
 Grid402 Client SDK (Python)
 Zero-dependency SDK for autonomous AI agents and M2M applications.
+Access public open data and network utilities with x402 micropayments on Base.
 """
 
 from typing import Any, Callable, Dict, Optional, Union
 import urllib.request
+import urllib.parse
 import urllib.error
 import json
 import ssl
@@ -18,7 +20,7 @@ class Grid402Error(Exception):
 
 
 class PaymentRequiredError(Grid402Error):
-    """Exceção lançada quando a telemetria detalhada exige pagamento via x402."""
+    """Exceção lançada quando uma consulta técnica exige micropagamento via x402."""
     def __init__(self, challenge: Dict[str, Any]):
         super().__init__(challenge.get("message", "Pagamento x402 requerido"))
         self.challenge = challenge
@@ -31,12 +33,18 @@ class PaymentRequiredError(Grid402Error):
 
 
 class ReplayAttackError(Grid402Error):
-    """Exceção lançada quando um hash de transação já foi utilizado."""
+    """Exceção lançada quando um hash de transação já foi liquidado anteriormente."""
     pass
 
 
 class Grid402Client:
-    """Cliente oficial para integração com o Oráculo de Telemetria Grid402."""
+    """
+    Cliente oficial para integração com o Hub de Utilitários e Dados Públicos Grid402.
+    
+    AVISO LEGAL (AS-IS):
+    Este software e os dados fornecidos são disponibilizados 'NO ESTADO EM QUE SE ENCONTRAM' (AS-IS),
+    sem qualquer garantia de adequação a um propósito comercial específico.
+    """
 
     def __init__(self, base_url: str = DEFAULT_GRID402_URL, timeout: float = 5.0, verify_ssl: bool = True):
         self.base_url = base_url.rstrip("/")
@@ -48,7 +56,7 @@ class Grid402Client:
         url = f"{self.base_url}{endpoint}"
         req_headers = {
             "Accept": "application/json",
-            "User-Agent": "Grid402-Python-SDK/1.0",
+            "User-Agent": "Grid402-Python-SDK/2.0",
         }
         if headers:
             req_headers.update(headers)
@@ -76,65 +84,65 @@ class Grid402Client:
             raise Grid402Error(f"Erro de conexão com o Grid402: {str(ex)}")
 
     def get_summary(self) -> Dict[str, Any]:
-        """Obtém o resumo executivo gratuito da telemetria (status por categoria e latências médias)."""
+        """Obtém o resumo gratuito de status do hub e cotações agregadas."""
         return self._request("/status?format=json")
 
-    def is_healthy(self, target_or_category: str) -> bool:
-        """
-        Verifica rapidamente se um alvo específico ou categoria está UP.
-        Exemplos:
-            client.is_healthy('SEFAZ')
-            client.is_healthy('sefaz_sp')
-            client.is_healthy('mercadopago')
-        """
-        summary = self.get_summary()
-
-        # Verifica categoria (SEFAZ, Gateways, Bancos & PIX, Telecom & Infra)
-        categories = summary.get("categories", {})
-        if target_or_category in categories:
-            return categories[target_or_category].get("status") == "UP"
-
-        # Se for um ID individual, tenta consultar a telemetria paga se disponível em cache
-        # Caso contrário, infere a categoria
-        cat_lower = target_or_category.lower()
-        if "sefaz" in cat_lower:
-            return categories.get("SEFAZ", {}).get("status") == "UP"
-        elif any(g in cat_lower for g in ["mercado", "asaas", "stripe", "pagbank", "cora"]):
-            return categories.get("Gateways", {}).get("status") == "UP"
-        elif any(b in cat_lower for g in ["bacen", "pix", "nubank", "inter", "openfinance"]):
-            return categories.get("Bancos & PIX", {}).get("status") == "UP"
-
-        return summary.get("system_status") == "UP"
-
-    def get_challenge(self) -> Dict[str, Any]:
-        """Obtém as diretrizes e parâmetros para pagamento x402 na Base Mainnet."""
+    def get_challenge(self, endpoint: str = "/api/v1/forex") -> Dict[str, Any]:
+        """Dispara uma consulta técnica sem pagamento para obter o desafio x402 e parâmetros da Base."""
         try:
-            self._request("/telemetry")
+            self._request(endpoint)
             raise Grid402Error("Esperado desafio HTTP 402, mas a rota respondeu sem restrição.")
         except PaymentRequiredError as p_err:
             return p_err.challenge
 
-    def get_detailed_telemetry(self, payment_tx_hash: str) -> Dict[str, Any]:
-        """
-        Resgata a telemetria detalhada item a item enviando o comprovante de pagamento on-chain.
-        
-        Args:
-            payment_tx_hash: Hash da transação na rede Base (0x...)
-        """
-        if not payment_tx_hash.startswith("0x") or len(payment_tx_hash) != 66:
-            raise ValueError("O payment_tx_hash deve ser um hash hexadecimal válido de 32 bytes (66 caracteres).")
+    def get_forex(self, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Consulta cotações fiduciárias em tempo real (USD, EUR, GBP para BRL)."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        return self._request("/api/v1/forex", headers=headers)
 
-        return self._request("/telemetry", headers={"X-Payment": payment_tx_hash})
+    def get_crypto(self, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Consulta preços de mercado de criptoativos (BTC, ETH, SOL, USDC)."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        return self._request("/api/v1/crypto", headers=headers)
 
-    def guard(self, target_or_category: str, action: Callable[..., Any], fallback: Optional[Callable[..., Any]] = None) -> Any:
+    def get_dns(self, domain: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Resolve registros DNS (A, AAAA, MX, TXT, NS, CNAME) de um domínio."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        q = urllib.parse.urlencode({"domain": domain})
+        return self._request(f"/api/v1/dns?{q}", headers=headers)
+
+    def get_ssl(self, host: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Inspeciona o certificado TLS/SSL de um host (emissor, validade e dias restantes)."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        q = urllib.parse.urlencode({"host": host})
+        return self._request(f"/api/v1/ssl?{q}", headers=headers)
+
+    def get_asn(self, ip: Optional[str] = None, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Resolve metadados BGP, ASN e país de um endereço IP."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        q = f"?ip={urllib.parse.quote(ip)}" if ip else ""
+        return self._request(f"/api/v1/asn{q}", headers=headers)
+
+    def get_cep(self, code: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Resolve endereço público e código IBGE do município a partir de um CEP de 8 dígitos."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        q = urllib.parse.urlencode({"code": code})
+        return self._request(f"/api/v1/cep?{q}", headers=headers)
+
+    def is_healthy(self, service_name: str = "forex") -> bool:
+        """Verifica se um serviço específico ou o hub está operacional."""
+        summary = self.get_summary()
+        services = summary.get("services", {})
+        if service_name in services:
+            return services[service_name].get("status") == "UP"
+        return summary.get("status") == "OPERATIONAL"
+
+    def guard(self, service_name: str, action: Callable[..., Any], fallback: Optional[Callable[..., Any]] = None) -> Any:
         """
-        Padrão Circuit Breaker: Executa a ação se o serviço monitorado estiver UP.
-        Se estiver DOWN ou DEGRADED, dispara o fallback ou bloqueia a execução.
+        Circuit Breaker defensivo: Executa a ação se o micro-serviço estiver UP.
         """
-        if self.is_healthy(target_or_category):
+        if self.is_healthy(service_name):
             return action()
-        
         if fallback:
             return fallback()
-        
-        raise Grid402Error(f"Circuito aberto: O serviço '{target_or_category}' está instável ou indisponível no momento.")
+        raise Grid402Error(f"Circuito aberto: O serviço '{service_name}' está temporariamente indisponível.")

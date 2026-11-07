@@ -1,69 +1,161 @@
 """
 Grid402 AI Agent Tool Connector
 Provides pre-built tool functions and schemas for LangChain, CrewAI, AutoGen, and LLM Function Calling.
+Access public open data and network utilities via x402 micropayments on Base.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 import json
-from grid402 import Grid402Client
+from grid402 import Grid402Client, PaymentRequiredError
 
 
-def create_grid402_tool(base_url: Optional[str] = None, verify_ssl: bool = True):
+def create_grid402_tools(base_url: Optional[str] = None, verify_ssl: bool = True) -> Dict[str, Any]:
     """
-    Cria uma função invocável por agentes de IA para verificar a saúde da infraestrutura brasileira.
+    Cria um conjunto de funções invocáveis por agentes de IA para utilitários de rede e dados públicos.
     Compatível com CrewAI, LangChain e Function Calling do Gemini/OpenAI/Claude.
     """
     client = Grid402Client(base_url=base_url, verify_ssl=verify_ssl) if base_url else Grid402Client(verify_ssl=verify_ssl)
 
-    def grid402_check_infrastructure(service_or_category: str) -> str:
-        """
-        Consulta a disponibilidade e latência de serviços críticos brasileiros (SEFAZ autorizadores, PIX, BACEN, Gateways).
-        
-        Args:
-            service_or_category: Nome do serviço ou categoria (ex: 'SEFAZ', 'sefaz_sp', 'Gateways', 'mercadopago', 'pix', 'system').
-        """
+    def get_summary() -> str:
+        """Obtém o resumo gratuito de saúde dos micro-serviços do Grid402."""
         try:
-            summary = client.get_summary()
-            is_up = client.is_healthy(service_or_category)
-            
-            categories = summary.get("categories", {})
-            cat_info = categories.get(service_or_category) or {}
-            avg_lat = cat_info.get("avg_latency_ms", "N/A")
-
-            status_str = "OPERANTE (UP)" if is_up else "INSTÁVEL OU FORA DO AR (DOWN)"
-            return (
-                f"Status de '{service_or_category}': {status_str}. "
-                f"Latência média da categoria: {avg_lat} ms. "
-                f"Status geral da infraestrutura brasileira: {summary.get('system_status')}."
-            )
+            return json.dumps(client.get_summary(), ensure_ascii=False)
         except Exception as e:
-            return f"Erro ao consultar o oráculo Grid402: {str(e)}"
+            return json.dumps({"error": str(e)}, ensure_ascii=False)
 
-    return grid402_check_infrastructure
+    def get_forex(payment_tx_hash: Optional[str] = None) -> str:
+        """Consulta cotações fiduciárias em tempo real (USD, EUR, GBP para BRL)."""
+        try:
+            return json.dumps(client.get_forex(payment_tx_hash=payment_tx_hash), ensure_ascii=False)
+        except PaymentRequiredError as p:
+            return json.dumps({"payment_required": True, "challenge": p.challenge}, ensure_ascii=False)
+        except Exception as e:
+            return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+    def get_crypto(payment_tx_hash: Optional[str] = None) -> str:
+        """Consulta cotações spot de criptoativos (BTC, ETH, SOL, USDC, BASE)."""
+        try:
+            return json.dumps(client.get_crypto(payment_tx_hash=payment_tx_hash), ensure_ascii=False)
+        except PaymentRequiredError as p:
+            return json.dumps({"payment_required": True, "challenge": p.challenge}, ensure_ascii=False)
+        except Exception as e:
+            return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+    def get_dns(domain: str, payment_tx_hash: Optional[str] = None) -> str:
+        """Resolve registros DNS (A, AAAA, MX, TXT, NS, CNAME) para um domínio."""
+        try:
+            return json.dumps(client.get_dns(domain, payment_tx_hash=payment_tx_hash), ensure_ascii=False)
+        except PaymentRequiredError as p:
+            return json.dumps({"payment_required": True, "challenge": p.challenge}, ensure_ascii=False)
+        except Exception as e:
+            return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+    def get_ssl(host: str, payment_tx_hash: Optional[str] = None) -> str:
+        """Inspeciona a validade e emissor de certificado TLS/SSL na porta 443 de um host."""
+        try:
+            return json.dumps(client.get_ssl(host, payment_tx_hash=payment_tx_hash), ensure_ascii=False)
+        except PaymentRequiredError as p:
+            return json.dumps({"payment_required": True, "challenge": p.challenge}, ensure_ascii=False)
+        except Exception as e:
+            return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+    def get_asn(ip: Optional[str] = None, payment_tx_hash: Optional[str] = None) -> str:
+        """Resolve dados de BGP, ASN e organização responsável para um IP."""
+        try:
+            return json.dumps(client.get_asn(ip=ip, payment_tx_hash=payment_tx_hash), ensure_ascii=False)
+        except PaymentRequiredError as p:
+            return json.dumps({"payment_required": True, "challenge": p.challenge}, ensure_ascii=False)
+        except Exception as e:
+            return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+    def get_cep(code: str, payment_tx_hash: Optional[str] = None) -> str:
+        """Resolve endereço público e código IBGE a partir de um CEP brasileiro."""
+        try:
+            return json.dumps(client.get_cep(code, payment_tx_hash=payment_tx_hash), ensure_ascii=False)
+        except PaymentRequiredError as p:
+            return json.dumps({"payment_required": True, "challenge": p.challenge}, ensure_ascii=False)
+        except Exception as e:
+            return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+    return {
+        "get_summary": get_summary,
+        "get_forex": get_forex,
+        "get_crypto": get_crypto,
+        "get_dns": get_dns,
+        "get_ssl": get_ssl,
+        "get_asn": get_asn,
+        "get_cep": get_cep,
+    }
 
 
-# Schema JSON padrão para OpenAI / Gemini Function Calling
-GRID402_FUNCTION_SCHEMA = {
-    "type": "function",
-    "function": {
-        "name": "check_brazilian_infrastructure_status",
-        "description": "Verifica em tempo real se serviços fiscais (SEFAZ SP/RS/MG), bancários (PIX/BACEN) ou gateways de pagamento estão online antes de submeter operações financeiras ou emissões fiscais.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "service_or_category": {
-                    "type": "string",
-                    "description": "Nome da categoria ('SEFAZ', 'Gateways', 'Bancos & PIX', 'Telecom & Infra') ou alvo específico ('sefaz_sp', 'mercadopago', 'bacen_dados').",
-                    "enum": [
-                        "SEFAZ", "Gateways", "Bancos & PIX", "Telecom & Infra",
-                        "sefaz_sp", "sefaz_rs", "sefaz_mg", "sefaz_pr", "sefaz_svan",
-                        "mercadopago", "asaas", "cielo", "stone", "pagseguro",
-                        "bacen_dados", "banco_brasil", "itau_pix", "bradesco_pix",
-                        "system"
-                    ]
-                }
-            },
-            "required": ["service_or_category"]
+def create_grid402_tool(base_url: Optional[str] = None, verify_ssl: bool = True):
+    """
+    Função utilitária unificada (dispatcher) para orquestradores como CrewAI e LangChain.
+    """
+    tools = create_grid402_tools(base_url=base_url, verify_ssl=verify_ssl)
+
+    def grid402_query_hub(service: str, target: Optional[str] = None, payment_tx_hash: Optional[str] = None) -> str:
+        """
+        Consulta utilitários de rede ou dados públicos no Grid402.
+
+        Args:
+            service: Nome do serviço ('summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep').
+            target: Parâmetro alvo (ex: domínio para DNS/SSL, IP para ASN, CEP para CEP).
+            payment_tx_hash: Hash da transação on-chain (Base Mainnet) com US$ 0.0005 USDC caso requerido.
+        """
+        srv = (service or "").lower().strip()
+        if srv == "summary":
+            return tools["get_summary"]()
+        elif srv == "forex":
+            return tools["get_forex"](payment_tx_hash)
+        elif srv == "crypto":
+            return tools["get_crypto"](payment_tx_hash)
+        elif srv == "dns":
+            if not target:
+                return json.dumps({"error": "Parâmetro 'target' (domínio) é obrigatório para DNS"})
+            return tools["get_dns"](target, payment_tx_hash)
+        elif srv == "ssl":
+            if not target:
+                return json.dumps({"error": "Parâmetro 'target' (host) é obrigatório para SSL"})
+            return tools["get_ssl"](target, payment_tx_hash)
+        elif srv == "asn":
+            return tools["get_asn"](target, payment_tx_hash)
+        elif srv == "cep":
+            if not target:
+                return json.dumps({"error": "Parâmetro 'target' (CEP) é obrigatório para CEP"})
+            return tools["get_cep"](target, payment_tx_hash)
+        else:
+            return json.dumps({"error": f"Serviço desconhecido '{service}'. Opções: summary, forex, crypto, dns, ssl, asn, cep"})
+
+    return grid402_query_hub
+
+
+# Schemas JSON padrão para Gemini / OpenAI / Claude Function Calling
+GRID402_FUNCTION_SCHEMAS: List[Dict[str, Any]] = [
+    {
+        "type": "function",
+        "function": {
+            "name": "grid402_query_hub",
+            "description": "Consulta utilitários de rede de alta performance e dados públicos do Brasil e globais (Câmbio USD/EUR/BRL, Criptoativos BTC/ETH/SOL, Resolução DNS, Inspeção TLS/SSL, ASN/IP BGP e Consulta CEP/IBGE) via protocolo x402.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "service": {
+                        "type": "string",
+                        "description": "Nome do serviço a ser consultado.",
+                        "enum": ["summary", "forex", "crypto", "dns", "ssl", "asn", "cep"]
+                    },
+                    "target": {
+                        "type": "string",
+                        "description": "Alvo da consulta técnica (domínio para DNS/SSL, IP para ASN, código de 8 dígitos para CEP). Opcional para summary, forex e crypto."
+                    },
+                    "payment_tx_hash": {
+                        "type": "string",
+                        "description": "Hash de transação hexadecimal de 32 bytes (66 caracteres) no Base Mainnet com 0.0005 USDC comprovando pagamento x402."
+                    }
+                },
+                "required": ["service"]
+            }
         }
     }
-}
+]

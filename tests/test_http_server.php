@@ -18,14 +18,14 @@ if (!is_resource($process)) {
 }
 
 // Aguarda o servidor subir
-usleep(300000); // 300ms
+usleep(350000); // 350ms
 
 function http_get(string $url, array $headers = []): array {
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HTTPHEADER => $headers,
-        CURLOPT_TIMEOUT => 3,
+        CURLOPT_TIMEOUT => 4,
     ]);
     $body = curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -50,12 +50,13 @@ try {
     $dataFree = json_decode($respJson['body'], true);
     assert(is_array($dataFree), "Deve ser um JSON válido");
     assert($dataFree['protocol'] === 'x402', "Protocolo deve ser x402");
-    assert(isset($dataFree['categories']), "Deve conter categorias monitoradas");
+    assert($dataFree['status'] === 'OPERATIONAL', "Status deve ser OPERATIONAL");
+    assert(isset($dataFree['services']['forex']), "Deve conter micro-serviço forex");
     echo "✓ Resumo gratuito entregue com sucesso (HTTP 200)!\n";
 
-    // 3. Teste de Desafio x402 (Telemetria detalhada sem pagamento)
-    echo "3. Testando desafio x402 ao solicitar telemetria detalhada...\n";
-    $resp402 = http_get('http://127.0.0.1:8942/?detail=true', ['Accept: application/json']);
+    // 3. Teste de Desafio x402 (Consulta técnica sem pagamento)
+    echo "3. Testando desafio x402 ao solicitar utilitário técnico...\n";
+    $resp402 = http_get('http://127.0.0.1:8942/?api=forex', ['Accept: application/json']);
     assert($resp402['code'] === 402, "Código deve ser 402 Payment Required (Recebido: {$resp402['code']})");
     $data402 = json_decode($resp402['body'], true);
     assert($data402['error'] === 'PaymentRequired', 'Erro deve ser PaymentRequired');
@@ -66,11 +67,11 @@ try {
 
     // 4. Teste de Replay Attack via HTTP
     echo "4. Testando envio de transação reutilizada via cabeçalho X-Payment...\n";
-    $usedTx = '0x' . str_repeat('d', 64);
+    $usedTx = '0x' . bin2hex(random_bytes(32));
     require_once __DIR__ . '/../public_html/x402.php';
     grid402_mark_transaction_used($usedTx);
 
-    $respReplay = http_get('http://127.0.0.1:8942/?detail=true', [
+    $respReplay = http_get('http://127.0.0.1:8942/?api=forex', [
         'Accept: application/json',
         "X-Payment: {$usedTx}",
     ]);
@@ -81,11 +82,9 @@ try {
 
     echo "✓ Todos os fluxos HTTP foram validados com 100% de sucesso!\n";
 } finally {
-    // Encerra o processo do servidor
     proc_terminate($process);
     fclose($pipes[0]);
     fclose($pipes[1]);
     fclose($pipes[2]);
     proc_close($process);
 }
-

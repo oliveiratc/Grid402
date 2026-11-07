@@ -1,11 +1,6 @@
-# Grid402 - Oráculo M2M de Telemetria e Status de Serviços Críticos (Protocolo x402)
+# PRD: Grid402 // Hub de Utilitários de Rede & Dados Públicos Abertos para Agentes M2M (Protocolo x402)
 
-O PRD oficial e detalhado deste projeto foi gerado seguindo o padrão OpenSpec e está localizado em:
-👉 [openspec/prds/grid402-oraculo-telemetria.md](file:///c:/Antigravity/Projetos/Grid402/openspec/prds/grid402-oraculo-telemetria.md)
+O documento oficial de especificação de produto (PRD) para a nova fase do projeto encontra-se versionado em:
+👉 [`openspec/prds/grid402-open-data-utility-hub.md`](file:///c:/Antigravity/Projetos/Grid402/openspec/prds/grid402-open-data-utility-hub.md)
 
-### Resumo Executivo:
-* **Domínio:** https://www.grid402.com.br
-* **Arquitetura:** PHP 8.1+ puro sobre LiteSpeed (Hospedagem Compartilhada Hostinger), Zero Banco de Dados (Flat-file JSON com proteção de acesso).
-* **Protocolo de Pagamento:** HTTP x402 (`402 Payment Required`), liquidado em USDC na rede Base (US$ 0.0005/req).
-* **Motor de Coleta:** `collector.php` paralelo via `curl_multi_init` (< 4 segundos de execução total para 15 a 20 alvos).
-* **Descoberta:** Manifesto `llms.txt` na raiz para crawlers e agentes de IA.
+Consulte o arquivo acima para a íntegra dos requisitos funcionais, não funcionais, histórias de usuário e arquitetura técnica.

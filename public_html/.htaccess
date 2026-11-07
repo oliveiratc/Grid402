@@ -1,4 +1,4 @@
-# Grid402 - Configurações LiteSpeed / Apache
+# Grid402 // Hub de Utilitários de Rede & Dados Públicos (LiteSpeed / Apache)
 Options -Indexes
 ServerSignature Off
 
@@ -13,36 +13,49 @@ ServerSignature Off
     </IfModule>
 </FilesMatch>
 
-# Cabeçalhos de Segurança e CORS para M2M
+# Cabeçalhos Globais de Segurança e CORS para Agentes M2M
 <IfModule mod_headers.c>
     Header set Access-Control-Allow-Origin "*"
     Header set Access-Control-Allow-Methods "GET, POST, OPTIONS"
     Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Payment"
-    Header set Access-Control-Expose-Headers "WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount"
+    Header set Access-Control-Expose-Headers "WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network"
     Header set X-Content-Type-Options "nosniff"
     Header set X-Frame-Options "SAMEORIGIN"
 </IfModule>
 
-# Roteamento amigável para APIs e Oráculo
+# Roteamento Amigável do Hub e Oráculo x402
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /
 
-    # Responder pre-flight OPTIONS para CORS imediatamente
+    # Responder pre-flight OPTIONS imediatamente
     RewriteCond %{REQUEST_METHOD} OPTIONS
     RewriteRule ^(.*)$ $1 [R=204,L]
 
-    # Roteamento de rotas amigáveis para index.php e badges
+    # Rotas de Badges SVG
     RewriteRule ^badge/([a-zA-Z0-9_\-]+)\.svg$ badge.php?target=$1 [QSA,L]
     RewriteRule ^badge/([a-zA-Z0-9_\-]+)/?$ badge.php?target=$1 [QSA,L]
-    RewriteRule ^telemetry/?$ index.php?detail=true [QSA,L]
-    RewriteRule ^status/?$ index.php [QSA,L]
 
-    # Se o arquivo ou diretório existir, serve direto (ex: llms.txt, collector.php)
+    # Rotas da API v1
+    RewriteRule ^api/v1/summary/?$ index.php?api=summary [QSA,L]
+    RewriteRule ^api/v1/forex/?$ index.php?api=forex [QSA,L]
+    RewriteRule ^api/v1/crypto/?$ index.php?api=crypto [QSA,L]
+    RewriteRule ^api/v1/dns/?$ index.php?api=dns [QSA,L]
+    RewriteRule ^api/v1/ssl/?$ index.php?api=ssl [QSA,L]
+    RewriteRule ^api/v1/asn/?$ index.php?api=asn [QSA,L]
+    RewriteRule ^api/v1/cep/?$ index.php?api=cep [QSA,L]
+
+    # Rotas Legadas / Atalhos
+    RewriteRule ^status/?$ index.php?api=summary [QSA,L]
+    RewriteRule ^telemetry/?$ index.php?api=summary&detail=true [QSA,L]
+    RewriteRule ^terms/?$ index.php?page=terms [QSA,L]
+    RewriteRule ^privacy/?$ index.php?page=privacy [QSA,L]
+
+    # Arquivos estáticos existentes (ex: llms.txt, collector.php)
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
     RewriteRule ^ - [L]
 
-    # Fallback para index.php
+    # Fallback
     RewriteRule ^ index.php [QSA,L]
 </IfModule>

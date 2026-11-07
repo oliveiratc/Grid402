@@ -85,8 +85,68 @@ define('GRID402_PRIVATE_DIR', __DIR__ . '/private_data');
 define('GRID402_FILE_FREE', GRID402_PRIVATE_DIR . '/summary_free.json');
 define('GRID402_FILE_PAID', GRID402_PRIVATE_DIR . '/telemetry_paid.json');
 define('GRID402_FILE_USED_TXS', GRID402_PRIVATE_DIR . '/used_txs.json');
+define('GRID402_FILE_FOREX', GRID402_PRIVATE_DIR . '/forex_cache.json');
+define('GRID402_FILE_CRYPTO', GRID402_PRIVATE_DIR . '/crypto_cache.json');
 
-// 5. Catálogo Oficial de Alvos Críticos (18 alvos selecionados)
+// 5. Catálogo Oficial dos 6 Micro-Serviços Core de Dados Públicos e Rede
+function grid402_get_utility_services(): array {
+    return [
+        'forex' => [
+            'id' => 'forex',
+            'name' => 'Câmbio & Moedas',
+            'description' => 'Cotações em tempo real de USD, EUR, GBP para BRL com variação diária',
+            'endpoint' => '/api/v1/forex',
+            'category' => 'Mercado',
+            'type' => 'cached',
+        ],
+        'crypto' => [
+            'id' => 'crypto',
+            'name' => 'Cripto Tickers',
+            'description' => 'Preços de mercado de BTC, ETH, SOL, USDC e BASE em USD e BRL',
+            'endpoint' => '/api/v1/crypto',
+            'category' => 'Mercado',
+            'type' => 'cached',
+        ],
+        'dns' => [
+            'id' => 'dns',
+            'name' => 'DNS Records Lookup',
+            'description' => 'Resolução autoritativa de registros A, AAAA, MX, TXT, NS e CNAME',
+            'endpoint' => '/api/v1/dns',
+            'category' => 'Rede',
+            'type' => 'on_demand',
+        ],
+        'ssl' => [
+            'id' => 'ssl',
+            'name' => 'Inspetor TLS/SSL',
+            'description' => 'Inspeção de cadeia X.509, emissor, SANs e dias até expiração na porta 443',
+            'endpoint' => '/api/v1/ssl',
+            'category' => 'Rede',
+            'type' => 'on_demand',
+        ],
+        'asn' => [
+            'id' => 'asn',
+            'name' => 'ASN & IP Info',
+            'description' => 'Metadados de roteamento BGP, número de ASN, bloco IP e país',
+            'endpoint' => '/api/v1/asn',
+            'category' => 'Rede',
+            'type' => 'on_demand',
+        ],
+        'cep' => [
+            'id' => 'cep',
+            'name' => 'CEP & IBGE',
+            'description' => 'Resolução de logradouro, bairro, município, UF e código IBGE oficial',
+            'endpoint' => '/api/v1/cep',
+            'category' => 'Dados Abertos',
+            'type' => 'on_demand',
+        ],
+    ];
+}
+
+function grid402_get_services(): array {
+    return grid402_get_utility_services();
+}
+
+// 6. Catálogo de Alvos Complementares / Monitoramento
 function grid402_get_targets(): array {
     return [
         // --- SEFAZ (Autorizadores Fiscais) ---

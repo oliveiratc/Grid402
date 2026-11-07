@@ -1,23 +1,24 @@
 export declare const DEFAULT_GRID402_URL: string;
 
-export interface CategorySummary {
+export interface ServiceSummary {
+    name: string;
+    description: string;
     status: 'UP' | 'DEGRADED' | 'DOWN';
-    avg_latency_ms: number;
-    targets_up: number;
-    targets_total: number;
+    latency_ms: number;
+    price: string;
+    endpoint: string;
 }
 
 export interface SummaryResponse {
     protocol: 'x402';
     network: 'Base';
     chain_id: number;
-    version: string;
+    status: 'OPERATIONAL' | 'DEGRADED' | 'DOWN';
     timestamp: string;
-    execution_time_ms: number;
-    total_targets: number;
-    healthy_targets: number;
-    system_status: 'UP' | 'DEGRADED' | 'DOWN';
-    categories: Record<string, CategorySummary>;
+    updated_at: string;
+    services: Record<string, ServiceSummary>;
+    rates_sample?: Record<string, any>;
+    crypto_sample?: Record<string, any>;
     notice?: string;
 }
 
@@ -36,28 +37,92 @@ export interface X402Challenge {
     docs: string;
 }
 
-export interface TargetDetail {
-    id: string;
-    name: string;
-    category: string;
-    status: 'UP' | 'DEGRADED' | 'DOWN' | 'TIMEOUT';
-    http_code: number;
-    latency_ms: number;
-    connect_time_ms: number;
-    dns_time_ms: number;
-    primary_ip: string;
-    stability_score: number;
-    error_detail: string | null;
-    last_check: string;
+export interface ForexResponse {
+    success: boolean;
+    timestamp: string;
+    cached_seconds_ago: number;
+    rates: Record<string, {
+        code: string;
+        name: string;
+        bid: number;
+        ask: number;
+        high: number;
+        low: number;
+        pctChange: number;
+        create_date: string;
+    }>;
 }
 
-export interface DetailedTelemetry {
-    protocol: 'x402';
-    license: 'PAID_QUERY';
+export interface CryptoResponse {
+    success: boolean;
     timestamp: string;
-    total_targets: number;
-    healthy_targets: number;
-    targets: TargetDetail[];
+    cached_seconds_ago: number;
+    tickers: Record<string, {
+        symbol: string;
+        name: string;
+        price_usd: number;
+        change_24h_pct: number;
+        market_cap_usd: number;
+    }>;
+}
+
+export interface DnsResponse {
+    success: boolean;
+    domain: string;
+    timestamp: string;
+    resolved_in_ms: number;
+    records: {
+        A?: string[];
+        AAAA?: string[];
+        MX?: Array<{ host: string; pri: number }>;
+        TXT?: string[];
+        NS?: string[];
+        CNAME?: string[];
+    };
+    error?: string;
+}
+
+export interface SslResponse {
+    success: boolean;
+    host: string;
+    port: number;
+    timestamp: string;
+    handshake_ms: number;
+    certificate?: {
+        common_name: string;
+        issuer: string;
+        valid_from: string;
+        valid_to: string;
+        days_remaining: number;
+        is_valid: boolean;
+        subject_alt_names: string[];
+    };
+    error?: string;
+}
+
+export interface AsnResponse {
+    success: boolean;
+    ip: string;
+    timestamp: string;
+    resolved_in_ms: number;
+    asn?: string;
+    org?: string;
+    country?: string;
+    cidr?: string;
+    error?: string;
+}
+
+export interface CepResponse {
+    success: boolean;
+    cep: string;
+    logradouro?: string;
+    bairro?: string;
+    cidade?: string;
+    uf?: string;
+    ibge?: string;
+    ddd?: string;
+    resolved_in_ms: number;
+    error?: string;
 }
 
 export declare class Grid402Error extends Error {}
@@ -80,9 +145,13 @@ export interface Grid402Options {
 export declare class Grid402Client {
     constructor(options?: Grid402Options);
     getSummary(): Promise<SummaryResponse>;
-    isHealthy(targetOrCategory: string): Promise<boolean>;
-    getChallenge(): Promise<X402Challenge>;
-    getDetailedTelemetry(paymentTxHash: string): Promise<DetailedTelemetry>;
-    guard<T>(targetOrCategory: string, action: () => Promise<T> | T, fallback?: () => Promise<T> | T): Promise<T>;
+    getChallenge(endpoint?: string): Promise<X402Challenge>;
+    getForex(paymentTxHash?: string): Promise<ForexResponse>;
+    getCrypto(paymentTxHash?: string): Promise<CryptoResponse>;
+    getDns(domain: string, paymentTxHash?: string): Promise<DnsResponse>;
+    getSsl(host: string, paymentTxHash?: string): Promise<SslResponse>;
+    getAsn(ip?: string, paymentTxHash?: string): Promise<AsnResponse>;
+    getCep(code: string, paymentTxHash?: string): Promise<CepResponse>;
+    isHealthy(serviceName?: string): Promise<boolean>;
+    guard<T>(serviceName: string, action: () => Promise<T> | T, fallback?: () => Promise<T> | T): Promise<T>;
 }
-

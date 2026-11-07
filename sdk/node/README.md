@@ -5,20 +5,28 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Grid402 Status](https://www.grid402.com.br/badge/system.svg)](https://www.grid402.com.br)
 
-Official zero-dependency JavaScript/TypeScript client for the **Grid402 Telemetry Oracle** — real-time health, latency, and status monitoring for Brazilian infrastructure (SEFAZ, PIX/BACEN, payment gateways) with built-in circuit-breaker patterns and x402 on-chain micro-settlement in USDC on Base.
+SDK oficial em JavaScript/TypeScript (zero dependências externas) para o **Grid402** — Hub de Alta Performance de Utilitários de Rede e Dados Públicos com micropagamentos via protocolo **x402** na rede **Base Mainnet** (US$ 0.0005 USDC por consulta).
 
 ---
 
-## 🚀 Key Features
+## 🚀 Funcionalidades
 
-* **Zero Dependencies:** Built entirely with native `fetch` (Node.js 18+ and modern browsers).
-* **TypeScript Native:** Full type definitions (`grid402.d.ts`).
-* **Circuit Breaker Pattern (`guard`):** Automatically protects backend jobs and payment pipelines from cascading timeouts.
-* **x402 Protocol Support:** Autonomous handshakes on Base Mainnet ($0.0005 USDC per query).
+* **Zero Dependências:** Construído unicamente sobre a API nativa `fetch` (Node.js 18+ e navegadores modernos).
+* **TypeScript Nativo:** Tipagem estrita completa via `grid402.d.ts`.
+* **6 Micro-serviços Técnicos:**
+  1. `getForex()`: Cotações fiduciárias em tempo real (USD, EUR, GBP para BRL).
+  2. `getCrypto()`: Cotações spot de criptoativos (BTC, ETH, SOL, USDC, BASE).
+  3. `getDns(domain)`: Resolução de registros RFC 1035 (A, AAAA, MX, TXT, NS, CNAME).
+  4. `getSsl(host)`: Inspeção TLS na porta 443 (validade, emissor, SANs e dias restantes).
+  5. `getAsn(ip)`: Metadados BGP, ASN e país para um IP.
+  6. `getCep(code)`: Endereço público e código oficial IBGE do município.
+* **Resumo Gratuito:** `/api/v1/summary` para monitoramento e discovery sem fricção.
+* **Protocolo x402 Nativo:** Suporte a cabeçalhos `X-Payment` e tratamento de erros de desafio HTTP 402.
+* **Circuit Breaker (`guard`):** Execução segura de pipelines e automações.
 
 ---
 
-## 📦 Installation
+## 📦 Instalação
 
 ```bash
 npm install grid402
@@ -26,57 +34,58 @@ npm install grid402
 
 ---
 
-## ⚡ Quick Start
+## ⚡ Guia Rápido
 
-### 1. Free Public Health Check
+### 1. Resumo Gratuito e Checagem de Saúde
 ```typescript
 import { Grid402Client } from 'grid402';
 
 const client = new Grid402Client();
 
-// Overall infrastructure status
+// Resumo gratuito
 const summary = await client.getSummary();
-console.log('Status geral:', summary.system_status); // UP / DEGRADED / DOWN
+console.log('Status do Hub:', summary.status);
 
-// Quick boolean checks
-if (await client.isHealthy('SEFAZ')) {
-  console.log('Autorizadores fiscais operantes!');
+// Checagem booleana rápida
+if (await client.isHealthy('dns')) {
+  console.log('Resolução DNS operacional!');
 }
 ```
 
-### 2. Circuit Breaker (`guard`)
-```typescript
-const result = await client.guard(
-  'Gateways',
-  async () => {
-    // Process payment batch
-    return await processCreditCardBatch();
-  },
-  async () => {
-    // Fallback if gateways are degraded
-    return await routeToBackupProvider();
-  }
-);
-```
-
-### 3. Detailed Telemetry with x402 Micropayment
+### 2. Consultas Técnicas com Micropagamento x402
 ```typescript
 import { Grid402Client, PaymentRequiredError } from 'grid402';
 
 const client = new Grid402Client();
+const txHash = '0x<sua_transacao_base_mainnet>';
 
 try {
-  const telemetry = await client.getDetailedTelemetry('0x<your_base_tx_hash>');
-  console.log('Alvos monitorados:', telemetry.targets);
+  // Câmbio
+  const forex = await client.getForex(txHash);
+  console.log('USD/BRL:', forex.rates.USD.bid);
+
+  // DNS
+  const dns = await client.getDns('github.com', txHash);
+  console.log('IPs (A):', dns.records.A);
+
+  // Inspetor SSL
+  const ssl = await client.getSsl('base.org', txHash);
+  console.log('Expira em dias:', ssl.certificate?.days_remaining);
+
+  // CEP & IBGE
+  const cep = await client.getCep('01310100', txHash);
+  console.log('Código IBGE:', cep.ibge);
+
 } catch (err) {
   if (err instanceof PaymentRequiredError) {
-    console.log(`Pague ${err.priceUsdc} USDC para ${err.recipientWallet} na rede Base.`);
+    console.log(`Pagamento requerido: envie ${err.priceUsdc} USDC para ${err.recipientWallet} na Base.`);
   }
 }
 ```
 
 ---
 
-## 📄 License
-MIT License.
-
+## 📄 Licença e Conformidade Legal
+- **Licença:** MIT.
+- **Isenção AS-IS:** Dados disponibilizados no estado em que se encontram sem garantias comerciais.
+- **Zero PII / LGPD:** Todos os utilitários operam sobre registros técnicos de domínio e protocolo sem dados pessoais.

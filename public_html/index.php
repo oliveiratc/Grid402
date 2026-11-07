@@ -1,10 +1,10 @@
 <?php
 /**
- * Grid402 - Oráculo M2M de Telemetria e Status de Serviços Críticos (Protocolo x402)
+ * Grid402 // Hub de Utilitários de Rede & Dados Públicos Abertos (Protocolo x402)
  * 
- * Gateway principal:
- * - text/html: Landing Page dark-mode ultraleve para humanos
- * - application/json: Resumo gratuito ou telemetria detalhada via x402
+ * Gateway central:
+ * - text/html: Landing Page dark-mode e console interativo para desenvolvedores e humanos
+ * - application/json: APIs de utilitários públicos com monetização sob demanda via x402 na Base
  */
 
 declare(strict_types=1);
@@ -12,15 +12,25 @@ declare(strict_types=1);
 define('GRID402_EXEC', true);
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/x402.php';
+require_once __DIR__ . '/services/forex.php';
+require_once __DIR__ . '/services/crypto.php';
+require_once __DIR__ . '/services/dns.php';
+require_once __DIR__ . '/services/ssl.php';
+require_once __DIR__ . '/services/asn.php';
+require_once __DIR__ . '/services/cep.php';
 
-// Leitura de cabeçalhos de requisição
+// Leitura de cabeçalhos e rotas
 $acceptHeader = (string) ($_SERVER['HTTP_ACCEPT'] ?? '');
 $userAgent = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
 $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '');
-$isJsonExplicit = isset($_GET['format']) && $_GET['format'] === 'json';
-$isDetailRequested = isset($_GET['detail']) || str_contains($requestUri, 'telemetry');
+$apiParam = (string) ($_GET['api'] ?? '');
+if ($apiParam === '' && preg_match('#^/api/v1/([a-z0-9_-]+)#i', $requestUri, $matches)) {
+    $apiParam = strtolower($matches[1]);
+}
+$pageParam = (string) ($_GET['page'] ?? '');
+$isJsonExplicit = (isset($_GET['format']) && $_GET['format'] === 'json') || str_starts_with($requestUri, '/api/') || str_starts_with($requestUri, '/status');
 
-// Extração do cabeçalho de pagamento X-Payment
+// Extração do comprovante de pagamento X-Payment
 $paymentProof = (string) ($_SERVER['HTTP_X_PAYMENT'] ?? '');
 if ($paymentProof === '' && function_exists('apache_request_headers')) {
     $reqHeaders = apache_request_headers();
@@ -33,46 +43,89 @@ if ($paymentProof === '') {
     }
 }
 
-// Cabeçalho Vary para garantir que proxies e CDNs respeitem o content negotiation
+// Cabeçalho de variação de cache para proxies e CDN
 header('Vary: Accept, User-Agent');
 
-// 1. Decisão de Rota: Máquina (JSON) vs Humano (HTML)
+// 1. Rotas Jurídicas para Máquinas e APIs
+if ($pageParam === 'terms' || str_contains($requestUri, '/terms')) {
+    if (!$isJsonExplicit && str_contains($acceptHeader, 'text/html') && !str_starts_with($userAgent, 'curl/')) {
+        // Renderiza no modal via HTML
+    } else {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'document' => 'Terms of Service',
+            'version' => '2.0.0',
+            'hub' => 'Grid402',
+            'disclaimer_as_is' => 'O Grid402 é um hub informativo de utilitários públicos de rede fornecido NO ESTADO EM QUE SE ENCONTRA (AS-IS), sem garantias de precisão infalível ou adequação a fins comerciais específicos.',
+            'data_scope' => 'O serviço processa estritamente dados de domínio público e protocolos abertos de rede (DNS, SSL, BGP, Câmbio PTAX, Criptoativos e CEP nacional).',
+            'settlement' => 'Micropagamentos via x402 liquidados na Base Mainnet (EVM 8453) são definitivos e irreversíveis.',
+            'contact' => 'contato@grid402.com.br',
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+}
+
+if ($pageParam === 'privacy' || str_contains($requestUri, '/privacy')) {
+    if (!$isJsonExplicit && str_contains($acceptHeader, 'text/html') && !str_starts_with($userAgent, 'curl/')) {
+        // Renderiza no modal via HTML
+    } else {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'document' => 'Privacy Policy (LGPD / Marco Civil)',
+            'version' => '2.0.0',
+            'hub' => 'Grid402',
+            'compliance' => ['LGPD (Lei nº 13.709/2018)', 'Marco Civil da Internet (Lei nº 12.965/2014)'],
+            'data_collected' => [
+                'connection_logs' => 'Endereço IP, data e hora da conexão mantidos sob sigilo por 6 meses estritamente para cumprimento do Art. 15 da Lei nº 12.965/2014.',
+                'onchain_hashes' => 'Hash da transação Base informado no cabeçalho X-Payment mantido em cache temporário por 7 dias para prevenção de replay attack (Art. 7º, IX da LGPD - Legítimo Interesse).',
+            ],
+            'infrastructure_scope' => 'Zero coleta de dados pessoais sensíveis ou PII de cidadãos.',
+            'contact_dpo' => 'contato@grid402.com.br',
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+}
+
+// 2. Roteamento de APIs Técnicas e Dados M2M
 $prefersHtml = str_contains($acceptHeader, 'text/html') && !$isJsonExplicit && !str_starts_with($userAgent, 'curl/') && !str_starts_with($userAgent, 'Wget/');
 
-// Se for requisição de máquina (JSON ou rota de detalhe/telemetria)
-if (!$prefersHtml || $isDetailRequested) {
+// Se for requisição de API / máquina
+if (!$prefersHtml || $apiParam !== '') {
     header('Access-Control-Allow-Origin: *');
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment');
-    header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount');
+    header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network');
 
-    // Se NÃO pediu detalhes: Entrega gratuita imediata
-    if (!$isDetailRequested) {
-        if (!file_exists(GRID402_FILE_FREE)) {
-            if (!defined('GRID402_INTERNAL_BOOTSTRAP')) {
-                define('GRID402_INTERNAL_BOOTSTRAP', true);
+    // 2.1. Rota Gratuita: Resumo Geral do Hub
+    if ($apiParam === 'summary' || $apiParam === '' || str_contains($requestUri, '/status')) {
+        if (!isset($_GET['detail'])) {
+            if (!file_exists(GRID402_FILE_FREE)) {
+                if (!defined('GRID402_INTERNAL_BOOTSTRAP')) {
+                    define('GRID402_INTERNAL_BOOTSTRAP', true);
+                }
+                include_once __DIR__ . '/collector.php';
             }
-            include_once __DIR__ . '/collector.php';
+            header('Content-Type: application/json; charset=utf-8');
+            header('Cache-Control: public, max-age=30');
+            readfile(GRID402_FILE_FREE);
+            exit;
         }
-        header('Content-Type: application/json; charset=utf-8');
-        header('Cache-Control: public, max-age=30');
-        readfile(GRID402_FILE_FREE);
-        exit;
     }
 
-    // Se PEDIU detalhes: Fluxo x402
+    // 2.2. Verificação de Pagamento x402 para Micro-serviços Técnicos
     if ($paymentProof === '') {
-        grid402_respond_402();
+        $serviceLabel = $apiParam !== '' ? $apiParam : 'technical-utility';
+        grid402_respond_402($serviceLabel);
     }
 
-    // Validação on-chain do pagamento
+    // Auditoria on-chain com trava atômica anti-replay
     $validation = grid402_validate_payment($paymentProof);
-
     if (!$validation['valid']) {
         http_response_code($validation['code']);
         header('Content-Type: application/json; charset=utf-8');
         if ($validation['code'] === 402) {
             header('X-Authenticate: x402');
+            header('X-Accept-Payment: base:usdc:' . GRID402_WALLET_ADDRESS . ':' . GRID402_PRICE_DISPLAY);
         }
         echo json_encode([
             'error' => ($validation['code'] === 403) ? 'ReplayAttackDetected' : 'PaymentFailed',
@@ -82,42 +135,87 @@ if (!$prefersHtml || $isDetailRequested) {
         exit;
     }
 
-    // Pagamento validado com sucesso!
-    if (!file_exists(GRID402_FILE_PAID)) {
-        if (!defined('GRID402_INTERNAL_BOOTSTRAP')) {
-            define('GRID402_INTERNAL_BOOTSTRAP', true);
-        }
-        include_once __DIR__ . '/collector.php';
-    }
-
+    // Pagamento validado com sucesso! Executa o micro-serviço requisitado
     http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');
     header('X-Payment-Status: Accepted');
     header('X-Payment-Amount: ' . GRID402_PRICE_DISPLAY . ' USDC');
     header('X-Payment-Network: Base (ChainID 8453)');
     header('Cache-Control: private, no-cache');
-    readfile(GRID402_FILE_PAID);
+
+    $result = [];
+    switch ($apiParam) {
+        case 'forex':
+            $result = grid402_service_forex();
+            break;
+        case 'crypto':
+            $result = grid402_service_crypto();
+            break;
+        case 'dns':
+            $domain = (string) ($_GET['domain'] ?? 'github.com');
+            $result = grid402_service_dns($domain);
+            if (isset($result['code']) && $result['code'] !== 200) {
+                http_response_code($result['code']);
+            }
+            break;
+        case 'ssl':
+            $host = (string) ($_GET['host'] ?? 'base.org');
+            $result = grid402_service_ssl($host);
+            if (isset($result['code']) && $result['code'] !== 200) {
+                http_response_code($result['code']);
+            }
+            break;
+        case 'asn':
+            $ip = isset($_GET['ip']) ? (string)$_GET['ip'] : null;
+            $result = grid402_service_asn($ip);
+            if (isset($result['code']) && $result['code'] !== 200) {
+                http_response_code($result['code']);
+            }
+            break;
+        case 'cep':
+            $code = (string) ($_GET['code'] ?? '01310100');
+            $result = grid402_service_cep($code);
+            if (isset($result['code']) && $result['code'] !== 200) {
+                http_response_code($result['code']);
+            }
+            break;
+        default:
+            $result = [
+                'protocol' => 'x402',
+                'hub' => 'Grid402',
+                'status' => 'PAID_QUERY_ACCEPTED',
+                'timestamp' => gmdate('Y-m-d\TH:i:s\Z'),
+                'services' => grid402_get_utility_services(),
+            ];
+            break;
+    }
+
+    echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-// 2. Renderização da Landing Page Dark-Mode para Navegadores Humanos
-$freeData = file_exists(GRID402_FILE_FREE) ? json_decode((string)file_get_contents(GRID402_FILE_FREE), true) : null;
-$systemStatus = $freeData['system_status'] ?? 'UP';
-$healthyCount = $freeData['healthy_targets'] ?? 18;
-$totalCount = $freeData['total_targets'] ?? 18;
-$execDuration = $freeData['execution_time_ms'] ?? 420;
-$categories = $freeData['categories'] ?? [];
-$lastCheck = isset($freeData['timestamp']) ? date('d/m/Y H:i:s', strtotime($freeData['timestamp'])) : 'Atualizado agora';
+// 3. Renderização da Landing Page Dark-Mode para Desenvolvedores Humanos
+if (!file_exists(GRID402_FILE_FREE)) {
+    if (!defined('GRID402_INTERNAL_BOOTSTRAP')) {
+        define('GRID402_INTERNAL_BOOTSTRAP', true);
+    }
+    include_once __DIR__ . '/collector.php';
+}
 
-header('Content-Type: text/html; charset=utf-8');
+$summaryData = @json_decode((string) @file_get_contents(GRID402_FILE_FREE), true) ?: [];
+$services = $summaryData['services'] ?? [];
+$servicesCatalog = grid402_get_utility_services();
+
+$usdRate = $services['forex']['usd_brl'] ?? 5.50;
+$btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grid402 // Oráculo M2M de Telemetria de Serviços Críticos</title>
-    <meta name="description" content="Oráculo de telemetria em tempo real para agentes de IA e sistemas M2M checarem disponibilidade de SEFAZ, PIX e Gateways. Protocolo HTTP x402 na Base.">
+    <title>Grid402 // Hub de Utilitários de Rede & Dados Públicos (x402)</title>
+    <meta name="description" content="Portal e oráculo de micro-serviços públicos (Câmbio, Cripto, DNS, SSL, ASN, CEP) para agentes de IA e robôs M2M com micropagamentos x402 na Base.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -156,7 +254,7 @@ header('Content-Type: text/html; charset=utf-8');
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding-bottom: 2.5rem;
+            padding-bottom: 2rem;
             border-bottom: 1px solid var(--border);
         }
         .logo-wrap {
@@ -251,24 +349,21 @@ header('Content-Type: text/html; charset=utf-8');
         }
         .btn-primary {
             background-color: var(--primary);
-            color: #052e16;
+            color: #030712;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
         }
-        .btn-primary:hover {
-            background-color: #059669;
-            transform: translateY(-1px);
-        }
+        .btn-primary:hover { background-color: #059669; }
         .btn-outline {
-            background-color: transparent;
+            background-color: var(--surface);
             color: var(--text-main);
             border: 1px solid var(--border);
         }
-        .btn-outline:hover {
-            background-color: var(--surface);
-            border-color: var(--text-muted);
-        }
-        .grid-stats {
+        .btn-outline:hover { background-color: var(--surface-hover); border-color: var(--accent); }
+
+        /* Grid de Serviços */
+        .grid-services {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 1.25rem;
             margin-bottom: 3.5rem;
         }
@@ -277,74 +372,84 @@ header('Content-Type: text/html; charset=utf-8');
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 1.5rem;
-            transition: border-color 0.2s ease;
+            transition: all 0.2s ease;
         }
         .card:hover {
-            border-color: #334155;
+            border-color: rgba(56, 189, 248, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
         }
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
         }
         .card-title {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: var(--text-muted);
-        }
-        .card-status {
-            font-size: 0.75rem;
+            font-size: 1.1rem;
             font-weight: 700;
+        }
+        .card-category {
+            font-size: 0.75rem;
+            font-family: var(--font-mono);
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent);
             padding: 0.2rem 0.5rem;
             border-radius: 4px;
         }
-        .status-up { background: rgba(16, 185, 129, 0.15); color: var(--primary); }
-        .status-deg { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
-        .status-down { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
-        .card-latency {
-            font-family: var(--font-mono);
-            font-size: 1.8rem;
-            font-weight: 700;
-            margin-bottom: 0.5rem;
-        }
-        .card-meta {
-            font-size: 0.8rem;
+        .card-desc {
             color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            min-height: 42px;
         }
+        .card-route {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            background: #030712;
+            padding: 0.4rem 0.65rem;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            color: var(--primary);
+            word-break: break-all;
+        }
+
+        /* Console e Abas */
         .protocol-box {
-            background: linear-gradient(180deg, #111827 0%, #0F172A 100%);
-            border: 1px solid #334155;
-            border-radius: 14px;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
             padding: 2rem;
-            margin-bottom: 3.5rem;
+            margin-bottom: 3rem;
         }
         .protocol-box h2 {
-            font-size: 1.35rem;
+            font-size: 1.4rem;
             margin-bottom: 0.5rem;
+            letter-spacing: -0.5px;
         }
         .protocol-box p {
             color: var(--text-muted);
-            margin-bottom: 1.5rem;
             font-size: 0.95rem;
+            margin-bottom: 1.5rem;
         }
         .tabs-header {
             display: flex;
             gap: 0.5rem;
             border-bottom: 1px solid var(--border);
             margin-bottom: 1.5rem;
-            flex-wrap: wrap;
+            overflow-x: auto;
         }
         .tab-btn {
-            background: transparent;
+            background: none;
             border: none;
             color: var(--text-muted);
-            padding: 0.65rem 1.1rem;
             font-family: var(--font-sans);
-            font-weight: 600;
             font-size: 0.9rem;
+            font-weight: 600;
+            padding: 0.65rem 1rem;
             cursor: pointer;
             border-bottom: 2px solid transparent;
+            white-space: nowrap;
             transition: all 0.2s ease;
         }
         .tab-btn:hover { color: var(--text-main); }
@@ -354,15 +459,16 @@ header('Content-Type: text/html; charset=utf-8');
         }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+
         .console-actions {
             display: flex;
-            gap: 0.75rem;
-            margin-bottom: 1.25rem;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
             flex-wrap: wrap;
         }
         .btn-sm {
-            padding: 0.5rem 1rem;
-            font-size: 0.85rem;
+            padding: 0.5rem 0.85rem;
+            font-size: 0.82rem;
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
@@ -372,16 +478,15 @@ header('Content-Type: text/html; charset=utf-8');
             transition: all 0.2s ease;
         }
         .btn-sm:hover { background: var(--surface-hover); border-color: var(--accent); }
-        .btn-sm.active { background: var(--primary); color: #052e16; border-color: var(--primary); }
         .input-group {
             display: flex;
             gap: 0.5rem;
-            margin-bottom: 1.25rem;
+            margin-bottom: 1rem;
             flex-wrap: wrap;
         }
         .console-input {
             flex: 1;
-            min-width: 280px;
+            min-width: 260px;
             background: #030712;
             border: 1px solid var(--border);
             border-radius: 6px;
@@ -399,12 +504,6 @@ header('Content-Type: text/html; charset=utf-8');
             font-size: 0.8rem;
             color: var(--text-muted);
         }
-        .status-badge {
-            font-family: var(--font-mono);
-            font-weight: 700;
-            padding: 0.15rem 0.45rem;
-            border-radius: 4px;
-        }
         .code-block {
             background-color: #030712;
             border: 1px solid #1E293B;
@@ -415,8 +514,10 @@ header('Content-Type: text/html; charset=utf-8');
             color: #38BDF8;
             overflow-x: auto;
             line-height: 1.5;
-            max-height: 420px;
+            max-height: 380px;
         }
+
+        /* Footer e Modal Legal */
         footer {
             border-top: 1px solid var(--border);
             padding-top: 2rem;
@@ -430,6 +531,71 @@ header('Content-Type: text/html; charset=utf-8');
         }
         footer a { color: var(--accent); text-decoration: none; }
         footer a:hover { text-decoration: underline; }
+        .footer-legal {
+            width: 100%;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.75rem;
+            line-height: 1.6;
+            color: #64748B;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(3, 7, 18, 0.85);
+            backdrop-filter: blur(6px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            max-width: 720px;
+            width: 100%;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-title { font-size: 1.15rem; font-weight: 700; color: #fff; }
+        .modal-close {
+            background: none; border: none; font-size: 1.25rem; color: var(--text-muted);
+            cursor: pointer; padding: 0.25rem;
+        }
+        .modal-close:hover { color: #fff; }
+        .modal-tabs { display: flex; border-bottom: 1px solid var(--border); }
+        .modal-tab-btn {
+            flex: 1; padding: 0.75rem; background: none; border: none;
+            border-bottom: 2px solid transparent; color: var(--text-muted);
+            font-weight: 600; cursor: pointer; text-align: center;
+        }
+        .modal-tab-btn.active {
+            color: var(--primary); border-bottom-color: var(--primary); background: rgba(16, 185, 129, 0.05);
+        }
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            font-size: 0.875rem;
+            line-height: 1.7;
+            color: #CBD5E1;
+        }
+        .modal-body h3 { font-size: 1rem; color: #fff; margin: 1.25rem 0 0.5rem; }
+        .modal-body h3:first-child { margin-top: 0; }
     </style>
 </head>
 <body>
@@ -441,258 +607,279 @@ header('Content-Type: text/html; charset=utf-8');
             </div>
             <div class="badge-live">
                 <span class="badge-pulse"></span>
-                <span>Base Mainnet (8453) • <?php echo htmlspecialchars($systemStatus); ?></span>
+                <span>Base Mainnet (8453) • 6/6 Serviços Operantes</span>
             </div>
         </header>
 
         <section class="hero">
-            <div class="hero-tag">Infraestrutura M2M & Agentes de IA</div>
-            <h1>Oráculo de Telemetria de Alta Frequência</h1>
-            <p>Monitore a disponibilidade e latência exata de APIs críticas brasileiras (SEFAZ, PIX, Gateways e Bancos) antes de processar lotes de transações. Micropagamentos nativos em USDC na Base.</p>
+            <div class="hero-tag">Hub de Micro-Serviços para Robôs & Agentes de IA</div>
+            <h1>Utilitários de Rede & Dados Públicos Abertos</h1>
+            <p>Acesse cotações de câmbio, cripto, DNS, certificados SSL, BGP/ASN e dados de CEP em milissegundos sem cadastro ou chaves de API. Micropagamentos por chamada em USDC na Base.</p>
             <div class="cta-group">
-                <a href="/telemetry" class="btn btn-primary">Testar Endpoint x402</a>
+                <a href="#console" class="btn btn-primary" onclick="switchTab('console')">⚡ Testar no Console</a>
                 <a href="/llms.txt" class="btn btn-outline">Documentação llms.txt</a>
-                <a href="/status?format=json" class="btn btn-outline">Resumo Gratuito (JSON)</a>
+                <a href="/status" class="btn btn-outline">Resumo Gratuito (JSON)</a>
             </div>
         </section>
 
-        <div class="grid-stats">
-            <?php foreach ($categories as $catName => $stats): ?>
+        <!-- Grid dos 6 Serviços -->
+        <div class="grid-services">
+            <?php foreach ($servicesCatalog as $svc): ?>
             <div class="card">
                 <div class="card-header">
-                    <span class="card-title"><?php echo htmlspecialchars((string)$catName); ?></span>
-                    <span class="card-status <?php echo ($stats['status'] === 'UP') ? 'status-up' : (($stats['status'] === 'DEGRADED') ? 'status-deg' : 'status-down'); ?>">
-                        <?php echo htmlspecialchars((string)$stats['status']); ?>
-                    </span>
+                    <span class="card-title"><?php echo htmlspecialchars($svc['name']); ?></span>
+                    <span class="card-category"><?php echo htmlspecialchars($svc['category']); ?></span>
                 </div>
-                <div class="card-latency"><?php echo number_format((float)$stats['avg_latency_ms'], 1); ?><span style="font-size: 1rem; color: var(--text-muted); font-weight: normal;"> ms</span></div>
-                <div class="card-meta">
-                    <?php echo (int)$stats['targets_up']; ?> / <?php echo (int)$stats['targets_total']; ?> endpoints operantes
-                </div>
+                <div class="card-desc"><?php echo htmlspecialchars($svc['description']); ?></div>
+                <div class="card-route">GET <?php echo htmlspecialchars($svc['endpoint']); ?></div>
             </div>
             <?php endforeach; ?>
         </div>
 
-        <section class="protocol-box">
-            <h2>Integração & Console de Teste em Tempo Real</h2>
-            <p>Interaja diretamente com o oráculo via navegador ou integre seus agentes utilizando nossos SDKs oficiais e snippets.</p>
-            
+        <!-- Console Interativo & Integrações -->
+        <section id="console" class="protocol-box">
+            <h2>Console de Teste & Especificações de Integração</h2>
+            <p>Experimente as requisições em tempo real ou copie os snippets para seus agentes autônomos.</p>
+
             <div class="tabs-header">
                 <button class="tab-btn active" onclick="switchTab('console')">⚡ Console Interativo</button>
                 <button class="tab-btn" onclick="switchTab('python')">🐍 Python SDK</button>
                 <button class="tab-btn" onclick="switchTab('node')">🟢 Node.js SDK</button>
                 <button class="tab-btn" onclick="switchTab('curl')">💻 cURL CLI</button>
-                <button class="tab-btn" onclick="switchTab('badges')">🛡️ Badges para GitHub</button>
+                <button class="tab-btn" onclick="switchTab('badges')">🛡️ Badges SVG</button>
             </div>
 
             <!-- Tab 1: Console Interativo -->
             <div id="tab-console" class="tab-content active">
                 <div class="console-actions">
-                    <button class="btn-sm" onclick="runConsole('free')">⚡ Consultar Resumo Gratuito (GET /status)</button>
-                    <button class="btn-sm" onclick="runConsole('challenge')">🔒 Simular Desafio x402 (GET /telemetry)</button>
+                    <button class="btn-sm" onclick="runConsole('summary')">Resumo Gratuito (/status)</button>
+                    <button class="btn-sm" onclick="runConsole('forex')">Câmbio (/api/v1/forex)</button>
+                    <button class="btn-sm" onclick="runConsole('crypto')">Cripto (/api/v1/crypto)</button>
+                    <button class="btn-sm" onclick="runConsole('dns')">DNS (/api/v1/dns)</button>
+                    <button class="btn-sm" onclick="runConsole('ssl')">SSL (/api/v1/ssl)</button>
+                    <button class="btn-sm" onclick="runConsole('asn')">ASN (/api/v1/asn)</button>
+                    <button class="btn-sm" onclick="runConsole('cep')">CEP (/api/v1/cep)</button>
                 </div>
                 <div class="input-group">
-                    <input type="text" id="tx-input" class="console-input" placeholder="Cole o hash da transação na Base (0x...) para testar X-Payment">
-                    <button class="btn-sm" onclick="runConsole('paid')">Enviar Comprovante</button>
+                    <input type="text" id="tx-input" class="console-input" placeholder="Cole o hash de pagamento na Base (0x...) para testar liberação com X-Payment">
+                    <button class="btn-sm" onclick="runConsole('paid')">Enviar com X-Payment</button>
                 </div>
                 <div class="response-header">
-                    <span id="console-status-text">Pronto para teste. Clique em uma das ações acima.</span>
-                    <span id="console-latency-badge" style="display:none;" class="status-badge status-up"></span>
+                    <span id="console-status-text">Selecione uma das ações acima para testar o retorno da API.</span>
+                    <span id="console-latency-badge" style="display:none;" class="card-category"></span>
                 </div>
                 <pre id="console-output" class="code-block">// Resposta da API aparecerá aqui...</pre>
             </div>
 
-            <!-- Tab 2: Python SDK -->
+            <!-- Tab 2: Python -->
             <div id="tab-python" class="tab-content">
-                <div class="code-block">from grid402 import Grid402Client, PaymentRequiredError
+                <div class="code-block">from grid402 import Grid402Client
 
 client = Grid402Client()
 
-# 1. Checagem prévia gratuita
-if client.is_healthy("SEFAZ"):
-    print("SEFAZ saudável! Processando lote...")
+# 1. Resumo gratuito do hub
+summary = client.get_summary()
+print("Serviços operantes:", summary["status"])
 
-# 2. Padrão Circuit Breaker (Guard)
-resultado = client.guard("SEFAZ", lambda: "Lote enviado")
+# 2. Câmbio em tempo real
+forex = client.get_forex()
+print("USD/BRL:", forex["rates"]["USD"]["bid"])
 
-# 3. Telemetria paga via x402
-challenge = client.get_challenge()
-print(f"Preço: {challenge['price_usdc']} USDC | Carteira: {challenge['recipient_wallet']}")</div>
+# 3. DNS Lookup sob demanda
+dns_records = client.get_dns("github.com")
+print("Registros A:", dns_records["records"]["A"])</div>
             </div>
 
-            <!-- Tab 3: Node.js SDK -->
+            <!-- Tab 3: Node.js -->
             <div id="tab-node" class="tab-content">
-                <div class="code-block">import { Grid402Client } from './grid402.mjs';
+                <div class="code-block">import { Grid402Client } from 'grid402';
 
 const client = new Grid402Client();
 
-// 1. Resumo gratuito
+// 1. Consulta gratuita
 const summary = await client.getSummary();
-console.log('Status geral:', summary.system_status);
+console.log('Status do hub:', summary.status);
 
-// 2. Circuit Breaker Guard
-const resultado = await client.guard('Gateways', async () => {
-    return 'Transações liquidadas com sucesso!';
-});
-
-// 3. Handshake x402
-const challenge = await client.getChallenge();
-console.log(`Preço: ${challenge.price_usdc} USDC na Base`);</div>
+// 2. Inspetor SSL
+const ssl = await client.getSsl('base.org');
+console.log('Expira em dias:', ssl.certificate.days_remaining);</div>
             </div>
 
-            <!-- Tab 4: cURL CLI -->
+            <!-- Tab 4: cURL -->
             <div id="tab-curl" class="tab-content">
-                <div class="code-block"># 1. Consulta gratuita
-curl -i https://www.grid402.com.br/status?format=json
+                <div class="code-block"># 1. Resumo gratuito
+curl -i https://www.grid402.com.br/status
 
-# 2. Desafio HTTP 402 (Telemetria Detalhada)
-curl -i https://www.grid402.com.br/telemetry -H "Accept: application/json"
+# 2. Desafio HTTP 402 em rota de DNS
+curl -i "https://www.grid402.com.br/api/v1/dns?domain=github.com"
 
-# 3. Envio do comprovante on-chain (HTTP 200)
-curl https://www.grid402.com.br/telemetry \
-  -H "Accept: application/json" \
-  -H "X-Payment: 0x&lt;tx_hash_da_transferencia_na_base&gt;"</div>
+# 3. Requisição com comprovante na Base
+curl "https://www.grid402.com.br/api/v1/dns?domain=github.com" \
+  -H "X-Payment: 0x&lt;tx_hash_na_base&gt;"</div>
             </div>
 
-            <!-- Tab 5: Badges para GitHub -->
+            <!-- Tab 5: Badges -->
             <div id="tab-badges" class="tab-content">
-                <p style="color: var(--text-muted); margin-bottom: 1.25rem;">
-                    Exiba o status em tempo real do ecossistema fiscal e bancário brasileiro no README do seu repositório no GitHub ou documentação. Atualização automática em tempo real.
+                <p style="color: var(--text-muted); margin-bottom: 1rem;">
+                    Badges em SVG dinâmicos para embeddar no README do seu repositório no GitHub:
                 </p>
-                <div class="input-group" style="margin-bottom: 1rem;">
-                    <select id="badge-select" class="console-input" style="cursor: pointer;" onchange="updateBadgeSnippet()">
-                        <optgroup label="Visão Geral & Categorias">
-                            <option value="system" selected>Grid402 (Status Global do Sistema)</option>
-                            <option value="sefaz">SEFAZ (Todos os Autorizadores Fiscais)</option>
-                            <option value="pix">Bancos & PIX (BACEN / BB / Itaú / Bradesco)</option>
-                            <option value="gateways">Gateways (Mercado Pago / Asaas / Cielo / Stone)</option>
-                            <option value="infra">Telecom & Infra (SERPRO / AWS SP / DNS)</option>
-                        </optgroup>
-                        <optgroup label="Alvos Individuais (SEFAZ)">
-                            <option value="sefaz_sp">SEFAZ São Paulo</option>
-                            <option value="sefaz_rs">SEFAZ Rio Grande do Sul</option>
-                            <option value="sefaz_mg">SEFAZ Minas Gerais</option>
-                            <option value="sefaz_pr">SEFAZ Paraná</option>
-                            <option value="sefaz_svan">SEFAZ SVAN (Maranhão / Pará / Outros)</option>
-                        </optgroup>
-                        <optgroup label="Alvos Individuais (Gateways & Bancos)">
-                            <option value="mercadopago">Mercado Pago Core API</option>
-                            <option value="asaas">Asaas Gestão Financeira</option>
-                            <option value="cielo">Cielo e-Commerce</option>
-                            <option value="stone">Stone Pagamentos</option>
-                            <option value="pagseguro">PagSeguro PagBank</option>
-                            <option value="bacen_dados">Banco Central (BACEN)</option>
-                            <option value="banco_brasil">Banco do Brasil</option>
-                            <option value="itau_pix">Itaú Unibanco</option>
-                            <option value="bradesco_pix">Bradesco</option>
-                        </optgroup>
-                        <optgroup label="Infraestrutura & Nuvem">
-                            <option value="serpro">SERPRO Infraestrutura</option>
-                            <option value="aws_sa_east">AWS São Paulo (sa-east-1)</option>
-                        </optgroup>
-                    </select>
-                </div>
-
-                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
                     <div>
-                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; font-weight: 600;">Pré-visualização do Badge:</div>
-                        <img id="badge-preview-img" src="/badge/system.svg" alt="Grid402 Badge Preview" style="height: 22px; display: block;" onerror="this.src='/badge.php?target=system'">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; font-weight: 600;">Exemplo de Badge em Tempo Real:</div>
+                        <img id="badge-preview-img" src="/badge/system.svg" alt="Badge Preview" style="height: 22px; display: block;" onerror="this.src='/badge.php?target=system'">
                     </div>
                     <button class="btn-sm" onclick="copyBadgeMarkdown()">📋 Copiar Markdown</button>
                 </div>
-
-                <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem;">Snippet Markdown para colar no seu <code>README.md</code>:</div>
-                <pre id="badge-markdown-code" class="code-block" style="user-select: all;">[![Grid402 Status](https://www.grid402.com.br/badge/system.svg)](https://www.grid402.com.br)</pre>
+                <pre id="badge-markdown-code" class="code-block">[![Grid402 Hub](https://www.grid402.com.br/badge/system.svg)](https://www.grid402.com.br)</pre>
             </div>
         </section>
 
-        <script>
-            function switchTab(name) {
-                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                event.target.classList.add('active');
-                document.getElementById('tab-' + name).classList.add('active');
-            }
-
-            async function runConsole(action) {
-                const out = document.getElementById('console-output');
-                const statusText = document.getElementById('console-status-text');
-                const badge = document.getElementById('console-latency-badge');
-
-                out.textContent = 'Carregando...';
-                badge.style.display = 'none';
-
-                let url = '/status?format=json';
-                let headers = { 'Accept': 'application/json' };
-
-                if (action === 'challenge') {
-                    url = '/telemetry';
-                } else if (action === 'paid') {
-                    url = '/telemetry';
-                    const tx = document.getElementById('tx-input').value.trim();
-                    if (!tx) {
-                        out.textContent = 'Erro: Por favor, insira o hash da transação no campo de texto.';
-                        return;
-                    }
-                    headers['X-Payment'] = tx;
-                }
-
-                const t0 = performance.now();
-                try {
-                    const res = await fetch(url, { headers });
-                    const duration = Math.round(performance.now() - t0);
-                    const json = await res.json();
-
-                    statusText.textContent = 'HTTP ' + res.status + ' ' + (res.status === 200 ? 'OK' : (res.status === 402 ? 'Payment Required' : (res.status === 403 ? 'Forbidden' : 'Error')));
-                    badge.style.display = 'inline-block';
-                    badge.textContent = duration + ' ms';
-                    badge.className = 'status-badge ' + (res.status === 200 ? 'status-up' : (res.status === 402 ? 'status-deg' : 'status-down'));
-
-                    out.textContent = JSON.stringify(json, null, 2);
-                } catch (err) {
-                    statusText.textContent = 'Erro na requisição';
-                    out.textContent = err.message;
-                }
-            }
-
-            function updateBadgeSnippet() {
-                const select = document.getElementById('badge-select');
-                const target = select.value;
-                const label = select.options[select.selectedIndex].text.split('(')[0].trim();
-                const previewImg = document.getElementById('badge-preview-img');
-                const codeBlock = document.getElementById('badge-markdown-code');
-
-                const origin = window.location.origin;
-                const badgeUrl = origin + '/badge/' + target + '.svg';
-                const linkUrl = 'https://www.grid402.com.br';
-
-                previewImg.src = '/badge/' + target + '.svg?t=' + Date.now();
-                codeBlock.textContent = `[![${label} Status](${badgeUrl})](${linkUrl})`;
-            }
-
-            function copyBadgeMarkdown() {
-                const codeBlock = document.getElementById('badge-markdown-code');
-                navigator.clipboard.writeText(codeBlock.textContent).then(() => {
-                    alert('Snippet Markdown copiado para a área de transferência!');
-                }).catch(() => {
-                    const range = document.createRange();
-                    range.selectNode(codeBlock);
-                    window.getSelection().removeAllRanges();
-                    window.getSelection().addRange(range);
-                    document.execCommand('copy');
-                    alert('Snippet Markdown copiado!');
-                });
-            }
-        </script>
-
         <footer>
-            <div>Grid402 Telemetry Oracle • Hospedado sobre Hostinger LiteSpeed</div>
+            <div>Grid402 // Open Data & Utility Hub • Base Mainnet</div>
             <div>
+                <a href="/terms" onclick="openLegalModal('terms'); return false;">Termos de Uso</a> • 
+                <a href="/privacy" onclick="openLegalModal('privacy'); return false;">Privacidade (LGPD)</a> • 
                 <a href="/llms.txt">llms.txt</a> • 
                 <a href="https://basescan.org/address/<?php echo GRID402_WALLET_ADDRESS; ?>" target="_blank" rel="noopener">BaseScan</a> •
                 <span>Taxa: US$ <?php echo GRID402_PRICE_DISPLAY; ?> / consulta</span>
             </div>
+            <div class="footer-legal">
+                <p><strong>Isenção de Responsabilidade e Dados Públicos:</strong> O Grid402 é um hub utilitário de acesso a dados de domínio público e protocolos abertos de rede fornecido 'NO ESTADO EM QUE SE ENCONTRA' (AS-IS). Não tratamos dados pessoais sensíveis (PII) e operamos em estrita observância à Lei Geral de Proteção de Dados (Lei nº 13.709/2018) e ao Marco Civil da Internet (Lei nº 12.965/2014).</p>
+            </div>
         </footer>
+
+        <!-- Modal Jurídico -->
+        <div id="legal-modal-overlay" class="modal-overlay" onclick="handleOverlayClick(event)">
+            <div class="modal-card">
+                <div class="modal-header">
+                    <span class="modal-title" id="modal-title-text">Termos de Uso</span>
+                    <button class="modal-close" onclick="closeLegalModal()">✕</button>
+                </div>
+                <div class="modal-tabs">
+                    <button id="modal-tab-terms-btn" class="modal-tab-btn active" onclick="switchLegalModal('terms')">Termos de Uso</button>
+                    <button id="modal-tab-privacy-btn" class="modal-tab-btn" onclick="switchLegalModal('privacy')">Privacidade & LGPD</button>
+                </div>
+                <div class="modal-body" id="modal-body-content"></div>
+            </div>
+        </div>
     </div>
+
+    <script>
+        function switchTab(name) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('tab-' + name).classList.add('active');
+        }
+
+        let currentServiceAction = 'summary';
+
+        async function runConsole(action) {
+            currentServiceAction = action;
+            const out = document.getElementById('console-output');
+            const statusText = document.getElementById('console-status-text');
+            const badge = document.getElementById('console-latency-badge');
+
+            out.textContent = 'Carregando requisição...';
+            badge.style.display = 'none';
+
+            let url = '/status';
+            let headers = { 'Accept': 'application/json' };
+
+            switch (action) {
+                case 'forex': url = '/api/v1/forex'; break;
+                case 'crypto': url = '/api/v1/crypto'; break;
+                case 'dns': url = '/api/v1/dns?domain=github.com'; break;
+                case 'ssl': url = '/api/v1/ssl?host=base.org'; break;
+                case 'asn': url = '/api/v1/asn?ip=1.1.1.1'; break;
+                case 'cep': url = '/api/v1/cep?code=01310100'; break;
+                case 'paid':
+                    const tx = document.getElementById('tx-input').value.trim();
+                    if (!tx) {
+                        out.textContent = 'Por favor, insira o hash da transação na Base no campo acima.';
+                        return;
+                    }
+                    headers['X-Payment'] = tx;
+                    url = '/api/v1/dns?domain=github.com';
+                    break;
+                default: url = '/status'; break;
+            }
+
+            const t0 = performance.now();
+            try {
+                const res = await fetch(url, { headers });
+                const duration = Math.round(performance.now() - t0);
+                const json = await res.json();
+
+                statusText.textContent = `HTTP ${res.status} ${res.status === 200 ? 'OK' : (res.status === 402 ? 'Payment Required (Desafio x402)' : 'Error')}`;
+                badge.style.display = 'inline-block';
+                badge.textContent = `${duration} ms`;
+
+                out.textContent = JSON.stringify(json, null, 2);
+            } catch (err) {
+                statusText.textContent = 'Falha na requisição';
+                out.textContent = err.message;
+            }
+        }
+
+        function copyBadgeMarkdown() {
+            const codeBlock = document.getElementById('badge-markdown-code');
+            navigator.clipboard.writeText(codeBlock.textContent).then(() => {
+                alert('Snippet copiado para a área de transferência!');
+            });
+        }
+
+        // Modal Legal
+        const legalContent = {
+            terms: `
+                <h3>1. Objeto e Natureza do Hub</h3>
+                <p>O <strong>Grid402</strong> é um hub de micro-serviços públicos e utilitários técnicos de rede para sistemas autônomos e desenvolvedores. O serviço é fornecido 'NO ESTADO EM QUE SE ENCONTRA' (AS-IS), sem garantias de adequação a propósitos comerciais específicos.</p>
+                <h3>2. Dados Públicos e Domínio Aberto</h3>
+                <p>Todas as consultas utilizam estritamente dados de domínio público (cotações cambiais PTAX, tickers de mercado, base pública de CEP nacional e protocolos abertos de rede como DNS, TLS e BGP/ASN).</p>
+                <h3>3. Pagamentos x402 e Irreversibilidade</h3>
+                <p>Os micropagamentos são liquidados em USDC na Base Mainnet (8453) de forma definitiva e irreversível.</p>
+            `,
+            privacy: `
+                <h3>1. Conformidade com a LGPD (Lei nº 13.709/2018)</h3>
+                <p>O Grid402 não coleta, armazena ou trata dados pessoais identificáveis (PII) de cidadãos. As ferramentas realizam operações técnicas de rede e dados públicos abertos.</p>
+                <h3>2. Guarda de Registros (Marco Civil da Internet)</h3>
+                <p>Em observância ao Art. 15 da Lei nº 12.965/2014, os registros de conexão (endereço IP, data e hora) são mantidos por 6 meses sob sigilo.</p>
+                <h3>3. Contato</h3>
+                <p>Canal de comunicação sobre privacidade: <code>contato@grid402.com.br</code>.</p>
+            `
+        };
+
+        function openLegalModal(tab) {
+            switchLegalModal(tab);
+            document.getElementById('legal-modal-overlay').classList.add('active');
+        }
+        function closeLegalModal() {
+            document.getElementById('legal-modal-overlay').classList.remove('active');
+        }
+        function switchLegalModal(tab) {
+            const title = document.getElementById('modal-title-text');
+            const body = document.getElementById('modal-body-content');
+            const termsBtn = document.getElementById('modal-tab-terms-btn');
+            const privacyBtn = document.getElementById('modal-tab-privacy-btn');
+
+            if (tab === 'privacy') {
+                title.textContent = 'Política de Privacidade & LGPD';
+                body.innerHTML = legalContent.privacy;
+                termsBtn.classList.remove('active');
+                privacyBtn.classList.add('active');
+            } else {
+                title.textContent = 'Termos de Uso';
+                body.innerHTML = legalContent.terms;
+                privacyBtn.classList.remove('active');
+                termsBtn.classList.add('active');
+            }
+        }
+        function handleOverlayClick(e) {
+            if (e.target.id === 'legal-modal-overlay') closeLegalModal();
+        }
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeLegalModal();
+        });
+    </script>
 </body>
 </html>
