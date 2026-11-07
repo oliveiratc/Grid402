@@ -1,0 +1,71 @@
+name: CI - Grid402 Test Suite
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test-php:
+    name: PHP Tests (PHP ${{ matrix.php-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ['8.1', '8.2', '8.3']
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: curl, json, openssl
+          ini-values: curl.cainfo="", openssl.cafile=""
+
+      - name: Lint PHP Syntax
+        run: |
+          find public_html tests scripts -name "*.php" -print0 | xargs -0 -n1 php -l
+
+      - name: Run Config Unit Tests
+        run: php tests/test_config.php
+
+      - name: Run Collector Unit Tests
+        run: php tests/test_collector.php
+
+      - name: Run x402 Gateway Tests
+        run: php tests/test_x402_gateway.php
+
+      - name: Run HTTP Integration Tests
+        run: php tests/test_http_server.php
+
+      - name: Run Master E2E Full Battery
+        run: php tests/test_e2e_full.php
+
+  test-sdks:
+    name: Client SDKs Tests
+    runs-on: ubuntu-latest
+    needs: test-php
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Test Python SDK
+        run: python sdk/python/test_sdk.py
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Test Node.js SDK
+        run: node sdk/node/test_sdk.mjs
+

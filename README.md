@@ -1,5 +1,12 @@
 # Grid402 // Oráculo M2M de Telemetria de Serviços Críticos
 
+[![CI](https://github.com/oliveiratc/Grid402/actions/workflows/ci.yml/badge.svg)](https://github.com/oliveiratc/Grid402/actions)
+![Network](https://img.shields.io/badge/Network-Base_Mainnet_(8453)-0052FF?logo=coinbase)
+![Payment](https://img.shields.io/badge/Payment-0.0005_USDC-2775CA?logo=usd-coin)
+![Protocol](https://img.shields.io/badge/Protocol-HTTP_x402-10B981)
+![PHP](https://img.shields.io/badge/PHP-8.1%20%7C%208.2%20%7C%208.3-777BB4?logo=php)
+![Server](https://img.shields.io/badge/Server-Hostinger_LiteSpeed-blue)
+
 > Infraestrutura de telemetria em tempo real para agentes autônomos de IA e sistemas M2M auditarem a disponibilidade e latência de APIs críticas brasileiras (SEFAZ, PIX, Gateways de Pagamento e Telecom) antes de executarem lotes de transações.
 
 ---
