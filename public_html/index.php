@@ -45,6 +45,9 @@ if ($paymentProof === '') {
 
 // Cabeçalho de variação de cache para proxies e CDN
 header('Vary: Accept, User-Agent');
+header('Link: </openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json", </llms.txt>; rel="help"; type="text/markdown"');
+header('X-Agent-Protocol: x402; network=base; chain_id=8453');
+header('X-Micropayment-Pricing: 0.0005 USDC; token=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913');
 
 // 1. Rotas Jurídicas para Máquinas e APIs
 if ($pageParam === 'terms' || str_contains($requestUri, '/terms')) {
@@ -216,6 +219,27 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grid402 // Hub de Utilitários de Rede & Dados Públicos (x402)</title>
     <meta name="description" content="Portal e oráculo de micro-serviços públicos (Câmbio, Cripto, DNS, SSL, ASN, CEP) para agentes de IA e robôs M2M com micropagamentos x402 na Base.">
+    <link rel="service-desc" type="application/vnd.oai.openapi+json" href="/openapi.json">
+    <link rel="help" type="text/markdown" href="/llms.txt">
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml">
+
+    <!-- Metadados Schema.org para Agentes de IA e Motores de Busca -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebAPI",
+      "name": "Grid402 Public Data & Network Utilities Hub",
+      "url": "https://www.grid402.com.br",
+      "description": "High-performance M2M public data and network utilities oracle (Forex, Crypto, DNS, SSL, ASN, CEP) for autonomous AI agents settled via the x402 protocol in USDC on Base Mainnet.",
+      "documentation": "https://www.grid402.com.br/llms.txt",
+      "termsOfService": "https://www.grid402.com.br/terms",
+      "provider": {
+        "@type": "Organization",
+        "name": "Grid402",
+        "url": "https://www.grid402.com.br"
+      }
+    }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -739,7 +763,8 @@ curl "https://www.grid402.com.br/api/v1/dns?domain=github.com" \
             <div>
                 <a href="/terms" onclick="openLegalModal('terms'); return false;">Termos de Uso</a> • 
                 <a href="/privacy" onclick="openLegalModal('privacy'); return false;">Privacidade (LGPD)</a> • 
-                <a href="/llms.txt">llms.txt</a> • 
+                <a href="/openapi.json" target="_blank">OpenAPI 3.1</a> • 
+                <a href="/llms.txt" target="_blank">llms.txt</a> • 
                 <a href="https://basescan.org/address/<?php echo GRID402_WALLET_ADDRESS; ?>" target="_blank" rel="noopener">BaseScan</a> •
                 <span>Taxa: US$ <?php echo GRID402_PRICE_DISPLAY; ?> / consulta</span>
             </div>

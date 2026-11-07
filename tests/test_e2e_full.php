@@ -51,11 +51,19 @@ assert(isset($free['services']['asn']), 'Serviço asn deve estar presente');
 assert(isset($free['services']['cep']), 'Serviço cep deve estar presente');
 echo "  ✓ Coletor aprovado com sucesso (< 4.0s e catálogo dos 6 serviços validado)!\n\n";
 
-// 2. Validação do Manifesto llms.txt
-echo "[PASSO {$step}] Verificando Manifesto llms.txt para Crawlers e LLMs...\n";
+// 2. Validação do Manifesto llms.txt, openapi.json e robots.txt para IAs
+echo "[PASSO {$step}] Verificando Arquivos de Descoberta para Crawlers e LLMs...\n";
 $step++;
 $llmsPath = __DIR__ . '/../public_html/llms.txt';
+$openApiPath = __DIR__ . '/../public_html/openapi.json';
+$robotsPath = __DIR__ . '/../public_html/robots.txt';
+$sitemapPath = __DIR__ . '/../public_html/sitemap.xml';
+
 assert(file_exists($llmsPath), "llms.txt não encontrado");
+assert(file_exists($openApiPath), "openapi.json não encontrado");
+assert(file_exists($robotsPath), "robots.txt não encontrado");
+assert(file_exists($sitemapPath), "sitemap.xml não encontrado");
+
 $llmsContent = (string)file_get_contents($llmsPath);
 assert(str_contains($llmsContent, 'Grid402'), 'llms.txt deve conter Grid402');
 assert(str_contains($llmsContent, '8453'), 'llms.txt deve referenciar a chain Base (8453)');
@@ -63,7 +71,16 @@ assert(str_contains($llmsContent, '0.0005'), 'llms.txt deve indicar preço de 0.
 assert(str_contains($llmsContent, '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'), 'llms.txt deve conter contrato do USDC');
 assert(str_contains($llmsContent, '/api/v1/forex'), 'llms.txt deve documentar rota forex');
 assert(str_contains($llmsContent, '/api/v1/dns'), 'llms.txt deve documentar rota dns');
-echo "  ✓ Manifesto llms.txt íntegro e em conformidade!\n\n";
+
+$openApiJson = json_decode((string)file_get_contents($openApiPath), true);
+assert(isset($openApiJson['paths']['/api/v1/forex']), 'openapi.json deve conter /api/v1/forex');
+assert(isset($openApiJson['paths']['/api/v1/dns']), 'openapi.json deve conter /api/v1/dns');
+
+$robotsContent = (string)file_get_contents($robotsPath);
+assert(str_contains($robotsContent, 'GPTBot'), 'robots.txt deve permitir GPTBot');
+assert(str_contains($robotsContent, 'ClaudeBot'), 'robots.txt deve permitir ClaudeBot');
+
+echo "  ✓ Arquivos de Descoberta M2M (llms.txt, openapi.json, robots.txt, sitemap.xml) íntegros!\n\n";
 
 // 3. Teste do Servidor HTTP e Ciclo de Vida M2M
 echo "[PASSO {$step}] Subindo servidor web local para simular tráfego HTTP real...\n";

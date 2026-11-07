@@ -1,0 +1,49 @@
+# robots.txt para Grid402 // Hub de Utilitários de Rede & Dados Públicos (Protocolo x402)
+# Permissão explícita para Crawlers de Busca, Agentes de IA e Robôs Autônomos
+
+User-agent: *
+Allow: /
+Allow: /status
+Allow: /api/v1/
+Allow: /llms.txt
+Allow: /openapi.json
+Allow: /badge/
+Allow: /terms
+Allow: /privacy
+Disallow: /private_data/
+
+# Agentes de IA e Modelos de Linguagem (LLM Crawlers)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: FacebookBot
+Allow: /
+
+# Apontamento de Sitemaps e Documentação de Máquina
+Sitemap: https://www.grid402.com.br/sitemap.xml
+Sitemap: https://orangered-jackal-900744.hostingersite.com/sitemap.xml
+

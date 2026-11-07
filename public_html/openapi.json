@@ -1,0 +1,402 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Grid402 // Public Data & Network Utilities Hub",
+    "version": "2.0.0",
+    "description": "High-performance autonomous M2M public data and network utilities oracle designed for AI agents, crawlers, and automation pipelines. Settled via the x402 protocol with Base Mainnet USDC micropayments (US$ 0.0005 per technical query).",
+    "contact": {
+      "name": "Grid402 Support",
+      "url": "https://www.grid402.com.br",
+      "email": "contato@grid402.com.br"
+    },
+    "license": {
+      "name": "MIT & AS-IS Public Data Terms",
+      "url": "https://www.grid402.com.br/terms"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://orangered-jackal-900744.hostingersite.com",
+      "description": "Hostinger Cloud Production / Active Live Cluster"
+    },
+    {
+      "url": "https://www.grid402.com.br",
+      "description": "Primary Production Domain"
+    },
+    {
+      "url": "http://localhost:8000",
+      "description": "Local Development Server"
+    }
+  ],
+  "tags": [
+    { "name": "Free", "description": "Free discovery and aggregated status (No payment required)" },
+    { "name": "Forex", "description": "Real-time foreign exchange rates (USD, EUR, GBP to BRL)" },
+    { "name": "Crypto", "description": "Spot crypto market tickers (BTC, ETH, SOL, USDC, BASE)" },
+    { "name": "DNS", "description": "Authoritative RFC 1035 DNS records resolution" },
+    { "name": "SSL", "description": "Port 443 TLS/SSL certificate inspector and X.509 chain analyzer" },
+    { "name": "ASN", "description": "BGP routing metadata, ASN number, organization and country" },
+    { "name": "CEP", "description": "Brazilian postal resolution and official municipal IBGE code" },
+    { "name": "Legal", "description": "Terms of Service and LGPD privacy policy" }
+  ],
+  "paths": {
+    "/api/v1/summary": {
+      "get": {
+        "summary": "Consolidated Hub Status & Market Summary (Free)",
+        "description": "Returns operational health and latest cached sample metrics across all 6 micro-services. Zero payment required.",
+        "tags": ["Free"],
+        "responses": {
+          "200": {
+            "description": "Hub operational status and service catalog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/forex": {
+      "get": {
+        "summary": "Foreign Exchange Rates (USD, EUR, GBP to BRL)",
+        "description": "Returns real-time bid, ask, and daily percentage change for major fiat currencies to BRL. Requires x402 micropayment on Base.",
+        "tags": ["Forex"],
+        "security": [{ "x402Payment": [] }],
+        "responses": {
+          "200": {
+            "description": "Forex rates returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForexResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required via x402 Protocol",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/X402Challenge"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Replay Attack Detected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/crypto": {
+      "get": {
+        "summary": "Spot Cryptocurrency Tickers",
+        "description": "Returns spot prices in USD for BTC, ETH, SOL, USDC, and Base ecosystem tokens with 24h variation. Requires x402 micropayment on Base.",
+        "tags": ["Crypto"],
+        "security": [{ "x402Payment": [] }],
+        "responses": {
+          "200": {
+            "description": "Crypto tickers returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CryptoResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
+    "/api/v1/dns": {
+      "get": {
+        "summary": "DNS Records Resolution",
+        "description": "Resolves authoritative DNS records (A, AAAA, MX, TXT, NS, CNAME) for any valid domain name. Requires x402 micropayment on Base.",
+        "tags": ["DNS"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "query",
+            "required": true,
+            "description": "Target domain name to resolve (e.g., github.com)",
+            "schema": {
+              "type": "string",
+              "example": "github.com"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "DNS records successfully resolved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DnsResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
+    "/api/v1/ssl": {
+      "get": {
+        "summary": "TLS/SSL Certificate Inspector",
+        "description": "Performs a direct TLS handshake on port 443 to extract X.509 certificate validity, issuer, SANs, and remaining days. Requires x402 micropayment on Base.",
+        "tags": ["SSL"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "host",
+            "in": "query",
+            "required": true,
+            "description": "Hostname to inspect on port 443 (e.g., base.org)",
+            "schema": {
+              "type": "string",
+              "example": "base.org"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "TLS inspection report returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SslResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
+    "/api/v1/asn": {
+      "get": {
+        "summary": "BGP ASN & IP Intelligence",
+        "description": "Resolves Autonomous System Number (ASN), BGP organization, and country for a given IP address. Requires x402 micropayment on Base.",
+        "tags": ["ASN"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "ip",
+            "in": "query",
+            "required": false,
+            "description": "IPv4 or IPv6 address to lookup (default: caller IP)",
+            "schema": {
+              "type": "string",
+              "example": "1.1.1.1"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ASN and routing metadata returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AsnResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
+    "/api/v1/cep": {
+      "get": {
+        "summary": "Brazilian CEP & IBGE Municipal Code",
+        "description": "Resolves public street, neighborhood, city, state, and official IBGE municipal code from an 8-digit Brazilian postal code (CEP). Requires x402 micropayment on Base.",
+        "tags": ["CEP"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "description": "8-digit Brazilian postal code (CEP)",
+            "schema": {
+              "type": "string",
+              "example": "01310100"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Address and IBGE code returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CepResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
+    "/terms": {
+      "get": {
+        "summary": "Terms of Service & AS-IS Disclaimer",
+        "description": "Returns terms of service, liability limitations, and network parameters.",
+        "tags": ["Legal"],
+        "responses": {
+          "200": {
+            "description": "Terms of service JSON document"
+          }
+        }
+      }
+    },
+    "/privacy": {
+      "get": {
+        "summary": "Privacy Policy (LGPD Compliance)",
+        "description": "Returns the privacy policy confirming zero PII collection and compliance with Brazilian LGPD (Lei nº 13.709/2018) and Marco Civil da Internet.",
+        "tags": ["Legal"],
+        "responses": {
+          "200": {
+            "description": "Privacy policy JSON document"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "x402Payment": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Payment",
+        "description": "Transaction hash (0x + 64 hex characters) on Base Mainnet (Chain ID 8453) transferring 0.0005 USDC to 0xa31c31069c43ac1c0075a93c325b0dcd7744356c."
+      }
+    },
+    "responses": {
+      "PaymentRequired": {
+        "description": "Payment Required via x402 Protocol (Base Mainnet)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/X402Challenge"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "SummaryResponse": {
+        "type": "object",
+        "properties": {
+          "protocol": { "type": "string", "example": "x402" },
+          "hub": { "type": "string", "example": "Grid402" },
+          "network": { "type": "string", "example": "Base" },
+          "chain_id": { "type": "integer", "example": 8453 },
+          "status": { "type": "string", "example": "OPERATIONAL" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "services": { "type": "object" },
+          "notice": { "type": "string" }
+        }
+      },
+      "X402Challenge": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string", "example": "PaymentRequired" },
+          "message": { "type": "string" },
+          "protocol": { "type": "string", "example": "x402" },
+          "network": { "type": "string", "example": "Base" },
+          "chain_id": { "type": "integer", "example": 8453 },
+          "token": { "type": "string", "example": "USDC" },
+          "token_contract": { "type": "string", "example": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" },
+          "price_usdc": { "type": "string", "example": "0.0005" },
+          "price_raw_units": { "type": "integer", "example": 500 },
+          "recipient_wallet": { "type": "string", "example": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c" },
+          "action_required": { "type": "string" },
+          "docs": { "type": "string", "example": "https://www.grid402.com.br/llms.txt" }
+        }
+      },
+      "ForexResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "UP" },
+          "timestamp": { "type": "string" },
+          "rates": { "type": "object" }
+        }
+      },
+      "CryptoResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "UP" },
+          "timestamp": { "type": "string" },
+          "tickers": { "type": "object" }
+        }
+      },
+      "DnsResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "domain": { "type": "string", "example": "github.com" },
+          "records": { "type": "object" }
+        }
+      },
+      "SslResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "host": { "type": "string", "example": "base.org" },
+          "certificate": { "type": "object" }
+        }
+      },
+      "AsnResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "ip": { "type": "string", "example": "1.1.1.1" },
+          "asn": { "type": "string", "example": "AS13335" },
+          "org": { "type": "string", "example": "Cloudflare, Inc." }
+        }
+      },
+      "CepResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "cep": { "type": "string", "example": "01310-100" },
+          "cidade": { "type": "string", "example": "São Paulo" },
+          "uf": { "type": "string", "example": "SP" },
+          "ibge": { "type": "string", "example": "3550308" }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  }
+}
+
