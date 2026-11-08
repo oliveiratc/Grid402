@@ -4,7 +4,7 @@
   "description": "Official Model Context Protocol (MCP) Server for Grid402 - Public Open Data e Network Utilities Hub (Forex, Crypto, DNS, SSL, ASN, CEP) with Base x402 micropayments.",
   "type": "module",
   "bin": {
-    "grid402-mcp": "./index.mjs"
+    "grid402-mcp": "index.mjs"
   },
   "main": "./index.mjs",
   "scripts": {
@@ -40,4 +40,3 @@
     "ethers": "^6.13.5"
   }
 }
-
