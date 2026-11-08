@@ -9,6 +9,7 @@
 - [Canais de Contato](https://orangered-jackal-900744.hostingersite.com/contact): Suporte tecnico, encarregado de dados DPO e telefonia
 - [Termos de Servico](https://orangered-jackal-900744.hostingersite.com/terms): Condicoes de uso, licenca MIT e termos M2M
 - [Politica de Privacidade](https://orangered-jackal-900744.hostingersite.com/privacy): Diretrizes de privacidade, conformidade LGPD e retencao de logs
+- [Oracle Verifier API](https://orangered-jackal-900744.hostingersite.com/api/v1/verify): Endpoint sem estado para validacao criptografica de provas de oraculo em menos de 1 ms
 - [MCP Server Card](https://orangered-jackal-900744.hostingersite.com/.well-known/mcp/server-card.json): Ficha de descoberta de capacidades SEP-1649 para servidores MCP
 
 ## Public Micro-Services APIs
@@ -38,3 +39,4 @@
 ## Cryptographic Proof of Data (Verifiable Oracle)
 - Todas as respostas tecnicas liberadas com pagamento on-chain ou modo Sandbox incluem a chave `_oracle_proof`.
 - Atestacao: Assinatura digital ECDSA secp256k1 e hash SHA-256 do payload canonico, permitindo que agentes de IA e contratos inteligentes verifiquem localmente a autenticidade dos dados da carteira oraculo (0xa31c31069c43ac1c0075a93c325b0dcd7744356c).
+- Endpoint de Verificacao: `POST /api/v1/verify` (ou `GET /api/v1/verify?payload=...`) valida sem estado qualquer resposta com assinatura em menos de 1 ms via motor OpenSSL em C (limite maximo de 64 KB). Retorna `valid: true/false`, `payload_hash`, `oracle_address`, `timestamp` e `verification_time_ms`.

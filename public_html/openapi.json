@@ -39,6 +39,7 @@
     { "name": "CNPJ", "description": "Brazilian Federal Revenue corporate registration data and CNAE" },
     { "name": "Indicators", "description": "Official Brazilian economic indicators (Selic, CDI, and IPCA)" },
     { "name": "Holidays", "description": "National holidays and banking calendar (ANBIMA and Febraban)" },
+    { "name": "Verification", "description": "Stateless cryptographic oracle proof verification" },
     { "name": "Legal", "description": "Terms of Service and LGPD privacy policy" }
   ],
   "paths": {
@@ -436,6 +437,73 @@
         }
       }
     },
+    "/api/v1/verify": {
+      "post": {
+        "summary": "Stateless Oracle Proof Verification",
+        "description": "Verifies the ECDSA secp256k1 cryptographic signature and canonical SHA-256 data hash of a response payload previously emitted by the Grid402 Oracle. Stateless, zero-DB, memory execution in less than 1 ms. Max payload size 64 KB.",
+        "tags": ["Verification"],
+        "requestBody": {
+          "required": true,
+          "description": "Arbitrary Grid402 response JSON containing the _oracle_proof block",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verification evaluated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or malformed JSON payload"
+          },
+          "413": {
+            "description": "Payload exceeds maximum limit of 64 KB"
+          }
+        }
+      },
+      "get": {
+        "summary": "Stateless Oracle Proof Verification (Query Param)",
+        "description": "Convenience GET endpoint accepting a URL-encoded JSON string in the payload query parameter.",
+        "tags": ["Verification"],
+        "parameters": [
+          {
+            "name": "payload",
+            "in": "query",
+            "description": "URL-encoded JSON response string containing _oracle_proof",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verification evaluated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or malformed JSON payload"
+          }
+        }
+      }
+    },
     "/terms": {
       "get": {
         "summary": "Terms of Service e AS-IS Disclaimer",
@@ -673,6 +741,23 @@
           "sandbox": { "type": "boolean", "example": false }
         },
         "required": ["oracle_address", "timestamp", "data_hash", "signature", "algorithm", "sandbox"]
+      },
+      "VerifyResponse": {
+        "type": "object",
+        "description": "Result of cryptographic verification of an oracle-signed response",
+        "properties": {
+          "valid": { "type": "boolean", "example": true },
+          "oracle_address": { "type": "string", "example": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c" },
+          "timestamp": { "type": "integer", "example": 1794163887 },
+          "sandbox": { "type": "boolean", "example": true },
+          "verification_time_ms": { "type": "number", "example": 0.38 },
+          "hub": { "type": "string", "example": "Grid402" },
+          "status": { "type": "string", "example": "AUTHENTIC_ORACLE_DATA" },
+          "error": { "type": "string", "example": "DataHashMismatch" },
+          "expected_hash": { "type": "string", "example": "0xd93ff92161897e911b85afed59a209170e4ae04d449bf4213dca7dba1f1fcaad" },
+          "received_hash": { "type": "string", "example": "0x92b36d33af465b9fc16f221db86d5640c40efd1a3d7c51b10d15d14a982fb9bc" }
+        },
+        "required": ["valid", "verification_time_ms", "hub", "status"]
       },
       "ErrorResponse": {
         "type": "object",

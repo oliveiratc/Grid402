@@ -149,6 +149,7 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
             --font-mono: 'JetBrains Mono', monospace;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
         body { background-color: var(--bg); color: var(--text-main); font-family: var(--font-sans); line-height: 1.6; padding: 2rem 1rem; }
         .page-wrap { max-width: 820px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2.5rem; }
         header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
@@ -353,12 +354,13 @@ if ($pageParam === 'privacy' || $requestPath === '/privacy') {
 // 2. Classificação de Rotas
 $isStatusRoute = ($requestPath === '/status' || $requestPath === '/api/v1/summary' || $requestPath === '/telemetry');
 $isHomeRoute = ($requestPath === '/' || $requestPath === '/index.php');
+$isVerifyRoute = ($requestPath === '/api/v1/verify' || $apiParam === 'verify');
 $validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays'];
 $isValidApiAction = in_array($apiParam, $validApiEndpoints, true);
 $isInstitutionalRoute = in_array($requestPath, ['/about', '/contact', '/terms', '/privacy', '/admin', '/dashboard'], true);
 
 // 3. Rota Inexistente: Retorna HTTP 404 Real (Issue 3)
-if (!$isHomeRoute && !$isStatusRoute && !$isValidApiAction && !$isInstitutionalRoute) {
+if (!$isHomeRoute && !$isStatusRoute && !$isValidApiAction && !$isInstitutionalRoute && !$isVerifyRoute) {
     http_response_code(404);
     if (str_contains($acceptHeader, 'text/html') && !str_starts_with($userAgent, 'curl/')) {
         header('Content-Type: text/html; charset=utf-8');
@@ -383,6 +385,7 @@ if (!$isHomeRoute && !$isStatusRoute && !$isValidApiAction && !$isInstitutionalR
                 '/api/v1/indicators',
                 '/api/v1/holidays',
                 '/api/v1/workdays',
+                '/api/v1/verify',
                 '/about',
                 '/contact',
                 '/terms',
@@ -411,6 +414,100 @@ if ($isStatusRoute || ($isHomeRoute && isset($_GET['format']) && $_GET['format']
         readfile(GRID402_FILE_FREE);
         exit;
     }
+}
+
+// 4.1. Rota de Auditoria e Verificacao de Oraculo (/api/v1/verify)
+if ($isVerifyRoute) {
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization');
+    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        http_response_code(204);
+        exit;
+    }
+
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+
+    $rawInput = '';
+    $payload = null;
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $rawInput = (string) file_get_contents('php://input');
+        if (strlen($rawInput) > 65536) {
+            http_response_code(413);
+            echo json_encode([
+                'valid' => false,
+                'error' => 'PayloadTooLarge',
+                'message' => 'O corpo da requisicao excede o limite maximo de 64 KB.',
+                'code' => 413,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        if (trim($rawInput) === '') {
+            http_response_code(400);
+            echo json_encode([
+                'valid' => false,
+                'error' => 'EmptyPayload',
+                'message' => 'O corpo da requisicao POST esta vazio.',
+                'code' => 400,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+
+        $payload = json_decode($rawInput, true);
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($payload)) {
+            http_response_code(400);
+            echo json_encode([
+                'valid' => false,
+                'error' => 'InvalidJSON',
+                'message' => 'O corpo enviado nao e um JSON valido.',
+                'code' => 400,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+    } else {
+        $getPayload = (string) ($_GET['payload'] ?? '');
+        if ($getPayload !== '') {
+            $payload = json_decode($getPayload, true);
+            if (json_last_error() !== JSON_ERROR_NONE || !is_array($payload)) {
+                http_response_code(400);
+                echo json_encode([
+                    'valid' => false,
+                    'error' => 'InvalidJSON',
+                    'message' => 'O parametro payload nao e um JSON valido.',
+                    'code' => 400,
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+        } else {
+            http_response_code(400);
+            echo json_encode([
+                'valid' => false,
+                'error' => 'MissingPayload',
+                'message' => 'Envie o objeto JSON da resposta via POST ou no parametro GET payload.',
+                'endpoint' => '/api/v1/verify',
+                'instructions' => 'Envie um objeto JSON contendo o bloco _oracle_proof para validacao matematica.',
+                'code' => 400,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+    }
+
+    $t0 = microtime(true);
+    $verification = grid402_verify_oracle_proof($payload);
+    $elapsedMs = round((microtime(true) - $t0) * 1000, 3);
+
+    $response = array_merge($verification, [
+        'verification_time_ms' => $elapsedMs,
+        'hub' => 'Grid402',
+        'status' => !empty($verification['valid']) ? 'AUTHENTIC_ORACLE_DATA' : 'VERIFICATION_FAILED',
+    ]);
+
+    http_response_code(200);
+    echo json_encode($response, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
 // 5. Se for requisição para as APIs de dados técnicos
@@ -746,6 +843,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             --font-mono: 'JetBrains Mono', monospace;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
         body {
             background-color: var(--bg);
             color: var(--text-main);
@@ -1216,6 +1314,296 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
         }
         .modal-body h3 { font-size: 1rem; color: #fff; margin: 1.25rem 0 0.5rem; }
         .modal-body h3:first-child { margin-top: 0; }
+
+        /* Playground Interativo e Verificador de Oraculo */
+        .playground-header-wrap {
+            margin-bottom: 1.75rem;
+        }
+        .playground-presets {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 0.6rem;
+            margin-bottom: 1.5rem;
+        }
+        .preset-btn {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.65rem 0.8rem;
+            color: var(--text-muted);
+            font-family: var(--font-sans);
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .preset-btn:hover {
+            background: var(--surface-hover);
+            border-color: var(--accent);
+            color: #fff;
+            transform: translateY(-1px);
+        }
+        .preset-btn.active {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: var(--primary);
+            color: #fff;
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+        }
+        .preset-btn-name {
+            font-weight: 700;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .preset-btn-route {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--accent);
+        }
+        .playground-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            background: #030712;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.85rem 1.15rem;
+            margin-bottom: 1.5rem;
+        }
+        .mode-toggle-group {
+            display: flex;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 3px;
+            gap: 3px;
+            flex-wrap: wrap;
+        }
+        .mode-toggle-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-family: var(--font-sans);
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 0.45rem 0.85rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .mode-toggle-btn:hover {
+            color: #fff;
+        }
+        .mode-toggle-btn.active {
+            background: var(--primary);
+            color: #030712;
+            font-weight: 700;
+        }
+        .playground-url-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            flex: 1;
+            min-width: 240px;
+        }
+        .playground-url-pill {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent);
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            word-break: break-all;
+        }
+        .playground-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+        }
+        @media (max-width: 880px) {
+            .playground-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .playground-card {
+            background: #030712;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+        }
+        .playground-card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .json-viewer-pre {
+            background: #020408;
+            border: 1px solid #1E293B;
+            border-radius: 8px;
+            padding: 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: #38BDF8;
+            overflow-x: auto;
+            line-height: 1.45;
+            max-height: 380px;
+            flex: 1;
+        }
+        .btn-copy-json {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            border-radius: 6px;
+            padding: 0.35rem 0.7rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .btn-copy-json:hover {
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .audit-card {
+            background: rgba(17, 23, 38, 0.85);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem;
+            margin-top: 1.25rem;
+            transition: all 0.3s ease;
+        }
+        .audit-card.valid {
+            border-color: rgba(16, 185, 129, 0.5);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+        }
+        .audit-card.invalid {
+            border-color: rgba(239, 68, 68, 0.5);
+            box-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
+        }
+        .audit-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding-bottom: 0.85rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1rem;
+        }
+        .audit-badge {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.3rem 0.65rem;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .audit-badge.badge-valid {
+            background: rgba(16, 185, 129, 0.15);
+            color: var(--primary);
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+        .audit-badge.badge-invalid {
+            background: rgba(239, 68, 68, 0.15);
+            color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+        .audit-badge.badge-pending {
+            background: rgba(148, 163, 184, 0.1);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+        .audit-steps-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+        }
+        .audit-step-item {
+            display: flex;
+            gap: 0.85rem;
+            align-items: flex-start;
+            background: rgba(3, 7, 18, 0.5);
+            border: 1px solid rgba(30, 41, 59, 0.6);
+            border-radius: 8px;
+            padding: 0.75rem 0.9rem;
+        }
+        .audit-step-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .audit-step-icon.icon-valid {
+            background: rgba(16, 185, 129, 0.2);
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+        .audit-step-icon.icon-invalid {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+        .audit-step-icon.icon-pending {
+            background: rgba(148, 163, 184, 0.1);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+        }
+        .audit-step-body {
+            flex: 1;
+            font-size: 0.82rem;
+        }
+        .audit-step-title {
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 0.2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .audit-step-desc {
+            color: var(--text-muted);
+            line-height: 1.4;
+            margin-bottom: 0.35rem;
+        }
+        .audit-step-meta {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            background: #020408;
+            padding: 0.35rem 0.55rem;
+            border-radius: 4px;
+            color: #94A3B8;
+            word-break: break-all;
+            margin-top: 0.25rem;
+        }
+        .audit-step-meta a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        .audit-step-meta a:hover {
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body>
@@ -1227,6 +1615,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             </div>
             <nav class="nav-links">
                 <a href="#services">Servicos</a>
+                <a href="#playground">Playground</a>
                 <a href="#console">Console</a>
                 <a href="/about">About</a>
                 <a href="/contact">Contact</a>
@@ -1235,7 +1624,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             </nav>
             <div class="badge-live">
                 <span class="badge-pulse"></span>
-                <span>Base Mainnet (8453) • 10/10 Servicos Operantes</span>
+                <span>Base Mainnet (8453) • 11/11 Servicos Operantes</span>
             </div>
         </header>
 
@@ -1244,7 +1633,8 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             <h1>Grid402: Hub de Utilitarios de Rede e Dados Publicos para Agentes de IA</h1>
             <p>Acesse cotacoes de cambio, cripto, indicadores economicos oficiais (Selic, CDI e IPCA), feriados nacionais e bancarios, DNS, certificados SSL, BGP/ASN, CEP e CNPJ da Receita Federal em milissegundos sem cadastro ou chaves de API. Micropagamentos por chamada em USDC na Base.</p>
             <div class="cta-group">
-                <a href="#console" class="btn btn-primary" onclick="switchTab('console')">⚡ Testar no Console</a>
+                <a href="#playground" class="btn btn-primary">⚡ Testar no Playground</a>
+                <a href="#console" class="btn btn-outline" onclick="switchTab('console')">Console e SDKs</a>
                 <a href="/about" class="btn btn-outline">About Us</a>
                 <a href="/contact" class="btn btn-outline">Contact Us</a>
                 <a href="/llms.txt" class="btn btn-outline">Documentacao llms.txt</a>
@@ -1265,6 +1655,139 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             </div>
             <?php endforeach; ?>
         </div>
+
+        <!-- Playground Interativo e Verificador de Oraculo -->
+        <section id="playground" class="protocol-box">
+            <div class="playground-header-wrap">
+                <div class="hero-tag" style="margin-bottom: 0.4rem;">Auditoria Criptografica M2M</div>
+                <h2>Playground Interativo e Verificador de Oraculo</h2>
+                <p>Execute consultas reais nos 11 micro-servicos do Grid402 em modo Sandbox gratuito ou simule o desafio x402. Valide instantaneamente a atestacao criptografica ECDSA secp256k1 (_oracle_proof) com o motor matematico em tempo real.</p>
+            </div>
+
+            <!-- 11 Presets de Micro-Servicos -->
+            <div class="playground-presets" id="playground-preset-bar">
+                <!-- Preenchido via JavaScript com os 11 micro-servicos -->
+            </div>
+
+            <!-- Barra de Controles e Alternador de Modo -->
+            <div class="playground-toolbar">
+                <div class="mode-toggle-group">
+                    <button type="button" class="mode-toggle-btn active" id="btn-mode-sandbox" onclick="setPlaygroundMode('sandbox')">🧪 Sandbox (demo)</button>
+                    <button type="button" class="mode-toggle-btn" id="btn-mode-challenge" onclick="setPlaygroundMode('challenge')">🔒 Desafio x402 (HTTP 402)</button>
+                    <button type="button" class="mode-toggle-btn" id="btn-mode-manual" onclick="setPlaygroundMode('manual')">✍️ Validar JSON Externo</button>
+                </div>
+                <div class="playground-url-bar">
+                    <span>Rota:</span>
+                    <span id="playground-endpoint-display" class="playground-url-pill">GET /api/v1/workdays</span>
+                </div>
+                <div>
+                    <button type="button" id="btn-run-query" class="btn-sm btn-primary" onclick="runPlaygroundQuery()">⚡ Executar Consulta</button>
+                </div>
+            </div>
+
+            <!-- Painel de Execucao em 2 Colunas -->
+            <div class="playground-grid">
+                <!-- Coluna 1: Parametros ou Area de JSON Manual -->
+                <div class="playground-card" id="playground-col-params">
+                    <div class="playground-card-title">
+                        <span id="playground-col-title">Configuracao da Consulta</span>
+                        <span id="playground-service-badge" class="card-category">workdays</span>
+                    </div>
+
+                    <div id="playground-preset-controls">
+                        <p id="playground-service-desc" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
+                            Calculo de dias uteis bancarios ANBIMA e projecao de prazos D+N.
+                        </p>
+                        <div id="playground-params-inputs" style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem;">
+                            <!-- Parametros dinamicos do preset atual -->
+                        </div>
+                    </div>
+
+                    <div id="playground-manual-controls" style="display: none; flex-direction: column; height: 100%;">
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                            Cole abaixo qualquer resposta JSON retornada pelo Grid402 ou utilize um dos modelos de teste:
+                        </p>
+                        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                            <button type="button" class="btn-sm" onclick="loadManualTemplate('valid')">Carregar Exemplo Valido</button>
+                            <button type="button" class="btn-sm" onclick="loadManualTemplate('tampered')">Carregar Exemplo Adulterado</button>
+                            <button type="button" class="btn-sm btn-primary" onclick="verifyManualPayload()">Auditar JSON</button>
+                        </div>
+                        <textarea id="playground-manual-input" class="console-input" style="flex: 1; min-height: 220px; font-family: var(--font-mono); font-size: 0.8rem; resize: vertical;" placeholder="Cole o JSON da resposta contendo o bloco _oracle_proof..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Coluna 2: Retorno JSON e Card de Auditoria -->
+                <div class="playground-card">
+                    <div class="playground-card-title">
+                        <span>Retorno da API</span>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span id="playground-http-status" class="card-category">Pronto</span>
+                            <span id="playground-latency-tag" class="card-category" style="display: none;"></span>
+                            <button type="button" class="btn-copy-json" id="btn-copy-playground" onclick="copyPlaygroundJson()">Copiar JSON</button>
+                        </div>
+                    </div>
+                    <pre id="playground-json-viewer" class="json-viewer-pre">// O resultado da consulta ou da auditoria aparecera aqui...</pre>
+
+                    <!-- Card de Auditoria em 3 Etapas -->
+                    <div id="playground-audit-card" class="audit-card" style="display: none;">
+                        <div class="audit-card-header">
+                            <div>
+                                <span style="font-weight: 700; color: #fff; font-size: 0.95rem;">Auditoria Criptografica</span>
+                                <span id="audit-engine-badge" style="font-size: 0.75rem; color: var(--accent); margin-left: 0.5rem; font-family: var(--font-mono);">OpenSSL C (secp256k1)</span>
+                            </div>
+                            <span id="audit-overall-badge" class="audit-badge badge-pending">AGUARDANDO ANALISE</span>
+                        </div>
+
+                        <div class="audit-steps-list">
+                            <!-- Etapa 1: Integridade dos Dados -->
+                            <div class="audit-step-item">
+                                <div id="audit-step-1-icon" class="audit-step-icon icon-pending">1</div>
+                                <div class="audit-step-body">
+                                    <div class="audit-step-title">
+                                        <span>1. Integridade dos Dados (Payload Hash)</span>
+                                        <span id="audit-step-1-status" class="card-category">Aguardando</span>
+                                    </div>
+                                    <div class="audit-step-desc">
+                                        Calcula o hash SHA-256 dos campos do payload e confere se nao houve modificacao apos a assinatura.
+                                    </div>
+                                    <div id="audit-step-1-meta" class="audit-step-meta" style="display: none;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Etapa 2: Carteira do Oraculo -->
+                            <div class="audit-step-item">
+                                <div id="audit-step-2-icon" class="audit-step-icon icon-pending">2</div>
+                                <div class="audit-step-body">
+                                    <div class="audit-step-title">
+                                        <span>2. Carteira Oficial do Oraculo (BaseScan)</span>
+                                        <span id="audit-step-2-status" class="card-category">Aguardando</span>
+                                    </div>
+                                    <div class="audit-step-desc">
+                                        Valida se o endereco recuperado corresponde a carteira oficial autorizada na rede Base.
+                                    </div>
+                                    <div id="audit-step-2-meta" class="audit-step-meta" style="display: none;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Etapa 3: Assinatura ECDSA secp256k1 -->
+                            <div class="audit-step-item">
+                                <div id="audit-step-3-icon" class="audit-step-icon icon-pending">3</div>
+                                <div class="audit-step-body">
+                                    <div class="audit-step-title">
+                                        <span>3. Assinatura Criptografica ECDSA</span>
+                                        <span id="audit-step-3-status" class="card-category">Aguardando</span>
+                                    </div>
+                                    <div class="audit-step-desc">
+                                        Comprova matematicamente a autoria do oraculo com a curva secp256k1 via OpenSSL.
+                                    </div>
+                                    <div id="audit-step-3-meta" class="audit-step-meta" style="display: none;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <!-- Console Interativo e Integrações -->
         <section id="console" class="protocol-box">
@@ -1682,6 +2205,611 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
     </div>
 
     <script>
+        // ==========================================
+        // Grid402: Playground e Verificador de Oraculo
+        // ==========================================
+        const playgroundPresets = {
+            workdays: {
+                name: 'Dias Uteis ANBIMA',
+                icon: '📅',
+                endpoint: '/api/v1/workdays',
+                desc: 'Calculadora de dias uteis bancarios com contagem de intervalo e projecao de prazos D+N.',
+                params: [
+                    { key: 'start_date', label: 'Data Inicial (YYYY-MM-DD)', value: '2026-11-06' },
+                    { key: 'days', label: 'Dias Uteis a Adicionar', value: '5' }
+                ]
+            },
+            indicators: {
+                name: 'Indicadores BACEN',
+                icon: '📊',
+                endpoint: '/api/v1/indicators',
+                desc: 'Taxas oficiais Selic meta e diaria, CDI anual e diario, IPCA 12m e mensal.',
+                params: []
+            },
+            holidays: {
+                name: 'Feriados Nacionais',
+                icon: '🏖️',
+                endpoint: '/api/v1/holidays',
+                desc: 'Calendario oficial de feriados bancarios e nacionais da legislacao brasileira.',
+                params: [
+                    { key: 'year', label: 'Ano do Calendario', value: '2026' }
+                ]
+            },
+            cnpj: {
+                name: 'CNPJ Receita Federal',
+                icon: '🏢',
+                endpoint: '/api/v1/cnpj',
+                desc: 'Consulta cadastral e situacao fiscal de Pessoa Juridica na Receita Federal.',
+                params: [
+                    { key: 'cnpj', label: 'Numero do CNPJ', value: '00000000000191' }
+                ]
+            },
+            cep: {
+                name: 'CEP Nacional',
+                icon: '📍',
+                endpoint: '/api/v1/cep',
+                desc: 'Endereco postal brasileiro completo e codigo IBGE por CEP.',
+                params: [
+                    { key: 'code', label: 'Codigo do CEP', value: '01310100' }
+                ]
+            },
+            forex: {
+                name: 'Cambio Oficial PTAX',
+                icon: '💱',
+                endpoint: '/api/v1/forex',
+                desc: 'Cotacoes oficiais de moedas fiduciarias USD, EUR e GBP para BRL.',
+                params: []
+            },
+            crypto: {
+                name: 'Precos Cripto Spot',
+                icon: '🪙',
+                endpoint: '/api/v1/crypto',
+                desc: 'Cotacoes em tempo real de ativos digitais BTC e ETH em USD e BRL.',
+                params: [
+                    { key: 'symbol', label: 'Simbolo do Ativo', value: 'BTC' }
+                ]
+            },
+            dns: {
+                name: 'Resolucao DNS',
+                icon: '🌐',
+                endpoint: '/api/v1/dns',
+                desc: 'Resolucao autoritativa de registros de zona DNS A, AAAA, MX, TXT, NS e CNAME.',
+                params: [
+                    { key: 'domain', label: 'Dominio', value: 'base.org' }
+                ]
+            },
+            ssl: {
+                name: 'Certificado TLS e SSL',
+                icon: '🔒',
+                endpoint: '/api/v1/ssl',
+                desc: 'Auditoria de certificado criptografico TLS na porta 443, cadeia e validade.',
+                params: [
+                    { key: 'host', label: 'Host para Auditoria', value: 'base.org' }
+                ]
+            },
+            asn: {
+                name: 'Inteligencia BGP e ASN',
+                icon: '🖧',
+                endpoint: '/api/v1/asn',
+                desc: 'Identificacao de Sistema Autonomo BGP, bloco de IP CIDR e operador.',
+                params: [
+                    { key: 'ip', label: 'Endereco IP', value: '1.1.1.1' }
+                ]
+            },
+            summary: {
+                name: 'Resumo Operacional',
+                icon: '⚡',
+                endpoint: '/status',
+                desc: 'Telemetria consolidada e status operacional em tempo real dos servicos Grid402.',
+                params: []
+            }
+        };
+
+        let currentPlaygroundPreset = 'workdays';
+        let currentPlaygroundMode = 'sandbox';
+        let lastPlaygroundJson = '';
+
+        function initPlayground() {
+            const bar = document.getElementById('playground-preset-bar');
+            if (!bar) return;
+            bar.innerHTML = '';
+
+            Object.keys(playgroundPresets).forEach(key => {
+                const p = playgroundPresets[key];
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'preset-btn' + (key === currentPlaygroundPreset ? ' active' : '');
+                btn.id = 'preset-btn-' + key;
+                btn.onclick = () => selectPlaygroundPreset(key);
+
+                const nameWrap = document.createElement('div');
+                nameWrap.className = 'preset-btn-name';
+                nameWrap.innerHTML = '<span>' + p.icon + '</span><span>' + p.name + '</span>';
+
+                const routeWrap = document.createElement('div');
+                routeWrap.className = 'preset-btn-route';
+                routeWrap.textContent = p.endpoint;
+
+                btn.appendChild(nameWrap);
+                btn.appendChild(routeWrap);
+                bar.appendChild(btn);
+            });
+
+            selectPlaygroundPreset('workdays');
+        }
+
+        function selectPlaygroundPreset(key) {
+            currentPlaygroundPreset = key;
+            const p = playgroundPresets[key];
+            if (!p) return;
+
+            document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById('preset-btn-' + key);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            const badgeEl = document.getElementById('playground-service-badge');
+            if (badgeEl) badgeEl.textContent = key;
+
+            const descEl = document.getElementById('playground-service-desc');
+            if (descEl) descEl.textContent = p.desc;
+
+            const inputsEl = document.getElementById('playground-params-inputs');
+            if (inputsEl) {
+                inputsEl.innerHTML = '';
+                if (p.params.length === 0) {
+                    const noParams = document.createElement('div');
+                    noParams.style.fontSize = '0.8rem';
+                    noParams.style.color = 'var(--text-muted)';
+                    noParams.style.fontStyle = 'italic';
+                    noParams.textContent = 'Este servico nao requer parametros obrigatorios na consulta basica.';
+                    inputsEl.appendChild(noParams);
+                } else {
+                    p.params.forEach(param => {
+                        const wrap = document.createElement('div');
+                        const lbl = document.createElement('label');
+                        lbl.style.display = 'block';
+                        lbl.style.fontSize = '0.78rem';
+                        lbl.style.color = '#fff';
+                        lbl.style.marginBottom = '0.25rem';
+                        lbl.style.fontWeight = '600';
+                        lbl.textContent = param.label + ' (' + param.key + '):';
+
+                        const inp = document.createElement('input');
+                        inp.type = 'text';
+                        inp.className = 'console-input';
+                        inp.id = 'playground-input-' + param.key;
+                        inp.value = param.value;
+                        inp.oninput = updatePlaygroundUrlDisplay;
+
+                        wrap.appendChild(lbl);
+                        wrap.appendChild(inp);
+                        inputsEl.appendChild(wrap);
+                    });
+                }
+            }
+
+            updatePlaygroundUrlDisplay();
+        }
+
+        function setPlaygroundMode(mode) {
+            currentPlaygroundMode = mode;
+            ['sandbox', 'challenge', 'manual'].forEach(m => {
+                const b = document.getElementById('btn-mode-' + m);
+                if (b) {
+                    if (m === mode) {
+                        b.classList.add('active');
+                    } else {
+                        b.classList.remove('active');
+                    }
+                }
+            });
+
+            const presetControls = document.getElementById('playground-preset-controls');
+            const manualControls = document.getElementById('playground-manual-controls');
+            const colTitle = document.getElementById('playground-col-title');
+            const runBtn = document.getElementById('btn-run-query');
+
+            if (mode === 'manual') {
+                if (presetControls) presetControls.style.display = 'none';
+                if (manualControls) manualControls.style.display = 'flex';
+                if (colTitle) colTitle.textContent = 'Auditoria Manual de JSON';
+                if (runBtn) runBtn.textContent = '🔍 Auditar JSON';
+            } else {
+                if (presetControls) presetControls.style.display = 'block';
+                if (manualControls) manualControls.style.display = 'none';
+                if (colTitle) colTitle.textContent = 'Configuracao da Consulta';
+                if (runBtn) runBtn.textContent = '⚡ Executar Consulta';
+            }
+
+            updatePlaygroundUrlDisplay();
+        }
+
+        function buildPlaygroundUrl() {
+            const p = playgroundPresets[currentPlaygroundPreset];
+            if (!p) return '/';
+            const params = new URLSearchParams();
+            p.params.forEach(param => {
+                const inp = document.getElementById('playground-input-' + param.key);
+                const val = inp ? inp.value.trim() : param.value;
+                if (val !== '') {
+                    params.append(param.key, val);
+                }
+            });
+            const qs = params.toString();
+            return qs ? (p.endpoint + '?' + qs) : p.endpoint;
+        }
+
+        function updatePlaygroundUrlDisplay() {
+            const disp = document.getElementById('playground-endpoint-display');
+            if (!disp) return;
+            if (currentPlaygroundMode === 'manual') {
+                disp.textContent = 'POST /api/v1/verify';
+            } else {
+                disp.textContent = 'GET ' + buildPlaygroundUrl();
+            }
+        }
+
+        async function runPlaygroundQuery() {
+            if (currentPlaygroundMode === 'manual') {
+                return verifyManualPayload();
+            }
+
+            const url = buildPlaygroundUrl();
+            const statusBadge = document.getElementById('playground-http-status');
+            const latencyTag = document.getElementById('playground-latency-tag');
+            const viewer = document.getElementById('playground-json-viewer');
+            const runBtn = document.getElementById('btn-run-query');
+
+            if (statusBadge) statusBadge.textContent = 'Enviando...';
+            if (latencyTag) latencyTag.style.display = 'none';
+            if (viewer) viewer.textContent = '// Aguardando resposta do hub Grid402...';
+            if (runBtn) runBtn.disabled = true;
+
+            const headers = { 'Accept': 'application/json' };
+            if (currentPlaygroundMode === 'sandbox') {
+                headers['X-Payment'] = 'demo';
+            }
+
+            const startTime = performance.now();
+            try {
+                const response = await fetch(url, { headers: headers });
+                const elapsedMs = Math.round(performance.now() - startTime);
+                const data = await response.json();
+                lastPlaygroundJson = JSON.stringify(data, null, 2);
+
+                if (viewer) viewer.textContent = lastPlaygroundJson;
+                if (latencyTag) {
+                    latencyTag.style.display = 'inline-block';
+                    latencyTag.textContent = elapsedMs + ' ms';
+                }
+
+                if (response.status === 200) {
+                    if (statusBadge) statusBadge.textContent = 'HTTP 200 OK';
+                    if (data && data._oracle_proof) {
+                        auditOracleProof(data);
+                    } else {
+                        renderNonProofState('Sem bloco _oracle_proof na resposta.');
+                    }
+                } else if (response.status === 402) {
+                    if (statusBadge) statusBadge.textContent = 'HTTP 402 Payment Required';
+                    render402ChallengeCard(data);
+                } else {
+                    if (statusBadge) statusBadge.textContent = 'HTTP ' + response.status;
+                    renderNonProofState('Resposta com codigo de erro ' + response.status);
+                }
+            } catch (err) {
+                if (statusBadge) statusBadge.textContent = 'Erro de Conexao';
+                if (viewer) viewer.textContent = '// Erro ao conectar ao Grid402: ' + (err.message || err);
+                renderNonProofState('Nao foi possivel completar a requisicao.');
+            } finally {
+                if (runBtn) runBtn.disabled = false;
+            }
+        }
+
+        async function auditOracleProof(payload) {
+            const card = document.getElementById('playground-audit-card');
+            if (!card) return;
+            card.style.display = 'block';
+
+            const overallBadge = document.getElementById('audit-overall-badge');
+            if (overallBadge) {
+                overallBadge.className = 'audit-badge badge-pending';
+                overallBadge.textContent = 'ANALISANDO PROVA...';
+            }
+
+            const startVerify = performance.now();
+            try {
+                const res = await fetch('/api/v1/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const clientLatencyMs = (performance.now() - startVerify).toFixed(2);
+                const result = await res.json();
+                renderAuditSteps(result, clientLatencyMs);
+            } catch (err) {
+                renderAuditFailure('Erro ao validar no motor de verificacao: ' + err.message);
+            }
+        }
+
+        function renderAuditSteps(result, clientLatencyMs) {
+            const card = document.getElementById('playground-audit-card');
+            const overallBadge = document.getElementById('audit-overall-badge');
+            const engineBadge = document.getElementById('audit-engine-badge');
+
+            const s1Icon = document.getElementById('audit-step-1-icon');
+            const s1Status = document.getElementById('audit-step-1-status');
+            const s1Meta = document.getElementById('audit-step-1-meta');
+
+            const s2Icon = document.getElementById('audit-step-2-icon');
+            const s2Status = document.getElementById('audit-step-2-status');
+            const s2Meta = document.getElementById('audit-step-2-meta');
+
+            const s3Icon = document.getElementById('audit-step-3-icon');
+            const s3Status = document.getElementById('audit-step-3-status');
+            const s3Meta = document.getElementById('audit-step-3-meta');
+
+            const verifyTime = (result && result.verification_time_ms !== undefined) ? result.verification_time_ms : clientLatencyMs;
+            if (engineBadge) {
+                engineBadge.textContent = 'OpenSSL C • ' + verifyTime + ' ms';
+            }
+
+            if (result && result.valid === true) {
+                if (card) {
+                    card.classList.remove('invalid');
+                    card.classList.add('valid');
+                }
+                if (overallBadge) {
+                    overallBadge.className = 'audit-badge badge-valid';
+                    overallBadge.textContent = '✓ PROVA MATEMATICA AUTENTICA';
+                }
+
+                // Etapa 1
+                if (s1Icon) { s1Icon.className = 'audit-step-icon icon-valid'; s1Icon.textContent = '✓'; }
+                if (s1Status) { s1Status.textContent = 'Integro (SHA-256)'; s1Status.style.color = 'var(--primary)'; }
+                if (s1Meta) {
+                    s1Meta.style.display = 'block';
+                    const h = (result.payload_hash || (payload && payload._oracle_proof && payload._oracle_proof.data_hash) || 'Conferido com sucesso');
+                    s1Meta.textContent = 'Payload Hash: ' + h;
+                }
+
+                // Etapa 2
+                if (s2Icon) { s2Icon.className = 'audit-step-icon icon-valid'; s2Icon.textContent = '✓'; }
+                if (s2Status) { s2Status.textContent = 'Oficial (Base Mainnet)'; s2Status.style.color = 'var(--primary)'; }
+                if (s2Meta) {
+                    s2Meta.style.display = 'block';
+                    const addr = result.oracle_address || '0xa31c31069c43ac1c0075a93c325b0dcd7744356c';
+                    s2Meta.innerHTML = 'Carteira: <a href="https://basescan.org/address/' + addr + '" target="_blank" rel="noopener noreferrer">' + addr + '</a> (BaseScan)';
+                }
+
+                // Etapa 3
+                if (s3Icon) { s3Icon.className = 'audit-step-icon icon-valid'; s3Icon.textContent = '✓'; }
+                if (s3Status) { s3Status.textContent = 'Valida (ECDSA secp256k1)'; s3Status.style.color = 'var(--primary)'; }
+                if (s3Meta) {
+                    s3Meta.style.display = 'block';
+                    s3Meta.textContent = 'Algoritmo: ECDSA_SHA256_SECP256K1 | Verificacao concluida em ' + verifyTime + ' ms sem banco de dados.';
+                }
+            } else {
+                if (card) {
+                    card.classList.remove('valid');
+                    card.classList.add('invalid');
+                }
+                if (overallBadge) {
+                    overallBadge.className = 'audit-badge badge-invalid';
+                    overallBadge.textContent = '✕ PROVA INVALIDA OU ADULTERADA';
+                }
+
+                const errCode = (result && result.error) ? result.error : 'InvalidSignature';
+
+                if (errCode === 'DataHashMismatch') {
+                    // Etapa 1 falhou
+                    if (s1Icon) { s1Icon.className = 'audit-step-icon icon-invalid'; s1Icon.textContent = '✕'; }
+                    if (s1Status) { s1Status.textContent = 'Hash Divergente'; s1Status.style.color = 'var(--danger)'; }
+                    if (s1Meta) {
+                        s1Meta.style.display = 'block';
+                        s1Meta.innerHTML = '<span style="color:var(--danger);">Alerta de Adulteracao:</span> Os dados foram modificados apos a assinatura.<br>Esperado: ' + (result.expected_hash || 'N/A') + '<br>Recebido: ' + (result.received_hash || 'N/A');
+                    }
+
+                    if (s2Icon) { s2Icon.className = 'audit-step-icon icon-pending'; s2Icon.textContent = '2'; }
+                    if (s2Status) { s2Status.textContent = 'Interrompido'; s2Status.style.color = 'var(--text-muted)'; }
+                    if (s2Meta) s2Meta.style.display = 'none';
+
+                    if (s3Icon) { s3Icon.className = 'audit-step-icon icon-pending'; s3Icon.textContent = '3'; }
+                    if (s3Status) { s3Status.textContent = 'Interrompido'; s3Status.style.color = 'var(--text-muted)'; }
+                    if (s3Meta) s3Meta.style.display = 'none';
+                } else {
+                    // Outro erro
+                    if (s1Icon) { s1Icon.className = 'audit-step-icon icon-invalid'; s1Icon.textContent = '✕'; }
+                    if (s1Status) { s1Status.textContent = 'Falha'; s1Status.style.color = 'var(--danger)'; }
+                    if (s1Meta) {
+                        s1Meta.style.display = 'block';
+                        s1Meta.textContent = (result && result.message) ? result.message : 'Assinatura nao reconhecida.';
+                    }
+
+                    if (s2Icon) { s2Icon.className = 'audit-step-icon icon-invalid'; s2Icon.textContent = '✕'; }
+                    if (s2Status) { s2Status.textContent = 'Rejeitado'; s2Status.style.color = 'var(--danger)'; }
+                    if (s2Meta) s2Meta.style.display = 'none';
+
+                    if (s3Icon) { s3Icon.className = 'audit-step-icon icon-invalid'; s3Icon.textContent = '✕'; }
+                    if (s3Status) { s3Status.textContent = 'Rejeitado'; s3Status.style.color = 'var(--danger)'; }
+                    if (s3Meta) s3Meta.style.display = 'none';
+                }
+            }
+        }
+
+        function render402ChallengeCard(data) {
+            const card = document.getElementById('playground-audit-card');
+            if (!card) return;
+            card.style.display = 'block';
+            card.classList.remove('valid', 'invalid');
+
+            const overallBadge = document.getElementById('audit-overall-badge');
+            if (overallBadge) {
+                overallBadge.className = 'audit-badge badge-pending';
+                overallBadge.textContent = '🔒 DESAFIO x402 RECEBIDO';
+            }
+
+            const engineBadge = document.getElementById('audit-engine-badge');
+            if (engineBadge) {
+                engineBadge.textContent = 'Protocolo x402 • Base Mainnet';
+            }
+
+            const s1Icon = document.getElementById('audit-step-1-icon');
+            const s1Status = document.getElementById('audit-step-1-status');
+            const s1Meta = document.getElementById('audit-step-1-meta');
+
+            const s2Icon = document.getElementById('audit-step-2-icon');
+            const s2Status = document.getElementById('audit-step-2-status');
+            const s2Meta = document.getElementById('audit-step-2-meta');
+
+            const s3Icon = document.getElementById('audit-step-3-icon');
+            const s3Status = document.getElementById('audit-step-3-status');
+            const s3Meta = document.getElementById('audit-step-3-meta');
+
+            if (s1Icon) { s1Icon.className = 'audit-step-icon icon-pending'; s1Icon.textContent = '1'; }
+            if (s1Status) { s1Status.textContent = 'Amostra Previa (Teaser)'; s1Status.style.color = 'var(--accent)'; }
+            if (s1Meta) {
+                s1Meta.style.display = 'block';
+                s1Meta.textContent = 'A resposta 402 inclui dados preliminares gratuitos para o agente inspecionar a qualidade antes da compra.';
+            }
+
+            if (s2Icon) { s2Icon.className = 'audit-step-icon icon-pending'; s2Icon.textContent = '2'; }
+            if (s2Status) { s2Status.textContent = 'Destinatario e Preco'; s2Status.style.color = 'var(--accent)'; }
+            if (s2Meta) {
+                s2Meta.style.display = 'block';
+                const price = (data && data.price_usdc) ? data.price_usdc : '0.0005';
+                const dest = (data && data.payment_address) ? data.payment_address : '0xa31c31069c43ac1c0075a93c325b0dcd7744356c';
+                s2Meta.innerHTML = 'Preco: ' + price + ' USDC | Destino: <a href="https://basescan.org/address/' + dest + '" target="_blank" rel="noopener noreferrer">' + dest + '</a>';
+            }
+
+            if (s3Icon) { s3Icon.className = 'audit-step-icon icon-pending'; s3Icon.textContent = '3'; }
+            if (s3Status) { s3Status.textContent = 'Prova Emitida Apos Pagamento'; s3Status.style.color = 'var(--accent)'; }
+            if (s3Meta) {
+                s3Meta.style.display = 'block';
+                s3Meta.textContent = 'Ao enviar o comprovante X-Payment (ou no modo Sandbox demo), a atestacao criptografica e gerada automaticamente no HTTP 200.';
+            }
+        }
+
+        function renderNonProofState(message) {
+            const card = document.getElementById('playground-audit-card');
+            if (!card) return;
+            card.style.display = 'block';
+            card.classList.remove('valid', 'invalid');
+
+            const overallBadge = document.getElementById('audit-overall-badge');
+            if (overallBadge) {
+                overallBadge.className = 'audit-badge badge-pending';
+                overallBadge.textContent = 'SEM PROVA CRIPTOGRAFICA';
+            }
+
+            const s1Meta = document.getElementById('audit-step-1-meta');
+            if (s1Meta) {
+                s1Meta.style.display = 'block';
+                s1Meta.textContent = message;
+            }
+        }
+
+        function renderAuditFailure(message) {
+            const card = document.getElementById('playground-audit-card');
+            if (!card) return;
+            card.style.display = 'block';
+            card.classList.remove('valid');
+            card.classList.add('invalid');
+
+            const overallBadge = document.getElementById('audit-overall-badge');
+            if (overallBadge) {
+                overallBadge.className = 'audit-badge badge-invalid';
+                overallBadge.textContent = '✕ ERRO NA AUDITORIA';
+            }
+
+            const s1Meta = document.getElementById('audit-step-1-meta');
+            if (s1Meta) {
+                s1Meta.style.display = 'block';
+                s1Meta.textContent = message;
+            }
+        }
+
+        function verifyManualPayload() {
+            const inputEl = document.getElementById('playground-manual-input');
+            const raw = inputEl ? inputEl.value.trim() : '';
+            if (!raw) {
+                alert('Por favor, cole um JSON no campo de texto para auditar.');
+                return;
+            }
+
+            let parsed;
+            try {
+                parsed = JSON.parse(raw);
+            } catch (e) {
+                alert('O texto informado nao e um JSON valido. Verifique a sintaxe e tente novamente.');
+                return;
+            }
+
+            lastPlaygroundJson = JSON.stringify(parsed, null, 2);
+            const viewer = document.getElementById('playground-json-viewer');
+            if (viewer) viewer.textContent = lastPlaygroundJson;
+
+            const statusBadge = document.getElementById('playground-http-status');
+            if (statusBadge) statusBadge.textContent = 'Verificacao Manual';
+
+            auditOracleProof(parsed);
+        }
+
+        function loadManualTemplate(type) {
+            const inputEl = document.getElementById('playground-manual-input');
+            if (!inputEl) return;
+
+            const validTemplate = {
+                "status": "success",
+                "service": "workdays",
+                "start_date": "2026-11-06",
+                "days_added": 5,
+                "target_date": "2026-11-13",
+                "business_days": 5,
+                "holidays_in_interval": 0,
+                "sandbox": true,
+                "_oracle_proof": {
+                    "oracle_address": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c",
+                    "timestamp": 1794163887,
+                    "data_hash": "0x92b36d33af465b9fc16f221db86d5640c40efd1a3d7c51b10d15d14a982fb9bc",
+                    "signature": "0x3045022037e603a27809aca2cdc448e1ae1dc8342737bfa8a5486546c252f6328195730c022100e631fb55db5439c5ed52b76edceab4537536ae3f77aeeb593036f9ed61e12c1c",
+                    "algorithm": "secp256k1-sha256",
+                    "sandbox": true
+                }
+            };
+
+            if (type === 'tampered') {
+                const tampered = JSON.parse(JSON.stringify(validTemplate));
+                tampered.business_days = 99;
+                inputEl.value = JSON.stringify(tampered, null, 2);
+            } else {
+                inputEl.value = JSON.stringify(validTemplate, null, 2);
+            }
+        }
+
+        function copyPlaygroundJson() {
+            if (!lastPlaygroundJson) {
+                const viewer = document.getElementById('playground-json-viewer');
+                lastPlaygroundJson = viewer ? viewer.textContent : '';
+            }
+            if (!lastPlaygroundJson) return;
+
+            navigator.clipboard.writeText(lastPlaygroundJson).then(() => {
+                const btn = document.getElementById('btn-copy-playground');
+                if (btn) {
+                    const orig = btn.textContent;
+                    btn.textContent = '✓ Copiado!';
+                    setTimeout(() => { btn.textContent = orig; }, 2000);
+                }
+            });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPlayground);
+        } else {
+            initPlayground();
+        }
+
         function switchTab(name) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));

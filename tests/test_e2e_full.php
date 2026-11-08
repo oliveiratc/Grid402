@@ -116,7 +116,10 @@ try {
     assert(str_contains($nav['body'], 'Grid402'), "Deve exibir Grid402");
     assert(str_contains($nav['body'], 'Câmbio'), "Deve exibir serviço de Câmbio");
     assert(str_contains($nav['body'], 'DNS Records'), "Deve exibir serviço de DNS");
-    echo "     ✓ Landing Page dark-mode renderizada em {$nav['time_ms']} ms (HTTP 200)!\n";
+    assert(str_contains($nav['body'], 'id="playground"'), "Deve conter a seção de Playground");
+    assert(str_contains($nav['body'], 'href="#playground"'), "Deve conter link para Playground no menu");
+    assert(str_contains($nav['body'], 'id="playground-audit-card"'), "Deve conter o Card de Auditoria Técnica");
+    echo "     ✓ Landing Page dark-mode e Playground renderizados em {$nav['time_ms']} ms (HTTP 200)!\n";
 
     // 3.2. Agente de IA consultando resumo gratuito
     echo "  -> Simulando consulta de resumo gratuito por Agente IA (Accept: application/json)...\n";
@@ -212,6 +215,47 @@ try {
     $verifyRes = grid402_verify_oracle_proof($workdaysData);
     assert(!empty($verifyRes['valid']) && $verifyRes['valid'] === true, "A verificação da assinatura deve ser válida");
     echo "     ✓ Prova criptográfica (_oracle_proof) validada matematicamente no E2E!\n";
+
+    // 3.9. Validação do Micro-Endpoint /api/v1/verify
+    echo "  -> Testando micro-endpoint /api/v1/verify com payload assinado real...\n";
+    $chVerify = curl_init("http://127.0.0.1:{$port}/api/v1/verify");
+    curl_setopt_array($chVerify, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode($workdaysData),
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json'],
+        CURLOPT_TIMEOUT => 4,
+    ]);
+    $verifyBody = curl_exec($chVerify);
+    $verifyCode = (int) curl_getinfo($chVerify, CURLINFO_HTTP_CODE);
+    curl_close($chVerify);
+
+    assert($verifyCode === 200, "Verify deve responder HTTP 200 (Recebeu: {$verifyCode})");
+    $verifyJson = json_decode((string)$verifyBody, true);
+    assert(!empty($verifyJson['valid']) && $verifyJson['valid'] === true, "Verificação deve ser válida");
+    assert($verifyJson['status'] === 'AUTHENTIC_ORACLE_DATA', "Status deve ser AUTHENTIC_ORACLE_DATA");
+    assert(isset($verifyJson['verification_time_ms']), "Deve registrar tempo de verificação");
+
+    // Teste com payload adulterado
+    $tamperedWorkdays = $workdaysData;
+    $tamperedWorkdays['workdays'] = 999;
+    $chTampered = curl_init("http://127.0.0.1:{$port}/api/v1/verify");
+    curl_setopt_array($chTampered, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode($tamperedWorkdays),
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_TIMEOUT => 4,
+    ]);
+    $tamperedBody = curl_exec($chTampered);
+    $tamperedCode = (int) curl_getinfo($chTampered, CURLINFO_HTTP_CODE);
+    curl_close($chTampered);
+
+    assert($tamperedCode === 200, "Verify adulterado deve responder HTTP 200 com valid: false");
+    $tamperedJson = json_decode((string)$tamperedBody, true);
+    assert(isset($tamperedJson['valid']) && $tamperedJson['valid'] === false, "Verificação deve falhar");
+    assert(($tamperedJson['error'] ?? '') === 'DataHashMismatch', "Erro deve ser DataHashMismatch");
+    echo "     ✓ Micro-endpoint /api/v1/verify validou autenticidade e detectou adulteracao com sucesso!\n";
 
     echo "  ✓ Todos os testes HTTP foram validados com êxito!\n\n";
 
