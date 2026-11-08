@@ -19,6 +19,8 @@
 - [ASN and BGP Intelligence](https://orangered-jackal-900744.hostingersite.com/api/v1/asn?ip=1.1.1.1): Roteamento BGP, bloco alocado e numero ASN de IPs
 - [CEP Postal Address API](https://orangered-jackal-900744.hostingersite.com/api/v1/cep?code=01310100): Resolucao de endereco postal brasileiro e codigo municipal IBGE
 - [CNPJ Corporate Registry API](https://orangered-jackal-900744.hostingersite.com/api/v1/cnpj?cnpj=00000000000191): Dados cadastrais de Pessoa Juridica na Receita Federal
+- [Economic Indicators API](https://orangered-jackal-900744.hostingersite.com/api/v1/indicators): Taxas oficiais Selic (meta e diaria), CDI anual e diario, IPCA 12m e mensal (BCB e IBGE)
+- [National and Banking Holidays API](https://orangered-jackal-900744.hostingersite.com/api/v1/holidays?year=2026): Calendario oficial de feriados nacionais e bancarios (ANBIMA e Febraban) com calculo matematico Meeus
 
 ## SDKs and Agent Frameworks
 - [Python SDK (PyPI)](https://pypi.org/project/grid402/): Pacote oficial grid402 para Python com suporte a Pydantic e Coinbase AgentKit
@@ -27,5 +29,7 @@
 - [Coinbase AgentKit Providers](https://github.com/oliveiratc/Grid402/tree/main/integrations/agentkit): Provedores de acoes com auto-liquidacao on-chain para carteiras CDP
 
 ## Micropayment Protocol Details
+- Rede e Chain ID: Base Mainnet (Chain ID 8453)
+- Tarifa Padrao por Requisicao: 0.0005 USDC
 - [Base Mainnet Scanner](https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c): Carteira oraculo recebedora de micropagamentos (0xa31c31069c43ac1c0075a93c325b0dcd7744356c)
 - [USDC Contract on Base](https://basescan.org/token/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913): Contrato oficial de USDC na rede Base Mainnet (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)

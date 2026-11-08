@@ -13,6 +13,9 @@ require_once __DIR__ . '/../public_html/services/dns.php';
 require_once __DIR__ . '/../public_html/services/ssl.php';
 require_once __DIR__ . '/../public_html/services/asn.php';
 require_once __DIR__ . '/../public_html/services/cep.php';
+require_once __DIR__ . '/../public_html/services/cnpj.php';
+require_once __DIR__ . '/../public_html/services/indicators.php';
+require_once __DIR__ . '/../public_html/services/holidays.php';
 
 // 1. Câmbio
 echo "[1/6] Testando Câmbio (forex)... ";
@@ -64,5 +67,28 @@ assert($cep['uf'] === 'SP', "UF deve ser SP");
 assert($cep['ibge'] === '3550308', "Código IBGE deve ser 3550308");
 echo "OK (Logradouro: {$cep['logradouro']}, IBGE: {$cep['ibge']})\n";
 
-echo "\n=== Todos os 6 micro-serviços foram homologados com 100% de sucesso! ===\n";
+// 7. CNPJ
+echo "[7/9] Testando CNPJ Cadastral (cnpj)... ";
+$cnpj = grid402_service_cnpj('00000000000191');
+assert($cnpj['success'] === true, "CNPJ deve responder com sucesso");
+assert(!empty($cnpj['razao_social']), "Razao social nao deve estar vazia");
+echo "OK (Razao Social: {$cnpj['razao_social']})\n";
+
+// 8. Indicadores Economicos
+echo "[8/9] Testando Indicadores Economicos (indicators)... ";
+$inds = grid402_service_indicators();
+assert($inds['status'] === 'success', "Indicators status deve ser success");
+assert(isset($inds['indicators']['selic_target']) && $inds['indicators']['selic_target'] > 0, "Selic target deve ser > 0");
+assert(isset($inds['indicators']['cdi_annual']) && $inds['indicators']['cdi_annual'] > 0, "CDI anual deve ser > 0");
+echo "OK (Selic: {$inds['indicators']['selic_target']}%, CDI: {$inds['indicators']['cdi_annual']}%)\n";
+
+// 9. Feriados e Calendario Bancario
+echo "[9/9] Testando Feriados e Calendario Bancario (holidays)... ";
+$hols = grid402_service_holidays(2026);
+assert($hols['status'] === 'success', "Holidays status deve ser success");
+assert($hols['year'] === 2026, "Ano deve ser 2026");
+assert($hols['total_holidays'] >= 14, "Total de feriados deve ser >= 14");
+echo "OK (Ano 2026: {$hols['total_holidays']} feriados calculados)\n";
+
+echo "\n=== Todos os micro-servicos foram homologados com 100% de sucesso! ===\n";
 

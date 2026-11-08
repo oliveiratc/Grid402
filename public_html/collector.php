@@ -135,6 +135,18 @@ $servicesSummary = [
         'category' => 'Corporativo',
         'price_usdc' => GRID402_PRICE_CNPJ,
     ],
+    'indicators' => [
+        'name' => 'Indicadores Econômicos',
+        'status' => 'UP',
+        'endpoint' => '/api/v1/indicators',
+        'category' => 'Mercado',
+    ],
+    'holidays' => [
+        'name' => 'Feriados e Calendário Bancário',
+        'status' => 'UP',
+        'endpoint' => '/api/v1/holidays',
+        'category' => 'Dados Abertos',
+    ],
 ];
 
 $totalDurationMs = round((microtime(true) - $startTime) * 1000, 2);
@@ -144,7 +156,7 @@ $summaryPayload = [
     'hub' => 'Grid402',
     'network' => 'Base',
     'chain_id' => GRID402_CHAIN_ID,
-    'version' => '2.0.0',
+    'version' => '2.3.0',
     'status' => 'OPERATIONAL',
     'timestamp' => $isoTimestamp,
     'execution_time_ms' => $totalDurationMs,
@@ -156,7 +168,8 @@ $summaryPayload = [
 grid402_atomic_write_json(GRID402_FILE_FREE, $summaryPayload);
 
 // Saída em CLI ou resposta HTTP
-$logMessage = "[Grid402 Collector] Hub sincronizado em {$totalDurationMs} ms. 7/7 serviços operantes.\n";
+$svcCount = count($servicesSummary);
+$logMessage = "[Grid402 Collector] Hub sincronizado em {$totalDurationMs} ms. {$svcCount}/{$svcCount} serviços operantes.\n";
 
 if ($isCli) {
     echo $logMessage;

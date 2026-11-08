@@ -162,6 +162,17 @@ class Grid402ActionProvider:
         """Consulta dados cadastrais de Pessoa Juridica na Receita Federal."""
         return self._execute_with_settlement("/api/v1/cnpj", {"cnpj": cnpj}, wallet_provider)
 
+    def query_indicators(self, wallet_provider: Any = None) -> Dict[str, Any]:
+        """Consulta taxas oficiais Selic meta e diaria, CDI anual e diario, IPCA 12m e mensal."""
+        return self._execute_with_settlement("/api/v1/indicators", {}, wallet_provider)
+
+    def query_holidays(
+        self, year: Optional[int] = None, wallet_provider: Any = None
+    ) -> Dict[str, Any]:
+        """Consulta o calendario oficial de feriados nacionais e dias sem expediente bancario."""
+        params = {"year": year} if year is not None else {}
+        return self._execute_with_settlement("/api/v1/holidays", params, wallet_provider)
+
     # Aliases no padrao snake_case das ferramentas MCP
     get_cnpj = query_cnpj
     get_cep = query_cep
@@ -170,4 +181,6 @@ class Grid402ActionProvider:
     get_dns = query_dns
     get_ssl = query_ssl
     get_asn = query_asn
+    get_indicators = query_indicators
+    get_holidays = query_holidays
 

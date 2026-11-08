@@ -50,3 +50,20 @@ test('Live Sandbox - Consulta de CNPJ cadastral real (Banco do Brasil 0000000000
   assert.equal(cnpj.sandbox, true);
 });
 
+test('Live Sandbox - Consulta de Indicadores Economicos oficiais (Selic, CDI e IPCA)', async () => {
+  const ind = await client.getIndicators();
+  assert.equal(ind.status, 'success');
+  assert.ok(ind.indicators);
+  assert.ok(ind.indicators.selic_target > 0);
+  assert.ok(ind.indicators.cdi_annual > 0);
+  assert.equal(ind.sandbox, true);
+});
+
+test('Live Sandbox - Consulta de Feriados Nacionais e Calendario Bancario (2026)', async () => {
+  const hol = await client.getHolidays(2026);
+  assert.equal(hol.status, 'success');
+  assert.equal(hol.year, 2026);
+  assert.ok(hol.total_holidays >= 14);
+  assert.equal(hol.sandbox, true);
+});
+

@@ -15,6 +15,10 @@ from grid402 import (
     Grid402Client,
     Grid402Error,
     Grid402PaymentRequiredError,
+    HolidayItem,
+    HolidaysInput,
+    HolidaysResponse,
+    IndicatorsResponse,
     SslInput,
     __version__,
 )
@@ -25,7 +29,7 @@ class TestGrid402SDK(unittest.TestCase):
 
     def test_version_and_exports(self) -> None:
         """Verifica versao semantica e exportacoes principais."""
-        self.assertEqual(__version__, "1.0.0")
+        self.assertEqual(__version__, "2.2.0")
         self.assertTrue(issubclass(Grid402PaymentRequiredError, Grid402Error))
 
     def test_pydantic_models(self) -> None:
@@ -44,6 +48,46 @@ class TestGrid402SDK(unittest.TestCase):
 
         asn_model = AsnInput(ip="1.1.1.1")
         self.assertEqual(asn_model.ip, "1.1.1.1")
+
+        holidays_input = HolidaysInput(year=2026)
+        self.assertEqual(holidays_input.year, 2026)
+
+        ind_resp = IndicatorsResponse(
+            status="success",
+            service="indicators",
+            timestamp="2026-11-08T11:50:40Z",
+            indicators={
+                "selic_target": 13.75,
+                "selic_daily": 13.65,
+                "cdi_annual": 13.65,
+                "cdi_daily": 0.0508,
+                "ipca_12m": 4.58,
+                "ipca_monthly": 0.44,
+                "reference_date": "2026-11-08",
+                "ipca_reference_month": "2026-10",
+            },
+            source="Banco Central do Brasil e IBGE",
+        )
+        self.assertEqual(ind_resp.indicators.selic_target, 13.75)
+
+        hol_resp = HolidaysResponse(
+            status="success",
+            service="holidays",
+            year=2026,
+            total_holidays=1,
+            holidays=[
+                HolidayItem(
+                    date="2026-01-01",
+                    name="Confraternizacao Universal",
+                    type="national",
+                    day_of_week="Quinta-feira",
+                    is_banking_holiday=True,
+                )
+            ],
+            source="Calendario Nacional e ANBIMA / Febraban",
+        )
+        self.assertEqual(len(hol_resp.holidays), 1)
+        self.assertTrue(hol_resp.holidays[0].is_banking_holiday)
 
     def test_client_sandbox_headers(self) -> None:
         """Verifica se o modo Sandbox envia o cabecalho de demonstracao."""
@@ -131,6 +175,29 @@ class TestGrid402SDK(unittest.TestCase):
             self.assertEqual(res.get("razao_social"), "BANCO DO BRASIL SA")
             self.assertTrue(res.get("_x402_settlement", {}).get("settled"))
             self.assertEqual(res.get("_x402_settlement", {}).get("tx_hash"), "0xmocked_tx_hash_12345")
+
+    def test_client_indicators_and_holidays(self) -> None:
+        """Verifica chamadas a get_indicators e get_holidays no Grid402Client."""
+        client = Grid402Client(sandbox=True)
+
+        mock_resp_indicators = MagicMock()
+        mock_resp_indicators.read.return_value = b'{"status": "success", "service": "indicators"}'
+        mock_resp_indicators.__enter__.return_value = mock_resp_indicators
+
+        mock_resp_holidays = MagicMock()
+        mock_resp_holidays.read.return_value = b'{"status": "success", "service": "holidays", "year": 2026}'
+        mock_resp_holidays.__enter__.return_value = mock_resp_holidays
+
+        with patch("urllib.request.urlopen", side_effect=[mock_resp_indicators, mock_resp_holidays]) as mock_urlopen:
+            res_ind = client.get_indicators()
+            self.assertEqual(res_ind.get("service"), "indicators")
+
+            res_hol = client.get_holidays(year=2026)
+            self.assertEqual(res_hol.get("service"), "holidays")
+
+            calls = mock_urlopen.call_args_list
+            self.assertIn("/api/v1/indicators", calls[0][0][0].full_url)
+            self.assertIn("/api/v1/holidays?year=2026", calls[1][0][0].full_url)
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Grid402 // Public Data e Network Utilities Hub",
-    "version": "2.1.0",
+    "version": "2.3.0",
     "description": "High-performance autonomous M2M public data and network utilities oracle designed for AI agents, crawlers, and automation pipelines. Settled via the x402 protocol with Base Mainnet USDC micropayments (US$ 0.0005 standard, US$ 0.0020 corporate CNPJ).",
     "contact": {
       "name": "Grid402 Support",
@@ -37,6 +37,8 @@
     { "name": "ASN", "description": "BGP routing metadata, ASN number, organization and country" },
     { "name": "CEP", "description": "Brazilian postal resolution and official municipal IBGE code" },
     { "name": "CNPJ", "description": "Brazilian Federal Revenue corporate registration data and CNAE" },
+    { "name": "Indicators", "description": "Official Brazilian economic indicators (Selic, CDI, and IPCA)" },
+    { "name": "Holidays", "description": "National holidays and banking calendar (ANBIMA and Febraban)" },
     { "name": "Legal", "description": "Terms of Service and LGPD privacy policy" }
   ],
   "paths": {
@@ -300,6 +302,69 @@
         }
       }
     },
+    "/api/v1/indicators": {
+      "get": {
+        "summary": "Official Brazilian Economic Indicators",
+        "description": "Returns official interest rates (Selic target, Selic daily, CDI annual, CDI daily) and inflation metrics (IPCA 12-month accumulated and monthly) from the Central Bank of Brazil (BCB) and IBGE. Settled via x402 on Base (0.0005 USDC). Free teaser preview available on 402 challenge.",
+        "tags": ["Indicators"],
+        "security": [{ "x402Payment": [] }],
+        "responses": {
+          "200": {
+            "description": "Economic indicators returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndicatorsResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
+    "/api/v1/holidays": {
+      "get": {
+        "summary": "Brazilian National Holidays and Banking Calendar",
+        "description": "Returns full official schedule of Brazilian national holidays and non-banking days (ANBIMA and Febraban) for a given year (1900-2100). Computes mobile holidays deterministically using Meeus algorithm. Settled via x402 on Base (0.0005 USDC). Free teaser preview with next holiday available on 402 challenge.",
+        "tags": ["Holidays"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "description": "Four-digit calendar year (e.g., 2026). Defaults to current year.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1900,
+              "maximum": 2100,
+              "example": 2026
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Calendar of holidays returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HolidaysResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid year parameter (must be between 1900 and 2100)"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
     "/terms": {
       "get": {
         "summary": "Terms of Service e AS-IS Disclaimer",
@@ -442,6 +507,56 @@
           "natureza_juridica": { "type": "string", "example": "Sociedade Anônima Aberta" },
           "uf": { "type": "string", "example": "DF" },
           "municipio": { "type": "string", "example": "BRASILIA" }
+        }
+      },
+      "IndicatorsResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "success" },
+          "service": { "type": "string", "example": "indicators" },
+          "timestamp": { "type": "string", "example": "2026-11-08T11:50:40Z" },
+          "indicators": {
+            "type": "object",
+            "properties": {
+              "selic_target": { "type": "number", "example": 13.75 },
+              "selic_daily": { "type": "number", "example": 13.65 },
+              "cdi_annual": { "type": "number", "example": 13.65 },
+              "cdi_daily": { "type": "number", "example": 0.0508 },
+              "ipca_12m": { "type": "number", "example": 4.58 },
+              "ipca_monthly": { "type": "number", "example": 0.44 },
+              "reference_date": { "type": "string", "example": "2026-11-08" },
+              "ipca_reference_month": { "type": "string", "example": "2026-10" }
+            }
+          },
+          "source": { "type": "string", "example": "Banco Central do Brasil e IBGE" },
+          "cached": { "type": "boolean", "example": true }
+        }
+      },
+      "HolidayItem": {
+        "type": "object",
+        "properties": {
+          "date": { "type": "string", "example": "2026-01-01" },
+          "name": { "type": "string", "example": "Confraternizacao Universal" },
+          "type": { "type": "string", "example": "national" },
+          "day_of_week": { "type": "string", "example": "Quinta-feira" },
+          "is_banking_holiday": { "type": "boolean", "example": true }
+        }
+      },
+      "HolidaysResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "success" },
+          "service": { "type": "string", "example": "holidays" },
+          "year": { "type": "integer", "example": 2026 },
+          "total_holidays": { "type": "integer", "example": 15 },
+          "holidays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HolidayItem"
+            }
+          },
+          "source": { "type": "string", "example": "Calendario Nacional e ANBIMA / Febraban" },
+          "cached": { "type": "boolean", "example": true }
         }
       },
       "ErrorResponse": {

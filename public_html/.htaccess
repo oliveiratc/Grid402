@@ -48,6 +48,8 @@ ServerSignature Off
     RewriteRule ^api/v1/asn/?$ index.php?api=asn [QSA,L]
     RewriteRule ^api/v1/cep/?$ index.php?api=cep [QSA,L]
     RewriteRule ^api/v1/cnpj/?$ index.php?api=cnpj [QSA,L]
+    RewriteRule ^api/v1/indicators/?$ index.php?api=indicators [QSA,L]
+    RewriteRule ^api/v1/holidays/?$ index.php?api=holidays [QSA,L]
 
     # Painel Administrativo de Monitoramento e Faturamento
     RewriteRule ^admin/?$ admin.php [QSA,L]

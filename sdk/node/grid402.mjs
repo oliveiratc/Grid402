@@ -80,7 +80,7 @@ export class Grid402Client {
 
     const mergedHeaders = {
       'Accept': 'application/json',
-      'User-Agent': 'Grid402-Node-SDK/2.2',
+      'User-Agent': 'Grid402-Node-SDK/2.3',
       ...headers,
     };
 
@@ -248,6 +248,28 @@ export class Grid402Client {
   }
 
   /**
+   * Consulta indicadores economicos oficiais (Selic, CDI e IPCA) do Banco Central e IBGE
+   * @param {string} [paymentTxHash]
+   * @returns {Promise<Object>}
+   */
+  async getIndicators(paymentTxHash) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    return this._request('/api/v1/indicators', headers);
+  }
+
+  /**
+   * Consulta calendario oficial de feriados nacionais e bancarios (ANBIMA e Febraban)
+   * @param {number} [year]
+   * @param {string} [paymentTxHash]
+   * @returns {Promise<Object>}
+   */
+  async getHolidays(year, paymentTxHash) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    const query = year ? `?year=${encodeURIComponent(year)}` : '';
+    return this._request(`/api/v1/holidays${query}`, headers);
+  }
+
+  /**
    * Verifica se o hub ou um servico especifico esta operacional
    * @param {string} [serviceName]
    * @returns {Promise<boolean>}
@@ -319,7 +341,7 @@ export class Grid402ActionProvider {
 
     const headers = {
       'Accept': 'application/json',
-      'User-Agent': 'Grid402-CoinbaseAgentKit-Node/2.2',
+      'User-Agent': 'Grid402-CoinbaseAgentKit-Node/2.3',
     };
 
     if (this.sandbox) {
@@ -420,6 +442,15 @@ export class Grid402ActionProvider {
     return this._executeWithSettlement('/api/v1/cnpj', { cnpj }, walletProvider);
   }
 
+  async queryIndicators(walletProvider = null) {
+    return this._executeWithSettlement('/api/v1/indicators', {}, walletProvider);
+  }
+
+  async queryHolidays(year = null, walletProvider = null) {
+    const params = year ? { year } : {};
+    return this._executeWithSettlement('/api/v1/holidays', params, walletProvider);
+  }
+
   // Aliases de conveniencia
   get getCnpj() { return this.queryCnpj; }
   get getCep() { return this.queryCep; }
@@ -428,4 +459,6 @@ export class Grid402ActionProvider {
   get getDns() { return this.queryDns; }
   get getSsl() { return this.querySsl; }
   get getAsn() { return this.queryAsn; }
+  get getIndicators() { return this.queryIndicators; }
+  get getHolidays() { return this.queryHolidays; }
 }

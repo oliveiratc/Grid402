@@ -152,6 +152,46 @@ export interface CnpjResponse {
     error?: string;
 }
 
+export interface IndicatorsResponse {
+    status: string;
+    service: string;
+    timestamp: string;
+    indicators: {
+        selic_target: number;
+        selic_daily: number;
+        cdi_annual: number;
+        cdi_daily: number;
+        ipca_12m: number;
+        ipca_monthly: number;
+        reference_date: string;
+        ipca_reference_month: string;
+    };
+    source: string;
+    cached?: boolean;
+    sandbox?: boolean;
+    error?: string;
+}
+
+export interface HolidayItem {
+    date: string;
+    name: string;
+    type: 'national' | 'banking' | 'religious' | string;
+    day_of_week: string;
+    is_banking_holiday: boolean;
+}
+
+export interface HolidaysResponse {
+    status: string;
+    service: string;
+    year: number;
+    total_holidays: number;
+    holidays: HolidayItem[];
+    source: string;
+    cached?: boolean;
+    sandbox?: boolean;
+    error?: string;
+}
+
 export interface SettlementReceipt {
     settled: boolean;
     tx_hash: string;
@@ -202,6 +242,8 @@ export declare class Grid402Client {
     getAsn(ip?: string, paymentTxHash?: string): Promise<AsnResponse>;
     getCep(code: string, paymentTxHash?: string): Promise<CepResponse>;
     getCnpj(cnpj: string, paymentTxHash?: string): Promise<CnpjResponse>;
+    getIndicators(paymentTxHash?: string): Promise<IndicatorsResponse>;
+    getHolidays(year?: number, paymentTxHash?: string): Promise<HolidaysResponse>;
     isHealthy(serviceName?: string): Promise<boolean>;
     guard<T>(serviceName: string, action: () => Promise<T> | T, fallback?: () => Promise<T> | T): Promise<T>;
 }
@@ -229,6 +271,8 @@ export declare class Grid402ActionProvider {
     queryAsn(ip?: string, walletProvider?: WalletProvider): Promise<AsnResponse>;
     queryCep(code: string, walletProvider?: WalletProvider): Promise<CepResponse>;
     queryCnpj(cnpj: string, walletProvider?: WalletProvider): Promise<CnpjResponse>;
+    queryIndicators(walletProvider?: WalletProvider): Promise<IndicatorsResponse>;
+    queryHolidays(year?: number, walletProvider?: WalletProvider): Promise<HolidaysResponse>;
 
     getCnpj(cnpj: string, walletProvider?: WalletProvider): Promise<CnpjResponse>;
     getCep(code: string, walletProvider?: WalletProvider): Promise<CepResponse>;
@@ -237,4 +281,6 @@ export declare class Grid402ActionProvider {
     getDns(domain: string, walletProvider?: WalletProvider): Promise<DnsResponse>;
     getSsl(host: string, walletProvider?: WalletProvider): Promise<SslResponse>;
     getAsn(ip?: string, walletProvider?: WalletProvider): Promise<AsnResponse>;
+    getIndicators(walletProvider?: WalletProvider): Promise<IndicatorsResponse>;
+    getHolidays(year?: number, walletProvider?: WalletProvider): Promise<HolidaysResponse>;
 }

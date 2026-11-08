@@ -10,6 +10,8 @@ require_once __DIR__ . '/../public_html/config.php';
 require_once __DIR__ . '/../public_html/x402.php';
 require_once __DIR__ . '/../public_html/services/cnpj.php';
 require_once __DIR__ . '/../public_html/services/cep.php';
+require_once __DIR__ . '/../public_html/services/indicators.php';
+require_once __DIR__ . '/../public_html/services/holidays.php';
 
 echo "=== INICIANDO TESTES DO TEASER PREVIEW NO PROTOCOLO x402 ===\n\n";
 
@@ -107,7 +109,40 @@ assert_test(
     json_encode($invalidCepRes)
 );
 
-echo "\n[3] Teste Estrutural do Payload x402:\n";
+// 3. Testes da Previa de Indicadores Economicos
+echo "\n[3] Testes da Previa de Indicadores Economicos:\n";
+$indPreview = grid402_teaser_indicators();
+assert_test(
+    "Indicadores contem selic_target aberta e data de referencia",
+    isset($indPreview['selic_target']) && $indPreview['selic_target'] > 0 &&
+    isset($indPreview['reference_date']),
+    json_encode($indPreview)
+);
+assert_test(
+    "Indicadores contem campos protegidos locked_fields",
+    isset($indPreview['locked_fields']) && is_array($indPreview['locked_fields']) &&
+    in_array('cdi_annual', $indPreview['locked_fields'], true) &&
+    in_array('ipca_12m', $indPreview['locked_fields'], true),
+    json_encode($indPreview['locked_fields'] ?? [])
+);
+
+// 4. Testes da Previa de Feriados Nacionais e Calendario Bancario
+echo "\n[4] Testes da Previa de Feriados:\n";
+$holPreview = grid402_teaser_holidays(2026);
+assert_test(
+    "Feriados contem proximo feriado e total do ano abertos",
+    isset($holPreview['next_holiday']) && is_array($holPreview['next_holiday']) &&
+    isset($holPreview['total_holidays_in_year']) && $holPreview['total_holidays_in_year'] >= 14,
+    json_encode($holPreview)
+);
+assert_test(
+    "Feriados contem campos protegidos locked_fields",
+    isset($holPreview['locked_fields']) && is_array($holPreview['locked_fields']) &&
+    in_array('full_year_schedule', $holPreview['locked_fields'], true),
+    json_encode($holPreview['locked_fields'] ?? [])
+);
+
+echo "\n[5] Teste Estrutural do Payload x402:\n";
 
 // Simula execução de montagem do payload
 $samplePreview = ['item' => 'teste'];

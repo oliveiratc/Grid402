@@ -21,6 +21,8 @@ test('CJS - Grid402Client carregado via require()', () => {
   assert.equal(typeof client.getCep, 'function');
   assert.equal(typeof client.getForex, 'function');
   assert.equal(typeof client.getCrypto, 'function');
+  assert.equal(typeof client.getIndicators, 'function');
+  assert.equal(typeof client.getHolidays, 'function');
 });
 
 test('CJS - Grid402ActionProvider carregado via require()', () => {
@@ -29,6 +31,8 @@ test('CJS - Grid402ActionProvider carregado via require()', () => {
   assert.equal(typeof provider.queryCnpj, 'function');
   assert.equal(typeof provider.queryCep, 'function');
   assert.equal(typeof provider.queryForex, 'function');
+  assert.equal(typeof provider.queryIndicators, 'function');
+  assert.equal(typeof provider.queryHolidays, 'function');
 });
 
 test('CJS - Classes de Erro disponiveis via require()', () => {

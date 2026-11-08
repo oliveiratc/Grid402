@@ -170,6 +170,8 @@ define('GRID402_FILE_METRICS', GRID402_PRIVATE_DIR . '/metrics.json');
 define('GRID402_FILE_ADMIN_AUTH', GRID402_PRIVATE_DIR . '/admin_auth.json');
 define('GRID402_FILE_CNPJ', GRID402_PRIVATE_DIR . '/cnpj_cache.json');
 define('GRID402_FILE_SANDBOX_RATES', GRID402_PRIVATE_DIR . '/sandbox_rates.json');
+define('GRID402_FILE_INDICATORS', GRID402_PRIVATE_DIR . '/indicators_cache.json');
+define('GRID402_FILE_HOLIDAYS', GRID402_PRIVATE_DIR . '/holidays_cache.json');
 
 // 5. Catálogo Oficial dos 6 Micro-Serviços Core de Dados Públicos e Rede
 function grid402_get_utility_services(): array {
@@ -230,6 +232,22 @@ function grid402_get_utility_services(): array {
             'category' => 'Corporativo',
             'type' => 'on_demand',
             'price_usdc' => GRID402_PRICE_CNPJ,
+        ],
+        'indicators' => [
+            'id' => 'indicators',
+            'name' => 'Indicadores Econômicos',
+            'description' => 'Taxas oficiais Selic (meta e diária), CDI anual e diário, IPCA acumulado 12m e mensal (BCB e IBGE)',
+            'endpoint' => '/api/v1/indicators',
+            'category' => 'Mercado',
+            'type' => 'cached',
+        ],
+        'holidays' => [
+            'id' => 'holidays',
+            'name' => 'Feriados e Calendário Bancário',
+            'description' => 'Feriados nacionais oficiais e dias sem expediente bancário (ANBIMA e Febraban) com cálculo determinístico',
+            'endpoint' => '/api/v1/holidays',
+            'category' => 'Dados Abertos',
+            'type' => 'on_demand',
         ],
     ];
 }

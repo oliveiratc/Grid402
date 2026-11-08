@@ -14,11 +14,16 @@ from grid402.models import (
     CnpjInput,
     CryptoInput,
     DnsInput,
+    EconomicIndicators,
+    HolidayItem,
+    HolidaysInput,
+    HolidaysResponse,
+    IndicatorsResponse,
     SettlementInfo,
     SslInput,
 )
 
-__version__ = "1.0.0"
+__version__ = "2.2.0"
 __author__ = "Grid402 Team"
 __license__ = "MIT"
 
@@ -33,6 +38,11 @@ __all__ = [
     "SslInput",
     "AsnInput",
     "CryptoInput",
+    "HolidaysInput",
+    "EconomicIndicators",
+    "IndicatorsResponse",
+    "HolidayItem",
+    "HolidaysResponse",
     "SettlementInfo",
     "DEFAULT_ENDPOINT",
     "__version__",

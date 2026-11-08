@@ -54,7 +54,7 @@ class Grid402Client {
 
     const mergedHeaders = {
       'Accept': 'application/json',
-      'User-Agent': 'Grid402-Node-CJS-SDK/2.2',
+      'User-Agent': 'Grid402-Node-CJS-SDK/2.3',
       ...headers,
     };
 
@@ -171,6 +171,17 @@ class Grid402Client {
     return this._request(`/api/v1/cnpj${query}`, headers);
   }
 
+  async getIndicators(paymentTxHash) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    return this._request('/api/v1/indicators', headers);
+  }
+
+  async getHolidays(year, paymentTxHash) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    const query = year ? `?year=${encodeURIComponent(year)}` : '';
+    return this._request(`/api/v1/holidays${query}`, headers);
+  }
+
   async isHealthy(serviceName = 'forex') {
     try {
       const summary = await this.getSummary();
@@ -219,7 +230,7 @@ class Grid402ActionProvider {
 
     const headers = {
       'Accept': 'application/json',
-      'User-Agent': 'Grid402-CoinbaseAgentKit-CJS/2.2',
+      'User-Agent': 'Grid402-CoinbaseAgentKit-CJS/2.3',
     };
 
     if (this.sandbox) {
@@ -317,6 +328,15 @@ class Grid402ActionProvider {
     return this._executeWithSettlement('/api/v1/cnpj', { cnpj }, walletProvider);
   }
 
+  async queryIndicators(walletProvider = null) {
+    return this._executeWithSettlement('/api/v1/indicators', {}, walletProvider);
+  }
+
+  async queryHolidays(year = null, walletProvider = null) {
+    const params = year ? { year } : {};
+    return this._executeWithSettlement('/api/v1/holidays', params, walletProvider);
+  }
+
   get getCnpj() { return this.queryCnpj; }
   get getCep() { return this.queryCep; }
   get getForex() { return this.queryForex; }
@@ -324,6 +344,8 @@ class Grid402ActionProvider {
   get getDns() { return this.queryDns; }
   get getSsl() { return this.querySsl; }
   get getAsn() { return this.queryAsn; }
+  get getIndicators() { return this.queryIndicators; }
+  get getHolidays() { return this.queryHolidays; }
 }
 
 module.exports = {

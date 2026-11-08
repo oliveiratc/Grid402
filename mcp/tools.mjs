@@ -137,6 +137,38 @@ export const MCP_TOOLS_DEFINITIONS = [
       required: ['cnpj'],
     },
   },
+  {
+    name: 'grid402_indicators',
+    description: 'Consulta taxas oficiais Selic meta e diária, CDI anual e diário, IPCA acumulado 12m e mensal do Banco Central e IBGE.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        payment_tx_hash: {
+          type: 'string',
+          description: 'Hash opcional de transação na Base Mainnet comprovando o pagamento de 0.0005 USDC caso não utilize liquidação automática.',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'grid402_holidays',
+    description: 'Consulta o calendário oficial de feriados nacionais e dias sem expediente bancário (ANBIMA e Febraban) com cálculo de feriados móveis.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        year: {
+          type: 'integer',
+          description: 'Ano calendário de 4 dígitos entre 1900 e 2100 (ex: 2026). Se omitido, consulta o ano corrente.',
+        },
+        payment_tx_hash: {
+          type: 'string',
+          description: 'Hash opcional de transação na Base Mainnet comprovando o pagamento de 0.0005 USDC caso não utilize liquidação automática.',
+        },
+      },
+      required: [],
+    },
+  },
 ];
 
 /**
@@ -180,6 +212,13 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
       path = '/api/v1/cnpj';
       if (params.cnpj) queryParams.set('cnpj', params.cnpj);
       break;
+    case 'indicators':
+      path = '/api/v1/indicators';
+      break;
+    case 'holidays':
+      path = '/api/v1/holidays';
+      if (params.year) queryParams.set('year', params.year);
+      break;
     default:
       throw new Error(`Serviço desconhecido: ${service}`);
   }
@@ -189,7 +228,7 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
 
   const headers = {
     'Accept': 'application/json',
-    'User-Agent': 'Grid402-MCP-Server/1.1',
+    'User-Agent': 'Grid402-MCP-Server/1.3',
   };
 
   if (params.payment_tx_hash) {

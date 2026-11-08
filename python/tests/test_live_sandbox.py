@@ -56,6 +56,23 @@ class TestLiveSandboxGrid402(unittest.TestCase):
         self.assertIn("razao_social", res)
         self.assertTrue(res.get("sandbox", False))
 
+    def test_live_indicators(self) -> None:
+        """Verifica consulta de Indicadores Economicos oficiais (Selic, CDI e IPCA)."""
+        res = self.client.get_indicators()
+        self.assertEqual(res.get("status"), "success")
+        self.assertIn("indicators", res)
+        self.assertGreater(res["indicators"].get("selic_target", 0), 0)
+        self.assertGreater(res["indicators"].get("cdi_annual", 0), 0)
+        self.assertTrue(res.get("sandbox", False))
+
+    def test_live_holidays(self) -> None:
+        """Verifica consulta de Feriados Nacionais e Calendario Bancario de 2026."""
+        res = self.client.get_holidays(year=2026)
+        self.assertEqual(res.get("status"), "success")
+        self.assertEqual(res.get("year"), 2026)
+        self.assertGreaterEqual(res.get("total_holidays", 0), 14)
+        self.assertTrue(res.get("sandbox", False))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -19,6 +19,8 @@ require_once __DIR__ . '/services/ssl.php';
 require_once __DIR__ . '/services/asn.php';
 require_once __DIR__ . '/services/cep.php';
 require_once __DIR__ . '/services/cnpj.php';
+require_once __DIR__ . '/services/indicators.php';
+require_once __DIR__ . '/services/holidays.php';
 require_once __DIR__ . '/metrics.php';
 
 // Leitura de cabeçalhos e rotas
@@ -98,7 +100,7 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
           "url": "https://orangered-jackal-900744.hostingersite.com",
           "logo": "https://orangered-jackal-900744.hostingersite.com/badge/summary.svg",
           "email": "contato@grid402.com.br",
-          "telephone": "+55-11-99999-0402",
+          "telephone": "+55-11-95832-5845",
           "description": "Hub de micro-servicos publicos e oraculo de utilitarios de rede para agentes autonomos de IA sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.",
           "address": {
             "@type": "PostalAddress",
@@ -121,7 +123,7 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
               "@type": "ContactPoint",
               "contactType": "customer support",
               "email": "contato@grid402.com.br",
-              "telephone": "+55-11-99999-0402",
+              "telephone": "+55-11-95832-5845",
               "availableLanguage": ["Portuguese", "English"]
             }
           ]
@@ -216,7 +218,7 @@ if ($pageParam === 'about' || $requestPath === '/about') {
             <p><strong>Organizacao:</strong> Grid402 Network Intelligence</p>
             <p><strong>Endereco Fisico:</strong> Avenida Paulista, 1000, Bela Vista, Sao Paulo - SP, CEP 01310-100, Brasil</p>
             <p><strong>Email de Suporte:</strong> <a href="mailto:contato@grid402.com.br">contato@grid402.com.br</a></p>
-            <p><strong>Central Telefonica:</strong> <a href="tel:+5511999990402">+55 11 99999-0402</a></p>
+            <p><strong>Central Telefonica:</strong> <a href="tel:+5511958325845">+55 11 95832-5845</a></p>
             <p><strong>Carteira Oraculo:</strong> <a href="https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c" target="_blank" rel="noopener noreferrer">0xa31c31069c43ac1c0075a93c325b0dcd7744356c</a></p>
         </div>';
         grid402_render_page_html('About Grid402 - Hub de Utilitarios de Rede e Dados Publicos', 'Saiba mais sobre a infraestrutura e os servicos publicos de rede do Grid402 para agentes de IA e desenvolvedores.', '/about', 'About Grid402', $aboutBody);
@@ -257,7 +259,7 @@ if ($pageParam === 'contact' || $requestPath === '/contact') {
         <div class="card-box">
             <p><strong>Email de Suporte Geral e Integracoes:</strong> <a href="mailto:contato@grid402.com.br">contato@grid402.com.br</a></p>
             <p><strong>Encarregado de Dados (DPO / LGPD):</strong> <a href="mailto:contato@grid402.com.br">contato@grid402.com.br</a></p>
-            <p><strong>Central Telefonica:</strong> <a href="tel:+5511999990402">+55 11 99999-0402</a></p>
+            <p><strong>Central Telefonica:</strong> <a href="tel:+5511958325845">+55 11 95832-5845</a></p>
             <p><strong>Endereco Fisico:</strong> Avenida Paulista, 1000, Bela Vista, Sao Paulo - SP, CEP 01310-100, Brasil</p>
         </div>
         <h2>Ecossistema e Codigo Aberto</h2>
@@ -274,7 +276,7 @@ if ($pageParam === 'contact' || $requestPath === '/contact') {
             'organization' => 'Grid402',
             'support_email' => 'contato@grid402.com.br',
             'dpo_email' => 'contato@grid402.com.br',
-            'telephone' => '+55-11-99999-0402',
+            'telephone' => '+55-11-95832-5845',
             'address' => [
                 'street' => 'Avenida Paulista, 1000',
                 'city' => 'Sao Paulo',
@@ -349,7 +351,7 @@ if ($pageParam === 'privacy' || $requestPath === '/privacy') {
 // 2. Classificação de Rotas
 $isStatusRoute = ($requestPath === '/status' || $requestPath === '/api/v1/summary' || $requestPath === '/telemetry');
 $isHomeRoute = ($requestPath === '/' || $requestPath === '/index.php');
-$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj'];
+$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'indicators', 'holidays'];
 $isValidApiAction = in_array($apiParam, $validApiEndpoints, true);
 $isInstitutionalRoute = in_array($requestPath, ['/about', '/contact', '/terms', '/privacy', '/admin', '/dashboard'], true);
 
@@ -376,6 +378,8 @@ if (!$isHomeRoute && !$isStatusRoute && !$isValidApiAction && !$isInstitutionalR
                 '/api/v1/asn',
                 '/api/v1/cep',
                 '/api/v1/cnpj',
+                '/api/v1/indicators',
+                '/api/v1/holidays',
                 '/about',
                 '/contact',
                 '/terms',
@@ -462,6 +466,17 @@ if ($isValidApiAction) {
             }
             $previewData = $cepResult['preview'];
             $lockedFields = $cepResult['locked_fields'];
+        } elseif ($apiParam === 'indicators') {
+            $teaser = grid402_teaser_indicators();
+            $lockedFields = $teaser['locked_fields'] ?? [];
+            unset($teaser['locked_fields']);
+            $previewData = $teaser;
+        } elseif ($apiParam === 'holidays') {
+            $yearInput = isset($_GET['year']) ? (int) $_GET['year'] : null;
+            $teaser = grid402_teaser_holidays($yearInput);
+            $lockedFields = $teaser['locked_fields'] ?? [];
+            unset($teaser['locked_fields']);
+            $previewData = $teaser;
         }
 
         grid402_respond_402($serviceLabel, null, $servicePriceDisplay, $servicePriceRaw, $previewData, $lockedFields);
@@ -558,6 +573,19 @@ if ($isValidApiAction) {
                 http_response_code($result['code']);
             }
             break;
+        case 'indicators':
+            $result = grid402_service_indicators();
+            if (isset($result['code']) && $result['code'] !== 200) {
+                http_response_code($result['code']);
+            }
+            break;
+        case 'holidays':
+            $yearParam = isset($_GET['year']) ? (int) $_GET['year'] : null;
+            $result = grid402_service_holidays($yearParam);
+            if (isset($result['code']) && $result['code'] !== 200) {
+                http_response_code($result['code']);
+            }
+            break;
         default:
             $result = [
                 'protocol' => 'x402',
@@ -622,7 +650,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
           "url": "https://orangered-jackal-900744.hostingersite.com",
           "logo": "https://orangered-jackal-900744.hostingersite.com/badge/summary.svg",
           "email": "contato@grid402.com.br",
-          "telephone": "+55-11-99999-0402",
+          "telephone": "+55-11-95832-5845",
           "description": "Hub de micro-servicos publicos e oraculo de utilitarios de rede para agentes autonomos de IA sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.",
           "address": {
             "@type": "PostalAddress",
@@ -645,7 +673,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
               "@type": "ContactPoint",
               "contactType": "customer support",
               "email": "contato@grid402.com.br",
-              "telephone": "+55-11-99999-0402",
+              "telephone": "+55-11-95832-5845",
               "availableLanguage": ["Portuguese", "English"]
             }
           ]
@@ -1189,14 +1217,14 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             </nav>
             <div class="badge-live">
                 <span class="badge-pulse"></span>
-                <span>Base Mainnet (8453) • 8/8 Servicos Operantes</span>
+                <span>Base Mainnet (8453) • 10/10 Servicos Operantes</span>
             </div>
         </header>
 
         <section class="hero">
             <div class="hero-tag">Hub de Micro-Servicos para Robos e Agentes de IA</div>
             <h1>Grid402: Hub de Utilitarios de Rede e Dados Publicos para Agentes de IA</h1>
-            <p>Acesse cotacoes de cambio, cripto, DNS, certificados SSL, BGP/ASN, CEP e CNPJ da Receita Federal em milissegundos sem cadastro ou chaves de API. Micropagamentos por chamada em USDC na Base.</p>
+            <p>Acesse cotacoes de cambio, cripto, indicadores economicos oficiais (Selic, CDI e IPCA), feriados nacionais e bancarios, DNS, certificados SSL, BGP/ASN, CEP e CNPJ da Receita Federal em milissegundos sem cadastro ou chaves de API. Micropagamentos por chamada em USDC na Base.</p>
             <div class="cta-group">
                 <a href="#console" class="btn btn-primary" onclick="switchTab('console')">⚡ Testar no Console</a>
                 <a href="/about" class="btn btn-outline">About Us</a>
@@ -1246,6 +1274,8 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                     <button type="button" class="btn-sm" onclick="runConsole('asn')">ASN (/api/v1/asn)</button>
                     <button type="button" class="btn-sm" onclick="runConsole('cep')">CEP (/api/v1/cep)</button>
                     <button type="button" class="btn-sm" onclick="runConsole('cnpj')">CNPJ (/api/v1/cnpj)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('indicators')">Indicadores (/api/v1/indicators)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('holidays')">Feriados (/api/v1/holidays)</button>
                 </div>
                 <div class="input-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <input type="text" id="tx-input" class="console-input" style="flex: 1; min-width: 260px;" placeholder="Cole o hash de pagamento na Base (0x...) ou use 'demo' para simulação">
@@ -1588,7 +1618,7 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
                 </div>
                 <div class="contact-card">
                     <strong>Central Telefonica</strong>
-                    <a href="tel:+5511999990402">+55 11 99999-0402</a>
+                    <a href="tel:+5511958325845">+55 11 95832-5845</a>
                 </div>
                 <div class="contact-card">
                     <strong>Codigo Fonte no GitHub</strong>
@@ -1624,7 +1654,7 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
                 <a href="/openapi.json" target="_blank">OpenAPI 3.1</a>
                 <a href="/.well-known/mcp/server-card.json" target="_blank">MCP Server Card</a>
                 <a href="mailto:contato@grid402.com.br">contato@grid402.com.br</a>
-                <a href="tel:+5511999990402">+55 11 99999-0402</a>
+                <a href="tel:+5511958325845">+55 11 95832-5845</a>
             </div>
             <div>
                 Copyright (c) 2026 Grid402 Contributors. Distribuido sob os termos da Licenca MIT.
@@ -1670,6 +1700,8 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
                 case 'asn': url = '/api/v1/asn?ip=1.1.1.1'; break;
                 case 'cep': url = '/api/v1/cep?code=01310100'; break;
                 case 'cnpj': url = '/api/v1/cnpj?cnpj=00000000000191'; break;
+                case 'indicators': url = '/api/v1/indicators'; break;
+                case 'holidays': url = '/api/v1/holidays?year=2026'; break;
                 case 'paid':
                     const tx = document.getElementById('tx-input').value.trim();
                     if (!tx) {
@@ -1681,6 +1713,8 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
                     else if (currentServiceAction === 'ssl') url = '/api/v1/ssl?host=base.org';
                     else if (currentServiceAction === 'asn') url = '/api/v1/asn?ip=1.1.1.1';
                     else if (currentServiceAction === 'cep') url = '/api/v1/cep?code=01310100';
+                    else if (currentServiceAction === 'indicators') url = '/api/v1/indicators';
+                    else if (currentServiceAction === 'holidays') url = '/api/v1/holidays?year=2026';
                     else if (currentServiceAction === 'forex') url = '/api/v1/forex';
                     else if (currentServiceAction === 'crypto') url = '/api/v1/crypto';
                     else url = '/api/v1/dns?domain=github.com';
@@ -1705,7 +1739,7 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
                     const teaserContent = document.getElementById('teaser-content');
                     const teaserLocked = document.getElementById('teaser-locked-fields');
 
-                    teaserTitle.textContent = (action === 'cnpj') ? 'Dados Cadastrais da Empresa (Prévia)' : 'Localidade Postal (Prévia)';
+                    teaserTitle.textContent = (action === 'cnpj') ? 'Dados Cadastrais da Empresa (Prévia)' : (action === 'indicators' ? 'Indicadores Econômicos Oficiais (Prévia)' : (action === 'holidays' ? 'Próximo Feriado Nacional (Prévia)' : 'Localidade Postal (Prévia)'));
                     teaserPrice.textContent = `${json.price_usdc || '0.0005'} USDC na Base`;
 
                     let html = '';
@@ -1995,6 +2029,18 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
                                 description: 'Consulta inteligencia de rede BGP e numero ASN',
                                 inputSchema: { type: 'object', properties: { ip: { type: 'string' } } },
                                 execute: async (p) => fetch('/api/v1/asn' + (p.ip ? '?ip=' + encodeURIComponent(p.ip) : '')).then(r => r.json())
+                            },
+                            {
+                                name: 'grid402_indicators',
+                                description: 'Consulta taxas oficiais Selic meta e diaria, CDI anual e diario, IPCA 12m e mensal',
+                                inputSchema: { type: 'object', properties: {} },
+                                execute: async () => fetch('/api/v1/indicators').then(r => r.json())
+                            },
+                            {
+                                name: 'grid402_holidays',
+                                description: 'Consulta calendario oficial de feriados nacionais e bancarios com suporte a ano',
+                                inputSchema: { type: 'object', properties: { year: { type: 'integer' } } },
+                                execute: async (p) => fetch('/api/v1/holidays' + (p.year ? '?year=' + encodeURIComponent(p.year) : '')).then(r => r.json())
                             },
                             {
                                 name: 'grid402_summary',

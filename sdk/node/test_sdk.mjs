@@ -139,3 +139,51 @@ test('Grid402ActionProvider - Auto-liquidacao com Coinbase AgentKit wallet_provi
     globalThis.fetch = originalFetch;
   }
 });
+
+test('Grid402Client - Metodos getIndicators e getHolidays', async () => {
+  const client = new Grid402Client({ sandbox: true });
+
+  const originalFetch = globalThis.fetch;
+  const capturedUrls = [];
+
+  globalThis.fetch = async (url) => {
+    capturedUrls.push(url);
+    if (url.includes('/api/v1/indicators')) {
+      return {
+        status: 200,
+        ok: true,
+        text: async () => JSON.stringify({
+          status: 'success',
+          service: 'indicators',
+          indicators: { selic_target: 13.75, cdi_annual: 13.65 }
+        })
+      };
+    }
+    return {
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify({
+        status: 'success',
+        service: 'holidays',
+        year: 2026,
+        total_holidays: 15,
+        holidays: [{ date: '2026-01-01', name: 'Confraternizacao Universal' }]
+      })
+    };
+  };
+
+  try {
+    const ind = await client.getIndicators();
+    assert.equal(ind.status, 'success');
+    assert.equal(ind.indicators.selic_target, 13.75);
+    assert(capturedUrls[0].includes('/api/v1/indicators'));
+
+    const hol = await client.getHolidays(2026);
+    assert.equal(hol.status, 'success');
+    assert.equal(hol.year, 2026);
+    assert.equal(hol.total_holidays, 15);
+    assert(capturedUrls[1].includes('/api/v1/holidays?year=2026'));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

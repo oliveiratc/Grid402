@@ -13,7 +13,7 @@ import { MCP_TOOLS_DEFINITIONS, executeGrid402Request, DEFAULT_ENDPOINT } from '
 const server = new Server(
   {
     name: 'grid402-mcp-server',
-    version: '1.0.0',
+    version: '1.3.0',
   },
   {
     capabilities: {
@@ -60,6 +60,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         break;
       case 'grid402_cnpj':
         service = 'cnpj';
+        break;
+      case 'grid402_indicators':
+        service = 'indicators';
+        break;
+      case 'grid402_holidays':
+        service = 'holidays';
         break;
       default:
         throw new Error(`Ferramenta MCP desconhecida: ${toolName}`);

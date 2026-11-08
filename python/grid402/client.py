@@ -71,7 +71,7 @@ class Grid402Client:
 
         headers = {
             "Accept": "application/json",
-            "User-Agent": "Grid402-Python-SDK/1.0",
+            "User-Agent": "Grid402-Python-SDK/2.2",
         }
 
         active_tx_hash = payment_tx_hash or self.payment_tx_hash
@@ -142,4 +142,15 @@ class Grid402Client:
     def get_cnpj(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
         """Consulta dados cadastrais publicos de Pessoa Juridica na Receita Federal."""
         return self._request("/api/v1/cnpj", params={"cnpj": cnpj}, payment_tx_hash=payment_tx_hash)
+
+    def get_indicators(self, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Consulta indicadores economicos oficiais (Selic, CDI e IPCA) do Banco Central e IBGE."""
+        return self._request("/api/v1/indicators", payment_tx_hash=payment_tx_hash)
+
+    def get_holidays(
+        self, year: Optional[int] = None, payment_tx_hash: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Consulta calendario oficial de feriados nacionais e bancarios (ANBIMA e Febraban)."""
+        params = {"year": year} if year is not None else {}
+        return self._request("/api/v1/holidays", params=params, payment_tx_hash=payment_tx_hash)
 
