@@ -452,7 +452,7 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
 }
 
 /**
- * Emite a resposta HTTP 402 Payment Required estruturada
+ * Emite a resposta HTTP 402 Payment Required estruturada compativel com x402 v2
  */
 function grid402_respond_402(?string $serviceName = null, ?string $errorMessage = null, ?string $priceDisplay = null, ?int $priceRawUnits = null, ?array $preview = null, ?array $lockedFields = null): void {
     $priceDisplay = $priceDisplay ?? GRID402_PRICE_DISPLAY;
@@ -466,12 +466,54 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
     header('Content-Type: application/json; charset=utf-8');
     header('X-Authenticate: x402');
     header('X-Accept-Payment: base:usdc:' . GRID402_WALLET_ADDRESS . ':' . $priceDisplay);
+    header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Payment-Required, payment-required');
 
     $msg = $errorMessage ?? ($serviceName ? "Acesso à API '{$serviceName}' requer micropagamento de {$priceDisplay} USDC via protocolo x402." : 'Consulta técnica requer micropagamento sob demanda via protocolo x402.');
 
+    $host = $_SERVER['HTTP_HOST'] ?? 'orangered-jackal-900744.hostingersite.com';
+    $isHttps = (isset($_SERVER['HTTPS']) and $_SERVER['HTTPS'] === 'on') or (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) and $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+    $proto = $isHttps ? 'https' : 'http';
+    $reqUri = $_SERVER['REQUEST_URI'] ?? ('/api/v1/' . ($serviceName ?? 'forex'));
+    $fullUrl = $proto . '://' . $host . $reqUri;
+
+    $acceptsList = [
+        [
+            'scheme' => 'exact',
+            'network' => 'eip155:' . GRID402_CHAIN_ID,
+            'asset' => GRID402_USDC_CONTRACT,
+            'amount' => (string)$priceRawUnits,
+            'payTo' => GRID402_WALLET_ADDRESS,
+            'maxTimeoutSeconds' => 300,
+            'extra' => [
+                'name' => 'USD Coin',
+                'version' => '2',
+            ],
+        ],
+    ];
+
+    $resourceInfo = [
+        'url' => $fullUrl,
+        'description' => $msg,
+        'mimeType' => 'application/json',
+    ];
+
+    $x402V2HeaderData = [
+        'x402Version' => 2,
+        'error' => 'Payment required',
+        'resource' => $resourceInfo,
+        'accepts' => $acceptsList,
+    ];
+
+    $b64Header = base64_encode((string) json_encode($x402V2HeaderData, JSON_UNESCAPED_SLASHES));
+    header('Payment-Required: ' . $b64Header);
+    header('payment-required: ' . $b64Header);
+
     $payload = [
+        'x402Version' => 2,
         'error' => 'PaymentRequired',
         'message' => $msg,
+        'resource' => $resourceInfo,
+        'accepts' => $acceptsList,
         'protocol' => 'x402',
         'service' => $serviceName ?? 'unknown',
         'network' => 'Base',
@@ -485,10 +527,10 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         'docs' => 'https://www.grid402.com.br/llms.txt',
     ];
 
-    if ($preview !== null && !empty($preview)) {
+    if ($preview !== null and !empty($preview)) {
         $payload['preview'] = $preview;
     }
-    if ($lockedFields !== null && !empty($lockedFields)) {
+    if ($lockedFields !== null and !empty($lockedFields)) {
         $payload['locked_fields'] = $lockedFields;
     }
 
