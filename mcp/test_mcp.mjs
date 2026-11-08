@@ -10,8 +10,8 @@ async function runTests() {
   console.log('=== Testando Servidor MCP Grid402 ===\n');
 
   // 1. Validação de Schemas das Ferramentas
-  console.log('[1/4] Validando registro e schemas das 10 ferramentas MCP...');
-  assert.strictEqual(MCP_TOOLS_DEFINITIONS.length, 10, 'Deve conter exatamente 10 ferramentas registradas');
+  console.log('[1/4] Validando registro e schemas das 11 ferramentas MCP...');
+  assert.strictEqual(MCP_TOOLS_DEFINITIONS.length, 11, 'Deve conter exatamente 11 ferramentas registradas');
 
   const toolNames = MCP_TOOLS_DEFINITIONS.map(t => t.name);
   const expectedTools = [
@@ -25,12 +25,13 @@ async function runTests() {
     'grid402_cnpj',
     'grid402_indicators',
     'grid402_holidays',
+    'grid402_workdays',
   ];
 
   for (const expected of expectedTools) {
     assert.ok(toolNames.includes(expected), `Ferramenta ${expected} deve estar presente`);
   }
-  console.log('  ✓ Todas as 10 ferramentas MCP validadas com sucesso!');
+  console.log('  ✓ Todas as 11 ferramentas MCP validadas com sucesso!');
 
   // 2. Teste de Consulta Gratuita (summary)
   console.log('\n[2/4] Testando consulta à ferramenta gratuita grid402_summary...');
@@ -60,7 +61,11 @@ async function runTests() {
 
   const holChallenge = await executeGrid402Request('holidays', { year: 2026 });
   assert.strictEqual(holChallenge.payment_required, true, 'Holidays deve indicar payment_required: true');
-  console.log('  ✓ Desafio x402 capturado com instruções e carteira oficial para DNS, CNPJ, Indicadores e Feriados!');
+
+  const workdaysChallenge = await executeGrid402Request('workdays', { start_date: '2026-11-06', days: 5 });
+  assert.strictEqual(workdaysChallenge.payment_required, true, 'Workdays deve indicar payment_required: true');
+  assert.ok(workdaysChallenge.challenge, 'Workdays deve conter desafio');
+  console.log('  ✓ Desafio x402 capturado com instruções e carteira oficial para DNS, CNPJ, Indicadores, Feriados e Workdays!');
 
   // 4. Teste de Validação Defensiva de Chave Privada
   console.log('\n[4/4] Testando validação defensiva de formato de chave privada...');

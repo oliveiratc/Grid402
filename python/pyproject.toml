@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "grid402"
-version = "2.2.0"
+version = "2.3.0"
 description = "SDK Python oficial do Grid402: Micropagamentos HTTP 402 na Base para Agentes Autonomos e IA"
 readme = "README.md"
 requires-python = ">=3.9"

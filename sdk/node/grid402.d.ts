@@ -192,6 +192,40 @@ export interface HolidaysResponse {
     error?: string;
 }
 
+export interface WorkdaysParams {
+    startDate?: string;
+    endDate?: string;
+    days?: number;
+    date?: string;
+    start_date?: string;
+    end_date?: string;
+}
+
+export interface WorkdaysResponse {
+    status: string;
+    service: string;
+    mode: 'range' | 'projection' | 'check' | string;
+    convention: string;
+    start_date?: string;
+    end_date?: string;
+    target_date?: string;
+    workdays?: number;
+    calendar_days?: number;
+    start_is_workday?: boolean;
+    end_is_workday?: boolean;
+    target_is_workday?: boolean;
+    is_workday?: boolean;
+    day_type?: 'workday' | 'weekend' | 'holiday' | string;
+    description?: string;
+    holiday_name?: string | null;
+    next_workday?: string;
+    holidays_in_range?: Array<{ date: string; name: string }>;
+    holidays_in_projection?: Array<{ date: string; name: string }>;
+    tariff_usdc: string;
+    sandbox?: boolean;
+    error?: string;
+}
+
 export interface SettlementReceipt {
     settled: boolean;
     tx_hash: string;
@@ -244,6 +278,7 @@ export declare class Grid402Client {
     getCnpj(cnpj: string, paymentTxHash?: string): Promise<CnpjResponse>;
     getIndicators(paymentTxHash?: string): Promise<IndicatorsResponse>;
     getHolidays(year?: number, paymentTxHash?: string): Promise<HolidaysResponse>;
+    getWorkdays(params?: WorkdaysParams, paymentTxHash?: string): Promise<WorkdaysResponse>;
     isHealthy(serviceName?: string): Promise<boolean>;
     guard<T>(serviceName: string, action: () => Promise<T> | T, fallback?: () => Promise<T> | T): Promise<T>;
 }
@@ -273,6 +308,7 @@ export declare class Grid402ActionProvider {
     queryCnpj(cnpj: string, walletProvider?: WalletProvider): Promise<CnpjResponse>;
     queryIndicators(walletProvider?: WalletProvider): Promise<IndicatorsResponse>;
     queryHolidays(year?: number, walletProvider?: WalletProvider): Promise<HolidaysResponse>;
+    queryWorkdays(params?: WorkdaysParams, walletProvider?: WalletProvider): Promise<WorkdaysResponse>;
 
     getCnpj(cnpj: string, walletProvider?: WalletProvider): Promise<CnpjResponse>;
     getCep(code: string, walletProvider?: WalletProvider): Promise<CepResponse>;
@@ -283,4 +319,5 @@ export declare class Grid402ActionProvider {
     getAsn(ip?: string, walletProvider?: WalletProvider): Promise<AsnResponse>;
     getIndicators(walletProvider?: WalletProvider): Promise<IndicatorsResponse>;
     getHolidays(year?: number, walletProvider?: WalletProvider): Promise<HolidaysResponse>;
+    getWorkdays(params?: WorkdaysParams, walletProvider?: WalletProvider): Promise<WorkdaysResponse>;
 }

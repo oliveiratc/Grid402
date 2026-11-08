@@ -187,3 +187,35 @@ test('Grid402Client - Metodos getIndicators e getHolidays', async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+test('Grid402Client - Metodo getWorkdays', async () => {
+  const client = new Grid402Client({ sandbox: true });
+
+  const originalFetch = globalThis.fetch;
+  let capturedUrl = null;
+
+  globalThis.fetch = async (url) => {
+    capturedUrl = url;
+    return {
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify({
+        status: 'success',
+        service: 'workdays',
+        mode: 'range',
+        workdays: 5,
+        calendar_days: 7
+      })
+    };
+  };
+
+  try {
+    const res = await client.getWorkdays({ startDate: '2026-11-06', endDate: '2026-11-13' });
+    assert.equal(res.status, 'success');
+    assert.equal(res.workdays, 5);
+    assert(capturedUrl.includes('/api/v1/workdays'));
+    assert(capturedUrl.includes('start_date=2026-11-06'));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

@@ -165,7 +165,7 @@ try {
     assert(str_contains($badgeSys['body'], 'Grid402 Hub'), "Badge system deve conter Grid402 Hub");
     echo "     ✓ Badges dinâmicos SVG emitidos em {$badgeForex['time_ms']} ms (HTTP 200)!\n";
 
-    // 3.6. Requisições jurídicas (Terms & Privacy para Agentes e LGPD)
+    // 3.6. Requisições jurídicas (Terms e Privacy para Agentes e LGPD)
     echo "  -> Simulando consulta de Termos de Uso e Privacidade LGPD...\n";
     $termsReq = test_req("http://127.0.0.1:{$port}/?page=terms", ['Accept: application/json']);
     assert($termsReq['code'] === 200, "Terms deve retornar HTTP 200");
@@ -175,6 +175,32 @@ try {
     assert($privReq['code'] === 200, "Privacy deve retornar HTTP 200");
     assert(str_contains($privReq['body'], 'LGPD'), "Privacy deve referenciar a LGPD");
     echo "     ✓ Termos de Uso e Política LGPD validados em {$termsReq['time_ms']} ms (HTTP 200)!\n";
+
+    // 3.7. Validação do micro-serviço de Calculadora de Dias Úteis ANBIMA (workdays)
+    echo "  -> Simulando requisição de dias úteis ANBIMA sem pagamento (Desafio x402 com Teaser)...\n";
+    $workdaysQuery = http_build_query([
+        'api' => 'workdays',
+        'start_date' => '2026-12-24',
+        'end_date' => '2026-12-28',
+    ]);
+    $workdaysReq = test_req("http://127.0.0.1:{$port}/?{$workdaysQuery}", ['Accept: application/json']);
+    assert($workdaysReq['code'] === 402, "Workdays sem pagamento deve responder HTTP 402");
+    $workdaysChal = json_decode($workdaysReq['body'], true);
+    assert($workdaysChal['error'] === 'PaymentRequired', 'Erro deve ser PaymentRequired');
+    assert(isset($workdaysChal['preview']['is_workday']), 'Teaser deve conter is_workday');
+    assert(isset($workdaysChal['preview']['base_date']), 'Teaser deve conter base_date');
+    assert(in_array('workdays', $workdaysChal['locked_fields'] ?? [], true), 'workdays deve ser campo bloqueado');
+
+    echo "  -> Simulando execução de dias úteis em Modo Sandbox (X-Payment: demo)...\n";
+    $workdaysDemo = test_req("http://127.0.0.1:{$port}/?{$workdaysQuery}", [
+        'Accept: application/json',
+        'X-Payment: demo',
+    ]);
+    assert($workdaysDemo['code'] === 200, "Workdays no sandbox deve responder HTTP 200");
+    $workdaysData = json_decode($workdaysDemo['body'], true);
+    assert($workdaysData['status'] === 'success', "Status deve ser success");
+    assert($workdaysData['workdays'] === 1, "De 24/12 a 28/12/2026 deve contabilizar 1 dia útil");
+    echo "     ✓ Micro-serviço workdays validado com 100% de sucesso (HTTP 402 + Sandbox 200)!\n";
 
     echo "  ✓ Todos os testes HTTP foram validados com êxito!\n\n";
 

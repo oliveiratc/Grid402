@@ -89,3 +89,11 @@ O servidor MCP (`grid402-mcp`) SHALL registrar e expor as ferramentas `grid402_i
 - **GIVEN** o argumento `year: 2026`
 - **WHEN** um agente MCP invoca a ferramenta `grid402_holidays` com esse argumento
 - **THEN** o servidor executa a consulta ao calendario de feriados e retorna a colecao formatada
+
+### Requirement: MCP tools for workdays calculator
+O servidor MCP (`grid402-mcp`) SHALL registrar e expor a ferramenta `grid402_workdays` com schema JSON Schema de entrada e suporte automatico a auto-liquidacao on-chain ou Modo Sandbox.
+
+#### Scenario: Tool execution for grid402_workdays
+- **GIVEN** os argumentos de contagem de dias uteis (`start_date: "2026-12-23"`, `end_date: "2026-12-28"`)
+- **WHEN** um agente MCP (Claude Desktop ou Cursor) invoca a ferramenta `grid402_workdays`
+- **THEN** o servidor executa a consulta da calculadora e retorna a resposta formatada em texto e JSON

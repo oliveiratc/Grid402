@@ -50,6 +50,8 @@ ServerSignature Off
     RewriteRule ^api/v1/cnpj/?$ index.php?api=cnpj [QSA,L]
     RewriteRule ^api/v1/indicators/?$ index.php?api=indicators [QSA,L]
     RewriteRule ^api/v1/holidays/?$ index.php?api=holidays [QSA,L]
+    RewriteRule ^api/v1/workdays/?$ index.php?api=workdays [QSA,L]
+    RewriteRule ^workdays/?$ index.php?api=workdays [QSA,L]
 
     # Painel Administrativo de Monitoramento e Faturamento
     RewriteRule ^admin/?$ admin.php [QSA,L]

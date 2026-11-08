@@ -21,9 +21,12 @@ from grid402.models import (
     IndicatorsResponse,
     SettlementInfo,
     SslInput,
+    WorkdaysHolidayItem,
+    WorkdaysInput,
+    WorkdaysResponse,
 )
 
-__version__ = "2.2.0"
+__version__ = "2.3.0"
 __author__ = "Grid402 Team"
 __license__ = "MIT"
 
@@ -39,10 +42,13 @@ __all__ = [
     "AsnInput",
     "CryptoInput",
     "HolidaysInput",
+    "WorkdaysInput",
     "EconomicIndicators",
     "IndicatorsResponse",
     "HolidayItem",
     "HolidaysResponse",
+    "WorkdaysHolidayItem",
+    "WorkdaysResponse",
     "SettlementInfo",
     "DEFAULT_ENDPOINT",
     "__version__",

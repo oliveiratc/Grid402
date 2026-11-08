@@ -13,7 +13,16 @@ import urllib.parse
 import urllib.request
 
 from grid402.client import DEFAULT_ENDPOINT
-from grid402.models import AsnInput, CepInput, CnpjInput, CryptoInput, DnsInput, SslInput
+from grid402.models import (
+    AsnInput,
+    CepInput,
+    CnpjInput,
+    CryptoInput,
+    DnsInput,
+    HolidaysInput,
+    SslInput,
+    WorkdaysInput,
+)
 
 
 GRID402_ORACLE_WALLET = "0xa31c31069c43ac1c0075a93c325b0dcd7744356c"
@@ -173,6 +182,26 @@ class Grid402ActionProvider:
         params = {"year": year} if year is not None else {}
         return self._execute_with_settlement("/api/v1/holidays", params, wallet_provider)
 
+    def query_workdays(
+        self,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        days: Optional[int] = None,
+        date: Optional[str] = None,
+        wallet_provider: Any = None,
+    ) -> Dict[str, Any]:
+        """Calcula dias uteis financeiros e projecao de vencimentos ANBIMA."""
+        params: Dict[str, Any] = {}
+        if start_date is not None:
+            params["start_date"] = start_date
+        if end_date is not None:
+            params["end_date"] = end_date
+        if days is not None:
+            params["days"] = days
+        if date is not None:
+            params["date"] = date
+        return self._execute_with_settlement("/api/v1/workdays", params, wallet_provider)
+
     # Aliases no padrao snake_case das ferramentas MCP
     get_cnpj = query_cnpj
     get_cep = query_cep
@@ -183,4 +212,5 @@ class Grid402ActionProvider:
     get_asn = query_asn
     get_indicators = query_indicators
     get_holidays = query_holidays
+    get_workdays = query_workdays
 

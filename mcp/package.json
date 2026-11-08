@@ -1,6 +1,6 @@
 {
   "name": "grid402-mcp",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "Official Model Context Protocol (MCP) Server for Grid402 - Public Open Data e Network Utilities Hub (Forex, Crypto, DNS, SSL, ASN, CEP, CNPJ) with Base x402 micropayments e Sandbox.",
   "type": "module",
   "bin": {

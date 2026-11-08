@@ -21,6 +21,7 @@ require_once __DIR__ . '/services/cep.php';
 require_once __DIR__ . '/services/cnpj.php';
 require_once __DIR__ . '/services/indicators.php';
 require_once __DIR__ . '/services/holidays.php';
+require_once __DIR__ . '/services/workdays.php';
 require_once __DIR__ . '/metrics.php';
 
 // Leitura de cabeçalhos e rotas
@@ -351,7 +352,7 @@ if ($pageParam === 'privacy' || $requestPath === '/privacy') {
 // 2. Classificação de Rotas
 $isStatusRoute = ($requestPath === '/status' || $requestPath === '/api/v1/summary' || $requestPath === '/telemetry');
 $isHomeRoute = ($requestPath === '/' || $requestPath === '/index.php');
-$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'indicators', 'holidays'];
+$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays'];
 $isValidApiAction = in_array($apiParam, $validApiEndpoints, true);
 $isInstitutionalRoute = in_array($requestPath, ['/about', '/contact', '/terms', '/privacy', '/admin', '/dashboard'], true);
 
@@ -380,6 +381,7 @@ if (!$isHomeRoute && !$isStatusRoute && !$isValidApiAction && !$isInstitutionalR
                 '/api/v1/cnpj',
                 '/api/v1/indicators',
                 '/api/v1/holidays',
+                '/api/v1/workdays',
                 '/about',
                 '/contact',
                 '/terms',
@@ -474,6 +476,11 @@ if ($isValidApiAction) {
         } elseif ($apiParam === 'holidays') {
             $yearInput = isset($_GET['year']) ? (int) $_GET['year'] : null;
             $teaser = grid402_teaser_holidays($yearInput);
+            $lockedFields = $teaser['locked_fields'] ?? [];
+            unset($teaser['locked_fields']);
+            $previewData = $teaser;
+        } elseif ($apiParam === 'workdays') {
+            $teaser = grid402_teaser_workdays($_GET);
             $lockedFields = $teaser['locked_fields'] ?? [];
             unset($teaser['locked_fields']);
             $previewData = $teaser;
@@ -582,6 +589,12 @@ if ($isValidApiAction) {
         case 'holidays':
             $yearParam = isset($_GET['year']) ? (int) $_GET['year'] : null;
             $result = grid402_service_holidays($yearParam);
+            if (isset($result['code']) && $result['code'] !== 200) {
+                http_response_code($result['code']);
+            }
+            break;
+        case 'workdays':
+            $result = grid402_service_workdays($_GET);
             if (isset($result['code']) && $result['code'] !== 200) {
                 http_response_code($result['code']);
             }
@@ -1276,6 +1289,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                     <button type="button" class="btn-sm" onclick="runConsole('cnpj')">CNPJ (/api/v1/cnpj)</button>
                     <button type="button" class="btn-sm" onclick="runConsole('indicators')">Indicadores (/api/v1/indicators)</button>
                     <button type="button" class="btn-sm" onclick="runConsole('holidays')">Feriados (/api/v1/holidays)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('workdays')">Dias Úteis (/api/v1/workdays)</button>
                 </div>
                 <div class="input-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <input type="text" id="tx-input" class="console-input" style="flex: 1; min-width: 260px;" placeholder="Cole o hash de pagamento na Base (0x...) ou use 'demo' para simulação">
@@ -1702,6 +1716,7 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
                 case 'cnpj': url = '/api/v1/cnpj?cnpj=00000000000191'; break;
                 case 'indicators': url = '/api/v1/indicators'; break;
                 case 'holidays': url = '/api/v1/holidays?year=2026'; break;
+                case 'workdays': url = '/api/v1/workdays?start_date=2026-12-23' + String.fromCharCode(38) + 'end_date=2026-12-28'; break;
                 case 'paid':
                     const tx = document.getElementById('tx-input').value.trim();
                     if (!tx) {
@@ -1715,6 +1730,7 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
                     else if (currentServiceAction === 'cep') url = '/api/v1/cep?code=01310100';
                     else if (currentServiceAction === 'indicators') url = '/api/v1/indicators';
                     else if (currentServiceAction === 'holidays') url = '/api/v1/holidays?year=2026';
+                    else if (currentServiceAction === 'workdays') url = '/api/v1/workdays?start_date=2026-12-23' + String.fromCharCode(38) + 'end_date=2026-12-28';
                     else if (currentServiceAction === 'forex') url = '/api/v1/forex';
                     else if (currentServiceAction === 'crypto') url = '/api/v1/crypto';
                     else url = '/api/v1/dns?domain=github.com';
@@ -2041,6 +2057,19 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
                                 description: 'Consulta calendario oficial de feriados nacionais e bancarios com suporte a ano',
                                 inputSchema: { type: 'object', properties: { year: { type: 'integer' } } },
                                 execute: async (p) => fetch('/api/v1/holidays' + (p.year ? '?year=' + encodeURIComponent(p.year) : '')).then(r => r.json())
+                            },
+                            {
+                                name: 'grid402_workdays',
+                                description: 'Calculadora de dias uteis bancarios ANBIMA com contagem de intervalo e projecao de prazos',
+                                inputSchema: { type: 'object', properties: { start_date: { type: 'string' }, end_date: { type: 'string' }, days: { type: 'integer' }, date: { type: 'string' } } },
+                                execute: async (p) => {
+                                    const params = new URLSearchParams();
+                                    if (p.start_date) params.append('start_date', p.start_date);
+                                    if (p.end_date) params.append('end_date', p.end_date);
+                                    if (p.days !== undefined) params.append('days', p.days);
+                                    if (p.date) params.append('date', p.date);
+                                    return fetch('/api/v1/workdays?' + params.toString()).then(r => r.json());
+                                }
                             },
                             {
                                 name: 'grid402_summary',

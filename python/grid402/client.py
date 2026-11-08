@@ -10,6 +10,7 @@ import urllib.parse
 import urllib.request
 
 from grid402.exceptions import Grid402Error, Grid402PaymentRequiredError
+from grid402.models import WorkdaysResponse
 
 
 DEFAULT_ENDPOINT = "https://grid402.com.br"
@@ -153,4 +154,27 @@ class Grid402Client:
         """Consulta calendario oficial de feriados nacionais e bancarios (ANBIMA e Febraban)."""
         params = {"year": year} if year is not None else {}
         return self._request("/api/v1/holidays", params=params, payment_tx_hash=payment_tx_hash)
+
+    def get_workdays(
+        self,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        days: Optional[int] = None,
+        date: Optional[str] = None,
+        payment_tx_hash: Optional[str] = None,
+    ) -> Any:
+        """Calcula dias uteis financeiros e projecoes de vencimento na convencao ANBIMA."""
+        params: Dict[str, Any] = {}
+        if start_date is not None:
+            params["start_date"] = start_date
+        if end_date is not None:
+            params["end_date"] = end_date
+        if days is not None:
+            params["days"] = days
+        if date is not None:
+            params["date"] = date
+        raw = self._request("/api/v1/workdays", params=params, payment_tx_hash=payment_tx_hash)
+        if isinstance(raw, dict) and raw.get("status") == "success":
+            return WorkdaysResponse(**raw)
+        return raw
 

@@ -270,6 +270,30 @@ export class Grid402Client {
   }
 
   /**
+   * Calculadora de dias uteis financeiros ANBIMA com contagem de intervalo e projecao de prazos
+   * @param {Object} [params]
+   * @param {string} [paymentTxHash]
+   * @returns {Promise<Object>}
+   */
+  async getWorkdays(params = {}, paymentTxHash = null) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    const searchParams = new URLSearchParams();
+    const startDate = params.startDate || params.start_date;
+    const endDate = params.endDate || params.end_date;
+    const date = params.date;
+    const days = params.days;
+
+    if (startDate) searchParams.append('start_date', startDate);
+    if (endDate) searchParams.append('end_date', endDate);
+    if (date) searchParams.append('date', date);
+    if (days !== undefined && days !== null) searchParams.append('days', days);
+
+    const qs = searchParams.toString();
+    const query = qs ? `?${qs}` : '';
+    return this._request(`/api/v1/workdays${query}`, headers);
+  }
+
+  /**
    * Verifica se o hub ou um servico especifico esta operacional
    * @param {string} [serviceName]
    * @returns {Promise<boolean>}
@@ -451,6 +475,21 @@ export class Grid402ActionProvider {
     return this._executeWithSettlement('/api/v1/holidays', params, walletProvider);
   }
 
+  async queryWorkdays(params = {}, walletProvider = null) {
+    const queryParams = {};
+    const startDate = params.startDate || params.start_date;
+    const endDate = params.endDate || params.end_date;
+    const date = params.date;
+    const days = params.days;
+
+    if (startDate) queryParams.start_date = startDate;
+    if (endDate) queryParams.end_date = endDate;
+    if (date) queryParams.date = date;
+    if (days !== undefined && days !== null) queryParams.days = days;
+
+    return this._executeWithSettlement('/api/v1/workdays', queryParams, walletProvider);
+  }
+
   // Aliases de conveniencia
   get getCnpj() { return this.queryCnpj; }
   get getCep() { return this.queryCep; }
@@ -461,4 +500,5 @@ export class Grid402ActionProvider {
   get getAsn() { return this.queryAsn; }
   get getIndicators() { return this.queryIndicators; }
   get getHolidays() { return this.queryHolidays; }
+  get getWorkdays() { return this.queryWorkdays; }
 }

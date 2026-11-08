@@ -7,7 +7,7 @@ import { settleX402Payment } from './x402_payer.mjs';
 export const DEFAULT_ENDPOINT = process.env.GRID402_ENDPOINT || process.env.GRID402_API_URL || 'https://orangered-jackal-900744.hostingersite.com';
 
 /**
- * Definições formais das 7 ferramentas no padrão MCP
+ * Definições formais das 11 ferramentas no padrão MCP
  */
 export const MCP_TOOLS_DEFINITIONS = [
   {
@@ -169,6 +169,36 @@ export const MCP_TOOLS_DEFINITIONS = [
       required: [],
     },
   },
+  {
+    name: 'grid402_workdays',
+    description: 'Calcula dias úteis financeiros e projeção de vencimentos na convenção ANBIMA (D+0 exclusivo no início e inclusivo no fim) ou verifica se uma data é dia útil bancário.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        start_date: {
+          type: 'string',
+          description: 'Data de início no formato AAAA-MM-DD para contagem de intervalo ou projeção de prazo.',
+        },
+        end_date: {
+          type: 'string',
+          description: 'Data de término no formato AAAA-MM-DD para contagem de intervalo de dias úteis.',
+        },
+        days: {
+          type: 'integer',
+          description: 'Quantidade inteira de dias úteis para projeção de vencimento (positivo para futuro, negativo para passado).',
+        },
+        date: {
+          type: 'string',
+          description: 'Data pontual no formato AAAA-MM-DD para verificação de dia útil.',
+        },
+        payment_tx_hash: {
+          type: 'string',
+          description: 'Hash opcional de transação na Base Mainnet comprovando o pagamento de 0.0005 USDC caso não utilize liquidação automática.',
+        },
+      },
+      required: [],
+    },
+  },
 ];
 
 /**
@@ -219,6 +249,13 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
       path = '/api/v1/holidays';
       if (params.year) queryParams.set('year', params.year);
       break;
+    case 'workdays':
+      path = '/api/v1/workdays';
+      if (params.start_date || params.startDate) queryParams.set('start_date', params.start_date || params.startDate);
+      if (params.end_date || params.endDate) queryParams.set('end_date', params.end_date || params.endDate);
+      if (params.days !== undefined && params.days !== null) queryParams.set('days', params.days);
+      if (params.date) queryParams.set('date', params.date);
+      break;
     default:
       throw new Error(`Serviço desconhecido: ${service}`);
   }
@@ -228,7 +265,7 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
 
   const headers = {
     'Accept': 'application/json',
-    'User-Agent': 'Grid402-MCP-Server/1.3',
+    'User-Agent': 'Grid402-MCP-Server/1.4',
   };
 
   if (params.payment_tx_hash) {

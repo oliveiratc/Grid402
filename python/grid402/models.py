@@ -109,6 +109,67 @@ class HolidaysResponse(BaseModel):
     cached: Optional[bool] = Field(None, description="Indica se os dados foram servidos do cache.")
 
 
+class WorkdaysInput(BaseModel):
+    """Parametros para calculo de dias uteis financeiros e projecao ANBIMA."""
+    start_date: Optional[str] = Field(
+        None,
+        description="Data de inicio no formato AAAA-MM-DD para contagem ou projecao.",
+        examples=["2026-11-06"],
+    )
+    end_date: Optional[str] = Field(
+        None,
+        description="Data de termino no formato AAAA-MM-DD para contagem de intervalo.",
+        examples=["2026-11-20"],
+    )
+    days: Optional[int] = Field(
+        None,
+        description="Quantidade inteira de dias uteis para projecao de prazo (positivo ou negativo).",
+        examples=[5],
+    )
+    date: Optional[str] = Field(
+        None,
+        description="Data pontual no formato AAAA-MM-DD para checagem se e dia util.",
+        examples=["2026-12-25"],
+    )
+
+
+class WorkdaysHolidayItem(BaseModel):
+    date: str = Field(..., description="Data do feriado no formato AAAA-MM-DD.")
+    name: str = Field(..., description="Nome oficial do feriado bancario.")
+
+
+class WorkdaysResponse(BaseModel):
+    status: str = Field(..., description="Status da consulta.")
+    service: str = Field("workdays", description="Nome do micro-servico.")
+    mode: str = Field(..., description="Modo executado: range, projection ou check.")
+    convention: str = Field(..., description="Convencao financeira adotada.")
+    start_date: Optional[str] = Field(None, description="Data de inicio considerada.")
+    end_date: Optional[str] = Field(None, description="Data de termino considerada.")
+    target_date: Optional[str] = Field(None, description="Data final calculada na projecao de dias uteis.")
+    workdays: Optional[int] = Field(None, description="Total de dias uteis calculados.")
+    calendar_days: Optional[int] = Field(None, description="Total de dias corridos no intervalo.")
+    start_is_workday: Optional[bool] = Field(None, description="Indica se a data inicial e dia util.")
+    end_is_workday: Optional[bool] = Field(None, description="Indica se a data final e dia util.")
+    target_is_workday: Optional[bool] = Field(None, description="Indica se a data de destino projetada e dia util.")
+    is_workday: Optional[bool] = Field(None, description="Indica se a data pontual e dia util.")
+    day_type: Optional[str] = Field(None, description="Tipo de dia: workday, weekend ou holiday.")
+    description: Optional[str] = Field(None, description="Descricao do status da data consultada.")
+    holiday_name: Optional[str] = Field(None, description="Nome do feriado bancario, se aplicavel.")
+    next_workday: Optional[str] = Field(None, description="Proximo dia util bancario seguinte.")
+    holidays_in_range: Optional[list[WorkdaysHolidayItem]] = Field(None, description="Feriados bancarios ocorridos no intervalo.")
+    holidays_in_projection: Optional[list[WorkdaysHolidayItem]] = Field(None, description="Feriados bancarios ocorridos durante a projecao.")
+    tariff_usdc: Optional[str] = Field(None, description="Tarifa cobrada em USDC.")
+    cached: Optional[bool] = Field(None, description="Indica se os dados foram servidos do cache.")
+    sandbox: Optional[bool] = Field(None, description="Indica se a requisicao foi executada em modo sandbox.")
+    error: Optional[str] = Field(None, description="Mensagem de erro caso a operacao falhe.")
+
+    def __getitem__(self, item: str) -> Any:
+        return getattr(self, item)
+
+    def get(self, item: str, default: Any = None) -> Any:
+        return getattr(self, item, default)
+
+
 class SettlementInfo(BaseModel):
     """Informacoes de liquidacao on-chain de micropagamento x402."""
     settled: bool = Field(True, description="Indica se o pagamento foi liquidado com sucesso.")

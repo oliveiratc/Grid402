@@ -23,6 +23,7 @@ test('CJS - Grid402Client carregado via require()', () => {
   assert.equal(typeof client.getCrypto, 'function');
   assert.equal(typeof client.getIndicators, 'function');
   assert.equal(typeof client.getHolidays, 'function');
+  assert.equal(typeof client.getWorkdays, 'function');
 });
 
 test('CJS - Grid402ActionProvider carregado via require()', () => {
@@ -33,6 +34,7 @@ test('CJS - Grid402ActionProvider carregado via require()', () => {
   assert.equal(typeof provider.queryForex, 'function');
   assert.equal(typeof provider.queryIndicators, 'function');
   assert.equal(typeof provider.queryHolidays, 'function');
+  assert.equal(typeof provider.queryWorkdays, 'function');
 });
 
 test('CJS - Classes de Erro disponiveis via require()', () => {

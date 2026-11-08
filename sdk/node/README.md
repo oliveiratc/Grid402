@@ -8,7 +8,7 @@ Projetada especificamente para agentes autonomos de IA, frameworks como Coinbase
 
 ## Recursos Principais
 
-- **10 Micro-Servicos Integrados:** Indicadores Macroeconomicos (Selic, CDI, IPCA), Feriados Nacionais e Bancarios ANBIMA, CNPJ da Receita Federal, CEP postal e IBGE, cotacoes Forex e Cripto spot, resolucao DNS, auditoria TLS e SSL, analise ASN e BGP e status do ecossistema.
+- **11 Micro-Servicos Integrados:** Indicadores Macroeconomicos (Selic, CDI, IPCA), Calculadora de Dias Uteis Financeiros ANBIMA, Feriados Nacionais e Bancarios ANBIMA, CNPJ da Receita Federal, CEP postal e IBGE, cotacoes Forex e Cripto spot, resolucao DNS, auditoria TLS e SSL, analise ASN e BGP e status do ecossistema.
 - **Suporte Hibrido ESM e CJS:** Compativel nativamente com `import` (ES Modules) e `require` (CommonJS).
 - **Modo Sandbox Gratuito:** Teste e homologue localmente sem custos informando `sandbox: true`.
 - **Integracao Nativa com IA:** Inclui `Grid402ActionProvider` com auto-liquidacao na rede Base para agentes autônomos.
@@ -123,6 +123,7 @@ console.log('Comprovante on-chain:', resultado._x402_settlement);
 | `getCnpj(cnpj, txHash?)` | Dados cadastrais completos de PJ na Receita Federal | 0.0020 |
 | `getIndicators(txHash?)` | Indicadores macroeconomicos oficiais (Selic meta e diaria, CDI anual e IPCA) | 0.0005 |
 | `getHolidays(year?, txHash?)` | Calendario oficial de feriados nacionais e bancarios ANBIMA | 0.0005 |
+| `getWorkdays(params?, txHash?)` | Calculadora de dias uteis financeiros e projecao de vencimentos ANBIMA | 0.0005 |
 
 ---
 

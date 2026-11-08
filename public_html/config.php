@@ -172,6 +172,7 @@ define('GRID402_FILE_CNPJ', GRID402_PRIVATE_DIR . '/cnpj_cache.json');
 define('GRID402_FILE_SANDBOX_RATES', GRID402_PRIVATE_DIR . '/sandbox_rates.json');
 define('GRID402_FILE_INDICATORS', GRID402_PRIVATE_DIR . '/indicators_cache.json');
 define('GRID402_FILE_HOLIDAYS', GRID402_PRIVATE_DIR . '/holidays_cache.json');
+define('GRID402_FILE_WORKDAYS', GRID402_PRIVATE_DIR . '/workdays_cache.json');
 
 // 5. Catálogo Oficial dos 6 Micro-Serviços Core de Dados Públicos e Rede
 function grid402_get_utility_services(): array {
@@ -247,6 +248,14 @@ function grid402_get_utility_services(): array {
             'description' => 'Feriados nacionais oficiais e dias sem expediente bancário (ANBIMA e Febraban) com cálculo determinístico',
             'endpoint' => '/api/v1/holidays',
             'category' => 'Dados Abertos',
+            'type' => 'on_demand',
+        ],
+        'workdays' => [
+            'id' => 'workdays',
+            'name' => 'Calculadora de Dias Úteis ANBIMA',
+            'description' => 'Cálculo de dias úteis bancários (contagem entre datas, projeção de prazos e checagem pontual) no padrão ANBIMA',
+            'endpoint' => '/api/v1/workdays',
+            'category' => 'Financeiro',
             'type' => 'on_demand',
         ],
     ];

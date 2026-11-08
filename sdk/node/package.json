@@ -1,6 +1,6 @@
 {
   "name": "grid402",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Official client SDK for Grid402 - Public Open Data and Network Utilities Hub with x402 Base micropayments for AI Agents, Node.js and TypeScript.",
   "main": "./grid402.cjs",
   "module": "./grid402.mjs",

@@ -182,6 +182,24 @@ class Grid402Client {
     return this._request(`/api/v1/holidays${query}`, headers);
   }
 
+  async getWorkdays(params = {}, paymentTxHash = null) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    const searchParams = new URLSearchParams();
+    const startDate = params.startDate || params.start_date;
+    const endDate = params.endDate || params.end_date;
+    const date = params.date;
+    const days = params.days;
+
+    if (startDate) searchParams.append('start_date', startDate);
+    if (endDate) searchParams.append('end_date', endDate);
+    if (date) searchParams.append('date', date);
+    if (days !== undefined && days !== null) searchParams.append('days', days);
+
+    const qs = searchParams.toString();
+    const query = qs ? `?${qs}` : '';
+    return this._request(`/api/v1/workdays${query}`, headers);
+  }
+
   async isHealthy(serviceName = 'forex') {
     try {
       const summary = await this.getSummary();
@@ -337,6 +355,21 @@ class Grid402ActionProvider {
     return this._executeWithSettlement('/api/v1/holidays', params, walletProvider);
   }
 
+  async queryWorkdays(params = {}, walletProvider = null) {
+    const queryParams = {};
+    const startDate = params.startDate || params.start_date;
+    const endDate = params.endDate || params.end_date;
+    const date = params.date;
+    const days = params.days;
+
+    if (startDate) queryParams.start_date = startDate;
+    if (endDate) queryParams.end_date = endDate;
+    if (date) queryParams.date = date;
+    if (days !== undefined && days !== null) queryParams.days = days;
+
+    return this._executeWithSettlement('/api/v1/workdays', queryParams, walletProvider);
+  }
+
   get getCnpj() { return this.queryCnpj; }
   get getCep() { return this.queryCep; }
   get getForex() { return this.queryForex; }
@@ -346,6 +379,7 @@ class Grid402ActionProvider {
   get getAsn() { return this.queryAsn; }
   get getIndicators() { return this.queryIndicators; }
   get getHolidays() { return this.queryHolidays; }
+  get getWorkdays() { return this.queryWorkdays; }
 }
 
 module.exports = {

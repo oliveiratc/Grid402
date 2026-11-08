@@ -20,6 +20,9 @@ from grid402 import (
     HolidaysResponse,
     IndicatorsResponse,
     SslInput,
+    WorkdaysHolidayItem,
+    WorkdaysInput,
+    WorkdaysResponse,
     __version__,
 )
 
@@ -29,7 +32,7 @@ class TestGrid402SDK(unittest.TestCase):
 
     def test_version_and_exports(self) -> None:
         """Verifica versao semantica e exportacoes principais."""
-        self.assertEqual(__version__, "2.2.0")
+        self.assertEqual(__version__, "2.3.0")
         self.assertTrue(issubclass(Grid402PaymentRequiredError, Grid402Error))
 
     def test_pydantic_models(self) -> None:
@@ -88,6 +91,29 @@ class TestGrid402SDK(unittest.TestCase):
         )
         self.assertEqual(len(hol_resp.holidays), 1)
         self.assertTrue(hol_resp.holidays[0].is_banking_holiday)
+
+        workdays_input = WorkdaysInput(start_date="2026-11-06", days=5)
+        self.assertEqual(workdays_input.start_date, "2026-11-06")
+        self.assertEqual(workdays_input.days, 5)
+
+        workdays_resp = WorkdaysResponse(
+            status="success",
+            service="workdays",
+            mode="projection",
+            convention="ANBIMA D+0 exclusivo no inicio e inclusivo no fim",
+            start_date="2026-11-06",
+            target_date="2026-11-13",
+            workdays=5,
+            calendar_days=7,
+            start_is_workday=True,
+            target_is_workday=True,
+            holidays_in_projection=[],
+            tariff_usdc="0.0005",
+        )
+        self.assertEqual(workdays_resp.workdays, 5)
+        self.assertEqual(workdays_resp.target_date, "2026-11-13")
+        self.assertEqual(workdays_resp.get("service"), "workdays")
+        self.assertEqual(workdays_resp["mode"], "projection")
 
     def test_client_sandbox_headers(self) -> None:
         """Verifica se o modo Sandbox envia o cabecalho de demonstracao."""
@@ -198,6 +224,31 @@ class TestGrid402SDK(unittest.TestCase):
             calls = mock_urlopen.call_args_list
             self.assertIn("/api/v1/indicators", calls[0][0][0].full_url)
             self.assertIn("/api/v1/holidays?year=2026", calls[1][0][0].full_url)
+
+    def test_client_workdays(self) -> None:
+        """Verifica chamada get_workdays no Grid402Client retornando WorkdaysResponse."""
+        client = Grid402Client(sandbox=True)
+
+        mock_resp = MagicMock()
+        mock_resp.read.return_value = (
+            b'{"status": "success", "service": "workdays", "mode": "projection", '
+            b'"convention": "ANBIMA D+0 exclusivo", "start_date": "2026-11-06", '
+            b'"target_date": "2026-11-13", "workdays": 5, "calendar_days": 7, '
+            b'"start_is_workday": true, "target_is_workday": true, "tariff_usdc": "0.0005"}'
+        )
+        mock_resp.__enter__.return_value = mock_resp
+
+        with patch("urllib.request.urlopen", return_value=mock_resp) as mock_urlopen:
+            res = client.get_workdays(start_date="2026-11-06", days=5)
+            self.assertIsInstance(res, WorkdaysResponse)
+            self.assertEqual(res.workdays, 5)
+            self.assertEqual(res.target_date, "2026-11-13")
+            self.assertEqual(res.get("service"), "workdays")
+
+            req_arg = mock_urlopen.call_args[0][0]
+            self.assertIn("/api/v1/workdays", req_arg.full_url)
+            self.assertIn("start_date=2026-11-06", req_arg.full_url)
+            self.assertIn("days=5", req_arg.full_url)
 
 
 if __name__ == "__main__":

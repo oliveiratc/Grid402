@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Grid402 // Public Data e Network Utilities Hub",
-    "version": "2.3.0",
+    "version": "2.4.0",
     "description": "High-performance autonomous M2M public data and network utilities oracle designed for AI agents, crawlers, and automation pipelines. Settled via the x402 protocol with Base Mainnet USDC micropayments (US$ 0.0005 standard, US$ 0.0020 corporate CNPJ).",
     "contact": {
       "name": "Grid402 Support",
@@ -365,6 +365,77 @@
         }
       }
     },
+    "/api/v1/workdays": {
+      "get": {
+        "summary": "ANBIMA Financial Workdays Calculator",
+        "description": "Calculates Brazilian banking workdays according to official ANBIMA convention. Supports 3 operation modes: date range counting (exclusive start, inclusive end), maturity date projection (+/- N workdays), and single-date workday verification. Settled via x402 on Base (0.0005 USDC) or free in Sandbox mode.",
+        "tags": ["Workdays"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "start_date",
+            "in": "query",
+            "description": "Initial reference date in ISO 8601 format (YYYY-MM-DD). Defaults to today.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-12-24"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "description": "End date in ISO 8601 format (YYYY-MM-DD) for interval counting mode.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-12-28"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "description": "Number of workdays to add (positive) or subtract (negative) for projection mode (max 5000).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "example": 5
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "description": "Single date in ISO 8601 format (YYYY-MM-DD) for single-date check mode.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-12-25"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workdays calculation returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkdaysResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid date format, range or displacement exceeding limits"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
     "/terms": {
       "get": {
         "summary": "Terms of Service e AS-IS Disclaimer",
@@ -557,6 +628,36 @@
           },
           "source": { "type": "string", "example": "Calendario Nacional e ANBIMA / Febraban" },
           "cached": { "type": "boolean", "example": true }
+        }
+      },
+      "WorkdaysResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "success" },
+          "service": { "type": "string", "example": "workdays" },
+          "mode": { "type": "string", "example": "range" },
+          "convention": { "type": "string", "example": "ANBIMA (exclusive start, inclusive end)" },
+          "start_date": { "type": "string", "example": "2026-12-24" },
+          "end_date": { "type": "string", "example": "2026-12-28" },
+          "target_date": { "type": "string", "example": "2026-11-13" },
+          "workdays": { "type": "integer", "example": 1 },
+          "calendar_days": { "type": "integer", "example": 4 },
+          "is_workday": { "type": "boolean", "example": true },
+          "day_type": { "type": "string", "example": "workday" },
+          "description": { "type": "string", "example": "Dia util bancario" },
+          "holiday_name": { "type": "string", "nullable": true, "example": null },
+          "next_workday": { "type": "string", "example": "2026-12-28" },
+          "holidays_in_range": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": { "type": "string", "example": "2026-12-25" },
+                "name": { "type": "string", "example": "Natal" }
+              }
+            }
+          },
+          "tariff_usdc": { "type": "string", "example": "0.0005" }
         }
       },
       "ErrorResponse": {

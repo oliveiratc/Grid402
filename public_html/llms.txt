@@ -21,6 +21,7 @@
 - [CNPJ Corporate Registry API](https://orangered-jackal-900744.hostingersite.com/api/v1/cnpj?cnpj=00000000000191): Dados cadastrais de Pessoa Juridica na Receita Federal
 - [Economic Indicators API](https://orangered-jackal-900744.hostingersite.com/api/v1/indicators): Taxas oficiais Selic (meta e diaria), CDI anual e diario, IPCA 12m e mensal (BCB e IBGE)
 - [National and Banking Holidays API](https://orangered-jackal-900744.hostingersite.com/api/v1/holidays?year=2026): Calendario oficial de feriados nacionais e bancarios (ANBIMA e Febraban) com calculo matematico Meeus
+- [ANBIMA Workdays Calculator API](https://orangered-jackal-900744.hostingersite.com/api/v1/workdays): Calculadora de dias uteis bancarios ANBIMA com contagem de intervalo e projecao de prazos
 
 ## SDKs and Agent Frameworks
 - [Python SDK (PyPI)](https://pypi.org/project/grid402/): Pacote oficial grid402 para Python com suporte a Pydantic e Coinbase AgentKit
