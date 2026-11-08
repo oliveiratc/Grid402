@@ -723,9 +723,10 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                     <button class="btn-sm" onclick="runConsole('cep')">CEP (/api/v1/cep)</button>
                     <button class="btn-sm" onclick="runConsole('cnpj')">CNPJ (/api/v1/cnpj)</button>
                 </div>
-                <div class="input-group">
-                    <input type="text" id="tx-input" class="console-input" placeholder="Cole o hash de pagamento na Base (0x...) para testar liberação com X-Payment">
+                <div class="input-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <input type="text" id="tx-input" class="console-input" style="flex: 1; min-width: 260px;" placeholder="Cole o hash de pagamento na Base (0x...) para testar liberação com X-Payment">
                     <button class="btn-sm" onclick="runConsole('paid')">Enviar com X-Payment</button>
+                    <button class="btn-sm btn-primary" id="btn-web3-pay" onclick="payWithWeb3Wallet()">⚡ Pagar com Carteira Web3 (1 Clique)</button>
                 </div>
                 <div class="response-header">
                     <span id="console-status-text">Selecione uma das ações acima para testar o retorno da API.</span>
@@ -864,7 +865,13 @@ curl "https://www.grid402.com.br/api/v1/dns?domain=github.com" \
                         return;
                     }
                     headers['X-Payment'] = tx;
-                    url = '/api/v1/dns?domain=github.com';
+                    if (currentServiceAction === 'cnpj') url = '/api/v1/cnpj?cnpj=00000000000191';
+                    else if (currentServiceAction === 'ssl') url = '/api/v1/ssl?host=base.org';
+                    else if (currentServiceAction === 'asn') url = '/api/v1/asn?ip=1.1.1.1';
+                    else if (currentServiceAction === 'cep') url = '/api/v1/cep?code=01310100';
+                    else if (currentServiceAction === 'forex') url = '/api/v1/forex';
+                    else if (currentServiceAction === 'crypto') url = '/api/v1/crypto';
+                    else url = '/api/v1/dns?domain=github.com';
                     break;
                 default: url = '/status'; break;
             }
@@ -883,6 +890,93 @@ curl "https://www.grid402.com.br/api/v1/dns?domain=github.com" \
             } catch (err) {
                 statusText.textContent = 'Falha na requisição';
                 out.textContent = err.message;
+            }
+        }
+
+        async function payWithWeb3Wallet() {
+            const btn = document.getElementById('btn-web3-pay');
+            const statusText = document.getElementById('console-status-text');
+            const out = document.getElementById('console-output');
+
+            if (!window.ethereum) {
+                alert('Nenhuma carteira Web3 compatível com EVM (MetaMask, Coinbase Wallet, Rabby, etc.) foi detectada no seu navegador.\n\nVocê pode enviar os fundos para a carteira do oráculo e colar o hash no campo de texto.');
+                return;
+            }
+
+            try {
+                btn.disabled = true;
+                btn.textContent = 'Conectando carteira...';
+
+                // 1. Solicita conexão de contas
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                if (!accounts || accounts.length === 0) {
+                    throw new Error('Nenhuma conta foi conectada.');
+                }
+                const userAddress = accounts[0];
+
+                // 2. Garante que está na rede Base Mainnet (Chain ID 8453 = 0x2105)
+                btn.textContent = 'Verificando rede Base...';
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: '0x2105' }],
+                    });
+                } catch (switchError) {
+                    if (switchError.code === 4902) {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: '0x2105',
+                                chainName: 'Base Mainnet',
+                                nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                                rpcUrls: ['https://mainnet.base.org'],
+                                blockExplorerUrls: ['https://basescan.org'],
+                            }],
+                        });
+                    } else {
+                        throw switchError;
+                    }
+                }
+
+                // 3. Monta a transação ERC-20 transfer(to, amount)
+                const isCnpj = (currentServiceAction === 'cnpj');
+                const amountRaw = isCnpj ? 2000 : 500; // 0.0020 USDC ou 0.0005 USDC
+                const priceUsdc = isCnpj ? '0.0020' : '0.0005';
+                const recipient = '<?php echo GRID402_WALLET_ADDRESS; ?>'.toLowerCase().replace('0x', '');
+                const usdcContract = '<?php echo GRID402_USDC_CONTRACT; ?>';
+
+                // Function selector: transfer(address,uint256) -> 0xa9059cbb
+                const recipientPadded = recipient.padStart(64, '0');
+                const amountHex = amountRaw.toString(16).padStart(64, '0');
+                const data = '0xa9059cbb' + recipientPadded + amountHex;
+
+                btn.textContent = `Aguardando assinatura de ${priceUsdc} USDC...`;
+                out.textContent = `Solicitando aprovação na carteira para transferência de ${priceUsdc} USDC na Base para o oráculo...\nCarteira destino: 0x${recipient}`;
+
+                const txHash = await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: userAddress,
+                        to: usdcContract,
+                        data: data,
+                    }],
+                });
+
+                document.getElementById('tx-input').value = txHash;
+                statusText.textContent = `Transação enviada: ${txHash.substring(0, 10)}... Aguardando confirmação no bloco Base...`;
+                out.textContent = `Transação enviada com sucesso na Base Mainnet!\nTx Hash: ${txHash}\nLink BaseScan: https://basescan.org/tx/${txHash}\n\nAguardando 3.5 segundos para propagação do recibo on-chain...`;
+
+                btn.textContent = 'Desbloqueando dados...';
+                await new Promise(r => setTimeout(r, 3500));
+
+                await runConsole('paid');
+                btn.textContent = '⚡ Pagar com Carteira Web3 (1 Clique)';
+                btn.disabled = false;
+            } catch (err) {
+                btn.disabled = false;
+                btn.textContent = '⚡ Pagar com Carteira Web3 (1 Clique)';
+                out.textContent = `Falha na transação Web3: ${err.message || err}`;
+                statusText.textContent = 'Operação cancelada ou falhou';
             }
         }
 
