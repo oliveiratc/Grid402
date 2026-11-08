@@ -5,6 +5,8 @@
 ## Core Documentation
 - [OpenAPI Specification](https://orangered-jackal-900744.hostingersite.com/openapi.json): Especificacao completa e interativa da API no padrao OpenAPI 3.1
 - [Status e Saude do Hub](https://orangered-jackal-900744.hostingersite.com/status): Verificacao de disponibilidade e resumo operacional dos servicos
+- [Sobre a Organizacao](https://orangered-jackal-900744.hostingersite.com/about): Missao, arquitetura Zero-DB e endereco institucional
+- [Canais de Contato](https://orangered-jackal-900744.hostingersite.com/contact): Suporte tecnico, encarregado de dados DPO e telefonia
 - [Termos de Servico](https://orangered-jackal-900744.hostingersite.com/terms): Condicoes de uso, licenca MIT e termos M2M
 - [Politica de Privacidade](https://orangered-jackal-900744.hostingersite.com/privacy): Diretrizes de privacidade, conformidade LGPD e retencao de logs
 - [MCP Server Card](https://orangered-jackal-900744.hostingersite.com/.well-known/mcp/server-card.json): Ficha de descoberta de capacidades SEP-1649 para servidores MCP

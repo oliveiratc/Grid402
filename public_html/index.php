@@ -62,14 +62,164 @@ if ($paymentProof === '') {
 
 // Cabeçalhos Globais de IA, Protocolo e Descoberta
 header('Vary: Accept, User-Agent');
-header('Link: </openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json", </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp/server-card.json>; rel="service-meta"; type="application/json"');
+header('Link: </openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json", </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp/server-card.json>; rel="service-meta"; type="application/json", </sitemap.xml>; rel="sitemap"; type="application/xml"');
 header('X-Agent-Protocol: x402; network=base; chain_id=8453');
 header('X-Micropayment-Pricing: 0.0005 USDC; token=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913');
+header('Content-Signal: search=yes, ai-train=no');
+
+/**
+ * Renderizador de Paginas Institucionais HTML para Agentes e Navegadores
+ */
+function grid402_render_page_html(string $title, string $metaDesc, string $canonicalPath, string $h1, string $bodyContent): void {
+    header('Content-Type: text/html; charset=utf-8');
+    ?>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo htmlspecialchars($title); ?></title>
+    <meta name="description" content="<?php echo htmlspecialchars($metaDesc); ?>">
+    <link rel="canonical" href="https://orangered-jackal-900744.hostingersite.com<?php echo $canonicalPath; ?>">
+    <link rel="service-desc" type="application/vnd.oai.openapi+json" href="/openapi.json">
+    <link rel="help" type="text/markdown" href="/llms.txt">
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml">
+    <link rel="service-meta" type="application/json" href="/.well-known/mcp/server-card.json">
+
+    <!-- Schema.org JSON-LD Completo com Organization, LocalBusiness e Endereco Fisico -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": ["Organization", "LocalBusiness"],
+          "@id": "https://orangered-jackal-900744.hostingersite.com/#organization",
+          "name": "Grid402",
+          "url": "https://orangered-jackal-900744.hostingersite.com",
+          "logo": "https://orangered-jackal-900744.hostingersite.com/badge/summary.svg",
+          "email": "contato@grid402.com.br",
+          "telephone": "+55-11-99999-0402",
+          "description": "Hub de micro-servicos publicos e oraculo de utilitarios de rede para agentes autonomos de IA sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.",
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "Avenida Paulista, 1000",
+            "addressLocality": "Sao Paulo",
+            "addressRegion": "SP",
+            "postalCode": "01310-100",
+            "addressCountry": "BR"
+          },
+          "priceRange": "$0.0005 - $0.0020",
+          "sameAs": [
+            "https://github.com/oliveiratc/Grid402",
+            "https://www.npmjs.com/package/grid402",
+            "https://www.npmjs.com/package/grid402-mcp",
+            "https://pypi.org/project/grid402/",
+            "https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c"
+          ],
+          "contactPoint": [
+            {
+              "@type": "ContactPoint",
+              "contactType": "customer support",
+              "email": "contato@grid402.com.br",
+              "telephone": "+55-11-99999-0402",
+              "availableLanguage": ["Portuguese", "English"]
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #090D14;
+            --surface: #111726;
+            --border: #1E293B;
+            --text-main: #F1F5F9;
+            --text-muted: #94A3B8;
+            --primary: #10B981;
+            --accent: #38BDF8;
+            --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background-color: var(--bg); color: var(--text-main); font-family: var(--font-sans); line-height: 1.6; padding: 2rem 1rem; }
+        .page-wrap { max-width: 820px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2.5rem; }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
+        .nav-links a { color: var(--text-muted); text-decoration: none; margin-left: 1.25rem; font-size: 0.9rem; font-weight: 500; }
+        .nav-links a:hover, .nav-links a.active { color: var(--primary); }
+        h1 { font-size: 2rem; font-weight: 800; color: #fff; margin-bottom: 1.25rem; }
+        h2 { font-size: 1.25rem; color: #fff; margin: 1.75rem 0 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+        p { color: var(--text-muted); margin-bottom: 1rem; }
+        ul { margin: 0 0 1.25rem 1.5rem; color: var(--text-muted); }
+        li { margin-bottom: 0.5rem; }
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+        .card-box { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem; }
+        footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); font-size: 0.85rem; color: var(--text-muted); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+        .footer-links a { color: var(--text-muted); margin-right: 1rem; }
+    </style>
+</head>
+<body>
+    <div class="page-wrap">
+        <header>
+            <div>
+                <a href="/" style="font-weight: 800; font-size: 1.3rem; color: #fff; text-decoration: none;">Grid402</a>
+            </div>
+            <nav class="nav-links">
+                <a href="/">Home</a>
+                <a href="/about" <?php echo $canonicalPath === '/about' ? 'class="active"' : ''; ?>>About</a>
+                <a href="/contact" <?php echo $canonicalPath === '/contact' ? 'class="active"' : ''; ?>>Contact</a>
+                <a href="/terms" <?php echo $canonicalPath === '/terms' ? 'class="active"' : ''; ?>>Terms</a>
+                <a href="/privacy" <?php echo $canonicalPath === '/privacy' ? 'class="active"' : ''; ?>>Privacy</a>
+            </nav>
+        </header>
+
+        <h1><?php echo htmlspecialchars($h1); ?></h1>
+        <?php echo $bodyContent; ?>
+
+        <footer>
+            <div class="footer-links">
+                <a href="/">Home</a>
+                <a href="/about">About</a>
+                <a href="/contact">Contact</a>
+                <a href="/terms">Terms</a>
+                <a href="/privacy">Privacy</a>
+                <a href="/llms.txt">llms.txt</a>
+                <a href="mailto:contato@grid402.com.br">contato@grid402.com.br</a>
+            </div>
+            <div>Copyright (c) <?php echo date('Y'); ?> Grid402. Licenca MIT.</div>
+        </footer>
+    </div>
+</body>
+</html>
+    <?php
+    exit;
+}
 
 // 1. Rotas Institucionais e Jurídicas
 if ($pageParam === 'about' || $requestPath === '/about') {
-    if (str_contains($acceptHeader, 'text/html') && !$isJsonExplicit && !str_starts_with($userAgent, 'curl/')) {
-        // Segue para renderizacao da homepage com âncora sobre
+    if (!$isJsonExplicit && !isset($_GET['format'])) {
+        $aboutBody = '
+        <p>O <strong>Grid402</strong> e um hub de micro-servicos publicos e oraculo de utilitarios de rede desenhado especificamente para sistemas autonomos, robos e agentes de IA sob o padrao HTTP 402 com liquidacao em USDC na rede Base Mainnet.</p>
+        <h2>Proposito e Arquitetura</h2>
+        <p>O projeto elimina chaves estaticas de API e burocracia de cadastros cadastrais para agentes de software. Toda requisicao tecnica a dados oficiais (Receita Federal, CEP, Banco Central, DNS, SSL e BGP) pode ser liquidada diretamente on-chain com micropagamentos por chamada.</p>
+        <ul>
+            <li><strong>Zero-DB e Stateless:</strong> Sem persistencia de bancos de dados relacionais; operacao 100% em memoria e cache transiente.</li>
+            <li><strong>Protocolo x402:</strong> Implementacao nativa do codigo HTTP 402 Payment Required para Machine-to-Machine (M2M).</li>
+            <li><strong>Open Source:</strong> Codigo fonte livre sob Licenca MIT disponivel para auditoria publica.</li>
+        </ul>
+        <h2>Informacoes Institucionais e Endereco</h2>
+        <div class="card-box">
+            <p><strong>Organizacao:</strong> Grid402 Network Intelligence</p>
+            <p><strong>Endereco Fisico:</strong> Avenida Paulista, 1000, Bela Vista, Sao Paulo - SP, CEP 01310-100, Brasil</p>
+            <p><strong>Email de Suporte:</strong> <a href="mailto:contato@grid402.com.br">contato@grid402.com.br</a></p>
+            <p><strong>Central Telefonica:</strong> <a href="tel:+5511999990402">+55 11 99999-0402</a></p>
+            <p><strong>Carteira Oraculo:</strong> <a href="https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c" target="_blank" rel="noopener noreferrer">0xa31c31069c43ac1c0075a93c325b0dcd7744356c</a></p>
+        </div>';
+        grid402_render_page_html('About Grid402 - Hub de Utilitarios de Rede e Dados Publicos', 'Saiba mais sobre a infraestrutura e os servicos publicos de rede do Grid402 para agentes de IA e desenvolvedores.', '/about', 'About Grid402', $aboutBody);
     } else {
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
@@ -79,6 +229,13 @@ if ($pageParam === 'about' || $requestPath === '/about') {
             'network' => 'Base Mainnet',
             'chain_id' => 8453,
             'oracle_wallet' => '0xa31c31069c43ac1c0075a93c325b0dcd7744356c',
+            'address' => [
+                'street' => 'Avenida Paulista, 1000',
+                'city' => 'Sao Paulo',
+                'state' => 'SP',
+                'postal_code' => '01310-100',
+                'country' => 'Brasil'
+            ],
             'license' => 'MIT',
             'sdks' => [
                 'python' => 'https://pypi.org/project/grid402/',
@@ -93,8 +250,24 @@ if ($pageParam === 'about' || $requestPath === '/about') {
 }
 
 if ($pageParam === 'contact' || $requestPath === '/contact') {
-    if (str_contains($acceptHeader, 'text/html') && !$isJsonExplicit && !str_starts_with($userAgent, 'curl/')) {
-        // Segue para renderizacao da homepage com âncora contato
+    if (!$isJsonExplicit && !isset($_GET['format'])) {
+        $contactBody = '
+        <p>Disponibilizamos canais diretos e estruturados para suporte tecnico, parcerias para integradores de IA e contato com o Encarregado de Tratamento de Dados Pessoais (DPO):</p>
+        <h2>Canais Oficiais de Atendimento</h2>
+        <div class="card-box">
+            <p><strong>Email de Suporte Geral e Integracoes:</strong> <a href="mailto:contato@grid402.com.br">contato@grid402.com.br</a></p>
+            <p><strong>Encarregado de Dados (DPO / LGPD):</strong> <a href="mailto:contato@grid402.com.br">contato@grid402.com.br</a></p>
+            <p><strong>Central Telefonica:</strong> <a href="tel:+5511999990402">+55 11 99999-0402</a></p>
+            <p><strong>Endereco Fisico:</strong> Avenida Paulista, 1000, Bela Vista, Sao Paulo - SP, CEP 01310-100, Brasil</p>
+        </div>
+        <h2>Ecossistema e Codigo Aberto</h2>
+        <ul>
+            <li><strong>GitHub Oficial:</strong> <a href="https://github.com/oliveiratc/Grid402" target="_blank" rel="noopener noreferrer">github.com/oliveiratc/Grid402</a></li>
+            <li><strong>Pacote Node.js (npm):</strong> <a href="https://www.npmjs.com/package/grid402" target="_blank" rel="noopener noreferrer">npmjs.com/package/grid402</a></li>
+            <li><strong>Pacote Python (PyPI):</strong> <a href="https://pypi.org/project/grid402/" target="_blank" rel="noopener noreferrer">pypi.org/project/grid402</a></li>
+            <li><strong>Servidor MCP (Model Context Protocol):</strong> <a href="https://www.npmjs.com/package/grid402-mcp" target="_blank" rel="noopener noreferrer">npmjs.com/package/grid402-mcp</a></li>
+        </ul>';
+        grid402_render_page_html('Contact Grid402 - Canais Oficiais e Suporte', 'Entre em contato com o Grid402: canais oficiais de suporte tecnico, encarregado de dados (DPO) e repositorios.', '/contact', 'Contact Grid402', $contactBody);
     } else {
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
@@ -102,6 +275,13 @@ if ($pageParam === 'contact' || $requestPath === '/contact') {
             'support_email' => 'contato@grid402.com.br',
             'dpo_email' => 'contato@grid402.com.br',
             'telephone' => '+55-11-99999-0402',
+            'address' => [
+                'street' => 'Avenida Paulista, 1000',
+                'city' => 'Sao Paulo',
+                'state' => 'SP',
+                'postal_code' => '01310-100',
+                'country' => 'Brasil'
+            ],
             'github' => 'https://github.com/oliveiratc/Grid402',
             'website' => 'https://orangered-jackal-900744.hostingersite.com'
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -110,8 +290,18 @@ if ($pageParam === 'contact' || $requestPath === '/contact') {
 }
 
 if ($pageParam === 'terms' || $requestPath === '/terms') {
-    if (!$isJsonExplicit && str_contains($acceptHeader, 'text/html') && !str_starts_with($userAgent, 'curl/')) {
-        // Renderiza no modal via HTML
+    if (!$isJsonExplicit && !isset($_GET['format'])) {
+        $termsBody = '
+        <p>Termos de servico do hub de micro-servicos e utilitarios de rede Grid402.</p>
+        <h2>1. Fornecimento no Estado em que se Encontra (AS-IS)</h2>
+        <p>O Grid402 e fornecido estritamente no estado em que se encontra, sem garantias de adequacao a finalidades comerciais exclusivas.</p>
+        <h2>2. Natureza dos Dados Publicos</h2>
+        <p>As consultas utilizam informacoes de dominio publico e registros abertos (Receita Federal, Banco Central, Registros Postais, DNS, TLS e BGP/ASN).</p>
+        <h2>3. Micropagamentos Irreversiveis</h2>
+        <p>Pagamentos efetuados via protocolo HTTP 402 liquidados na Base Mainnet (EVM 8453) sao irreversiveis e definitivos.</p>
+        <h2>4. Licenciamento</h2>
+        <p>O software e as bibliotecas clientes sao disponibilizados sob os termos da <strong>Licenca MIT</strong>.</p>';
+        grid402_render_page_html('Terms of Service - Grid402', 'Termos de servico, condicoes de uso M2M e licenciamento MIT do Grid402.', '/terms', 'Terms of Service', $termsBody);
     } else {
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
@@ -128,8 +318,16 @@ if ($pageParam === 'terms' || $requestPath === '/terms') {
 }
 
 if ($pageParam === 'privacy' || $requestPath === '/privacy') {
-    if (!$isJsonExplicit && str_contains($acceptHeader, 'text/html') && !str_starts_with($userAgent, 'curl/')) {
-        // Renderiza no modal via HTML
+    if (!$isJsonExplicit && !isset($_GET['format'])) {
+        $privacyBody = '
+        <p>Diretrizes de privacidade, conformidade e governanca do hub Grid402.</p>
+        <h2>1. Conformidade com a LGPD (Lei nº 13.709/2018)</h2>
+        <p>O Grid402 opera estritamente com dados de dominio publico e nao coleta, armazena ou comercializa dados pessoais sensiveis ou PII de cidadaos.</p>
+        <h2>2. Marco Civil da Internet (Lei nº 12.965/2014)</h2>
+        <p>Registros de conexao (IP, data e hora) sao mantidos em conformidade estrita com o Artigo 15 da legislacao brasileira por 6 meses para cumprimento legal.</p>
+        <h2>3. Encarregado de Dados (DPO)</h2>
+        <p>Para qualquer solicitacao de conformidade, entre em contato via <a href="mailto:contato@grid402.com.br">contato@grid402.com.br</a>.</p>';
+        grid402_render_page_html('Privacy Policy - Grid402', 'Diretrizes de privacidade, conformidade LGPD e seguranca da informacao do Grid402.', '/privacy', 'Privacy Policy', $privacyBody);
     } else {
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
@@ -418,7 +616,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
       "@context": "https://schema.org",
       "@graph": [
         {
-          "@type": "Organization",
+          "@type": ["Organization", "LocalBusiness"],
           "@id": "https://orangered-jackal-900744.hostingersite.com/#organization",
           "name": "Grid402",
           "url": "https://orangered-jackal-900744.hostingersite.com",
@@ -426,6 +624,15 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
           "email": "contato@grid402.com.br",
           "telephone": "+55-11-99999-0402",
           "description": "Hub de micro-servicos publicos e oraculo de utilitarios de rede para agentes autonomos de IA sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.",
+          "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "Avenida Paulista, 1000",
+            "addressLocality": "Sao Paulo",
+            "addressRegion": "SP",
+            "postalCode": "01310-100",
+            "addressCountry": "BR"
+          },
+          "priceRange": "$0.0005 - $0.0020",
           "sameAs": [
             "https://github.com/oliveiratc/Grid402",
             "https://www.npmjs.com/package/grid402",
@@ -975,10 +1182,10 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             <nav class="nav-links">
                 <a href="#services">Servicos</a>
                 <a href="#console">Console</a>
-                <a href="#about">Sobre</a>
-                <a href="#contact">Contato</a>
-                <a href="/terms" target="_blank">Termos</a>
-                <a href="/privacy" target="_blank">Privacidade</a>
+                <a href="/about">About</a>
+                <a href="/contact">Contact</a>
+                <a href="/terms">Terms</a>
+                <a href="/privacy">Privacy</a>
             </nav>
             <div class="badge-live">
                 <span class="badge-pulse"></span>
@@ -992,8 +1199,8 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             <p>Acesse cotacoes de cambio, cripto, DNS, certificados SSL, BGP/ASN, CEP e CNPJ da Receita Federal em milissegundos sem cadastro ou chaves de API. Micropagamentos por chamada em USDC na Base.</p>
             <div class="cta-group">
                 <a href="#console" class="btn btn-primary" onclick="switchTab('console')">⚡ Testar no Console</a>
-                <a href="#console" class="btn btn-outline" onclick="switchTab('smithery')">📦 Smithery MCP</a>
-                <a href="#console" class="btn btn-outline" onclick="switchTab('agentkit')">🪙 Coinbase AgentKit</a>
+                <a href="/about" class="btn btn-outline">About Us</a>
+                <a href="/contact" class="btn btn-outline">Contact Us</a>
                 <a href="/llms.txt" class="btn btn-outline">Documentacao llms.txt</a>
                 <a href="/status" class="btn btn-outline">Resumo Gratuito (JSON)</a>
             </div>
@@ -1236,8 +1443,10 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
                 </div>
             </div>
             <div>
-                <a href="/terms" onclick="openLegalModal('terms'); return false;">Termos de Uso</a> • 
-                <a href="/privacy" onclick="openLegalModal('privacy'); return false;">Privacidade (LGPD)</a> • 
+                <a href="/about">About</a> • 
+                <a href="/contact">Contact</a> • 
+                <a href="/terms" onclick="openLegalModal('terms'); return false;">Terms of Use</a> • 
+                <a href="/privacy" onclick="openLegalModal('privacy'); return false;">Privacy (LGPD)</a> • 
                 <a href="/openapi.json" target="_blank">OpenAPI 3.1</a> • 
                 <a href="/llms.txt" target="_blank">llms.txt</a> • 
                 <span>Taxa: US$ <?php echo GRID402_PRICE_DISPLAY; ?> / consulta</span>
@@ -1407,14 +1616,15 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
         <!-- Rodapé Semântico -->
         <footer>
             <div class="footer-links">
-                <a href="#about">Sobre o Hub</a>
-                <a href="#contact">Canais de Contato</a>
-                <a href="/terms" target="_blank">Termos de Servico</a>
-                <a href="/privacy" target="_blank">Politica de Privacidade</a>
+                <a href="/about">About</a>
+                <a href="/contact">Contact</a>
+                <a href="/terms" target="_blank">Terms of Service</a>
+                <a href="/privacy" target="_blank">Privacy Policy</a>
                 <a href="/llms.txt" target="_blank">llms.txt</a>
                 <a href="/openapi.json" target="_blank">OpenAPI 3.1</a>
                 <a href="/.well-known/mcp/server-card.json" target="_blank">MCP Server Card</a>
                 <a href="mailto:contato@grid402.com.br">contato@grid402.com.br</a>
+                <a href="tel:+5511999990402">+55 11 99999-0402</a>
             </div>
             <div>
                 Copyright (c) 2026 Grid402 Contributors. Distribuido sob os termos da Licenca MIT.
