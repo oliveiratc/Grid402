@@ -8,6 +8,7 @@ consumir micro-serviços do Grid402 pagando sob demanda na rede Base.
 import os
 import json
 import ssl
+import urllib.parse
 import urllib.request
 import urllib.error
 
@@ -23,9 +24,7 @@ def get_ssl_context():
     return None
 
 def query_grid402_with_auto_settlement(service_path: str, params: dict = None) -> dict:
-    query_str = ""
-    if params:
-        query_str = "?" + "&".join(f"{k}={v}" for k, v in params.items())
+    query_str = ("?" + urllib.parse.urlencode(params)) if params else ""
     
     url = f"{GRID402_ENDPOINT}{service_path}{query_str}"
     print(f"\n🤖 [AGENTE] Solicitando serviço: {service_path}{query_str}")
