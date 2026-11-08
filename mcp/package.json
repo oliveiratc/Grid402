@@ -12,6 +12,7 @@
     "tools.mjs",
     "x402_payer.mjs",
     "README.md",
+    "LICENSE",
     "package.json"
   ],
   "scripts": {
