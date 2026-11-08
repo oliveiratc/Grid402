@@ -1,16 +1,16 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Grid402 // Public Data & Network Utilities Hub",
-    "version": "2.0.0",
-    "description": "High-performance autonomous M2M public data and network utilities oracle designed for AI agents, crawlers, and automation pipelines. Settled via the x402 protocol with Base Mainnet USDC micropayments (US$ 0.0005 per technical query).",
+    "title": "Grid402 // Public Data e Network Utilities Hub",
+    "version": "2.1.0",
+    "description": "High-performance autonomous M2M public data and network utilities oracle designed for AI agents, crawlers, and automation pipelines. Settled via the x402 protocol with Base Mainnet USDC micropayments (US$ 0.0005 standard, US$ 0.0020 corporate CNPJ).",
     "contact": {
       "name": "Grid402 Support",
       "url": "https://www.grid402.com.br",
       "email": "contato@grid402.com.br"
     },
     "license": {
-      "name": "MIT & AS-IS Public Data Terms",
+      "name": "MIT e AS-IS Public Data Terms",
       "url": "https://www.grid402.com.br/terms"
     }
   },
@@ -36,12 +36,13 @@
     { "name": "SSL", "description": "Port 443 TLS/SSL certificate inspector and X.509 chain analyzer" },
     { "name": "ASN", "description": "BGP routing metadata, ASN number, organization and country" },
     { "name": "CEP", "description": "Brazilian postal resolution and official municipal IBGE code" },
+    { "name": "CNPJ", "description": "Brazilian Federal Revenue corporate registration data and CNAE" },
     { "name": "Legal", "description": "Terms of Service and LGPD privacy policy" }
   ],
   "paths": {
     "/api/v1/summary": {
       "get": {
-        "summary": "Consolidated Hub Status & Market Summary (Free)",
+        "summary": "Consolidated Hub Status e Market Summary (Free)",
         "description": "Returns operational health and latest cached sample metrics across all 6 micro-services. Zero payment required.",
         "tags": ["Free"],
         "responses": {
@@ -193,7 +194,7 @@
     },
     "/api/v1/asn": {
       "get": {
-        "summary": "BGP ASN & IP Intelligence",
+        "summary": "BGP ASN e IP Intelligence",
         "description": "Resolves Autonomous System Number (ASN), BGP organization, and country for a given IP address. Requires x402 micropayment on Base.",
         "tags": ["ASN"],
         "security": [{ "x402Payment": [] }],
@@ -228,7 +229,7 @@
     },
     "/api/v1/cep": {
       "get": {
-        "summary": "Brazilian CEP & IBGE Municipal Code",
+        "summary": "Brazilian CEP e IBGE Municipal Code",
         "description": "Resolves public street, neighborhood, city, state, and official IBGE municipal code from an 8-digit Brazilian postal code (CEP). Requires x402 micropayment on Base.",
         "tags": ["CEP"],
         "security": [{ "x402Payment": [] }],
@@ -261,9 +262,47 @@
         }
       }
     },
+    "/api/v1/cnpj": {
+      "get": {
+        "summary": "Brazilian Federal Revenue Corporate CNPJ Lookup",
+        "description": "Retrieves public corporate registration data, status, CNAE economic activities, and address from Brazilian Receita Federal. Requires x402 micropayment of 0.0020 USDC on Base.",
+        "tags": ["CNPJ"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "cnpj",
+            "in": "query",
+            "required": true,
+            "description": "14-digit Brazilian CNPJ number (with or without formatting)",
+            "schema": {
+              "type": "string",
+              "example": "00000000000191"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Corporate registration data returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CnpjResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid CNPJ format or checksum failure"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
     "/terms": {
       "get": {
-        "summary": "Terms of Service & AS-IS Disclaimer",
+        "summary": "Terms of Service e AS-IS Disclaimer",
         "description": "Returns terms of service, liability limitations, and network parameters.",
         "tags": ["Legal"],
         "responses": {
@@ -292,7 +331,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-Payment",
-        "description": "Transaction hash (0x + 64 hex characters) on Base Mainnet (Chain ID 8453) transferring 0.0005 USDC to 0xa31c31069c43ac1c0075a93c325b0dcd7744356c."
+        "description": "Transaction hash (0x + 64 hex characters) on Base Mainnet (Chain ID 8453) transferring 0.0005 USDC (standard) or 0.0020 USDC (CNPJ) to 0xa31c31069c43ac1c0075a93c325b0dcd7744356c. For free testing and CI/CD, pass value 'demo' to simulate in Sandbox mode (up to 20 calls/hour per IP)."
       }
     },
     "responses": {
@@ -387,6 +426,22 @@
           "cidade": { "type": "string", "example": "São Paulo" },
           "uf": { "type": "string", "example": "SP" },
           "ibge": { "type": "string", "example": "3550308" }
+        }
+      },
+      "CnpjResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "cnpj": { "type": "string", "example": "00000000000191" },
+          "razao_social": { "type": "string", "example": "BANCO DO BRASIL SA" },
+          "nome_fantasia": { "type": "string", "example": "DIRECAO GERAL" },
+          "situacao_cadastral": { "type": "string", "example": "ATIVA" },
+          "data_abertura": { "type": "string", "example": "01/08/1966" },
+          "cnae_fiscal": { "type": "string", "example": "6422100" },
+          "cnae_fiscal_descricao": { "type": "string", "example": "Bancos múltiplos, com carteira comercial" },
+          "natureza_juridica": { "type": "string", "example": "Sociedade Anônima Aberta" },
+          "uf": { "type": "string", "example": "DF" },
+          "municipio": { "type": "string", "example": "BRASILIA" }
         }
       },
       "ErrorResponse": {

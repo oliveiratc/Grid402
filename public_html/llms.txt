@@ -107,6 +107,15 @@ When an agent requests any technical endpoint without the `X-Payment` header:
 4. Agent retries request with header: `X-Payment: <tx_hash>`.
 5. Server validates on-chain via Base JSON-RPC with atomic file locking (`flock`), logs the transaction, and returns the requested payload with `HTTP 200 OK`.
 
+### 3.1. Free Sandbox Mode for Testing and CI/CD
+Agents and developers can test all technical queries without spending USDC:
+- Send header `X-Payment: demo` on any request.
+- Returns full payload with flag `sandbox: true` (rate limited to 20 requests per hour per IP).
+
+### 3.2. AI Framework Distribution
+- **Model Context Protocol (MCP):** Install via Smithery CLI (`npx -y @smithery/cli install grid402-mcp --client claude` or `--client cursor`).
+- **Coinbase AgentKit:** Ready-to-use action providers in TypeScript and Python (`integrations/agentkit/`) with automatic on-chain settlement for CDP wallets.
+
 ---
 
 ## 4. Legal e Privacy Notice (LGPD Compliant)

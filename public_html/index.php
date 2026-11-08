@@ -327,7 +327,13 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
         "@type": "Organization",
         "name": "Grid402",
         "url": "https://www.grid402.com.br"
-      }
+      },
+      "copyrightYear": "2026",
+      "copyrightHolder": {
+        "@type": "Organization",
+        "name": "Grid402"
+      },
+      "license": "https://opensource.org/licenses/MIT"
     }
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -968,7 +974,12 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
         </section>
 
         <footer>
-            <div>Grid402 // Open Data e Utility Hub • Base Mainnet</div>
+            <div>
+                <div>Grid402 // Open Data e Utility Hub • Base Mainnet</div>
+                <div style="margin-top: 4px; font-size: 0.78rem; color: #64748B;">
+                    © <?php echo date('Y'); ?> Grid402. Todos os direitos reservados. Licenciado sob Licença MIT.
+                </div>
+            </div>
             <div>
                 <a href="/terms" onclick="openLegalModal('terms'); return false;">Termos de Uso</a> • 
                 <a href="/privacy" onclick="openLegalModal('privacy'); return false;">Privacidade (LGPD)</a> • 
@@ -977,7 +988,8 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
                 <span>Taxa: US$ <?php echo GRID402_PRICE_DISPLAY; ?> / consulta</span>
             </div>
             <div class="footer-legal">
-                <p><strong>Isenção de Responsabilidade e Dados Públicos:</strong> O Grid402 é um hub utilitário de acesso a dados de domínio público e protocolos abertos de rede fornecido 'NO ESTADO EM QUE SE ENCONTRA' (AS-IS). Não tratamos dados pessoais sensíveis (PII) e operamos em estrita observância à Lei Geral de Proteção de Dados (Lei nº 13.709/2018) e ao Marco Civil da Internet (Lei nº 12.965/2014).</p>
+                <p><strong>Direitos Autorais e Propriedade Intelectual:</strong> © <?php echo date('Y'); ?> Grid402. O software, arquitetura do servidor MCP e documentações são de titularidade do Grid402 e disponibilizados sob a Licença MIT. Os dados técnicos retornados provêm de registros públicos governamentais abertos, protocolos livres da internet (DNS, BGP/ASN, TLS/SSL) e fontes de domínio público, mantendo-se livres de qualquer exclusividade proprietária conforme a legislação vigente.</p>
+                <p style="margin-top: 0.5rem;"><strong>Isenção de Responsabilidade e Dados Públicos:</strong> O Grid402 é um hub utilitário de acesso a dados de domínio público e protocolos abertos de rede fornecido 'NO ESTADO EM QUE SE ENCONTRA' (AS-IS). Não tratamos dados pessoais sensíveis (PII) e operamos em estrita observância à Lei Geral de Proteção de Dados (Lei nº 13.709/2018) e ao Marco Civil da Internet (Lei nº 12.965/2014).</p>
             </div>
         </footer>
 
@@ -1295,6 +1307,8 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
                 <p>Todas as consultas utilizam estritamente dados de domínio público (cotações cambiais PTAX, tickers de mercado, base pública de CEP nacional e protocolos abertos de rede como DNS, TLS e BGP/ASN).</p>
                 <h3>3. Pagamentos x402 e Irreversibilidade</h3>
                 <p>Os micropagamentos são liquidados em USDC na Base Mainnet (8453) de forma definitiva e irreversível.</p>
+                <h3>4. Direitos Autorais e Licenciamento</h3>
+                <p>O software Grid402, suas bibliotecas de integração (TypeScript, Python, PHP) e especificações de ferramentas MCP são licenciados sob os termos da <strong>Licença MIT</strong>. As bases de dados consultadas pertencem ao domínio público ou a registros oficiais abertos (Receita Federal, Banco Central do Brasil, ICANN, Registro.br), inexistindo apropriação ou reserva proprietária sobre fatos e registros públicos.</p>
             `,
             privacy: `
                 <h3>1. Conformidade com a LGPD (Lei nº 13.709/2018)</h3>
