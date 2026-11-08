@@ -172,8 +172,13 @@ if (!$prefersHtml || $apiParam !== '') {
         grid402_respond_402($serviceLabel, null, $servicePriceDisplay, $servicePriceRaw, $previewData, $lockedFields);
     }
 
-    // Auditoria on-chain com trava atômica anti-replay
-    $validation = grid402_validate_payment($paymentProof, $servicePriceRaw);
+    // Auditoria on-chain com trava atômica anti-replay e suporte a Modo Sandbox
+    $clientIp = (string) ($_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+    if (str_contains($clientIp, ',')) {
+        $clientIp = trim(explode(',', $clientIp)[0]);
+    }
+
+    $validation = grid402_validate_payment($paymentProof, $servicePriceRaw, $clientIp);
     if (!$validation['valid']) {
         $serviceLabel = $apiParam !== '' ? $apiParam : 'technical-utility';
         grid402_record_telemetry($serviceLabel, $validation['code'], false, $paymentProof, null, (float)$servicePriceDisplay);
@@ -182,22 +187,37 @@ if (!$prefersHtml || $apiParam !== '') {
         if ($validation['code'] === 402) {
             header('X-Authenticate: x402');
             header('X-Accept-Payment: base:usdc:' . GRID402_WALLET_ADDRESS . ':' . $servicePriceDisplay);
+        } elseif ($validation['code'] === 429) {
+            header('Retry-After: ' . ($validation['retry_after'] ?? 3600));
         }
-        echo json_encode([
-            'error' => ($validation['code'] === 403) ? 'ReplayAttackDetected' : 'PaymentFailed',
+
+        $errPayload = [
+            'error' => ($validation['code'] === 403) ? 'ReplayAttackDetected' : (($validation['code'] === 429) ? 'SandboxRateLimitExceeded' : 'PaymentFailed'),
             'message' => $validation['reason'],
             'tx_hash' => $paymentProof,
-        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        ];
+        if (isset($validation['sandbox'])) {
+            $errPayload['sandbox'] = true;
+        }
+        echo json_encode($errPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         exit;
     }
 
-    // Pagamento validado com sucesso! Executa o micro-serviço requisitado
-    grid402_record_telemetry($apiParam, 200, true, $paymentProof, null, (float)$servicePriceDisplay);
+    // Pagamento ou Sandbox validado com sucesso! Executa o micro-serviço requisitado
+    $isSandbox = !empty($validation['sandbox']);
+    grid402_record_telemetry($apiParam, 200, true, $paymentProof, null, $isSandbox ? 0.0 : (float)$servicePriceDisplay);
     http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');
     header('X-Payment-Status: Accepted');
-    header('X-Payment-Amount: ' . $servicePriceDisplay . ' USDC');
-    header('X-Payment-Network: Base (ChainID 8453)');
+    if ($isSandbox) {
+        header('X-Payment-Mode: sandbox');
+        header('X-Payment-Amount: 0.0000 USDC (Sandbox)');
+        header('X-Payment-Network: ' . ($validation['network'] ?? 'Simulation (demo)'));
+    } else {
+        header('X-Payment-Mode: production');
+        header('X-Payment-Amount: ' . $servicePriceDisplay . ' USDC');
+        header('X-Payment-Network: Base (ChainID 8453)');
+    }
     header('Cache-Control: private, no-cache');
 
     $result = [];
@@ -254,6 +274,15 @@ if (!$prefersHtml || $apiParam !== '') {
             break;
     }
 
+    if ($isSandbox && is_array($result)) {
+        $result['sandbox'] = true;
+        $result['sandbox_info'] = [
+            'quota_remaining_this_hour' => $validation['remaining'] ?? 0,
+            'quota_limit_per_hour' => $validation['limit'] ?? 20,
+            'message' => 'Consulta executada no Modo Sandbox de testes. Para chamadas em produção, utilize a Base Mainnet.',
+        ];
+    }
+
     echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -289,7 +318,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
     {
       "@context": "https://schema.org",
       "@type": "WebAPI",
-      "name": "Grid402 Public Data & Network Utilities Hub",
+      "name": "Grid402 Public Data e Network Utilities Hub",
       "url": "https://www.grid402.com.br",
       "description": "High-performance M2M public data and network utilities oracle (Forex, Crypto, DNS, SSL, ASN, CEP) for autonomous AI agents settled via the x402 protocol in USDC on Base Mainnet.",
       "documentation": "https://www.grid402.com.br/llms.txt",
@@ -747,10 +776,11 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                     <button class="btn-sm" onclick="runConsole('cnpj')">CNPJ (/api/v1/cnpj)</button>
                 </div>
                 <div class="input-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <input type="text" id="tx-input" class="console-input" style="flex: 1; min-width: 260px;" placeholder="Cole o hash de pagamento na Base (0x...) para testar liberação com X-Payment">
+                    <input type="text" id="tx-input" class="console-input" style="flex: 1; min-width: 260px;" placeholder="Cole o hash de pagamento na Base (0x...) ou use 'demo' para simulação">
                     <button class="btn-sm" onclick="runConsole('paid')">Enviar com X-Payment</button>
                     <button class="btn-sm btn-primary" id="btn-web3-pay" onclick="payWithWeb3Wallet()">⚡ Pagar com Carteira Web3 (1 Clique)</button>
                     <button class="btn-sm btn-outline" onclick="openWeb3Modal()" title="Abrir QR Code e instruções de pagamento">📱 QR Code / Celular</button>
+                    <button class="btn-sm btn-outline" onclick="runSandboxSimulation()" title="Simular pagamento gratuitamente no Modo Sandbox">🧪 Simular Sandbox (demo)</button>
                 </div>
 
                 <!-- Card de Destaque da Amostra (Teaser Preview) -->
@@ -774,6 +804,9 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                         </button>
                         <button class="btn btn-outline" onclick="openWeb3Modal()" style="font-size: 0.85rem; padding: 0.5rem 0.9rem;">
                             📱 Pagar com QR Code / Celular
+                        </button>
+                        <button class="btn btn-outline" onclick="runSandboxSimulation()" style="font-size: 0.85rem; padding: 0.5rem 0.9rem;">
+                            🧪 Testar via Sandbox (demo)
                         </button>
                     </div>
                 </div>
@@ -800,7 +833,10 @@ print("USD/BRL:", forex["rates"]["USD"]["bid"])
 
 # 3. DNS Lookup sob demanda
 dns_records = client.get_dns("github.com")
-print("Registros A:", dns_records["records"]["A"])</div>
+print("Registros A:", dns_records["records"]["A"])
+
+# 4. Modo Sandbox gratuito para testes locais e CI/CD
+# Passe o cabeçalho 'X-Payment: demo' nas requisições sem gastar USDC</div>
             </div>
 
             <!-- Tab 3: Node.js -->
@@ -815,7 +851,10 @@ console.log('Status do hub:', summary.status);
 
 // 2. Inspetor SSL
 const ssl = await client.getSsl('base.org');
-console.log('Expira em dias:', ssl.certificate.days_remaining);</div>
+console.log('Expira em dias:', ssl.certificate.days_remaining);
+
+// 3. Modo Sandbox gratuito para testes automatizados:
+// Envie headers: { 'X-Payment': 'demo' } para simular sem custo</div>
             </div>
 
             <!-- Tab 4: cURL -->
@@ -823,12 +862,16 @@ console.log('Expira em dias:', ssl.certificate.days_remaining);</div>
                 <div class="code-block"># 1. Resumo gratuito
 curl -i https://www.grid402.com.br/status
 
-# 2. Desafio HTTP 402 em rota de DNS
-curl -i "https://www.grid402.com.br/api/v1/dns?domain=github.com"
+# 2. Desafio HTTP 402 com Amostra Cadastral
+curl -i "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191"
 
-# 3. Requisição com comprovante na Base
-curl "https://www.grid402.com.br/api/v1/dns?domain=github.com" \
-  -H "X-Payment: 0x&lt;tx_hash_na_base&gt;"</div>
+# 3. Requisição liquidada na Base Mainnet
+curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
+  -H "X-Payment: 0x&lt;tx_hash_na_base&gt;"
+
+# 4. Modo Sandbox gratuito para testes e CI/CD (20 req/hora por IP)
+curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
+  -H "X-Payment: demo"</div>
             </div>
 
             <!-- Tab 5: Badges -->
@@ -1252,6 +1295,11 @@ curl "https://www.grid402.com.br/api/v1/dns?domain=github.com" \
             }
             document.getElementById('tx-input').value = hash;
             closeWeb3Modal();
+            runConsole('paid');
+        }
+
+        function runSandboxSimulation() {
+            document.getElementById('tx-input').value = 'demo';
             runConsole('paid');
         }
 

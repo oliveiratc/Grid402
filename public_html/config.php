@@ -104,6 +104,10 @@ define('GRID402_WALLET_ADDRESS', strtolower((string) grid402_env('GRID402_WALLET
 define('GRID402_BASE_RPC_URL', (string) grid402_env('GRID402_BASE_RPC_URL', 'https://mainnet.base.org'));
 define('GRID402_USDC_CONTRACT', strtolower((string) grid402_env('GRID402_USDC_CONTRACT', '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913')));
 define('GRID402_CHAIN_ID', 8453); // Base Mainnet
+define('GRID402_SEPOLIA_RPC_URL', (string) grid402_env('GRID402_SEPOLIA_RPC_URL', 'https://sepolia.base.org'));
+define('GRID402_SEPOLIA_CHAIN_ID', 84532); // Base Sepolia Testnet
+define('GRID402_SEPOLIA_USDC_CONTRACT', strtolower((string) grid402_env('GRID402_SEPOLIA_USDC_CONTRACT', '0x036cbd53842c5426634e7929541ec2318f3dcf7e')));
+define('GRID402_SANDBOX_RATE_LIMIT', (int) grid402_env('GRID402_SANDBOX_RATE_LIMIT', 20)); // 20 consultas por hora por IP
 define('GRID402_USDC_REQUIRED_RAW', (int) grid402_env('GRID402_USDC_REQUIRED_RAW', 500)); // 0.000500 USDC
 define('GRID402_PRICE_DISPLAY', (string) grid402_env('GRID402_PRICE_DISPLAY', '0.0005'));
 define('GRID402_PRICE_CNPJ', (string) grid402_env('GRID402_PRICE_CNPJ', '0.0020'));
@@ -116,7 +120,7 @@ define('GRID402_CONNECT_TIMEOUT_MS', (int) grid402_env('GRID402_CONNECT_TIMEOUT_
 define('GRID402_USER_AGENT', (string) grid402_env('GRID402_PROBE_USER_AGENT', 'Grid402-Telemetry-Probe/1.0 (+https://www.grid402.com.br)'));
 define('GRID402_SSL_VERIFY', (bool) grid402_env('GRID402_SSL_VERIFY', false)); // false por padrão para compatibilidade com cadeias ICP-Brasil SEFAZ
 
-// 4. Caminhos de Arquivos e Armazenamento Privado (Persistente & Zero-DB)
+// 4. Caminhos de Arquivos e Armazenamento Privado (Persistente e Zero-DB)
 function grid402_get_storage_dir(): string {
     static $storageDir = null;
     if ($storageDir !== null) {
@@ -165,6 +169,7 @@ define('GRID402_FILE_CRYPTO', GRID402_PRIVATE_DIR . '/crypto_cache.json');
 define('GRID402_FILE_METRICS', GRID402_PRIVATE_DIR . '/metrics.json');
 define('GRID402_FILE_ADMIN_AUTH', GRID402_PRIVATE_DIR . '/admin_auth.json');
 define('GRID402_FILE_CNPJ', GRID402_PRIVATE_DIR . '/cnpj_cache.json');
+define('GRID402_FILE_SANDBOX_RATES', GRID402_PRIVATE_DIR . '/sandbox_rates.json');
 
 // 5. Catálogo Oficial dos 6 Micro-Serviços Core de Dados Públicos e Rede
 function grid402_get_utility_services(): array {

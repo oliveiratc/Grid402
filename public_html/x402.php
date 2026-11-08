@@ -59,6 +59,112 @@ function grid402_rpc_get_receipt(string $txHash): ?array {
 }
 
 /**
+ * Consulta recibo de transacao na testnet Base Sepolia via JSON-RPC
+ */
+function grid402_rpc_get_sepolia_receipt(string $txHash): ?array {
+    $rpcUrl = defined('GRID402_SEPOLIA_RPC_URL') ? GRID402_SEPOLIA_RPC_URL : 'https://sepolia.base.org';
+
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'eth_getTransactionReceipt',
+        'params' => [$txHash],
+    ]);
+
+    $ch = curl_init($rpcUrl);
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $payload,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_TIMEOUT => 3,
+        CURLOPT_CONNECTTIMEOUT => 2,
+        CURLOPT_USERAGENT => 'Grid402-x402-Sepolia-Auditor/2.0',
+        CURLOPT_SSL_VERIFYPEER => false,
+    ]);
+
+    $response = curl_exec($ch);
+    $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode === 200 && is_string($response)) {
+        $json = @json_decode($response, true);
+        if (isset($json['result'])) {
+            return $json['result'];
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Controle defensivo de taxa (Rate Limit) para requisicoes em Modo Sandbox
+ * Permite ate 20 requisicoes por hora por IP
+ */
+function grid402_check_sandbox_rate_limit(string $clientIp): array {
+    $file = defined('GRID402_FILE_SANDBOX_RATES') ? GRID402_FILE_SANDBOX_RATES : (dirname(__DIR__) . '/private_data/sandbox_rates.json');
+    $maxRequests = defined('GRID402_SANDBOX_RATE_LIMIT') ? GRID402_SANDBOX_RATE_LIMIT : 20;
+    $windowSeconds = 3600;
+    $now = time();
+
+    $dir = dirname($file);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+
+    $rates = [];
+    if (file_exists($file)) {
+        $raw = @file_get_contents($file);
+        if ($raw) {
+            $rates = @json_decode($raw, true) ?: [];
+        }
+    }
+
+    // Limpeza de IPs expirados (mais de 1 hora)
+    $cleanRates = [];
+    foreach ($rates as $ip => $data) {
+        if (isset($data['first_request']) && ($now - $data['first_request']) < $windowSeconds) {
+            $cleanRates[$ip] = $data;
+        }
+    }
+
+    $ipData = $cleanRates[$clientIp] ?? [
+        'count' => 0,
+        'first_request' => $now,
+        'last_request' => $now,
+    ];
+
+    if ($ipData['count'] >= $maxRequests) {
+        $retryAfter = max(1, $windowSeconds - ($now - $ipData['first_request']));
+        return [
+            'allowed' => false,
+            'count' => $ipData['count'],
+            'remaining' => 0,
+            'retry_after' => $retryAfter,
+            'limit' => $maxRequests,
+        ];
+    }
+
+    $ipData['count']++;
+    $ipData['last_request'] = $now;
+    $cleanRates[$clientIp] = $ipData;
+
+    if (function_exists('grid402_atomic_write')) {
+        grid402_atomic_write($file, $cleanRates);
+    } else {
+        @file_put_contents($file, json_encode($cleanRates, JSON_PRETTY_PRINT), LOCK_EX);
+    }
+
+    return [
+        'allowed' => true,
+        'count' => $ipData['count'],
+        'remaining' => max(0, $maxRequests - $ipData['count']),
+        'retry_after' => 0,
+        'limit' => $maxRequests,
+    ];
+}
+
+/**
  * Adquire trava atômica exclusiva (flock) e reserva a transação contra condições de corrida (TOCTOU)
  */
 function grid402_claim_transaction_lock(string $txHash): bool {
@@ -190,49 +296,102 @@ function grid402_mark_transaction_used(string $txHash): bool {
  * 
  * Retorna array ['valid' => bool, 'reason' => string, 'code' => int]
  */
-function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null): array {
+function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null, ?string $clientIp = null): array {
     $txHash = strtolower(trim($txHash));
+    $clientIp = $clientIp ?? (string)($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
 
-    // 1. Validação do formato (0x + 64 hex)
+    // 1. Verificacao de Modo Sandbox simulado via cabecalho ('demo' ou 'sandbox')
+    if ($txHash === 'demo' || $txHash === 'sandbox') {
+        $rate = grid402_check_sandbox_rate_limit($clientIp);
+        if (!$rate['allowed']) {
+            return [
+                'valid' => false,
+                'sandbox' => true,
+                'reason' => "Limite de {$rate['limit']} consultas gratuitas de sandbox por hora atingido para este IP. Para chamadas em producao sem limite de taxa, utilize micropagamentos em USDC na Base Mainnet.",
+                'code' => 429,
+                'retry_after' => $rate['retry_after'],
+                'remaining' => 0,
+            ];
+        }
+
+        return [
+            'valid' => true,
+            'sandbox' => true,
+            'reason' => 'Modo Sandbox autenticado com sucesso via cabecalho de simulacao.',
+            'code' => 200,
+            'remaining' => $rate['remaining'],
+            'limit' => $rate['limit'],
+        ];
+    }
+
+    // 2. Validacao do formato (0x + 64 hex)
     if (!preg_match('/^0x[a-f0-9]{64}$/', $txHash)) {
         return [
             'valid' => false,
-            'reason' => 'Formato de tx_hash inválido. Esperado 0x seguido de 64 caracteres hexadecimais.',
+            'reason' => 'Formato de tx_hash invalido. Esperado 0x seguido de 64 caracteres hexadecimais, ou use "demo" para testes.',
             'code' => 400,
         ];
     }
 
-    // 2. Trava atômica anti-replay contra condições de corrida (TOCTOU)
+    // 3. Trava atomica anti-replay contra condicoes de corrida (TOCTOU)
     if (!grid402_claim_transaction_lock($txHash)) {
         return [
             'valid' => false,
-            'reason' => 'Replay attack detectado: este hash de transação já foi liquidado anteriormente.',
+            'reason' => 'Replay attack detectado: este hash de transacao ja foi liquidado anteriormente.',
             'code' => 403,
         ];
     }
 
-    // 3. Auditoria on-chain no RPC da Base
+    // 4. Auditoria on-chain no RPC da Base Mainnet
     $receipt = grid402_rpc_get_receipt($txHash);
     if ($receipt === null) {
+        // Fallback: tenta auditoria na testnet Base Sepolia
+        $sepoliaReceipt = grid402_rpc_get_sepolia_receipt($txHash);
+        if ($sepoliaReceipt !== null && ($sepoliaReceipt['status'] ?? '') === '0x1') {
+            $rate = grid402_check_sandbox_rate_limit($clientIp);
+            if (!$rate['allowed']) {
+                grid402_release_transaction_lock($txHash);
+                return [
+                    'valid' => false,
+                    'sandbox' => true,
+                    'reason' => "Limite de {$rate['limit']} consultas gratuitas de sandbox por hora atingido para este IP.",
+                    'code' => 429,
+                    'retry_after' => $rate['retry_after'],
+                    'remaining' => 0,
+                ];
+            }
+
+            return [
+                'valid' => true,
+                'sandbox' => true,
+                'network' => 'Base Sepolia',
+                'chain_id' => 84532,
+                'reason' => 'Transacao validada com sucesso na testnet Base Sepolia (Modo Sandbox).',
+                'code' => 200,
+                'remaining' => $rate['remaining'],
+                'limit' => $rate['limit'],
+            ];
+        }
+
         grid402_release_transaction_lock($txHash);
         return [
             'valid' => false,
-            'reason' => 'Transação não encontrada ou ainda não confirmada na rede Base. Tente novamente em alguns segundos.',
+            'reason' => 'Transacao nao encontrada ou ainda nao confirmada na rede Base (Mainnet ou Sepolia). Tente novamente em alguns segundos.',
             'code' => 402,
         ];
     }
 
-    // 4. Verificação de status (0x1 = Sucesso)
+    // 5. Verificacao de status na Mainnet (0x1 = Sucesso)
     if (($receipt['status'] ?? '') !== '0x1') {
         grid402_release_transaction_lock($txHash);
         return [
             'valid' => false,
-            'reason' => 'A transação falhou na blockchain da Base (status de execução diferente de 0x1).',
+            'reason' => 'A transacao falhou na blockchain da Base (status de execucao diferente de 0x1).',
             'code' => 402,
         ];
     }
 
-    // 5. Auditoria do evento ERC-20 Transfer (USDC)
+    // 6. Auditoria do evento ERC-20 Transfer (USDC)
     $transferTopic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
     $usdcContract = GRID402_USDC_CONTRACT;
     $targetWallet = substr(GRID402_WALLET_ADDRESS, 2); // sem 0x
@@ -254,7 +413,7 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null)
             continue;
         }
 
-        // Tópico 2 = Destinatário (padded 32 bytes)
+        // Topico 2 = Destinatario (padded 32 bytes)
         $recipientTopic = strtolower((string)$topics[2]);
         $recipientAddress = substr($recipientTopic, 26);
 
@@ -276,7 +435,7 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null)
         grid402_release_transaction_lock($txHash);
         return [
             'valid' => false,
-            'reason' => 'Nenhuma transferência de USDC válida para a carteira do oráculo com valor mínimo de ' . $displayAmount . ' USDC foi identificada nesta transação.',
+            'reason' => 'Nenhuma transferencia de USDC valida para a carteira do oraculo com valor minimo de ' . $displayAmount . ' USDC foi identificada nesta transacao.',
             'code' => 402,
         ];
     }
@@ -284,7 +443,8 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null)
     // Pagamento confirmado e trava retida com sucesso!
     return [
         'valid' => true,
-        'reason' => 'Pagamento x402 validado com sucesso na Base.',
+        'sandbox' => false,
+        'reason' => 'Pagamento x402 validado com sucesso na Base Mainnet.',
         'code' => 200,
     ];
 }
