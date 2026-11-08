@@ -121,10 +121,21 @@ if (file_exists(GRID402_FILE_ADMIN_AUTH)) {
 try {
     // 4.1. Sem arquivo de auth -> deve exibir tela de setup inicial
     echo "  -> Testando tela de setup no primeiro acesso sem credenciais...\n";
-    $setupResp = curl_admin("http://127.0.0.1:{$port}/admin");
+    $cookieFile = sys_get_temp_dir() . '/grid402_admin_cookie.txt';
+    if (file_exists($cookieFile)) @unlink($cookieFile);
+
+    $setupResp = curl_admin("http://127.0.0.1:{$port}/admin", [
+        CURLOPT_COOKIEJAR => $cookieFile,
+        CURLOPT_COOKIEFILE => $cookieFile,
+    ]);
     assert($setupResp['code'] === 200, "Setup deve responder HTTP 200 (Recebeu: {$setupResp['code']})");
     assert(str_contains($setupResp['body'], 'Configurar Acesso'), 'Deve conter tela de Configurar Acesso');
-    echo "     ✓ Setup inicial detectado com sucesso!\n";
+    assert(str_contains($setupResp['body'], 'name="csrf_token"'), 'Deve conter campo de token CSRF no formulario');
+
+    preg_match('/name="csrf_token"\s+value="([a-f0-9]{64})"/', $setupResp['body'], $csrfMatches);
+    $setupCsrf = $csrfMatches[1] ?? '';
+    assert(strlen($setupCsrf) === 64, 'Token CSRF de 64 caracteres hexadecimais deve estar presente');
+    echo "     ✓ Setup inicial e token CSRF detectados com sucesso!\n";
 
     // 4.2. Requisição à API /admin?api=stats sem autenticação -> deve retornar HTTP 401
     echo "  -> Testando bloqueio da API /admin?api=stats sem sessão...\n";
@@ -133,12 +144,9 @@ try {
     assert(str_contains($unauthStats['body'], 'Unauthorized'), 'Deve conter mensagem Unauthorized');
     echo "     ✓ Bloqueio HTTP 401 para requisição sem sessão validado!\n";
 
-    // 4.3. Submeter formulário de setup inicial
-    echo "  -> Cadastrando credenciais administrativas iniciais...\n";
-    $cookieFile = sys_get_temp_dir() . '/grid402_admin_cookie.txt';
-    if (file_exists($cookieFile)) @unlink($cookieFile);
-
-    $postSetup = curl_admin("http://127.0.0.1:{$port}/admin", [
+    // 4.2.1. Testar rejeição de setup sem CSRF token
+    echo "  -> Testando rejeição de submissão de setup sem token CSRF...\n";
+    $noCsrfPost = curl_admin("http://127.0.0.1:{$port}/admin", [
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => http_build_query([
             'username' => 'admin_test',
@@ -148,9 +156,25 @@ try {
         CURLOPT_COOKIEJAR => $cookieFile,
         CURLOPT_COOKIEFILE => $cookieFile,
     ]);
+    assert(str_contains($noCsrfPost['body'], 'CSRF'), 'Submissão sem CSRF deve ser recusada com alerta');
+    echo "     ✓ Proteção contra requisições sem CSRF validada!\n";
+
+    // 4.3. Submeter formulário de setup inicial COM CSRF token válido
+    echo "  -> Cadastrando credenciais administrativas iniciais com token CSRF...\n";
+    $postSetup = curl_admin("http://127.0.0.1:{$port}/admin", [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => http_build_query([
+            'username' => 'admin_test',
+            'password' => 'Segredo#Forte2026',
+            'password_confirm' => 'Segredo#Forte2026',
+            'csrf_token' => $setupCsrf,
+        ]),
+        CURLOPT_COOKIEJAR => $cookieFile,
+        CURLOPT_COOKIEFILE => $cookieFile,
+    ]);
     assert($postSetup['code'] === 302 || $postSetup['code'] === 200, "Setup deve redirecionar após cadastro");
     assert(file_exists(GRID402_FILE_ADMIN_AUTH), "Arquivo admin_auth.json deve ter sido criado");
-    echo "     ✓ Credenciais criadas e sessão iniciada!\n";
+    echo "     ✓ Credenciais criadas e sessão iniciada com CSRF válido!\n";
 
     // 4.4. Acessar /admin?api=stats COM o cookie de sessão autenticado
     echo "  -> Consultando /admin?api=stats com sessão autenticada...\n";
@@ -178,19 +202,52 @@ try {
     assert($csvResp['code'] === 200, "Exportação CSV deve retornar HTTP 200");
     assert(stripos($csvResp['headers'], 'Content-Type: text/csv') !== false, 'Header deve ser text/csv');
     assert(str_starts_with($csvResp['body'], "\xEF\xBB\xBF"), 'CSV deve iniciar com BOM UTF-8');
-    assert(str_contains($csvResp['body'], 'Servico') && str_contains($csvResp['body'], 'Tipo') && str_contains($csvResp['body'], 'Valor USDC'), 'Deve conter colunas principais do CSV');
+    assert(str_contains($csvResp['body'], 'Servico') and str_contains($csvResp['body'], 'Tipo') and str_contains($csvResp['body'], 'Valor USDC'), 'Deve conter colunas principais do CSV');
     echo "     ✓ Relatório CSV com BOM UTF-8 e 9 colunas validado com sucesso!\n";
 
-    // 4.6. Testar alteração de senha autenticada
-    echo "  -> Testando alteração de senha (validação de credencial atual)...\n";
-    // Tentativa com senha atual errada via JSON
-    $badChange = curl_admin("http://127.0.0.1:{$port}/admin?action=change_password", [
+    // 4.6. Acessar Dashboard HTML com sessão autenticada e extrair CSRF
+    echo "  -> Acessando Dashboard HTML autenticado e validando token CSRF...\n";
+    $dashResp = curl_admin("http://127.0.0.1:{$port}/admin", [
+        CURLOPT_COOKIEFILE => $cookieFile,
+    ]);
+    assert($dashResp['code'] === 200, "Dashboard autenticado deve retornar 200");
+    assert(str_contains($dashResp['body'], 'Monitoramento e Faturamento'), 'Deve conter título do Dashboard');
+    assert(str_contains($dashResp['body'], 'Ao Vivo'), 'Deve conter indicador de atualização Ao Vivo');
+    assert(str_contains($dashResp['body'], 'Saldo On-Chain (Base)'), 'Deve conter card de Saldo On-Chain');
+    assert(str_contains($dashResp['body'], 'password-modal-overlay'), 'Deve conter modal de alteração de senha');
+
+    preg_match('/name="csrf-token"\s+content="([a-f0-9]{64})"/', $dashResp['body'], $authCsrfMatches);
+    $authCsrf = $authCsrfMatches[1] ?? '';
+    assert(strlen($authCsrf) === 64, 'Token CSRF autenticado deve estar presente no meta tag');
+    echo "     ✓ Dashboard dark-mode com saldos, modais e token CSRF renderizado com sucesso!\n";
+
+    // 4.7. Testar alteração de senha autenticada com proteção CSRF
+    echo "  -> Testando alteração de senha (validação de token CSRF e credencial atual)...\n";
+    // 4.7.1. Rejeição sem CSRF token
+    $noCsrfChange = curl_admin("http://127.0.0.1:{$port}/admin?action=change_password", [
         CURLOPT_POST => true,
         CURLOPT_HTTPHEADER => ['Accept: application/json'],
+        CURLOPT_POSTFIELDS => http_build_query([
+            'current_password' => 'Segredo#Forte2026',
+            'new_password' => 'NovaSenha#Forte2026',
+            'new_password_confirm' => 'NovaSenha#Forte2026',
+        ]),
+        CURLOPT_COOKIEFILE => $cookieFile,
+    ]);
+    assert($noCsrfChange['code'] === 403, "Tentativa de alteração sem CSRF deve retornar HTTP 403 (Recebeu: {$noCsrfChange['code']})");
+
+    // 4.7.2. Tentativa com senha atual errada via JSON e CSRF válido
+    $badChange = curl_admin("http://127.0.0.1:{$port}/admin?action=change_password", [
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => [
+            'Accept: application/json',
+            'X-CSRF-Token: ' . $authCsrf,
+        ],
         CURLOPT_POSTFIELDS => http_build_query([
             'current_password' => 'SenhaErrada123',
             'new_password' => 'NovaSenha#2026',
             'new_password_confirm' => 'NovaSenha#2026',
+            'csrf_token' => $authCsrf,
         ]),
         CURLOPT_COOKIEFILE => $cookieFile,
     ]);
@@ -199,14 +256,18 @@ try {
     assert($badChangeJson['success'] === false, 'Deve retornar success false');
     assert(isset($badChangeJson['error']), 'Deve conter mensagem de erro');
 
-    // Tentativa com sucesso
+    // 4.7.3. Tentativa com sucesso e CSRF válido
     $goodChange = curl_admin("http://127.0.0.1:{$port}/admin?action=change_password", [
         CURLOPT_POST => true,
-        CURLOPT_HTTPHEADER => ['Accept: application/json'],
+        CURLOPT_HTTPHEADER => [
+            'Accept: application/json',
+            'X-CSRF-Token: ' . $authCsrf,
+        ],
         CURLOPT_POSTFIELDS => http_build_query([
             'current_password' => 'Segredo#Forte2026',
             'new_password' => 'NovaSenha#Forte2026',
             'new_password_confirm' => 'NovaSenha#Forte2026',
+            'csrf_token' => $authCsrf,
         ]),
         CURLOPT_COOKIEFILE => $cookieFile,
     ]);
@@ -218,19 +279,7 @@ try {
     // Verifica se o hash no arquivo foi atualizado
     $authDataUpdated = json_decode((string) file_get_contents(GRID402_FILE_ADMIN_AUTH), true);
     assert(password_verify('NovaSenha#Forte2026', (string) $authDataUpdated['password_hash']) === true, 'Novo hash de senha deve ser validado');
-    echo "     ✓ Fluxo seguro de alteração de senha homologado com sucesso!\n";
-
-    // 4.7. Acessar Dashboard HTML com sessão autenticada
-    echo "  -> Acessando Dashboard HTML autenticado...\n";
-    $dashResp = curl_admin("http://127.0.0.1:{$port}/admin", [
-        CURLOPT_COOKIEFILE => $cookieFile,
-    ]);
-    assert($dashResp['code'] === 200, "Dashboard autenticado deve retornar 200");
-    assert(str_contains($dashResp['body'], 'Monitoramento e Faturamento'), 'Deve conter título do Dashboard');
-    assert(str_contains($dashResp['body'], 'Ao Vivo'), 'Deve conter indicador de atualização Ao Vivo');
-    assert(str_contains($dashResp['body'], 'Saldo On-Chain (Base)'), 'Deve conter card de Saldo On-Chain');
-    assert(str_contains($dashResp['body'], 'password-modal-overlay'), 'Deve conter modal de alteração de senha');
-    echo "     ✓ Dashboard dark-mode com saldos e modais renderizado com sucesso!\n";
+    echo "     ✓ Fluxo seguro de alteração de senha protegido por CSRF homologado com sucesso!\n";
 
     // 4.8. Testar Logout
     echo "  -> Testando encerramento de sessão (Logout)...\n";
@@ -247,6 +296,47 @@ try {
     assert($afterLogout['code'] === 401, "Após logout, API deve responder 401 Unauthorized");
     echo "     ✓ Sessão encerrada e dados protegidos!\n";
 
+    // 4.9. Testar Bloqueio contra Força Bruta (Lockout de 15 minutos após 5 falhas consecutivas)
+    echo "  -> Testando proteção contra força bruta no login (bloqueio 429 após 5 falhas)...\n";
+    $loginPageCookie = sys_get_temp_dir() . '/grid402_login_cookie.txt';
+    if (file_exists($loginPageCookie)) @unlink($loginPageCookie);
+
+    $loginPage = curl_admin("http://127.0.0.1:{$port}/admin", [
+        CURLOPT_COOKIEJAR => $loginPageCookie,
+        CURLOPT_COOKIEFILE => $loginPageCookie,
+    ]);
+    preg_match('/name="csrf_token"\s+value="([a-f0-9]{64})"/', $loginPage['body'], $loginCsrfMatches);
+    $loginCsrf = $loginCsrfMatches[1] ?? '';
+    assert(strlen($loginCsrf) === 64, 'Token CSRF do formulario de login deve ser valido');
+
+    for ($attempt = 1; $attempt <= 5; $attempt++) {
+        curl_admin("http://127.0.0.1:{$port}/admin", [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => http_build_query([
+                'username' => 'admin_test',
+                'password' => 'SenhaIncorreta#' . $attempt,
+                'csrf_token' => $loginCsrf,
+            ]),
+            CURLOPT_COOKIEJAR => $loginPageCookie,
+            CURLOPT_COOKIEFILE => $loginPageCookie,
+        ]);
+    }
+
+    // A 6ª tentativa deve ser travada com HTTP 429 Too Many Requests
+    $lockoutAttempt = curl_admin("http://127.0.0.1:{$port}/admin", [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => http_build_query([
+            'username' => 'admin_test',
+            'password' => 'NovaSenha#Forte2026',
+            'csrf_token' => $loginCsrf,
+        ]),
+        CURLOPT_COOKIEJAR => $loginPageCookie,
+        CURLOPT_COOKIEFILE => $loginPageCookie,
+    ]);
+    assert($lockoutAttempt['code'] === 429, "Após 5 tentativas erradas, sistema deve responder HTTP 429 Lockout (Recebeu: {$lockoutAttempt['code']})");
+    assert(str_contains($lockoutAttempt['body'], 'bloqueado por seguran'), 'Deve conter mensagem de bloqueio por seguranca');
+    echo "     ✓ Bloqueio HTTP 429 contra força bruta validado com sucesso!\n";
+
 } finally {
     proc_terminate($proc);
     fclose($pipes[0]); fclose($pipes[1]); fclose($pipes[2]);
@@ -254,6 +344,9 @@ try {
 
     // Restaura arquivos de teste
     if (file_exists($cookieFile)) @unlink($cookieFile);
+    if (isset($loginPageCookie) and file_exists($loginPageCookie)) @unlink($loginPageCookie);
+    $loginRateFile = GRID402_PRIVATE_DIR . '/admin_login_rate.json';
+    if (file_exists($loginRateFile)) @unlink($loginRateFile);
     if (file_exists($testAuthBackup)) {
         rename($testAuthBackup, GRID402_FILE_ADMIN_AUTH);
     } else {

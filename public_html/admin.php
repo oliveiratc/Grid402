@@ -212,12 +212,152 @@ if ($action === 'reset') {
     exit;
 }
 
+// 2.1. Controle Anti-CSRF
+if (empty($_SESSION['admin_csrf_token'])) {
+    $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrfToken = (string)$_SESSION['admin_csrf_token'];
+
+function grid402_validate_csrf(?string $token): bool {
+    $sessionToken = (string)($_SESSION['admin_csrf_token'] ?? '');
+    if ($sessionToken === '' or empty($token)) {
+        return false;
+    }
+    return hash_equals($sessionToken, (string)$token);
+}
+
+/**
+ * Controle de Forca Bruta de Login (Zero-DB)
+ * Trava o IP por 15 minutos (900s) apos 5 falhas consecutivas
+ */
+function grid402_get_login_rate_file(): string {
+    $dir = defined('GRID402_PRIVATE_DIR') ? GRID402_PRIVATE_DIR : (__DIR__ . '/private_data');
+    return $dir . '/admin_login_rate.json';
+}
+
+function grid402_check_login_rate(string $ip): array {
+    $file = grid402_get_login_rate_file();
+    $maxAttempts = 5;
+    $lockoutSeconds = 900;
+    $now = time();
+
+    if (!file_exists($file)) {
+        return ['allowed' => true, 'remaining' => $maxAttempts, 'retry_after' => 0];
+    }
+
+    $raw = @file_get_contents($file);
+    $data = $raw ? (@json_decode($raw, true) ?: []) : [];
+    $entry = $data[$ip] ?? null;
+
+    if (!$entry) {
+        return ['allowed' => true, 'remaining' => $maxAttempts, 'retry_after' => 0];
+    }
+
+    $firstFail = (int)($entry['first_fail'] ?? $now);
+    $attempts = (int)($entry['attempts'] ?? 0);
+    $elapsed = $now - $firstFail;
+
+    if ($elapsed >= $lockoutSeconds) {
+        return ['allowed' => true, 'remaining' => $maxAttempts, 'retry_after' => 0];
+    }
+
+    if ($attempts >= $maxAttempts) {
+        $retryAfter = max(1, $lockoutSeconds - $elapsed);
+        return [
+            'allowed' => false,
+            'remaining' => 0,
+            'retry_after' => $retryAfter,
+            'attempts' => $attempts,
+        ];
+    }
+
+    return [
+        'allowed' => true,
+        'remaining' => max(0, $maxAttempts - $attempts),
+        'retry_after' => 0,
+        'attempts' => $attempts,
+    ];
+}
+
+function grid402_record_login_failure(string $ip): void {
+    $file = grid402_get_login_rate_file();
+    $lockoutSeconds = 900;
+    $now = time();
+
+    $dir = dirname($file);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+
+    $fp = fopen($file, 'c+');
+    if (!$fp) {
+        return;
+    }
+
+    if (flock($fp, LOCK_EX)) {
+        $filesize = filesize($file);
+        $content = ($filesize > 0) ? (string) fread($fp, $filesize) : '';
+        $data = $content !== '' ? (@json_decode($content, true) ?: []) : [];
+
+        $cleaned = [];
+        foreach ($data as $kIp => $v) {
+            $t = (int)($v['first_fail'] ?? 0);
+            if (($now - $t) < $lockoutSeconds) {
+                $cleaned[$kIp] = $v;
+            }
+        }
+
+        $entry = $cleaned[$ip] ?? ['attempts' => 0, 'first_fail' => $now];
+        if (($now - (int)$entry['first_fail']) >= $lockoutSeconds) {
+            $entry = ['attempts' => 0, 'first_fail' => $now];
+        }
+
+        $entry['attempts'] = ((int)$entry['attempts']) + 1;
+        $entry['last_fail'] = $now;
+        $cleaned[$ip] = $entry;
+
+        ftruncate($fp, 0);
+        rewind($fp);
+        fwrite($fp, (string) json_encode($cleaned, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        fflush($fp);
+        flock($fp, LOCK_UN);
+    }
+    fclose($fp);
+}
+
+function grid402_reset_login_rate(string $ip): void {
+    $file = grid402_get_login_rate_file();
+    if (!file_exists($file)) {
+        return;
+    }
+    $fp = fopen($file, 'c+');
+    if (!$fp) {
+        return;
+    }
+    if (flock($fp, LOCK_EX)) {
+        $filesize = filesize($file);
+        $content = ($filesize > 0) ? (string) fread($fp, $filesize) : '';
+        $data = $content !== '' ? (@json_decode($content, true) ?: []) : [];
+        if (isset($data[$ip])) {
+            unset($data[$ip]);
+            ftruncate($fp, 0);
+            rewind($fp);
+            fwrite($fp, (string) json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            fflush($fp);
+        }
+        flock($fp, LOCK_UN);
+    }
+    fclose($fp);
+}
+
 // 3. Processamento de POST (Setup, Login ou Alteracao de Senha)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $submittedCsrf = (string)($_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+
     // 3.0. Alteracao de Senha Autenticada
     if ($action === 'change_password') {
-        $isJsonReq = (isset($_GET['format']) && $_GET['format'] === 'json') ||
-                     (str_contains((string)($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json'));
+        $isJsonReq = ((isset($_GET['format']) and $_GET['format'] === 'json') or
+                      (str_contains((string)($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json')));
 
         if (!$isLoggedIn) {
             http_response_code(401);
@@ -230,6 +370,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            http_response_code(403);
+            if ($isJsonReq) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['success' => false, 'error' => 'Token CSRF de seguranca ausente ou invalido. Recarregue a pagina.']);
+            } else {
+                $errorMsg = 'Token CSRF de seguranca invalido ou expirado.';
+            }
+            exit;
+        }
+
         $currPass = (string) ($_POST['current_password'] ?? '');
         $newPass = (string) ($_POST['new_password'] ?? '');
         $newPassConfirm = (string) ($_POST['new_password_confirm'] ?? '');
@@ -238,7 +389,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $authData = $authContent ? @json_decode($authContent, true) : null;
 
         $pErr = '';
-        if (!$authData || !password_verify($currPass, (string)($authData['password_hash'] ?? ''))) {
+        if (!$authData or !password_verify($currPass, (string)($authData['password_hash'] ?? ''))) {
             $pErr = 'A senha atual informada esta incorreta.';
         } elseif (strlen($newPass) < 8) {
             $pErr = 'A nova senha deve ter no minimo 8 caracteres.';
@@ -270,66 +421,88 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif (!$hasSetup) {
-        // 3.1. Setup de Primeiro Acesso
-        $user = trim((string) ($_POST['username'] ?? ''));
-        $pass = (string) ($_POST['password'] ?? '');
-        $passConfirm = (string) ($_POST['password_confirm'] ?? '');
-
-        if (strlen($user) < 3) {
-            $errorMsg = 'O nome de usuário deve ter pelo menos 3 caracteres.';
-        } elseif (strlen($pass) < 8) {
-            $errorMsg = 'A senha deve ter pelo menos 8 caracteres.';
-        } elseif ($pass !== $passConfirm) {
-            $errorMsg = 'As senhas informadas não coincidem.';
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            $errorMsg = 'Token CSRF de seguranca invalido ou expirado. Recarregue a pagina.';
         } else {
-            $hash = password_hash($pass, PASSWORD_BCRYPT, ['cost' => 11]);
-            $authData = [
-                'username' => $user,
-                'password_hash' => $hash,
-                'created_at' => gmdate('Y-m-d\TH:i:s\Z'),
-                'last_login' => gmdate('Y-m-d\TH:i:s\Z'),
-                'login_count' => 1,
-            ];
-            $saved = grid402_atomic_write($authFile, $authData);
+            // 3.1. Setup de Primeiro Acesso
+            $user = trim((string) ($_POST['username'] ?? ''));
+            $pass = (string) ($_POST['password'] ?? '');
+            $passConfirm = (string) ($_POST['password_confirm'] ?? '');
 
-            if (!$saved || !file_exists($authFile)) {
-                $errorMsg = 'Erro crítico: não foi possível gravar as credenciais no disco. Verifique permissões do diretório de armazenamento.';
+            if (strlen($user) < 3) {
+                $errorMsg = 'O nome de usuário deve ter pelo menos 3 caracteres.';
+            } elseif (strlen($pass) < 8) {
+                $errorMsg = 'A senha deve ter pelo menos 8 caracteres.';
+            } elseif ($pass !== $passConfirm) {
+                $errorMsg = 'As senhas informadas não coincidem.';
             } else {
-                session_regenerate_id(true);
-                $_SESSION['admin_logged_in'] = true;
-                $_SESSION['admin_user'] = $user;
-                if (session_status() === PHP_SESSION_ACTIVE) {
-                    session_write_close();
+                $hash = password_hash($pass, PASSWORD_BCRYPT, ['cost' => 11]);
+                $authData = [
+                    'username' => $user,
+                    'password_hash' => $hash,
+                    'created_at' => gmdate('Y-m-d\TH:i:s\Z'),
+                    'last_login' => gmdate('Y-m-d\TH:i:s\Z'),
+                    'login_count' => 1,
+                ];
+                $saved = grid402_atomic_write($authFile, $authData);
+
+                if (!$saved or !file_exists($authFile)) {
+                    $errorMsg = 'Erro crítico: não foi possível gravar as credenciais no disco. Verifique permissões do diretório de armazenamento.';
+                } else {
+                    session_regenerate_id(true);
+                    $_SESSION['admin_logged_in'] = true;
+                    $_SESSION['admin_user'] = $user;
+                    $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
+                    if (session_status() === PHP_SESSION_ACTIVE) {
+                        session_write_close();
+                    }
+                    header('Location: /admin?setup=success');
+                    exit;
                 }
-                header('Location: /admin?setup=success');
-                exit;
             }
         }
     } else {
-        // 3.2. Login Normal
-        $user = trim((string) ($_POST['username'] ?? ''));
-        $pass = (string) ($_POST['password'] ?? '');
+        // 3.2. Login Normal com Protecao Anti-Brute-Force
+        $clientIp = function_exists('grid402_get_trusted_client_ip') ? grid402_get_trusted_client_ip() : (string)($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+        $rateCheck = grid402_check_login_rate($clientIp);
 
-        $authContent = @file_get_contents($authFile);
-        $authData = $authContent ? @json_decode($authContent, true) : null;
-
-        if ($authData and $user === ($authData['username'] ?? '') and password_verify($pass, (string)($authData['password_hash'] ?? ''))) {
-            session_regenerate_id(true);
-            $_SESSION['admin_logged_in'] = true;
-            $_SESSION['admin_user'] = $authData['username'];
-
-            $authData['last_login'] = gmdate('Y-m-d\TH:i:s\Z');
-            $authData['login_count'] = ((int)($authData['login_count'] ?? 0)) + 1;
-            grid402_atomic_write($authFile, $authData);
-
-            if (session_status() === PHP_SESSION_ACTIVE) {
-                session_write_close();
-            }
-            header('Location: /admin');
-            exit;
+        if (!$rateCheck['allowed']) {
+            http_response_code(429);
+            $waitMinutes = max(1, (int) ceil(($rateCheck['retry_after'] ?? 900) / 60));
+            $errorMsg = "Muitas tentativas incorretas. Acesso bloqueado por seguranca por {$waitMinutes} minuto(s).";
+        } elseif (!grid402_validate_csrf($submittedCsrf)) {
+            $errorMsg = 'Token CSRF de seguranca invalido ou expirado. Recarregue a pagina.';
         } else {
-            usleep(350000); // Delay defensivo anti-bruteforce
-            $errorMsg = 'Usuário ou senha incorretos.';
+            $user = trim((string) ($_POST['username'] ?? ''));
+            $pass = (string) ($_POST['password'] ?? '');
+
+            $authContent = @file_get_contents($authFile);
+            $authData = $authContent ? @json_decode($authContent, true) : null;
+
+            if ($authData and $user === ($authData['username'] ?? '') and password_verify($pass, (string)($authData['password_hash'] ?? ''))) {
+                grid402_reset_login_rate($clientIp);
+                session_regenerate_id(true);
+                $_SESSION['admin_logged_in'] = true;
+                $_SESSION['admin_user'] = $authData['username'];
+                $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
+
+                $authData['last_login'] = gmdate('Y-m-d\TH:i:s\Z');
+                $authData['login_count'] = ((int)($authData['login_count'] ?? 0)) + 1;
+                grid402_atomic_write($authFile, $authData);
+
+                if (session_status() === PHP_SESSION_ACTIVE) {
+                    session_write_close();
+                }
+                header('Location: /admin');
+                exit;
+            } else {
+                grid402_record_login_failure($clientIp);
+                usleep(350000); // Delay defensivo anti-bruteforce
+                $rem = max(0, ($rateCheck['remaining'] ?? 5) - 1);
+                $errorMsg = ($rem > 0)
+                    ? "Usuário ou senha incorretos. ({$rem} tentativa(s) restante(s) antes do bloqueio)."
+                    : "Usuário ou senha incorretos. Acesso bloqueado por segurança por 15 minutos.";
+            }
         }
     }
 }
@@ -443,6 +616,7 @@ if (!$isLoggedIn) {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="csrf-token" content="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
         <title>Grid402 // Acesso Administrativo</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -575,6 +749,7 @@ if (!$isLoggedIn) {
             <?php endif; ?>
 
             <form method="POST" action="<?php echo htmlspecialchars($_SERVER['REQUEST_URI'] ?? '/admin', ENT_QUOTES, 'UTF-8'); ?>">
+                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
                 <div class="form-group">
                     <label for="username">Usuário Administrador</label>
                     <input type="text" id="username" name="username" value="<?php echo htmlspecialchars($user ?? '', ENT_QUOTES, 'UTF-8'); ?>" required autocomplete="username" autofocus>
@@ -624,6 +799,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
     <title>Grid402 // Painel de Telemetria e Faturamento</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1439,14 +1615,21 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             btn.textContent = 'Salvando...';
 
             try {
+                const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                const csrfVal = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
                 const formData = new FormData();
                 formData.append('current_password', currPass);
                 formData.append('new_password', newPass);
                 formData.append('new_password_confirm', confirmPass);
+                formData.append('csrf_token', csrfVal);
 
-                const res = await fetch('/admin?action=change_password&format=json', {
+                const res = await fetch('/admin?action=change_password', {
                     method: 'POST',
-                    headers: { 'Accept': 'application/json' },
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': csrfVal
+                    },
                     body: formData
                 });
                 const data = await res.json();
