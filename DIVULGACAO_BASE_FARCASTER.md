@@ -1,4 +1,4 @@
-# Grid402 // Guia Oficial de Lançamento e Distribuição M2M (Base & Farcaster)
+# Grid402 // Guia Oficial de Lançamento e Distribuição M2M (Base e Farcaster)
 
 Este guia prático contém todas as instruções e templates prontos para você publicar os pacotes nos gerenciadores oficiais (**PyPI** e **npm**) e divulgar o **Grid402** nos canais mais ativos de agentes de IA na rede **Base** e no **Farcaster (Warpcast)**.
 
@@ -26,7 +26,7 @@ python -m twine upload dist/*
 
 ---
 
-### 1.2. Publicar no NPM (`npm install grid402` e `npx @grid402/mcp-server`)
+### 1.2. Publicar no NPM (`npm install grid402` e `npx grid402-mcp`)
 Certifique-se de estar logado no npm via terminal (`npm login`).
 
 ```bash
@@ -38,7 +38,7 @@ npm publish --access public
 cd ../../mcp
 npm publish --access public
 ```
-*Após o upload, o servidor MCP funcionará instantaneamente via `npx @grid402/mcp-server` em qualquer Claude Desktop ou Cursor.*
+*Após o upload, o servidor MCP funcionará instantaneamente via `npx grid402-mcp` em qualquer Claude Desktop ou Cursor.*
 
 ---
 
@@ -47,7 +47,7 @@ npm publish --access public
 ### Template 1: Canal `/base` (Foco em Protocolo x402 e Micropagamentos)
 > **Cast no Warpcast `/base`:**
 > 
-> Launched Grid402 ⚡ A high-performance open data & network utilities hub powered by the HTTP 402 protocol on @base!
+> Launched Grid402 ⚡ A high-performance open data and network utilities hub powered by the HTTP 402 protocol on @base!
 > 
 > Autonomous AI agents can now query real-time data with $0.0005 USDC micro-settlement per call:
 > 💱 Forex (USD, EUR, GBP to BRL)  
@@ -55,13 +55,13 @@ npm publish --access public
 > 🌐 DNS Lookup (A, AAAA, MX, TXT, NS)  
 > 🔒 TLS/SSL Certificate Inspector  
 > 🛰️ BGP / ASN Network Intelligence  
-> 📍 Brazilian Postal CEP & IBGE  
+> 📍 Brazilian Postal CEP e IBGE  
 > 
 > Zero API keys. Zero subscriptions. Native x402 Base settlement.
 > 
-> 🔗 Portal & Live Console: https://orangered-jackal-900744.hostingersite.com  
+> 🔗 Portal e Live Console: https://orangered-jackal-900744.hostingersite.com  
 > 📖 Agent Spec: https://orangered-jackal-900744.hostingersite.com/llms.txt  
-> 💻 MCP Server: `npx -y @grid402/mcp-server`
+> 💻 MCP Server: `npx -y grid402-mcp`
 
 ---
 
@@ -78,7 +78,7 @@ npm publish --access public
 >   "mcpServers": {
 >     "grid402": {
 >       "command": "npx",
->       "args": ["-y", "@grid402/mcp-server"]
+>       "args": ["-y", "grid402-mcp"]
 >     }
 >   }
 > }
@@ -86,7 +86,7 @@ npm publish --access public
 > 
 > Comes with automated 0.0005 USDC settlement on @base if you supply `GRID402_PRIVATE_KEY`, or free instant health discovery.
 > 
-> SDKs available for Python (`grid402`) & Node.js. Built for agents by builders. ⚡
+> SDKs available for Python (`grid402`) and Node.js. Built for agents by builders. ⚡
 
 ---
 
@@ -98,7 +98,7 @@ npm publish --access public
 > That's Grid402.
 > - Zero-DB flat-file atomic architecture
 > - flock anti-replay protection against double-spend
-> - OpenAPI 3.1 & llms.txt discovery
+> - OpenAPI 3.1 e llms.txt discovery
 > - Official MCP Server live via npx
 > 
 > Try the interactive tester: https://orangered-jackal-900744.hostingersite.com
@@ -114,7 +114,7 @@ O arquivo `mcp/smithery.yaml` já está configurado. Para submeter:
 3. O Smithery detectará o `mcp/smithery.yaml` e listará o Grid402 no diretório do Claude Desktop automaticamente.
 
 ### 3.2. Repositório `awesome-mcp-servers` no GitHub
-Abra uma Pull Request em [punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers) adicionando sob a categoria **Network & Web Services**:
+Abra uma Pull Request em [punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers) adicionando sob a categoria **Network e Web Services**:
 ```markdown
 - [Grid402 MCP Server](https://github.com/oliveiratc/Grid402/tree/main/mcp) - Real-time open data (Forex, Crypto, CEP) and network utility tools (DNS, TLS/SSL, ASN/BGP) with Base x402 micro-settlements.
 ```

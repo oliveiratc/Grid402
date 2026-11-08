@@ -1,13 +1,13 @@
-name: "@grid402/mcp-server"
+name: "grid402-mcp"
 version: 1.0.0
-description: "Official Model Context Protocol (MCP) Server for Grid402 - Public Open Data & Network Utilities Hub (Forex, Crypto, DNS, SSL, ASN, CEP) with Base x402 micropayments."
+description: "Official Model Context Protocol (MCP) Server for Grid402 - Public Open Data e Network Utilities Hub (Forex, Crypto, DNS, SSL, ASN, CEP) with Base x402 micropayments."
 startCommand:
   type: stdio
   config:
     command: npx
     args:
       - "-y"
-      - "@grid402/mcp-server"
+      - "grid402-mcp"
     env:
       GRID402_ENDPOINT:
         type: string

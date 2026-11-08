@@ -1,4 +1,4 @@
-# @grid402/mcp-server ⚡
+# grid402-mcp ⚡
 
 Servidor oficial do **Model Context Protocol (MCP)** para o **Grid402** — Hub de Utilitários de Rede e Dados Públicos Abertos com liquidação de micropagamentos x402 em USDC na rede Base.
 
@@ -32,7 +32,7 @@ Adicione ao seu arquivo de configuração (`claude_desktop_config.json`):
   "mcpServers": {
     "grid402": {
       "command": "npx",
-      "args": ["-y", "@grid402/mcp-server"],
+      "args": ["-y", "grid402-mcp"],
       "env": {
         "GRID402_ENDPOINT": "https://orangered-jackal-900744.hostingersite.com",
         "GRID402_PRIVATE_KEY": "0xsua_chave_privada_base_aqui"
@@ -53,7 +53,7 @@ No seu projeto ou globalmente em `~/.cursor/mcp.json`:
   "mcpServers": {
     "grid402": {
       "command": "npx",
-      "args": ["-y", "@grid402/mcp-server"]
+      "args": ["-y", "grid402-mcp"]
     }
   }
 }
@@ -64,7 +64,7 @@ No seu projeto ou globalmente em `~/.cursor/mcp.json`:
 ### 3. Smithery.ai
 Para instalar via Smithery CLI:
 ```bash
-smithery install @grid402/mcp-server --client claude
+smithery install grid402-mcp --client claude
 ```
 
 ---
