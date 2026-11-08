@@ -5,9 +5,113 @@
  * Suporte nativo para Modo Sandbox gratuito, Teaser Data e Coinbase AgentKit.
  */
 
+import crypto from 'node:crypto';
+
 export const DEFAULT_GRID402_URL = 'https://grid402.com.br';
 export const GRID402_ORACLE_WALLET = '0xa31c31069c43ac1c0075a93c325b0dcd7744356c';
 export const BASE_USDC_CONTRACT = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+export const DEFAULT_ORACLE_PUBKEY = `-----BEGIN PUBLIC KEY-----
+MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEZh7FI41OltM2/P7miW0L/D0OE6FzEQRk
+2YJoMPEXO/mKiZ6oSi5l9MCIvS/W7IoIpe3z1EV9rYVEsADOgHHkJw==
+-----END PUBLIC KEY-----`;
+
+/**
+ * Normaliza recursivamente o objeto ordenando chaves e excluindo metadados transientes
+ * @param {any} data
+ * @returns {any}
+ */
+export function canonicalizePayload(data) {
+  if (data === null || typeof data !== 'object') {
+    return data;
+  }
+  const exclude = ['_oracle_proof', 'sandbox_info', '_x402_settlement'];
+  if (Array.isArray(data)) {
+    return data.map(item => canonicalizePayload(item));
+  }
+  const keys = Object.keys(data).filter(k => !exclude.includes(k)).sort();
+  const result = {};
+  for (const k of keys) {
+    result[k] = canonicalizePayload(data[k]);
+  }
+  return result;
+}
+
+/**
+ * Calcula o hash SHA-256 do payload canonico
+ * @param {any} data
+ * @returns {string}
+ */
+export function computeDataHash(data) {
+  const clean = canonicalizePayload(data);
+  const json = JSON.stringify(clean);
+  const hash = crypto.createHash('sha256').update(json).digest('hex');
+  return '0x' + hash;
+}
+
+/**
+ * Valida a prova de autenticidade criptografica do oraculo Grid402
+ * @param {Object} response
+ * @param {string} [expectedOracleAddress]
+ * @param {string} [oraclePublicKey]
+ * @returns {{ valid: boolean, oracleAddress?: string, timestamp?: number, sandbox?: boolean, error?: string, expectedHash?: string, receivedHash?: string }}
+ */
+export function verifyOracleProof(response, expectedOracleAddress = null, oraclePublicKey = null) {
+  if (!response || typeof response !== 'object' || !response._oracle_proof) {
+    return { valid: false, error: 'MissingProofBlock' };
+  }
+
+  const proof = response._oracle_proof;
+  const computedHash = computeDataHash(response);
+
+  if (proof.data_hash !== computedHash) {
+    return {
+      valid: false,
+      error: 'DataHashMismatch',
+      expectedHash: computedHash,
+      receivedHash: proof.data_hash,
+    };
+  }
+
+  const expectedAddress = (expectedOracleAddress || GRID402_ORACLE_WALLET).toLowerCase();
+  const proofAddress = (proof.oracle_address || '').toLowerCase();
+  if (expectedAddress && proofAddress !== expectedAddress) {
+    return {
+      valid: false,
+      error: 'OracleAddressMismatch',
+      expectedAddress,
+      receivedAddress: proofAddress,
+    };
+  }
+
+  const timestamp = Number(proof.timestamp || 0);
+  const isSandbox = Boolean(proof.sandbox);
+  const messageToSign = `${computedHash}:${timestamp}:${isSandbox ? 'sandbox' : 'mainnet'}`;
+
+  const sigHex = (proof.signature || '').replace(/^0x/, '');
+  if (!sigHex) {
+    return { valid: false, error: 'MissingSignature' };
+  }
+
+  try {
+    const pubKey = oraclePublicKey || DEFAULT_ORACLE_PUBKEY;
+    const verifier = crypto.createVerify('sha256');
+    verifier.update(messageToSign);
+    const isValidSig = verifier.verify(pubKey, Buffer.from(sigHex, 'hex'));
+
+    if (!isValidSig) {
+      return { valid: false, error: 'InvalidSignature' };
+    }
+
+    return {
+      valid: true,
+      oracleAddress: proofAddress,
+      timestamp,
+      sandbox: isSandbox,
+    };
+  } catch (err) {
+    return { valid: false, error: 'VerificationError: ' + err.message };
+  }
+}
 
 /**
  * Excecao base de erros do Grid402
@@ -291,6 +395,16 @@ export class Grid402Client {
     const qs = searchParams.toString();
     const query = qs ? `?${qs}` : '';
     return this._request(`/api/v1/workdays${query}`, headers);
+  }
+
+  /**
+   * Valida a prova criptografica de oraculo de uma resposta do Grid402
+   * @param {Object} response
+   * @param {string} [expectedOracleAddress]
+   * @returns {{ valid: boolean, oracleAddress?: string, timestamp?: number, sandbox?: boolean, error?: string }}
+   */
+  verifyProof(response, expectedOracleAddress = null) {
+    return verifyOracleProof(response, expectedOracleAddress);
   }
 
   /**

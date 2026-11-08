@@ -23,8 +23,47 @@ from grid402 import (
     WorkdaysHolidayItem,
     WorkdaysInput,
     WorkdaysResponse,
+    DEFAULT_ORACLE_PUBKEY,
+    GRID402_ORACLE_WALLET,
+    OracleProof,
+    OracleVerificationResult,
+    compute_data_hash,
+    verify_oracle_proof,
     __version__,
 )
+
+
+TEST_ORACLE_PRIVKEY_PEM = b"""-----BEGIN PRIVATE KEY-----
+MIGEAgEAMBAGByqGSM49AgEGBSuBBAAKBG0wawIBAQQgbx7yBcDIEAJOTpIxrSji
+FuMG+zevhna+MX1NMJ1+yZ+hRANCAARmHsUjjU6W0zb8/uaJbQv8PQ4ToXMRBGTZ
+gmgw8Rc7+YqJnqhKLmX0wIi9L9bsigil7fPURX2thUSwAM6AceQn
+-----END PRIVATE KEY-----"""
+
+
+def generate_signed_payload(data: dict, is_sandbox: bool = False) -> dict:
+    import time
+    from cryptography.hazmat.primitives.serialization import load_pem_private_key
+    from cryptography.hazmat.primitives.asymmetric import ec
+    from cryptography.hazmat.primitives import hashes
+
+    data_hash = compute_data_hash(data)
+    timestamp = int(time.time())
+    mode_str = "sandbox" if is_sandbox else "mainnet"
+    msg = f"{data_hash}:{timestamp}:{mode_str}".encode("utf-8")
+
+    privkey = load_pem_private_key(TEST_ORACLE_PRIVKEY_PEM, password=None)
+    sig_bytes = privkey.sign(msg, ec.ECDSA(hashes.SHA256()))
+
+    signed = dict(data)
+    signed["_oracle_proof"] = {
+        "oracle_address": GRID402_ORACLE_WALLET,
+        "timestamp": timestamp,
+        "data_hash": data_hash,
+        "signature": "0x" + sig_bytes.hex(),
+        "algorithm": "secp256k1-sha256",
+        "sandbox": is_sandbox,
+    }
+    return signed
 
 
 class TestGrid402SDK(unittest.TestCase):
@@ -32,7 +71,7 @@ class TestGrid402SDK(unittest.TestCase):
 
     def test_version_and_exports(self) -> None:
         """Verifica versao semantica e exportacoes principais."""
-        self.assertEqual(__version__, "2.3.0")
+        self.assertEqual(__version__, "2.4.0")
         self.assertTrue(issubclass(Grid402PaymentRequiredError, Grid402Error))
 
     def test_pydantic_models(self) -> None:
@@ -249,6 +288,67 @@ class TestGrid402SDK(unittest.TestCase):
             self.assertIn("/api/v1/workdays", req_arg.full_url)
             self.assertIn("start_date=2026-11-06", req_arg.full_url)
             self.assertIn("days=5", req_arg.full_url)
+
+    def test_hash_determinism(self) -> None:
+        """Verifica se compute_data_hash e deterministico independente da ordem de chaves."""
+        obj_a = {"status": "success", "service": "workdays", "workdays": 5}
+        obj_b = {"workdays": 5, "service": "workdays", "status": "success"}
+        self.assertEqual(compute_data_hash(obj_a), compute_data_hash(obj_b))
+        self.assertTrue(compute_data_hash(obj_a).startswith("0x"))
+
+    def test_oracle_proof_verification_success(self) -> None:
+        """Verifica validacao positiva de resposta autentica assinada pelo oraculo."""
+        client = Grid402Client()
+        data = {"status": "success", "service": "workdays", "workdays": 5}
+        signed = generate_signed_payload(data, is_sandbox=False)
+
+        res = client.verify_proof(signed)
+        self.assertTrue(res.valid)
+        self.assertEqual(res.oracle_address, GRID402_ORACLE_WALLET.lower())
+        self.assertFalse(res.sandbox)
+
+    def test_oracle_proof_tampered_payload(self) -> None:
+        """Verifica rejeicao de payload adulterado acusando DataHashMismatch."""
+        client = Grid402Client()
+        data = {"status": "success", "service": "workdays", "workdays": 5}
+        signed = generate_signed_payload(data, is_sandbox=False)
+
+        signed["workdays"] = 6
+
+        res = client.verify_proof(signed)
+        self.assertFalse(res.valid)
+        self.assertEqual(res.error, "DataHashMismatch")
+
+    def test_oracle_proof_wrong_oracle_address(self) -> None:
+        """Verifica rejeicao de carteira de oraculo divergente da esperada."""
+        client = Grid402Client()
+        data = {"status": "success", "service": "workdays", "workdays": 5}
+        signed = generate_signed_payload(data, is_sandbox=False)
+
+        res = client.verify_proof(signed, expected_oracle_address="0x000000000000000000000000000000000000dead")
+        self.assertFalse(res.valid)
+        self.assertEqual(res.error, "OracleAddressMismatch")
+
+    def test_oracle_proof_invalid_signature(self) -> None:
+        """Verifica rejeicao de assinatura forjada ou corrompida."""
+        client = Grid402Client()
+        data = {"status": "success", "service": "workdays", "workdays": 5}
+        signed = generate_signed_payload(data, is_sandbox=False)
+
+        signed["_oracle_proof"]["signature"] = "0x1234567890abcdef"
+
+        res = client.verify_proof(signed)
+        self.assertFalse(res.valid)
+
+    def test_oracle_proof_sandbox_mode(self) -> None:
+        """Verifica validacao de prova emitida em modo Sandbox."""
+        client = Grid402Client(sandbox=True)
+        data = {"status": "success", "service": "indicators", "selic": "10.75"}
+        signed = generate_signed_payload(data, is_sandbox=True)
+
+        res = client.verify_proof(signed)
+        self.assertTrue(res.valid)
+        self.assertTrue(res.sandbox)
 
 
 if __name__ == "__main__":

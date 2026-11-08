@@ -1,7 +1,7 @@
 {
   "name": "grid402-mcp",
-  "version": "1.4.0",
-  "description": "Official Model Context Protocol (MCP) Server for Grid402 - Public Open Data e Network Utilities Hub (Forex, Crypto, DNS, SSL, ASN, CEP, CNPJ) with Base x402 micropayments e Sandbox.",
+  "version": "1.5.0",
+  "description": "Official Model Context Protocol (MCP) Server for Grid402 - Public Open Data e Network Utilities Hub (Forex, Crypto, DNS, SSL, ASN, CEP, CNPJ, Indicators, Holidays, Workdays) with Base x402 micropayments, Oracle Proof e Sandbox.",
   "type": "module",
   "bin": {
     "grid402-mcp": "index.mjs"
@@ -36,6 +36,11 @@
     "asn",
     "cep",
     "cnpj",
+    "indicators",
+    "holidays",
+    "workdays",
+    "oracle",
+    "proof-of-data",
     "sandbox"
   ],
   "author": "Grid402 Team <contato@grid402.com.br>",

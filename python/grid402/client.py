@@ -3,6 +3,7 @@ Cliente HTTP oficial para a API de Micropagamentos Grid402.
 """
 
 from typing import Any, Dict, Optional
+import hashlib
 import json
 import ssl
 import urllib.error
@@ -10,10 +11,116 @@ import urllib.parse
 import urllib.request
 
 from grid402.exceptions import Grid402Error, Grid402PaymentRequiredError
-from grid402.models import WorkdaysResponse
+from grid402.models import OracleVerificationResult, WorkdaysResponse
 
 
 DEFAULT_ENDPOINT = "https://grid402.com.br"
+GRID402_ORACLE_WALLET = "0xa31c31069c43ac1c0075a93c325b0dcd7744356c"
+DEFAULT_ORACLE_PUBKEY = """-----BEGIN PUBLIC KEY-----
+MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEZh7FI41OltM2/P7miW0L/D0OE6FzEQRk
+2YJoMPEXO/mKiZ6oSi5l9MCIvS/W7IoIpe3z1EV9rYVEsADOgHHkJw==
+-----END PUBLIC KEY-----"""
+
+
+def canonicalize_payload(data: Any) -> Any:
+    """Normaliza recursivamente o objeto ordenando chaves e excluindo metadados transientes."""
+    if data is None or not isinstance(data, (dict, list)):
+        return data
+    exclude = {"_oracle_proof", "sandbox_info", "_x402_settlement"}
+    if isinstance(data, list):
+        return [canonicalize_payload(item) for item in data]
+    clean: Dict[str, Any] = {}
+    for k in sorted(data.keys()):
+        if k not in exclude:
+            clean[k] = canonicalize_payload(data[k])
+    return clean
+
+
+def compute_data_hash(data: Any) -> str:
+    """Calcula o hash SHA-256 em hexadecimal prefixado com 0x do payload normalizado."""
+    clean = canonicalize_payload(data)
+    serialized = json.dumps(clean, separators=(",", ":"), sort_keys=True)
+    digest = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+    return f"0x{digest}"
+
+
+def verify_oracle_proof(
+    response: Any,
+    expected_oracle_address: Optional[str] = None,
+    oracle_public_key: Optional[str] = None,
+) -> OracleVerificationResult:
+    """Valida a prova criptografica de oraculo emitida pelo Grid402."""
+    if hasattr(response, "_raw_data") and isinstance(response._raw_data, dict):
+        data_dict = response._raw_data
+    elif hasattr(response, "model_dump"):
+        data_dict = response.model_dump(exclude_none=True, by_alias=True)
+    elif isinstance(response, dict):
+        data_dict = dict(response)
+    else:
+        return OracleVerificationResult(valid=False, error="InvalidPayloadType")
+
+    proof_raw = data_dict.get("_oracle_proof")
+    if not proof_raw or not isinstance(proof_raw, dict):
+        return OracleVerificationResult(valid=False, error="MissingProofBlock")
+
+    computed_hash = compute_data_hash(data_dict)
+    received_hash = proof_raw.get("data_hash")
+
+    if computed_hash != received_hash:
+        return OracleVerificationResult(
+            valid=False,
+            error="DataHashMismatch",
+            expected_hash=computed_hash,
+            received_hash=received_hash,
+        )
+
+    expected_addr = (expected_oracle_address or GRID402_ORACLE_WALLET).lower()
+    proof_addr = str(proof_raw.get("oracle_address") or "").lower()
+    if expected_addr and proof_addr != expected_addr:
+        return OracleVerificationResult(
+            valid=False,
+            error="OracleAddressMismatch",
+            oracle_address=proof_addr,
+        )
+
+    timestamp = int(proof_raw.get("timestamp") or 0)
+    is_sandbox = bool(proof_raw.get("sandbox"))
+    mode_str = "sandbox" if is_sandbox else "mainnet"
+    message_to_sign = f"{computed_hash}:{timestamp}:{mode_str}".encode("utf-8")
+
+    sig_hex = str(proof_raw.get("signature") or "").replace("0x", "")
+    if not sig_hex:
+        return OracleVerificationResult(valid=False, error="MissingSignature")
+
+    try:
+        sig_bytes = bytes.fromhex(sig_hex)
+    except ValueError:
+        return OracleVerificationResult(valid=False, error="MalformedSignatureHex")
+
+    pub_pem = (oracle_public_key or DEFAULT_ORACLE_PUBKEY).encode("utf-8")
+
+    try:
+        from cryptography.hazmat.primitives.serialization import load_pem_public_key
+        from cryptography.hazmat.primitives.asymmetric import ec
+        from cryptography.hazmat.primitives import hashes
+
+        pubkey = load_pem_public_key(pub_pem)
+        pubkey.verify(sig_bytes, message_to_sign, ec.ECDSA(hashes.SHA256()))
+
+        return OracleVerificationResult(
+            valid=True,
+            oracle_address=proof_addr,
+            timestamp=timestamp,
+            sandbox=is_sandbox,
+        )
+    except Exception as exc:
+        return OracleVerificationResult(
+            valid=False,
+            error=f"InvalidSignature: {exc}",
+            oracle_address=proof_addr,
+            timestamp=timestamp,
+            sandbox=is_sandbox,
+        )
 
 
 class Grid402Client:
@@ -175,6 +282,16 @@ class Grid402Client:
             params["date"] = date
         raw = self._request("/api/v1/workdays", params=params, payment_tx_hash=payment_tx_hash)
         if isinstance(raw, dict) and raw.get("status") == "success":
-            return WorkdaysResponse(**raw)
+            inst = WorkdaysResponse(**raw)
+            inst._raw_data = raw
+            return inst
         return raw
+
+    def verify_proof(
+        self,
+        response: Any,
+        expected_oracle_address: Optional[str] = None,
+    ) -> OracleVerificationResult:
+        """Valida a prova matematica de autenticidade emitida pelo oraculo Grid402."""
+        return verify_oracle_proof(response, expected_oracle_address=expected_oracle_address)
 

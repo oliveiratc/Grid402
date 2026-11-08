@@ -114,6 +114,10 @@ define('GRID402_PRICE_CNPJ', (string) grid402_env('GRID402_PRICE_CNPJ', '0.0020'
 define('GRID402_USDC_CNPJ_RAW', (int) grid402_env('GRID402_USDC_CNPJ_RAW', 2000)); // 0.002000 USDC
 define('GRID402_CRON_SECRET', (string) grid402_env('GRID402_CRON_SECRET', 'grid402_secret_token_change_me'));
 
+// 2.1. Parâmetros de Assinatura Criptográfica do Oráculo (Proof of Data)
+define('GRID402_ORACLE_WALLET', strtolower((string) grid402_env('GRID402_ORACLE_WALLET', GRID402_WALLET_ADDRESS)));
+define('GRID402_ORACLE_ALGORITHM', 'secp256k1-sha256');
+
 // 3. Parâmetros de Performance e Timeout
 define('GRID402_TIMEOUT_MS', (int) grid402_env('GRID402_TIMEOUT_MS', 2800));
 define('GRID402_CONNECT_TIMEOUT_MS', (int) grid402_env('GRID402_CONNECT_TIMEOUT_MS', 1500));

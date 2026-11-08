@@ -34,3 +34,7 @@
 - Tarifa Padrao por Requisicao: 0.0005 USDC
 - [Base Mainnet Scanner](https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c): Carteira oraculo recebedora de micropagamentos (0xa31c31069c43ac1c0075a93c325b0dcd7744356c)
 - [USDC Contract on Base](https://basescan.org/token/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913): Contrato oficial de USDC na rede Base Mainnet (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
+
+## Cryptographic Proof of Data (Verifiable Oracle)
+- Todas as respostas tecnicas liberadas com pagamento on-chain ou modo Sandbox incluem a chave `_oracle_proof`.
+- Atestacao: Assinatura digital ECDSA secp256k1 e hash SHA-256 do payload canonico, permitindo que agentes de IA e contratos inteligentes verifiquem localmente a autenticidade dos dados da carteira oraculo (0xa31c31069c43ac1c0075a93c325b0dcd7744356c).

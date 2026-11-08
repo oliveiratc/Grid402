@@ -83,6 +83,8 @@ class EconomicIndicators(BaseModel):
 
 
 class IndicatorsResponse(BaseModel):
+    model_config = {"extra": "allow", "populate_by_name": True}
+
     status: str = Field(..., description="Status da consulta.")
     service: str = Field("indicators", description="Nome do micro-servico.")
     timestamp: str = Field(..., description="Data e hora ISO 8601 da resposta.")
@@ -100,6 +102,8 @@ class HolidayItem(BaseModel):
 
 
 class HolidaysResponse(BaseModel):
+    model_config = {"extra": "allow", "populate_by_name": True}
+
     status: str = Field(..., description="Status da consulta.")
     service: str = Field("holidays", description="Nome do micro-servico.")
     year: int = Field(..., description="Ano calendario consultado.")
@@ -139,6 +143,8 @@ class WorkdaysHolidayItem(BaseModel):
 
 
 class WorkdaysResponse(BaseModel):
+    model_config = {"extra": "allow", "populate_by_name": True}
+
     status: str = Field(..., description="Status da consulta.")
     service: str = Field("workdays", description="Nome do micro-servico.")
     mode: str = Field(..., description="Modo executado: range, projection ou check.")
@@ -177,4 +183,25 @@ class SettlementInfo(BaseModel):
     price_usdc: str = Field(..., description="Valor pago em USDC.")
     network: str = Field("Base", description="Rede blockchain da liquidacao.")
     token: str = Field("USDC", description="Token utilizado no pagamento.")
+
+
+class OracleProof(BaseModel):
+    """Prova criptografica de autenticidade e integridade emitida pelo oraculo Grid402."""
+    oracle_address: str = Field(..., description="Endereco da carteira Ethereum do oraculo que assinou os dados.")
+    timestamp: int = Field(..., description="Timestamp Unix em segundos no momento da assinatura.")
+    data_hash: str = Field(..., description="Hash SHA-256 em hexadecimal prefixado com 0x do payload normalizado.")
+    signature: str = Field(..., description="Assinatura digital ECDSA secp256k1 em formato DER codificada em hexadecimal.")
+    algorithm: str = Field("secp256k1-sha256", description="Algoritmo de assinatura utilizado.")
+    sandbox: bool = Field(False, description="Indica se a assinatura foi gerada em modo sandbox ou producao.")
+
+
+class OracleVerificationResult(BaseModel):
+    """Resultado detalhado da verificacao matematica da prova do oraculo."""
+    valid: bool = Field(..., description="Indica se os dados sao autenticos e nao foram adulterados.")
+    oracle_address: Optional[str] = Field(None, description="Endereco do oraculo verificado.")
+    timestamp: Optional[int] = Field(None, description="Timestamp da assinatura do oraculo.")
+    sandbox: Optional[bool] = Field(None, description="Modo sandbox da assinatura.")
+    error: Optional[str] = Field(None, description="Codigo descritivo do erro em caso de falha de verificacao.")
+    expected_hash: Optional[str] = Field(None, description="Hash computado localmente a partir dos dados recebidos.")
+    received_hash: Optional[str] = Field(None, description="Hash informado no bloco de prova do oraculo.")
 

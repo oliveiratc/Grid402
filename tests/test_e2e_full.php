@@ -202,6 +202,17 @@ try {
     assert($workdaysData['workdays'] === 1, "De 24/12 a 28/12/2026 deve contabilizar 1 dia útil");
     echo "     ✓ Micro-serviço workdays validado com 100% de sucesso (HTTP 402 + Sandbox 200)!\n";
 
+    // 3.8. Validação da Assinatura Criptográfica de Oráculo (_oracle_proof)
+    echo "  -> Verificando emissão e integridade da Assinatura de Oráculo (_oracle_proof)...\n";
+    assert(isset($workdaysData['_oracle_proof']), "Resposta de sucesso deve conter _oracle_proof");
+    assert(!empty($workdaysData['_oracle_proof']['signature']), "Prova deve conter assinatura digital");
+    assert($workdaysData['_oracle_proof']['sandbox'] === true, "Prova no sandbox deve indicar sandbox: true");
+    assert($workdaysData['_oracle_proof']['oracle_address'] === '0xa31c31069c43ac1c0075a93c325b0dcd7744356c', "Carteira deve ser a oficial");
+    require_once __DIR__ . '/../public_html/services/oracle_signer.php';
+    $verifyRes = grid402_verify_oracle_proof($workdaysData);
+    assert(!empty($verifyRes['valid']) && $verifyRes['valid'] === true, "A verificação da assinatura deve ser válida");
+    echo "     ✓ Prova criptográfica (_oracle_proof) validada matematicamente no E2E!\n";
+
     echo "  ✓ Todos os testes HTTP foram validados com êxito!\n\n";
 
 } finally {

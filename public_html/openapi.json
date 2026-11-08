@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Grid402 // Public Data e Network Utilities Hub",
-    "version": "2.4.0",
+    "version": "2.5.0",
     "description": "High-performance autonomous M2M public data and network utilities oracle designed for AI agents, crawlers, and automation pipelines. Settled via the x402 protocol with Base Mainnet USDC micropayments (US$ 0.0005 standard, US$ 0.0020 corporate CNPJ).",
     "contact": {
       "name": "Grid402 Support",
@@ -657,8 +657,22 @@
               }
             }
           },
-          "tariff_usdc": { "type": "string", "example": "0.0005" }
+          "tariff_usdc": { "type": "string", "example": "0.0005" },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
         }
+      },
+      "OracleProof": {
+        "type": "object",
+        "description": "Cryptographic proof of data authenticity and non-repudiation signed by the official Grid402 Oracle",
+        "properties": {
+          "oracle_address": { "type": "string", "example": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c" },
+          "timestamp": { "type": "integer", "example": 1794140000 },
+          "data_hash": { "type": "string", "example": "0x4f8a12b3c4d5e6f7..." },
+          "signature": { "type": "string", "example": "0x3045022100..." },
+          "algorithm": { "type": "string", "example": "secp256k1-sha256" },
+          "sandbox": { "type": "boolean", "example": false }
+        },
+        "required": ["oracle_address", "timestamp", "data_hash", "signature", "algorithm", "sandbox"]
       },
       "ErrorResponse": {
         "type": "object",

@@ -109,6 +109,32 @@ console.log('Comprovante on-chain:', resultado._x402_settlement);
 
 ---
 
+### 5. Verificacao Criptografica de Prova de Autenticidade (Proof of Data)
+
+Todas as respostas de dados pagas e em sandbox trazem uma prova matematica de oraculo (`_oracle_proof`) assinada via ECDSA secp256k1 pela carteira oficial do Grid402 (`0xa31c31069c43ac1c0075a93c325b0dcd7744356c`).
+
+O SDK permite verificar matematicamente a integridade dos dados e a autenticidade do emissor em menos de 5 milissegundos sem chamadas de rede adicionais:
+
+```javascript
+import { Grid402Client } from 'grid402';
+
+const client = new Grid402Client({ sandbox: true });
+const dados = await client.getWorkdays({ startDate: '2026-11-06', endDate: '2026-11-13' });
+
+// Validacao matematica local e instantanea
+const verificacao = client.verifyProof(dados);
+
+if (verificacao.valid) {
+  console.log('Dados autenticos assinados pelo oraculo Grid402!');
+  console.log('Endereco do oraculo:', verificacao.oracleAddress);
+  console.log('Carimbo temporal:', verificacao.timestamp);
+} else {
+  console.error('Falha na autenticidade dos dados:', verificacao.error);
+}
+```
+
+---
+
 ## Catalogo de Ferramentas
 
 | Metodo | Descricao | Preco Base (USDC) |

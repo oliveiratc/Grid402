@@ -1,7 +1,7 @@
 {
   "name": "grid402",
-  "version": "2.4.0",
-  "description": "Official client SDK for Grid402 - Public Open Data and Network Utilities Hub with x402 Base micropayments for AI Agents, Node.js and TypeScript.",
+  "version": "2.5.0",
+  "description": "Official client SDK for Grid402 - Public Open Data and Network Utilities Hub with x402 Base micropayments and Cryptographic Oracle Proof for AI Agents, Node.js and TypeScript.",
   "main": "./grid402.cjs",
   "module": "./grid402.mjs",
   "types": "./grid402.d.ts",
@@ -46,7 +46,10 @@
     "asn",
     "cep",
     "cnpj",
-    "open-data"
+    "open-data",
+    "oracle",
+    "proof-of-data",
+    "secp256k1"
   ],
   "author": "Grid402 Team <contato@grid402.com.br>",
   "license": "MIT",

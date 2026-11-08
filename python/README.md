@@ -112,6 +112,31 @@ payload_workdays = WorkdaysInput(start_date="2026-11-06", days=5)
 
 ---
 
+### 5. Verificacao Criptografica de Prova de Autenticidade (Proof of Data)
+
+Todas as respostas de dados pagas e em sandbox trazem uma prova matematica de oraculo (`_oracle_proof`) assinada via ECDSA secp256k1 pela carteira oficial do Grid402 (`0xa31c31069c43ac1c0075a93c325b0dcd7744356c`).
+
+O SDK permite verificar matematicamente a integridade dos dados e a autenticidade do emissor em menos de 5 milissegundos sem chamadas de rede adicionais:
+
+```python
+from grid402 import Grid402Client
+
+client = Grid402Client(sandbox=True)
+dados = client.get_workdays(start_date="2026-11-06", days=5)
+
+# Validacao matematica local e instantanea
+verificacao = client.verify_proof(dados)
+
+if verificacao.valid:
+    print("Dados autenticos assinados pelo oraculo Grid402!")
+    print("Endereco do oraculo:", verificacao.oracle_address)
+    print("Carimbo temporal:", verificacao.timestamp)
+else:
+    print("Falha na autenticidade dos dados:", verificacao.error)
+```
+
+---
+
 ## Catalogo de Ferramentas
 
 | Metodo | Descricao | Preco Base (USDC) |

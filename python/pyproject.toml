@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "grid402"
-version = "2.3.0"
-description = "SDK Python oficial do Grid402: Micropagamentos HTTP 402 na Base para Agentes Autonomos e IA"
+version = "2.4.0"
+description = "SDK Python oficial do Grid402: Micropagamentos HTTP 402 na Base e Prova Criptografica de Oraculo para Agentes Autonomos e IA"
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
@@ -21,6 +21,9 @@ keywords = [
     "agentic-web",
     "mcp",
     "ai-agents",
+    "oracle",
+    "proof-of-data",
+    "secp256k1",
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -37,6 +40,7 @@ classifiers = [
 ]
 dependencies = [
     "pydantic>=2.0.0",
+    "cryptography>=41.0.0",
 ]
 
 [project.optional-dependencies]

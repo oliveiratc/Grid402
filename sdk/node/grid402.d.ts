@@ -226,6 +226,25 @@ export interface WorkdaysResponse {
     error?: string;
 }
 
+export interface OracleProof {
+    oracle_address: string;
+    timestamp: number;
+    data_hash: string;
+    signature: string;
+    algorithm: string;
+    sandbox: boolean;
+}
+
+export interface OracleVerificationResult {
+    valid: boolean;
+    oracleAddress?: string;
+    timestamp?: number;
+    sandbox?: boolean;
+    error?: string;
+    expectedHash?: string;
+    receivedHash?: string;
+}
+
 export interface SettlementReceipt {
     settled: boolean;
     tx_hash: string;
@@ -279,6 +298,7 @@ export declare class Grid402Client {
     getIndicators(paymentTxHash?: string): Promise<IndicatorsResponse>;
     getHolidays(year?: number, paymentTxHash?: string): Promise<HolidaysResponse>;
     getWorkdays(params?: WorkdaysParams, paymentTxHash?: string): Promise<WorkdaysResponse>;
+    verifyProof(response: Record<string, any>, expectedOracleAddress?: string): OracleVerificationResult;
     isHealthy(serviceName?: string): Promise<boolean>;
     guard<T>(serviceName: string, action: () => Promise<T> | T, fallback?: () => Promise<T> | T): Promise<T>;
 }
@@ -321,3 +341,9 @@ export declare class Grid402ActionProvider {
     getHolidays(year?: number, walletProvider?: WalletProvider): Promise<HolidaysResponse>;
     getWorkdays(params?: WorkdaysParams, walletProvider?: WalletProvider): Promise<WorkdaysResponse>;
 }
+
+export declare function verifyOracleProof(
+    response: Record<string, any>,
+    expectedOracleAddress?: string,
+    oraclePublicKey?: string
+): OracleVerificationResult;

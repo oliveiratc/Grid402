@@ -22,6 +22,7 @@ require_once __DIR__ . '/services/cnpj.php';
 require_once __DIR__ . '/services/indicators.php';
 require_once __DIR__ . '/services/holidays.php';
 require_once __DIR__ . '/services/workdays.php';
+require_once __DIR__ . '/services/oracle_signer.php';
 require_once __DIR__ . '/metrics.php';
 
 // Leitura de cabeçalhos e rotas
@@ -617,6 +618,10 @@ if ($isValidApiAction) {
             'quota_limit_per_hour' => $validation['limit'] ?? 20,
             'message' => 'Consulta executada no Modo Sandbox de testes. Para chamadas em produção, utilize a Base Mainnet.',
         ];
+    }
+
+    if (is_array($result) && (!isset($result['code']) || $result['code'] === 200)) {
+        grid402_sign_data($result, $isSandbox);
     }
 
     echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);

@@ -4,6 +4,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 
 import {
   Grid402Client,
@@ -11,6 +12,9 @@ import {
   Grid402Error,
   PaymentRequiredError,
   DEFAULT_GRID402_URL,
+  GRID402_ORACLE_WALLET,
+  computeDataHash,
+  verifyOracleProof,
 } from './grid402.mjs';
 
 test('Grid402Client - Inicializacao e opcoes padrao', () => {
@@ -218,4 +222,92 @@ test('Grid402Client - Metodo getWorkdays', async () => {
   } finally {
     globalThis.fetch = originalFetch;
   }
+});
+
+const TEST_ORACLE_PRIVKEY = `-----BEGIN PRIVATE KEY-----
+MIGEAgEAMBAGByqGSM49AgEGBSuBBAAKBG0wawIBAQQgbx7yBcDIEAJOTpIxrSji
+FuMG+zevhna+MX1NMJ1+yZ+hRANCAARmHsUjjU6W0zb8/uaJbQv8PQ4ToXMRBGTZ
+gmgw8Rc7+YqJnqhKLmX0wIi9L9bsigil7fPURX2thUSwAM6AceQn
+-----END PRIVATE KEY-----`;
+
+function generateMockSignedResponse(data, isSandbox = false) {
+  const hash = computeDataHash(data);
+  const timestamp = Math.floor(Date.now() / 1000);
+  const msg = `${hash}:${timestamp}:${isSandbox ? 'sandbox' : 'mainnet'}`;
+  const signer = crypto.createSign('sha256');
+  signer.update(msg);
+  const signature = '0x' + signer.sign(TEST_ORACLE_PRIVKEY, 'hex');
+
+  return {
+    ...data,
+    _oracle_proof: {
+      oracle_address: GRID402_ORACLE_WALLET,
+      timestamp,
+      data_hash: hash,
+      signature,
+      algorithm: 'secp256k1-sha256',
+      sandbox: isSandbox,
+    },
+  };
+}
+
+test('Grid402 - Determinismo do hash canonico', () => {
+  const objA = { status: 'success', service: 'workdays', workdays: 5 };
+  const objB = { workdays: 5, service: 'workdays', status: 'success' };
+  assert.equal(computeDataHash(objA), computeDataHash(objB));
+  assert(computeDataHash(objA).startsWith('0x'));
+});
+
+test('Grid402Client - Validacao positiva de prova criptografica do oraculo', () => {
+  const client = new Grid402Client();
+  const sample = { status: 'success', service: 'workdays', workdays: 5 };
+  const signed = generateMockSignedResponse(sample, false);
+
+  const result = client.verifyProof(signed);
+  assert.equal(result.valid, true);
+  assert.equal(result.oracleAddress, GRID402_ORACLE_WALLET.toLowerCase());
+  assert.equal(result.sandbox, false);
+});
+
+test('Grid402Client - Rejeicao de payload adulterado (DataHashMismatch)', () => {
+  const client = new Grid402Client();
+  const sample = { status: 'success', service: 'workdays', workdays: 5 };
+  const signed = generateMockSignedResponse(sample, false);
+
+  signed.workdays = 6;
+
+  const result = client.verifyProof(signed);
+  assert.equal(result.valid, false);
+  assert.equal(result.error, 'DataHashMismatch');
+});
+
+test('Grid402Client - Rejeicao de carteira de oraculo divergente', () => {
+  const client = new Grid402Client();
+  const sample = { status: 'success', service: 'workdays', workdays: 5 };
+  const signed = generateMockSignedResponse(sample, false);
+
+  const result = client.verifyProof(signed, '0x000000000000000000000000000000000000dead');
+  assert.equal(result.valid, false);
+  assert.equal(result.error, 'OracleAddressMismatch');
+});
+
+test('Grid402Client - Rejeicao de assinatura forjada ou corrompida', () => {
+  const client = new Grid402Client();
+  const sample = { status: 'success', service: 'workdays', workdays: 5 };
+  const signed = generateMockSignedResponse(sample, false);
+
+  signed._oracle_proof.signature = '0x1234567890abcdef';
+
+  const result = client.verifyProof(signed);
+  assert.equal(result.valid, false);
+});
+
+test('Grid402Client - Validacao de prova em modo Sandbox', () => {
+  const client = new Grid402Client({ sandbox: true });
+  const sample = { status: 'success', service: 'indicators', selic: '10.75' };
+  const signed = generateMockSignedResponse(sample, true);
+
+  const result = client.verifyProof(signed);
+  assert.equal(result.valid, true);
+  assert.equal(result.sandbox, true);
 });

@@ -265,7 +265,7 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
 
   const headers = {
     'Accept': 'application/json',
-    'User-Agent': 'Grid402-MCP-Server/1.4',
+    'User-Agent': 'Grid402-MCP-Server/1.5',
   };
 
   if (params.payment_tx_hash) {
