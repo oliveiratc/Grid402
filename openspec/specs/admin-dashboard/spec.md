@@ -1,7 +1,7 @@
 # admin-dashboard Specification
 
 ## Purpose
-TBD - created by archiving change add-admin-dashboard. Update Purpose after archive.
+Prover painel web administrativo seguro para monitoramento em tempo real de telemetria, faturamento de micropagamentos x402 e controle de primeiro acesso sem exposicao de dados pessoais.
 
 ## Requirements
 

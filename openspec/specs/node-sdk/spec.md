@@ -1,7 +1,7 @@
 # node-sdk Specification
 
 ## Purpose
-TBD - created by archiving change update-node-sdk-v2-2. Update Purpose after archive.
+Prover o SDK oficial Node.js e TypeScript (`grid402`) para consumo de dados publicos e auto-liquidacao de tarifas x402 via Coinbase AgentKit e modo Sandbox.
 
 ## Requirements
 
@@ -36,3 +36,16 @@ O pacote `grid402` MUST ser consumivel tanto via `import` em modulos ESM quanto 
 - GIVEN um ambiente Node.js executando em modo CommonJS
 - WHEN o modulo for carregado com `const { Grid402Client } = require('grid402')`
 - THEN a classe `Grid402Client` DEVE ser instanciada e operavel normalmente
+
+### Requirement: Node.js client methods for indicators and holidays
+O SDK Node.js e TypeScript (`grid402`) SHALL expor os metodos `getIndicators()` e `getHolidays(year?)` retornando promessas com tipos TypeScript estritos e suporte a auto-liquidacao x402 ou Sandbox.
+
+#### Scenario: Calling getIndicators on Grid402Client
+- **GIVEN** uma instancia de `Grid402Client` configurada com Sandbox ou chave EVM
+- **WHEN** o metodo `client.getIndicators()` e executado
+- **THEN** ele retorna um objeto do tipo `IndicatorsResponse` contendo os indicadores economicos consolidados
+
+#### Scenario: Calling getHolidays on Grid402Client
+- **GIVEN** uma instancia de `Grid402Client` configurada
+- **WHEN** o metodo `client.getHolidays(2026)` e executado
+- **THEN** ele retorna um objeto do tipo `HolidaysResponse` contendo a lista de feriados nacionais e bancarios para o ano solicitado

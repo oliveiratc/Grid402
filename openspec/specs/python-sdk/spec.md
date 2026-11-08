@@ -1,7 +1,7 @@
 # python-sdk Specification
 
 ## Purpose
-TBD - created by archiving change add-python-sdk-and-pypi-distribution. Update Purpose after archive.
+Prover o SDK oficial em Python (`grid402`) com modelos Pydantic v2 para consumo dos utilitarios e auto-liquidacao de micropagamentos x402 via Coinbase AgentKit.
 
 ## Requirements
 
@@ -41,3 +41,16 @@ O SDK SHALL ser estruturado em conformidade com PEP 517 / PEP 621 em `python/pyp
 - **GIVEN** o diretório `python/` com a configuração de build
 - **WHEN** o comando de checagem do build é executado
 - **THEN** os artefatos de distribuição SHALL ser validados sem erros de metadados ou arquivos ausentes.
+
+### Requirement: Python client methods for indicators and holidays
+O SDK Python (`grid402`) SHALL expor os metodos `get_indicators()` e `get_holidays(year=None)` retornando modelos Pydantic v2 `IndicatorsResponse` e `HolidaysResponse` com suporte a auto-liquidacao x402 ou Sandbox.
+
+#### Scenario: Calling get_indicators on Grid402Client
+- **GIVEN** uma instancia de `Grid402Client` em Python
+- **WHEN** o metodo `client.get_indicators()` e executado
+- **THEN** ele retorna uma instancia validada de `IndicatorsResponse` contendo os indicadores macroeconomicos
+
+#### Scenario: Calling get_holidays on Grid402Client
+- **GIVEN** uma instancia de `Grid402Client` em Python
+- **WHEN** o metodo `client.get_holidays(year=2026)` e executado
+- **THEN** ele retorna uma instancia validada de `HolidaysResponse` contendo a lista tipada de feriados

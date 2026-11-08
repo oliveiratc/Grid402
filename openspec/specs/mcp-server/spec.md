@@ -1,7 +1,7 @@
 # mcp-server Specification
 
 ## Purpose
-TBD - created by archiving change add-mcp-server-and-distribution. Update Purpose after archive.
+Prover o servidor MCP oficial (`grid402-mcp`) via transporte stdio para conectar agentes de IA (Cursor, Claude Desktop, Antigravity) aos utilitarios de dados publicos com auto-liquidacao x402.
 
 ## Requirements
 
@@ -77,3 +77,15 @@ O pacote `grid402-mcp` SHALL ser distribuído no registro oficial do npm na vers
 - **GIVEN** o pacote instalado via `npx -y grid402-mcp@latest` com a variável `GRID402_SANDBOX=true`
 - **WHEN** o cliente invoca a ferramenta `grid402_cnpj` com parâmetro `cnpj: "00000000000191"`
 - **THEN** o servidor SHALL executar a chamada utilizando o token de simulação e retornar os dados completos sem exigir saldo em carteira.
+
+### Requirement: MCP tools for indicators and holidays
+O servidor MCP (`grid402-mcp`) SHALL registrar e expor as ferramentas `grid402_indicators` e `grid402_holidays` com schemas JSON Schema de entrada e suporte automatico a auto-liquidacao on-chain ou Modo Sandbox.
+
+#### Scenario: Tool execution for grid402_indicators
+- **WHEN** um agente MCP (Claude Desktop ou Cursor) invoca a ferramenta `grid402_indicators`
+- **THEN** o servidor executa a consulta aos indicadores economicos e retorna a resposta formatada em texto e JSON
+
+#### Scenario: Tool execution for grid402_holidays
+- **GIVEN** o argumento `year: 2026`
+- **WHEN** um agente MCP invoca a ferramenta `grid402_holidays` com esse argumento
+- **THEN** o servidor executa a consulta ao calendario de feriados e retorna a colecao formatada
