@@ -100,7 +100,7 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
           "url": "https://orangered-jackal-900744.hostingersite.com",
           "logo": "https://orangered-jackal-900744.hostingersite.com/badge/summary.svg",
           "email": "contato@grid402.com.br",
-          "telephone": "+55-11-95832-5845",
+          "telephone": "+55-11-95832-5848",
           "description": "Hub de micro-servicos publicos e oraculo de utilitarios de rede para agentes autonomos de IA sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.",
           "address": {
             "@type": "PostalAddress",
@@ -123,7 +123,7 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
               "@type": "ContactPoint",
               "contactType": "customer support",
               "email": "contato@grid402.com.br",
-              "telephone": "+55-11-95832-5845",
+              "telephone": "+55-11-95832-5848",
               "availableLanguage": ["Portuguese", "English"]
             }
           ]
@@ -218,7 +218,7 @@ if ($pageParam === 'about' || $requestPath === '/about') {
             <p><strong>Organizacao:</strong> Grid402 Network Intelligence</p>
             <p><strong>Endereco Fisico:</strong> Avenida Paulista, 1000, Bela Vista, Sao Paulo - SP, CEP 01310-100, Brasil</p>
             <p><strong>Email de Suporte:</strong> <a href="mailto:contato@grid402.com.br">contato@grid402.com.br</a></p>
-            <p><strong>Central Telefonica:</strong> <a href="tel:+5511958325845">+55 11 95832-5845</a></p>
+            <p><strong>Central Telefonica:</strong> <a href="tel:+5511958325848">+55 11 95832-5848</a></p>
             <p><strong>Carteira Oraculo:</strong> <a href="https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c" target="_blank" rel="noopener noreferrer">0xa31c31069c43ac1c0075a93c325b0dcd7744356c</a></p>
         </div>';
         grid402_render_page_html('About Grid402 - Hub de Utilitarios de Rede e Dados Publicos', 'Saiba mais sobre a infraestrutura e os servicos publicos de rede do Grid402 para agentes de IA e desenvolvedores.', '/about', 'About Grid402', $aboutBody);
@@ -259,7 +259,7 @@ if ($pageParam === 'contact' || $requestPath === '/contact') {
         <div class="card-box">
             <p><strong>Email de Suporte Geral e Integracoes:</strong> <a href="mailto:contato@grid402.com.br">contato@grid402.com.br</a></p>
             <p><strong>Encarregado de Dados (DPO / LGPD):</strong> <a href="mailto:contato@grid402.com.br">contato@grid402.com.br</a></p>
-            <p><strong>Central Telefonica:</strong> <a href="tel:+5511958325845">+55 11 95832-5845</a></p>
+            <p><strong>Central Telefonica:</strong> <a href="tel:+5511958325848">+55 11 95832-5848</a></p>
             <p><strong>Endereco Fisico:</strong> Avenida Paulista, 1000, Bela Vista, Sao Paulo - SP, CEP 01310-100, Brasil</p>
         </div>
         <h2>Ecossistema e Codigo Aberto</h2>
@@ -276,7 +276,7 @@ if ($pageParam === 'contact' || $requestPath === '/contact') {
             'organization' => 'Grid402',
             'support_email' => 'contato@grid402.com.br',
             'dpo_email' => 'contato@grid402.com.br',
-            'telephone' => '+55-11-95832-5845',
+            'telephone' => '+55-11-95832-5848',
             'address' => [
                 'street' => 'Avenida Paulista, 1000',
                 'city' => 'Sao Paulo',
@@ -650,7 +650,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
           "url": "https://orangered-jackal-900744.hostingersite.com",
           "logo": "https://orangered-jackal-900744.hostingersite.com/badge/summary.svg",
           "email": "contato@grid402.com.br",
-          "telephone": "+55-11-95832-5845",
+          "telephone": "+55-11-95832-5848",
           "description": "Hub de micro-servicos publicos e oraculo de utilitarios de rede para agentes autonomos de IA sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.",
           "address": {
             "@type": "PostalAddress",
@@ -673,7 +673,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
               "@type": "ContactPoint",
               "contactType": "customer support",
               "email": "contato@grid402.com.br",
-              "telephone": "+55-11-95832-5845",
+              "telephone": "+55-11-95832-5848",
               "availableLanguage": ["Portuguese", "English"]
             }
           ]
@@ -1618,7 +1618,7 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
                 </div>
                 <div class="contact-card">
                     <strong>Central Telefonica</strong>
-                    <a href="tel:+5511958325845">+55 11 95832-5845</a>
+                    <a href="tel:+5511958325848">+55 11 95832-5848</a>
                 </div>
                 <div class="contact-card">
                     <strong>Codigo Fonte no GitHub</strong>
@@ -1654,7 +1654,7 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
                 <a href="/openapi.json" target="_blank">OpenAPI 3.1</a>
                 <a href="/.well-known/mcp/server-card.json" target="_blank">MCP Server Card</a>
                 <a href="mailto:contato@grid402.com.br">contato@grid402.com.br</a>
-                <a href="tel:+5511958325845">+55 11 95832-5845</a>
+                <a href="tel:+5511958325848">+55 11 95832-5848</a>
             </div>
             <div>
                 Copyright (c) 2026 Grid402 Contributors. Distribuido sob os termos da Licenca MIT.
