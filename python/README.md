@@ -8,7 +8,7 @@ Projetada especificamente para agentes autonomos de inteligencia artificial, fra
 
 ## Recursos Principais
 
-- **8 Ferramentas Integradas:** CNPJ da Receita Federal, CEP postal e IBGE, cotacoes Forex e Cripto spot, resolucao DNS, auditoria TLS e SSL, analise ASN e BGP e status do ecossistema.
+- **10 Ferramentas Integradas:** Indicadores macroeconomicos (Selic, CDI, IPCA), feriados nacionais e bancarios ANBIMA, CNPJ da Receita Federal, CEP postal e IBGE, cotacoes Forex e Cripto spot, resolucao DNS, auditoria TLS e SSL, analise ASN e BGP e status do ecossistema.
 - **Zero Cadastro e Zero Friccao:** Sem necessidade de chaves de API estaticas ou contratos mensais.
 - **Modo Sandbox Gratuito:** Teste e homologue localmente sem custos informando `sandbox=True`.
 - **Integracao Nativa com IA:** Compativel com Coinbase Developer Platform (CDP) AgentKit, LangChain e CrewAI.
@@ -100,12 +100,13 @@ print("Comprovante on-chain:", resultado.get("_x402_settlement"))
 Para fluxos de trabalho tipados e validacao antecipada:
 
 ```python
-from grid402 import CnpjInput, CepInput, DnsInput, SslInput, AsnInput
+from grid402 import CnpjInput, CepInput, DnsInput, SslInput, AsnInput, IndicatorsInput, HolidaysInput
 
 # Validacao de entrada antes do envio
 payload_cnpj = CnpjInput(cnpj="00.000.000/0001-91")
 payload_cep = CepInput(code="01310100")
 payload_dns = DnsInput(domain="base.org")
+payload_holidays = HolidaysInput(year=2026)
 ```
 
 ---
@@ -122,6 +123,8 @@ payload_dns = DnsInput(domain="base.org")
 | `get_asn(ip)` | Inteligencia de roteamento BGP, bloco alocado e ASN | 0.0005 |
 | `get_cep(code)` | Consulta de logradouro postal brasileiro e codigo IBGE | 0.0005 |
 | `get_cnpj(cnpj)` | Dados cadastrais completos de PJ na Receita Federal | 0.0020 |
+| `get_indicators()` | Indicadores macroeconomicos oficiais (Selic meta e diaria, CDI anual e IPCA) | 0.0005 |
+| `get_holidays(year)` | Calendario oficial de feriados nacionais e bancarios ANBIMA | 0.0005 |
 
 ---
 

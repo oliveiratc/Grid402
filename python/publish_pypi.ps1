@@ -58,7 +58,7 @@ $env:TWINE_PASSWORD = $token
 
 try {
     .\python\.venv\Scripts\python.exe -m twine upload @repositoryArgs python/dist/*
-    Write-Host "`nPacote grid402 v1.0.0 publicado com sucesso no PyPI!" -ForegroundColor Green
+    Write-Host "`nPacote grid402 publicado com sucesso no PyPI!" -ForegroundColor Green
     Write-Host "Instale a qualquer momento com: pip install grid402" -ForegroundColor Cyan
 } finally {
     $env:TWINE_USERNAME = ""

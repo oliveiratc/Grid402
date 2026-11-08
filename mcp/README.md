@@ -18,6 +18,8 @@ Compatível nativamente com **Claude Desktop**, **Cursor**, **Smithery.ai**, **C
 | `grid402_asn` | Inteligência BGP, número ASN, organização e país de bloco IP | On-Demand | 0.0005 USDC |
 | `grid402_cep` | Consulta de endereço postal brasileiro e código IBGE oficial | On-Demand | 0.0005 USDC |
 | `grid402_cnpj` | Consulta cadastral de CNPJ da Receita Federal com status e CNAE | On-Demand | 0.0020 USDC |
+| `grid402_indicators` | Indicadores macroeconômicos oficiais (Selic meta e diária, CDI anual e IPCA) | On-Demand | 0.0005 USDC |
+| `grid402_holidays` | Calendário oficial de feriados nacionais e bancários ANBIMA por ano | On-Demand | 0.0005 USDC |
 
 ---
 
