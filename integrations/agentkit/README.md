@@ -17,6 +17,10 @@ Com este provedor, qualquer agente de IA (LangChain, CrewAI, AutoGen ou ElizaOS)
 | `query_dns` | Resolucao autoritativa de registros A, AAAA, MX, TXT, NS | 0.0005 USDC |
 | `query_ssl` | Inspecao e dias de validade de certificados TLS/SSL | 0.0005 USDC |
 | `query_asn` | Roteamento BGP, numero de ASN e organizacao titular de IP | 0.0005 USDC |
+| `query_indicators` | Indicadores macroeconomicos oficiais (Selic meta e diaria, CDI anual e IPCA) | 0.0005 USDC |
+| `query_holidays` | Calendario oficial de feriados nacionais e bancarios ANBIMA por ano | 0.0005 USDC |
+| `query_workdays` | Calculadora de dias uteis financeiros e projecao de vencimentos ANBIMA | 0.0005 USDC |
+| `verify_proof` | Validacao matematica de prova criptografica de oraculo (_oracle_proof) secp256k1 | Gratuito |
 
 ---
 
@@ -35,7 +39,7 @@ const walletProvider = await CdpWalletProvider.configureWithWallet({
 
 // 2. Inicializa o provedor de acoes do Grid402
 const grid402 = new Grid402ActionProvider({
-  baseUrl: "https://grid402.com.br",
+  baseUrl: "https://orangered-jackal-900744.hostingersite.com",
   sandbox: false, // configure true para testar sem custos (cota de 20 req/h)
 });
 

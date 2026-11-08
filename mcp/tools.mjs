@@ -193,10 +193,24 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet comprovando o pagamento de 0.0005 USDC caso não utilize liquidação automática.',
+          description: 'Hash opcional de transacao na Base Mainnet comprovando o pagamento de 0.0005 USDC caso nao utilize liquidacao automatica.',
         },
       },
       required: [],
+    },
+  },
+  {
+    name: 'grid402_verify',
+    description: 'Valida a integridade matematica da prova criptografica de oraculo (_oracle_proof) secp256k1 em uma resposta do Grid402 (gratuito).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        payload: {
+          type: 'string',
+          description: 'Payload JSON serializado da resposta da API contendo a chave _oracle_proof.',
+        },
+      },
+      required: ['payload'],
     },
   },
 ];
@@ -256,8 +270,26 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
       if (params.days !== undefined && params.days !== null) queryParams.set('days', params.days);
       if (params.date) queryParams.set('date', params.date);
       break;
+    case 'verify':
+      path = '/api/v1/verify';
+      break;
     default:
-      throw new Error(`Serviço desconhecido: ${service}`);
+      throw new Error(`Servico desconhecido: ${service}`);
+  }
+
+  // Verificacao de oraculo via POST sem estado
+  if (service === 'verify') {
+    const postPayload = typeof params.payload === 'string' ? params.payload : JSON.stringify(params.payload || params);
+    const verifyRes = await fetch(`${endpoint}/api/v1/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'Grid402-MCP-Server/1.6',
+      },
+      body: postPayload,
+    });
+    return await verifyRes.json();
   }
 
   const queryString = queryParams.toString();
@@ -265,7 +297,7 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
 
   const headers = {
     'Accept': 'application/json',
-    'User-Agent': 'Grid402-MCP-Server/1.5',
+    'User-Agent': 'Grid402-MCP-Server/1.6',
   };
 
   if (params.payment_tx_hash) {

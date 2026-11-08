@@ -21,6 +21,7 @@ Compatível nativamente com **Claude Desktop**, **Cursor**, **Smithery.ai**, **C
 | `grid402_indicators` | Indicadores macroeconômicos oficiais (Selic meta e diária, CDI anual e IPCA) | On-Demand | 0.0005 USDC |
 | `grid402_holidays` | Calendário oficial de feriados nacionais e bancários ANBIMA por ano | On-Demand | 0.0005 USDC |
 | `grid402_workdays` | Calculadora de dias úteis financeiros e projeção de vencimentos ANBIMA | On-Demand | 0.0005 USDC |
+| `grid402_verify` | Validação matemática de prova criptográfica de oráculo (_oracle_proof) secp256k1 | Direto | Gratuito |
 
 ---
 

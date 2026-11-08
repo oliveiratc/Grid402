@@ -71,7 +71,7 @@ class TestGrid402SDK(unittest.TestCase):
 
     def test_version_and_exports(self) -> None:
         """Verifica versao semantica e exportacoes principais."""
-        self.assertEqual(__version__, "2.4.0")
+        self.assertEqual(__version__, "2.5.0")
         self.assertTrue(issubclass(Grid402PaymentRequiredError, Grid402Error))
 
     def test_pydantic_models(self) -> None:

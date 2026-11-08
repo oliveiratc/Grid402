@@ -10,8 +10,8 @@ async function runTests() {
   console.log('=== Testando Servidor MCP Grid402 ===\n');
 
   // 1. Validação de Schemas das Ferramentas
-  console.log('[1/5] Validando registro e schemas das 11 ferramentas MCP...');
-  assert.strictEqual(MCP_TOOLS_DEFINITIONS.length, 11, 'Deve conter exatamente 11 ferramentas registradas');
+  console.log('[1/6] Validando registro e schemas das 12 ferramentas MCP...');
+  assert.strictEqual(MCP_TOOLS_DEFINITIONS.length, 12, 'Deve conter exatamente 12 ferramentas registradas');
 
   const toolNames = MCP_TOOLS_DEFINITIONS.map(t => t.name);
   const expectedTools = [
@@ -26,12 +26,13 @@ async function runTests() {
     'grid402_indicators',
     'grid402_holidays',
     'grid402_workdays',
+    'grid402_verify',
   ];
 
   for (const expected of expectedTools) {
     assert.ok(toolNames.includes(expected), `Ferramenta ${expected} deve estar presente`);
   }
-  console.log('  ✓ Todas as 11 ferramentas MCP validadas com sucesso!');
+  console.log('  ✓ Todas as 12 ferramentas MCP validadas com sucesso!');
 
   // 2. Teste de Consulta Gratuita (summary)
   console.log('\n[2/5] Testando consulta à ferramenta gratuita grid402_summary...');
@@ -89,6 +90,14 @@ async function runTests() {
     assert.strictEqual(sandboxWorkdays._oracle_proof.sandbox, true, 'A prova deve indicar modo sandbox: true');
     assert.strictEqual(sandboxWorkdays._oracle_proof.algorithm, 'secp256k1-sha256', 'Algoritmo deve ser secp256k1-sha256');
     console.log('  ✓ Prova de autenticidade criptografica (_oracle_proof) repassada com sucesso pelo MCP!');
+
+    // 6. Teste de Verificacao da Prova de Oraculo via grid402_verify
+    console.log('\n[6/6] Testando execucao da ferramenta grid402_verify...');
+    const verificationResult = await executeGrid402Request('verify', { payload: sandboxWorkdays });
+    assert.strictEqual(verificationResult.valid, true, 'Prova deve ser considerada valida pelo endpoint');
+    assert.strictEqual(verificationResult.status, 'AUTHENTIC_ORACLE_DATA', 'Status de verificacao deve ser AUTHENTIC_ORACLE_DATA');
+    assert.ok(verificationResult.oracle_address, 'Deve retornar o endereco do oraculo');
+    console.log('  ✓ Ferramenta grid402_verify executada e validou assinatura com sucesso!');
   } finally {
     process.env.GRID402_SANDBOX = originalSandbox;
   }

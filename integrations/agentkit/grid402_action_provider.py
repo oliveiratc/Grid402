@@ -29,6 +29,20 @@ try:
     class AsnInput(BaseModel):
         ip: str = Field(description="Endereco IP para consulta de BGP e numero ASN")
 
+    class IndicatorsInput(BaseModel):
+        pass
+
+    class HolidaysInput(BaseModel):
+        year: Optional[int] = Field(default=None, description="Ano de referencia para feriados (ex: 2026)")
+
+    class WorkdaysInput(BaseModel):
+        start_date: str = Field(description="Data inicial no formato AAAA-MM-DD")
+        end_date: Optional[str] = Field(default=None, description="Data final no formato AAAA-MM-DD")
+        days: Optional[int] = Field(default=None, description="Quantidade de dias uteis para adicao")
+
+    class VerifyInput(BaseModel):
+        payload: Any = Field(description="Payload JSON contendo a chave _oracle_proof a ser verificada")
+
 except ImportError:
     class BaseModel:  # type: ignore
         pass
@@ -48,6 +62,18 @@ except ImportError:
     class AsnInput(BaseModel):  # type: ignore
         pass
 
+    class IndicatorsInput(BaseModel):  # type: ignore
+        pass
+
+    class HolidaysInput(BaseModel):  # type: ignore
+        pass
+
+    class WorkdaysInput(BaseModel):  # type: ignore
+        pass
+
+    class VerifyInput(BaseModel):  # type: ignore
+        pass
+
 
 GRID402_ORACLE_WALLET = "0xa31c31069c43ac1c0075a93c325b0dcd7744356c"
 BASE_USDC_CONTRACT = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
@@ -56,7 +82,7 @@ BASE_USDC_CONTRACT = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 class Grid402ActionProvider:
     """Provedor de acoes do Grid402 compativel com Coinbase AgentKit e LangChain."""
 
-    def __init__(self, base_url: str = "https://grid402.com.br", sandbox: bool = False):
+    def __init__(self, base_url: str = "https://orangered-jackal-900744.hostingersite.com", sandbox: bool = False):
         self.base_url = base_url.rstrip("/")
         self.sandbox = sandbox
 
@@ -157,6 +183,50 @@ class Grid402ActionProvider:
         """Identificacao de ASN e organizacao titular de roteamento BGP."""
         return self._execute_with_settlement("/api/v1/asn", {"ip": ip}, wallet_provider)
 
+    def query_indicators(self, wallet_provider: Any = None) -> Dict[str, Any]:
+        """Indicadores macroeconomicos oficiais (Selic, CDI e IPCA)."""
+        return self._execute_with_settlement("/api/v1/indicators", {}, wallet_provider)
+
+    def query_holidays(self, year: Optional[int] = None, wallet_provider: Any = None) -> Dict[str, Any]:
+        """Calendario oficial de feriados nacionais e bancarios ANBIMA."""
+        params: Dict[str, Any] = {}
+        if year is not None:
+            params["year"] = str(year)
+        return self._execute_with_settlement("/api/v1/holidays", params, wallet_provider)
+
+    def query_workdays(
+        self,
+        start_date: str,
+        end_date: Optional[str] = None,
+        days: Optional[int] = None,
+        wallet_provider: Any = None
+    ) -> Dict[str, Any]:
+        """Calculadora de dias uteis bancarios ANBIMA entre datas."""
+        params: Dict[str, Any] = {"start_date": start_date}
+        if end_date:
+            params["end_date"] = end_date
+        if days is not None:
+            params["days"] = str(days)
+        return self._execute_with_settlement("/api/v1/workdays", params, wallet_provider)
+
+    def verify_proof(self, payload: Any) -> Dict[str, Any]:
+        """Validacao sem estado de prova criptografica de oraculo (_oracle_proof)."""
+        url = f"{self.base_url}/api/v1/verify"
+        post_data = payload if isinstance(payload, str) else json.dumps(payload)
+        req = urllib.request.Request(
+            url,
+            data=post_data.encode("utf-8"),
+            headers={
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "User-Agent": "Grid402-CoinbaseAgentKit-Python/1.6",
+            },
+            method="POST",
+        )
+        ctx = self._get_ssl_context()
+        with urllib.request.urlopen(req, context=ctx, timeout=10) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+
     # Aliases no padrao snake_case das ferramentas MCP
     get_cnpj = query_cnpj
     get_cep = query_cep
@@ -165,3 +235,7 @@ class Grid402ActionProvider:
     get_dns = query_dns
     get_ssl = query_ssl
     get_asn = query_asn
+    get_indicators = query_indicators
+    get_holidays = query_holidays
+    get_workdays = query_workdays
+    verify_proof_alias = verify_proof
