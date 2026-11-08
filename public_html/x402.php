@@ -40,7 +40,8 @@ function grid402_rpc_get_receipt(string $txHash): ?array {
             CURLOPT_TIMEOUT => 3,
             CURLOPT_CONNECTTIMEOUT => 2,
             CURLOPT_USERAGENT => 'Grid402-x402-Auditor/2.0',
-            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
         ]);
 
         $response = curl_exec($ch);
@@ -80,7 +81,8 @@ function grid402_rpc_get_sepolia_receipt(string $txHash): ?array {
         CURLOPT_TIMEOUT => 3,
         CURLOPT_CONNECTTIMEOUT => 2,
         CURLOPT_USERAGENT => 'Grid402-x402-Sepolia-Auditor/2.0',
-        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
     ]);
 
     $response = curl_exec($ch);

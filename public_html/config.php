@@ -59,10 +59,52 @@ grid402_load_env();
 // Função auxiliar para leitura com fallback
 function grid402_env(string $key, mixed $default = null): mixed {
     $val = getenv($key);
-    if ($val !== false && $val !== '') {
+    if ($val !== false and $val !== '') {
         return $val;
     }
     return $_ENV[$key] ?? $_SERVER[$key] ?? $default;
+}
+
+/**
+ * Validação defensiva do segredo de automação e reset
+ */
+function grid402_is_default_secret(): bool {
+    $secret = defined('GRID402_CRON_SECRET') ? GRID402_CRON_SECRET : (string) grid402_env('GRID402_CRON_SECRET', '');
+    if ($secret === '' or $secret === 'grid402_secret_token_change_me' or strlen($secret) < 16) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Obtenção confiável do IP do cliente protegida contra spoofing de headers
+ */
+function grid402_get_trusted_client_ip(): string {
+    $remote = (string)($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+
+    $isLocalOrPrivate = in_array($remote, ['127.0.0.1', '::1'], true)
+        or str_starts_with($remote, '10.')
+        or str_starts_with($remote, '172.16.')
+        or str_starts_with($remote, '192.168.');
+
+    if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
+        $cf = trim((string)$_SERVER['HTTP_CF_CONNECTING_IP']);
+        if (filter_var($cf, FILTER_VALIDATE_IP)) {
+            return $cf;
+        }
+    }
+
+    if ($isLocalOrPrivate) {
+        if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            $parts = explode(',', (string)$_SERVER['HTTP_X_FORWARDED_FOR']);
+            $candidate = trim($parts[0]);
+            if (filter_var($candidate, FILTER_VALIDATE_IP)) {
+                return $candidate;
+            }
+        }
+    }
+
+    return filter_var($remote, FILTER_VALIDATE_IP) ? $remote : '127.0.0.1';
 }
 
 /**

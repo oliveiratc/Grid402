@@ -594,10 +594,7 @@ if ($isValidApiAction) {
     }
 
     // Auditoria on-chain com trava atômica anti-replay e suporte a Modo Sandbox
-    $clientIp = (string) ($_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
-    if (str_contains($clientIp, ',')) {
-        $clientIp = trim(explode(',', $clientIp)[0]);
-    }
+    $clientIp = grid402_get_trusted_client_ip();
 
     $validation = grid402_validate_payment($paymentProof, $servicePriceRaw, $clientIp);
     if (!$validation['valid']) {

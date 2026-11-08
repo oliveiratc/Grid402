@@ -14,10 +14,7 @@ require_once __DIR__ . '/../config.php';
 function grid402_service_asn(?string $ip = null): array {
     $ip = trim((string) $ip);
     if ($ip === '') {
-        $ip = (string) ($_SERVER['HTTP_CF_CONNECTING_IP'] ?? $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '1.1.1.1');
-        if (str_contains($ip, ',')) {
-            $ip = trim(explode(',', $ip)[0]);
-        }
+        $ip = function_exists('grid402_get_trusted_client_ip') ? grid402_get_trusted_client_ip() : (string)($_SERVER['REMOTE_ADDR'] ?? '1.1.1.1');
     }
 
     if (!filter_var($ip, FILTER_VALIDATE_IP)) {

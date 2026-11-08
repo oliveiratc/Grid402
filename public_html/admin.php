@@ -63,7 +63,8 @@ function grid402_get_oracle_wallet_balances(): array {
                 CURLOPT_TIMEOUT => 3,
                 CURLOPT_CONNECTTIMEOUT => 2,
                 CURLOPT_USERAGENT => 'Grid402-Admin-Probe/2.0',
-                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_SSL_VERIFYHOST => 2,
             ]);
 
             $response = curl_exec($ch);
@@ -178,13 +179,36 @@ if ($action === 'logout') {
     exit;
 }
 
-if ($action === 'reset' && !empty($_GET['secret']) && hash_equals(GRID402_CRON_SECRET, (string)$_GET['secret'])) {
-    if (file_exists($authFile)) {
-        @unlink($authFile);
+if ($action === 'reset') {
+    if (function_exists('grid402_is_default_secret') and grid402_is_default_secret()) {
+        http_response_code(403);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'error' => 'InsecureResetBlocked',
+            'message' => 'O reset administrativo foi bloqueado. Defina uma chave forte para GRID402_CRON_SECRET nas variaveis de ambiente antes de usar esta operacao.'
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        exit;
     }
-    $_SESSION = [];
-    session_destroy();
-    header('Location: /admin?reset=done');
+
+    $providedSecret = (string)($_GET['secret'] ?? '');
+    $isConfirmed = (isset($_GET['confirm']) and $_GET['confirm'] === 'true');
+
+    if ($providedSecret !== '' and hash_equals(GRID402_CRON_SECRET, $providedSecret) and $isConfirmed) {
+        if (file_exists($authFile)) {
+            @unlink($authFile);
+        }
+        $_SESSION = [];
+        session_destroy();
+        header('Location: /admin?reset=done');
+        exit;
+    }
+
+    http_response_code(403);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'error' => 'Forbidden',
+        'message' => 'Segredo de reset incorreto ou confirmacao ausente (exija confirm=true).'
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -271,6 +295,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$saved || !file_exists($authFile)) {
                 $errorMsg = 'Erro crítico: não foi possível gravar as credenciais no disco. Verifique permissões do diretório de armazenamento.';
             } else {
+                session_regenerate_id(true);
                 $_SESSION['admin_logged_in'] = true;
                 $_SESSION['admin_user'] = $user;
                 if (session_status() === PHP_SESSION_ACTIVE) {
@@ -288,7 +313,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $authContent = @file_get_contents($authFile);
         $authData = $authContent ? @json_decode($authContent, true) : null;
 
-        if ($authData && $user === ($authData['username'] ?? '') && password_verify($pass, (string)($authData['password_hash'] ?? ''))) {
+        if ($authData and $user === ($authData['username'] ?? '') and password_verify($pass, (string)($authData['password_hash'] ?? ''))) {
+            session_regenerate_id(true);
             $_SESSION['admin_logged_in'] = true;
             $_SESSION['admin_user'] = $authData['username'];
 
@@ -1257,6 +1283,46 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                     }
                 }
 
+        // Utilitario de escape seguro contra DOM XSS
+        function safeHtmlText(val) {
+            if (val === null || val === undefined) return '';
+            const span = document.createElement('span');
+            span.textContent = String(val);
+            return span.innerHTML;
+        }
+
+        async function updateStats() {
+            try {
+                const response = await fetch('/admin?api=stats', { cache: 'no-store' });
+                if (response.status === 401) {
+                    window.location.reload();
+                    return;
+                }
+                const data = await response.json();
+
+                // 1. Atualizar KPIs de Faturamento e Volume
+                document.getElementById('stat-total-usdc').textContent = '$' + Number(data.total_revenue_usdc || 0).toFixed(4);
+                document.getElementById('stat-total-brl').textContent = 'R$ ' + Number(data.total_revenue_brl || 0).toFixed(2);
+                document.getElementById('stat-total-paid').textContent = data.total_paid_requests || 0;
+                document.getElementById('stat-total-reqs').textContent = data.total_requests || 0;
+                document.getElementById('stat-today-usdc').textContent = '$' + Number(data.today_revenue_usdc || 0).toFixed(4);
+                document.getElementById('stat-today-brl').textContent = 'R$ ' + Number(data.today_revenue_brl || 0).toFixed(2);
+
+                // 2. Atualizar KPI de Carteira On-Chain
+                if (data.wallet_balances) {
+                    const w = data.wallet_balances;
+                    const usdcVal = Number(w.usdc_balance || 0).toFixed(2);
+                    const ethVal = Number(w.eth_balance || 0).toFixed(4);
+                    document.getElementById('stat-wallet-usdc').textContent = '$' + usdcVal;
+                    document.getElementById('stat-wallet-eth').textContent = ethVal + ' ETH';
+
+                    const rpcEl = document.getElementById('stat-wallet-rpc-status');
+                    if (rpcEl) {
+                        rpcEl.textContent = w.rpc_operational ? 'RPC ATIVO' : 'CACHE OFFLINE';
+                        rpcEl.style.color = w.rpc_operational ? 'var(--primary)' : 'var(--warning)';
+                    }
+                }
+
                 // 3. Atualizar Barras de Serviços (11 Micro-Serviços)
                 const servicesList = ['workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'summary'];
                 const sCounts = data.service_counts || {};
@@ -1265,16 +1331,17 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 servicesList.forEach(s => {
                     const c = Number(sCounts[s] || 0);
                     const p = Math.round((c / maxS) * 100);
+                    const cleanSName = safeHtmlText(s);
                     sHtml += `
                     <div class="bar-row">
-                        <span class="bar-label">${s}</span>
+                        <span class="bar-label">${cleanSName}</span>
                         <div class="bar-track"><div class="bar-fill" style="width: ${p}%;"></div></div>
                         <span class="bar-count">${c}</span>
                     </div>`;
                 });
                 document.getElementById('service-bars-container').innerHTML = sHtml;
 
-                // 4. Atualizar Tabela de Eventos (100 Eventos)
+                // 4. Atualizar Tabela de Eventos (100 Eventos Sanitizados)
                 const tbody = document.getElementById('recent-events-tbody');
                 const events = data.recent_events || [];
                 cachedEvents = events;
@@ -1284,33 +1351,41 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 } else {
                     let rowsHtml = '';
                     events.forEach(ev => {
-                        const time = (ev.timestamp || '').substr(11, 8);
-                        const st = ev.status || 200;
-                        const type = ev.type || (ev.is_paid ? 'paid' : 'free');
+                        const time = safeHtmlText((ev.timestamp || '').substr(11, 8));
+                        const st = Number(ev.status || 200);
+                        const rawType = ev.type || (ev.is_paid ? 'paid' : 'free');
+                        const safeType = safeHtmlText(rawType);
 
                         let typeBadge = '<span style="color: var(--text-muted); font-size: 0.75rem;">GRATUITO</span>';
-                        if (type === 'paid') {
+                        if (rawType === 'paid') {
                             typeBadge = '<span class="tag-paid">PAGO x402</span>';
-                        } else if (type === 'sandbox') {
+                        } else if (rawType === 'sandbox') {
                             typeBadge = '<span class="tag-status status-sandbox">SANDBOX (demo)</span>';
-                        } else if (type === 'challenge_402') {
+                        } else if (rawType === 'challenge_402') {
                             typeBadge = '<span class="tag-status status-402">DESAFIO 402</span>';
-                        } else if (type === 'blocked_403') {
+                        } else if (rawType === 'blocked_403') {
                             typeBadge = '<span class="tag-status status-403">BLOQUEADO 403</span>';
                         }
 
-                        const val = ev.is_paid ? '$' + ev.price_usdc : '-';
-                        const tx = ev.tx_hash ? `<a href="https://basescan.org/tx/${ev.tx_hash}" target="_blank" class="tx-link">${ev.tx_hash.substr(0, 8)}...${ev.tx_hash.substr(-6)} ↗</a>` : '<span style="color: var(--text-muted);">-</span>';
+                        const val = ev.is_paid ? '$' + safeHtmlText(ev.price_usdc) : '-';
+                        const rawTx = String(ev.tx_hash || '');
+                        const isHexTx = /^0x[a-f0-9]{64}$/i.test(rawTx);
+                        const tx = isHexTx
+                            ? `<a href="https://basescan.org/tx/${encodeURIComponent(rawTx)}" target="_blank" class="tx-link">${safeHtmlText(rawTx.substr(0, 8))}...${safeHtmlText(rawTx.substr(-6))} ↗</a>`
+                            : '<span style="color: var(--text-muted);">-</span>';
+
+                        const cleanService = safeHtmlText(ev.service || '');
+                        const cleanIp = safeHtmlText(ev.ip_masked || 'xxx.xxx.xxx.xxx');
 
                         rowsHtml += `
-                        <tr class="event-row" data-type="${type}">
+                        <tr class="event-row" data-type="${safeType}">
                             <td>${time}</td>
-                            <td><strong>${ev.service}</strong></td>
+                            <td><strong>${cleanService}</strong></td>
                             <td><span class="tag-status status-${st}">HTTP ${st}</span></td>
                             <td>${typeBadge}</td>
                             <td>${val}</td>
                             <td>${tx}</td>
-                            <td style="color: var(--text-muted);">${ev.ip_masked}</td>
+                            <td style="color: var(--text-muted);">${cleanIp}</td>
                         </tr>`;
                     });
                     tbody.innerHTML = rowsHtml;
