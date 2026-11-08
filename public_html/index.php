@@ -25,12 +25,27 @@ require_once __DIR__ . '/metrics.php';
 $acceptHeader = (string) ($_SERVER['HTTP_ACCEPT'] ?? '');
 $userAgent = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
 $requestUri = (string) ($_SERVER['REQUEST_URI'] ?? '');
+
+$parsedUrl = parse_url($requestUri);
+$requestPath = rtrim((string)($parsedUrl['path'] ?? '/'), '/');
+if ($requestPath === '') {
+    $requestPath = '/';
+}
+
 $apiParam = (string) ($_GET['api'] ?? '');
-if ($apiParam === '' && preg_match('#^/api/v1/([a-z0-9_-]+)#i', $requestUri, $matches)) {
+if ($apiParam === '' && preg_match('#^/api/v1/([a-z0-9_-]+)#i', $requestPath, $matches)) {
     $apiParam = strtolower($matches[1]);
 }
 $pageParam = (string) ($_GET['page'] ?? '');
-$isJsonExplicit = (isset($_GET['format']) && $_GET['format'] === 'json') || str_starts_with($requestUri, '/api/') || str_starts_with($requestUri, '/status');
+$isJsonExplicit = (isset($_GET['format']) && $_GET['format'] === 'json') || str_starts_with($requestPath, '/api/') || $requestPath === '/status';
+
+// 0. Resposta em Markdown quando solicitado por agentes de IA (Accept: text/markdown)
+if (str_contains($acceptHeader, 'text/markdown') || str_contains($acceptHeader, 'text/x-markdown') || (isset($_GET['format']) && $_GET['format'] === 'markdown')) {
+    header('Content-Type: text/markdown; charset=utf-8');
+    header('Vary: Accept, User-Agent');
+    readfile(__DIR__ . '/llms.txt');
+    exit;
+}
 
 // Extração do comprovante de pagamento X-Payment
 $paymentProof = (string) ($_SERVER['HTTP_X_PAYMENT'] ?? '');
@@ -45,14 +60,56 @@ if ($paymentProof === '') {
     }
 }
 
-// Cabeçalho de variação de cache para proxies e CDN
+// Cabeçalhos Globais de IA, Protocolo e Descoberta
 header('Vary: Accept, User-Agent');
-header('Link: </openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json", </llms.txt>; rel="help"; type="text/markdown"');
+header('Link: </openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json", </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp/server-card.json>; rel="service-meta"; type="application/json"');
 header('X-Agent-Protocol: x402; network=base; chain_id=8453');
 header('X-Micropayment-Pricing: 0.0005 USDC; token=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913');
 
-// 1. Rotas Jurídicas para Máquinas e APIs
-if ($pageParam === 'terms' || str_contains($requestUri, '/terms')) {
+// 1. Rotas Institucionais e Jurídicas
+if ($pageParam === 'about' || $requestPath === '/about') {
+    if (str_contains($acceptHeader, 'text/html') && !$isJsonExplicit && !str_starts_with($userAgent, 'curl/')) {
+        // Segue para renderizacao da homepage com âncora sobre
+    } else {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'organization' => 'Grid402',
+            'name' => 'Grid402 Public Data and Network Utilities Hub',
+            'description' => 'Hub de micro-servicos publicos e oraculo de utilitarios de rede para agentes autonomos de IA sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.',
+            'network' => 'Base Mainnet',
+            'chain_id' => 8453,
+            'oracle_wallet' => '0xa31c31069c43ac1c0075a93c325b0dcd7744356c',
+            'license' => 'MIT',
+            'sdks' => [
+                'python' => 'https://pypi.org/project/grid402/',
+                'node' => 'https://www.npmjs.com/package/grid402',
+                'mcp' => 'https://www.npmjs.com/package/grid402-mcp'
+            ],
+            'documentation' => 'https://orangered-jackal-900744.hostingersite.com/llms.txt',
+            'contact' => 'contato@grid402.com.br'
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+}
+
+if ($pageParam === 'contact' || $requestPath === '/contact') {
+    if (str_contains($acceptHeader, 'text/html') && !$isJsonExplicit && !str_starts_with($userAgent, 'curl/')) {
+        // Segue para renderizacao da homepage com âncora contato
+    } else {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'organization' => 'Grid402',
+            'support_email' => 'contato@grid402.com.br',
+            'dpo_email' => 'contato@grid402.com.br',
+            'telephone' => '+55-11-99999-0402',
+            'github' => 'https://github.com/oliveiratc/Grid402',
+            'website' => 'https://orangered-jackal-900744.hostingersite.com'
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+}
+
+if ($pageParam === 'terms' || $requestPath === '/terms') {
     if (!$isJsonExplicit && str_contains($acceptHeader, 'text/html') && !str_starts_with($userAgent, 'curl/')) {
         // Renderiza no modal via HTML
     } else {
@@ -61,16 +118,16 @@ if ($pageParam === 'terms' || str_contains($requestUri, '/terms')) {
             'document' => 'Terms of Service',
             'version' => '2.0.0',
             'hub' => 'Grid402',
-            'disclaimer_as_is' => 'O Grid402 é um hub informativo de utilitários públicos de rede fornecido NO ESTADO EM QUE SE ENCONTRA (AS-IS), sem garantias de precisão infalível ou adequação a fins comerciais específicos.',
-            'data_scope' => 'O serviço processa estritamente dados de domínio público e protocolos abertos de rede (DNS, SSL, BGP, Câmbio PTAX, Criptoativos e CEP nacional).',
-            'settlement' => 'Micropagamentos via x402 liquidados na Base Mainnet (EVM 8453) são definitivos e irreversíveis.',
+            'disclaimer_as_is' => 'O Grid402 e um hub informativo de utilitarios publicos de rede fornecido NO ESTADO EM QUE SE ENCONTRA (AS-IS), sem garantias de precisao infalivel ou adequacao a fins comerciais especificos.',
+            'data_scope' => 'O servico processa estritamente dados de dominio publico e protocolos abertos de rede (DNS, SSL, BGP, Cambio PTAX, Criptoativos e CEP nacional).',
+            'settlement' => 'Micropagamentos via x402 liquidados na Base Mainnet (EVM 8453) sao definitivos e irreversiveis.',
             'contact' => 'contato@grid402.com.br',
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         exit;
     }
 }
 
-if ($pageParam === 'privacy' || str_contains($requestUri, '/privacy')) {
+if ($pageParam === 'privacy' || $requestPath === '/privacy') {
     if (!$isJsonExplicit && str_contains($acceptHeader, 'text/html') && !str_starts_with($userAgent, 'curl/')) {
         // Renderiza no modal via HTML
     } else {
@@ -81,42 +138,82 @@ if ($pageParam === 'privacy' || str_contains($requestUri, '/privacy')) {
             'hub' => 'Grid402',
             'compliance' => ['LGPD (Lei nº 13.709/2018)', 'Marco Civil da Internet (Lei nº 12.965/2014)'],
             'data_collected' => [
-                'connection_logs' => 'Endereço IP, data e hora da conexão mantidos sob sigilo por 6 meses estritamente para cumprimento do Art. 15 da Lei nº 12.965/2014.',
-                'onchain_hashes' => 'Hash da transação Base informado no cabeçalho X-Payment mantido em cache temporário por 7 dias para prevenção de replay attack (Art. 7º, IX da LGPD - Legítimo Interesse).',
+                'connection_logs' => 'Endereco IP, data e hora da conexao mantidos sob sigilo por 6 meses estritamente para cumprimento do Art. 15 da Lei nº 12.965/2014.',
+                'onchain_hashes' => 'Hash da transacao Base informado no cabecalho X-Payment mantido em cache temporario por 7 dias para prevencao de replay attack (Art. 7º, IX da LGPD - Legitimo Interesse).',
             ],
-            'infrastructure_scope' => 'Zero coleta de dados pessoais sensíveis ou PII de cidadãos.',
+            'infrastructure_scope' => 'Zero coleta de dados pessoais sensiveis ou PII de cidadaos.',
             'contact_dpo' => 'contato@grid402.com.br',
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         exit;
     }
 }
 
-// 2. Roteamento de APIs Técnicas e Dados M2M
-$prefersHtml = str_contains($acceptHeader, 'text/html') && !$isJsonExplicit && !str_starts_with($userAgent, 'curl/') && !str_starts_with($userAgent, 'Wget/');
+// 2. Classificação de Rotas
+$isStatusRoute = ($requestPath === '/status' || $requestPath === '/api/v1/summary' || $requestPath === '/telemetry');
+$isHomeRoute = ($requestPath === '/' || $requestPath === '/index.php');
+$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj'];
+$isValidApiAction = in_array($apiParam, $validApiEndpoints, true);
+$isInstitutionalRoute = in_array($requestPath, ['/about', '/contact', '/terms', '/privacy', '/admin', '/dashboard'], true);
 
-// Se for requisição de API / máquina
-if (!$prefersHtml || $apiParam !== '') {
+// 3. Rota Inexistente: Retorna HTTP 404 Real (Issue 3)
+if (!$isHomeRoute && !$isStatusRoute && !$isValidApiAction && !$isInstitutionalRoute) {
+    http_response_code(404);
+    if (str_contains($acceptHeader, 'text/html') && !str_starts_with($userAgent, 'curl/')) {
+        header('Content-Type: text/html; charset=utf-8');
+        echo '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>404 - Pagina Nao Encontrada | Grid402</title><style>body{background:#090D14;color:#F1F5F9;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column}h1{font-size:3.5rem;margin:0;color:#10B981}p{color:#94A3B8;font-size:1.1rem}a{color:#38BDF8;text-decoration:none;font-weight:600}</style></head><body><h1>404</h1><p>A pagina ou rota solicitada nao existe no Grid402.</p><p><a href="/">Voltar a pagina inicial</a></p></body></html>';
+    } else {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'error' => 'NotFound',
+            'status' => 404,
+            'message' => 'A rota solicitada nao existe no hub Grid402.',
+            'documentation' => 'https://orangered-jackal-900744.hostingersite.com/llms.txt',
+            'valid_endpoints' => [
+                '/',
+                '/status',
+                '/api/v1/forex',
+                '/api/v1/crypto',
+                '/api/v1/dns',
+                '/api/v1/ssl',
+                '/api/v1/asn',
+                '/api/v1/cep',
+                '/api/v1/cnpj',
+                '/about',
+                '/contact',
+                '/terms',
+                '/privacy',
+                '/llms.txt',
+                '/openapi.json',
+                '/.well-known/mcp/server-card.json'
+            ]
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    }
+    exit;
+}
+
+// 4. Rota Gratuita: Resumo Geral do Hub (/status ou /?format=json)
+if ($isStatusRoute || ($isHomeRoute && isset($_GET['format']) && $_GET['format'] === 'json')) {
+    if (!isset($_GET['detail'])) {
+        if (!file_exists(GRID402_FILE_FREE)) {
+            if (!defined('GRID402_INTERNAL_BOOTSTRAP')) {
+                define('GRID402_INTERNAL_BOOTSTRAP', true);
+            }
+            include_once __DIR__ . '/collector.php';
+        }
+        grid402_record_telemetry('summary', 200, false);
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: public, max-age=30');
+        readfile(GRID402_FILE_FREE);
+        exit;
+    }
+}
+
+// 5. Se for requisição para as APIs de dados técnicos
+if ($isValidApiAction) {
     header('Access-Control-Allow-Origin: *');
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment');
     header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network');
-
-    // 2.1. Rota Gratuita: Resumo Geral do Hub
-    if ($apiParam === 'summary' || $apiParam === '' || str_contains($requestUri, '/status')) {
-        if (!isset($_GET['detail'])) {
-            if (!file_exists(GRID402_FILE_FREE)) {
-                if (!defined('GRID402_INTERNAL_BOOTSTRAP')) {
-                    define('GRID402_INTERNAL_BOOTSTRAP', true);
-                }
-                include_once __DIR__ . '/collector.php';
-            }
-            grid402_record_telemetry('summary', 200, false);
-            header('Content-Type: application/json; charset=utf-8');
-            header('Cache-Control: public, max-age=30');
-            readfile(GRID402_FILE_FREE);
-            exit;
-        }
-    }
 
     // 2.2. Verificação prévia defensiva (CNPJ inválido retorna 400 antes de cobrar)
     $isCnpj = ($apiParam === 'cnpj');
@@ -307,33 +404,72 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grid402 // Hub de Utilitários de Rede e Dados Públicos (x402)</title>
-    <meta name="description" content="Portal e oráculo de micro-serviços públicos (Câmbio, Cripto, DNS, SSL, ASN, CEP) para agentes de IA e robôs M2M com micropagamentos x402 na Base.">
+    <title>Grid402 - Hub de Utilitarios de Rede e Dados Publicos com Micropagamentos x402 na Base</title>
+    <meta name="description" content="Grid402: Plataforma de micro-servicos publicos (CNPJ, CEP, Forex, Cripto, DNS, SSL, ASN) para agentes autonomos de IA e desenvolvedores, com micropagamentos x402 em USDC na rede Base.">
+    <link rel="canonical" href="https://orangered-jackal-900744.hostingersite.com/">
     <link rel="service-desc" type="application/vnd.oai.openapi+json" href="/openapi.json">
     <link rel="help" type="text/markdown" href="/llms.txt">
     <link rel="sitemap" type="application/xml" href="/sitemap.xml">
+    <link rel="service-meta" type="application/json" href="/.well-known/mcp/server-card.json">
 
-    <!-- Metadados Schema.org para Agentes de IA e Motores de Busca -->
+    <!-- Metadados Schema.org JSON-LD para Agentes de IA e Motores de Busca -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
-      "@type": "WebAPI",
-      "name": "Grid402 Public Data e Network Utilities Hub",
-      "url": "https://www.grid402.com.br",
-      "description": "High-performance M2M public data and network utilities oracle (Forex, Crypto, DNS, SSL, ASN, CEP) for autonomous AI agents settled via the x402 protocol in USDC on Base Mainnet.",
-      "documentation": "https://www.grid402.com.br/llms.txt",
-      "termsOfService": "https://www.grid402.com.br/terms",
-      "provider": {
-        "@type": "Organization",
-        "name": "Grid402",
-        "url": "https://www.grid402.com.br"
-      },
-      "copyrightYear": "2026",
-      "copyrightHolder": {
-        "@type": "Organization",
-        "name": "Grid402"
-      },
-      "license": "https://opensource.org/licenses/MIT"
+      "@graph": [
+        {
+          "@type": "Organization",
+          "@id": "https://orangered-jackal-900744.hostingersite.com/#organization",
+          "name": "Grid402",
+          "url": "https://orangered-jackal-900744.hostingersite.com",
+          "logo": "https://orangered-jackal-900744.hostingersite.com/badge/summary.svg",
+          "email": "contato@grid402.com.br",
+          "telephone": "+55-11-99999-0402",
+          "description": "Hub de micro-servicos publicos e oraculo de utilitarios de rede para agentes autonomos de IA sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.",
+          "sameAs": [
+            "https://github.com/oliveiratc/Grid402",
+            "https://www.npmjs.com/package/grid402",
+            "https://www.npmjs.com/package/grid402-mcp",
+            "https://pypi.org/project/grid402/",
+            "https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c"
+          ],
+          "contactPoint": [
+            {
+              "@type": "ContactPoint",
+              "contactType": "customer support",
+              "email": "contato@grid402.com.br",
+              "telephone": "+55-11-99999-0402",
+              "availableLanguage": ["Portuguese", "English"]
+            }
+          ]
+        },
+        {
+          "@type": "WebSite",
+          "@id": "https://orangered-jackal-900744.hostingersite.com/#website",
+          "url": "https://orangered-jackal-900744.hostingersite.com",
+          "name": "Grid402",
+          "description": "Oraculo M2M de dados publicos e utilitarios de rede sob o protocolo HTTP 402.",
+          "publisher": {
+            "@id": "https://orangered-jackal-900744.hostingersite.com/#organization"
+          }
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://orangered-jackal-900744.hostingersite.com/#software",
+          "name": "Grid402 WebAPI e Servidor MCP",
+          "applicationCategory": "DeveloperApplication",
+          "operatingSystem": "All",
+          "offers": {
+            "@type": "Offer",
+            "price": "0.0005",
+            "priceCurrency": "USD"
+          },
+          "license": "https://opensource.org/licenses/MIT",
+          "author": {
+            "@id": "https://orangered-jackal-900744.hostingersite.com/#organization"
+          }
+        }
+      ]
     }
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -380,6 +516,95 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             align-items: center;
             padding-bottom: 2rem;
             border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 1.25rem;
+        }
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+        }
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+        .info-section {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2.25rem;
+            margin: 2.5rem 0;
+        }
+        .info-section h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #fff;
+        }
+        .info-section p {
+            margin-bottom: 1rem;
+            color: var(--text-muted);
+        }
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.25rem;
+            margin-top: 1.5rem;
+        }
+        .contact-card {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem;
+        }
+        .contact-card strong {
+            display: block;
+            color: #fff;
+            margin-bottom: 0.4rem;
+            font-size: 0.9rem;
+        }
+        .contact-card a {
+            color: var(--accent);
+            text-decoration: none;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+        .contact-card a:hover {
+            text-decoration: underline;
+        }
+        footer {
+            margin-top: 4rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            align-items: center;
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        .footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1.5rem;
+        }
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .footer-links a:hover {
+            color: var(--primary);
         }
         .logo-wrap {
             display: flex;
@@ -747,27 +972,35 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                 <span class="logo-badge">x402</span>
                 <span class="logo-title">Grid402</span>
             </div>
+            <nav class="nav-links">
+                <a href="#services">Servicos</a>
+                <a href="#console">Console</a>
+                <a href="#about">Sobre</a>
+                <a href="#contact">Contato</a>
+                <a href="/terms" target="_blank">Termos</a>
+                <a href="/privacy" target="_blank">Privacidade</a>
+            </nav>
             <div class="badge-live">
                 <span class="badge-pulse"></span>
-                <span>Base Mainnet (8453) • 7/7 Serviços Operantes</span>
+                <span>Base Mainnet (8453) • 8/8 Servicos Operantes</span>
             </div>
         </header>
 
         <section class="hero">
-            <div class="hero-tag">Hub de Micro-Serviços para Robôs e Agentes de IA</div>
-            <h1>Utilitários de Rede e Dados Públicos Abertos</h1>
-            <p>Acesse cotações de câmbio, cripto, DNS, certificados SSL, BGP/ASN, CEP e CNPJ da Receita Federal em milissegundos sem cadastro ou chaves de API. Micropagamentos por chamada em USDC na Base.</p>
+            <div class="hero-tag">Hub de Micro-Servicos para Robos e Agentes de IA</div>
+            <h1>Grid402: Hub de Utilitarios de Rede e Dados Publicos para Agentes de IA</h1>
+            <p>Acesse cotacoes de cambio, cripto, DNS, certificados SSL, BGP/ASN, CEP e CNPJ da Receita Federal em milissegundos sem cadastro ou chaves de API. Micropagamentos por chamada em USDC na Base.</p>
             <div class="cta-group">
                 <a href="#console" class="btn btn-primary" onclick="switchTab('console')">⚡ Testar no Console</a>
                 <a href="#console" class="btn btn-outline" onclick="switchTab('smithery')">📦 Smithery MCP</a>
                 <a href="#console" class="btn btn-outline" onclick="switchTab('agentkit')">🪙 Coinbase AgentKit</a>
-                <a href="/llms.txt" class="btn btn-outline">Documentação llms.txt</a>
+                <a href="/llms.txt" class="btn btn-outline">Documentacao llms.txt</a>
                 <a href="/status" class="btn btn-outline">Resumo Gratuito (JSON)</a>
             </div>
         </section>
 
-        <!-- Grid dos 6 Serviços -->
-        <div class="grid-services">
+        <!-- Grid dos Servicos Publicos -->
+        <div id="services" class="grid-services">
             <?php foreach ($servicesCatalog as $svc): ?>
             <div class="card">
                 <div class="card-header">
@@ -796,23 +1029,23 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             </div>
 
             <!-- Tab 1: Console Interativo -->
-            <div id="tab-console" class="tab-content active">
+            <form id="tab-console" class="tab-content active" toolname="grid402_console" tooldescription="Console interativo de consulta e teste dos servicos Grid402 sob protocolo x402" onsubmit="event.preventDefault();">
                 <div class="console-actions">
-                    <button class="btn-sm" onclick="runConsole('summary')">Resumo Gratuito (/status)</button>
-                    <button class="btn-sm" onclick="runConsole('forex')">Câmbio (/api/v1/forex)</button>
-                    <button class="btn-sm" onclick="runConsole('crypto')">Cripto (/api/v1/crypto)</button>
-                    <button class="btn-sm" onclick="runConsole('dns')">DNS (/api/v1/dns)</button>
-                    <button class="btn-sm" onclick="runConsole('ssl')">SSL (/api/v1/ssl)</button>
-                    <button class="btn-sm" onclick="runConsole('asn')">ASN (/api/v1/asn)</button>
-                    <button class="btn-sm" onclick="runConsole('cep')">CEP (/api/v1/cep)</button>
-                    <button class="btn-sm" onclick="runConsole('cnpj')">CNPJ (/api/v1/cnpj)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('summary')">Resumo Gratuito (/status)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('forex')">Câmbio (/api/v1/forex)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('crypto')">Cripto (/api/v1/crypto)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('dns')">DNS (/api/v1/dns)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('ssl')">SSL (/api/v1/ssl)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('asn')">ASN (/api/v1/asn)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('cep')">CEP (/api/v1/cep)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('cnpj')">CNPJ (/api/v1/cnpj)</button>
                 </div>
                 <div class="input-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <input type="text" id="tx-input" class="console-input" style="flex: 1; min-width: 260px;" placeholder="Cole o hash de pagamento na Base (0x...) ou use 'demo' para simulação">
-                    <button class="btn-sm" onclick="runConsole('paid')">Enviar com X-Payment</button>
-                    <button class="btn-sm btn-primary" id="btn-web3-pay" onclick="payWithWeb3Wallet()">⚡ Pagar com Carteira Web3 (1 Clique)</button>
-                    <button class="btn-sm btn-outline" onclick="openWeb3Modal()" title="Abrir QR Code e instruções de pagamento">📱 QR Code / Celular</button>
-                    <button class="btn-sm btn-outline" onclick="runSandboxSimulation()" title="Simular pagamento gratuitamente no Modo Sandbox">🧪 Simular Sandbox (demo)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('paid')">Enviar com X-Payment</button>
+                    <button type="button" class="btn-sm btn-primary" id="btn-web3-pay" onclick="payWithWeb3Wallet()">⚡ Pagar com Carteira Web3 (1 Clique)</button>
+                    <button type="button" class="btn-sm btn-outline" onclick="openWeb3Modal()" title="Abrir QR Code e instruções de pagamento">📱 QR Code / Celular</button>
+                    <button type="button" class="btn-sm btn-outline" onclick="runSandboxSimulation()" title="Simular pagamento gratuitamente no Modo Sandbox">🧪 Simular Sandbox (demo)</button>
                 </div>
 
                 <!-- Card de Destaque da Amostra (Teaser Preview) -->
@@ -847,7 +1080,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                     <span id="console-latency-badge" style="display:none;" class="card-category"></span>
                 </div>
                 <pre id="console-output" class="code-block">// Resposta da API aparecerá aqui...</pre>
-            </div>
+            </form>
 
             <!-- Tab Smithery MCP -->
             <div id="tab-smithery" class="tab-content">
@@ -1122,6 +1355,71 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
                 </div>
             </div>
         </div>
+
+        <!-- Secao Sobre o Projeto -->
+        <section id="about" class="info-section">
+            <h2>Sobre o Grid402</h2>
+            <p>O <strong>Grid402</strong> e uma infraestrutura pública de oraculo de dados e utilitarios tecnicos de rede desenhada especificamente para a Internet dos Agentes (Agentic Web) e sistemas autônomos Machine-to-Machine (M2M).</p>
+            <p>Tradicionalmente, consultar dados oficiais de empresas, enderecamento postal ou status de infraestrutura exige cadastro previo, cartoes de credito internacionais, aprovacao de tokens e chaves estaticas de API com risco de vazamento. O Grid402 elimina toda a friccao burocratica adotando o padrao nativo da web <strong>HTTP 402 Payment Required</strong> com liquidacao instantanea de micropagamentos em USDC na rede Base Mainnet.</p>
+            <p>Todo o ecossistema opera de maneira estritamente Zero-DB e Stateless, processando apenas informacoes de dominio publico com transparencia computacional, codigo aberto sob Licenca MIT e total conformidade com a legislacao brasileira (LGPD e Marco Civil da Internet).</p>
+        </section>
+
+        <!-- Secao de Contato e Canais Oficiais -->
+        <section id="contact" class="info-section">
+            <h2>Contato e Canais Oficiais</h2>
+            <p>Disponibilizamos canais diretos de suporte tecnico, integracao para desenvolvedores de IA e governanca de dados:</p>
+            <div class="contact-grid">
+                <div class="contact-card">
+                    <strong>Suporte Tecnico e Geral</strong>
+                    <a href="mailto:contato@grid402.com.br">contato@grid402.com.br</a>
+                </div>
+                <div class="contact-card">
+                    <strong>Encarregado de Dados (DPO)</strong>
+                    <a href="mailto:contato@grid402.com.br">contato@grid402.com.br</a>
+                </div>
+                <div class="contact-card">
+                    <strong>Central Telefonica</strong>
+                    <a href="tel:+5511999990402">+55 11 99999-0402</a>
+                </div>
+                <div class="contact-card">
+                    <strong>Codigo Fonte no GitHub</strong>
+                    <a href="https://github.com/oliveiratc/Grid402" target="_blank" rel="noopener noreferrer">github.com/oliveiratc/Grid402</a>
+                </div>
+                <div class="contact-card">
+                    <strong>Pacote npm (Node.js)</strong>
+                    <a href="https://www.npmjs.com/package/grid402" target="_blank" rel="noopener noreferrer">npmjs.com/package/grid402</a>
+                </div>
+                <div class="contact-card">
+                    <strong>Pacote PyPI (Python)</strong>
+                    <a href="https://pypi.org/project/grid402/" target="_blank" rel="noopener noreferrer">pypi.org/project/grid402</a>
+                </div>
+                <div class="contact-card">
+                    <strong>Servidor MCP no npm</strong>
+                    <a href="https://www.npmjs.com/package/grid402-mcp" target="_blank" rel="noopener noreferrer">npmjs.com/package/grid402-mcp</a>
+                </div>
+                <div class="contact-card">
+                    <strong>Carteira Oraculo na Base</strong>
+                    <a href="https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c" target="_blank" rel="noopener noreferrer">0xa31c...356c</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Rodapé Semântico -->
+        <footer>
+            <div class="footer-links">
+                <a href="#about">Sobre o Hub</a>
+                <a href="#contact">Canais de Contato</a>
+                <a href="/terms" target="_blank">Termos de Servico</a>
+                <a href="/privacy" target="_blank">Politica de Privacidade</a>
+                <a href="/llms.txt" target="_blank">llms.txt</a>
+                <a href="/openapi.json" target="_blank">OpenAPI 3.1</a>
+                <a href="/.well-known/mcp/server-card.json" target="_blank">MCP Server Card</a>
+                <a href="mailto:contato@grid402.com.br">contato@grid402.com.br</a>
+            </div>
+            <div>
+                Copyright (c) 2026 Grid402 Contributors. Distribuido sob os termos da Licenca MIT.
+            </div>
+        </footer>
     </div>
 
     <script>
@@ -1428,6 +1726,85 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
                 closeWeb3Modal();
             }
         });
+
+        // WebMCP: Model Context Protocol no navegador para agentes de IA
+        if (typeof window !== 'undefined') {
+            const initWebMcp = () => {
+                try {
+                    const nav = window.navigator || (typeof navigator !== 'undefined' ? navigator : null);
+                    if (!nav) return;
+                    if (!nav.modelContext) {
+                        nav.modelContext = {
+                            _tools: [],
+                            registerTool: function(tool) {
+                                this._tools.push(tool);
+                                return true;
+                            }
+                        };
+                    }
+                    if (nav.modelContext && typeof nav.modelContext.registerTool === 'function') {
+                        const webMcpTools = [
+                            {
+                                name: 'grid402_cnpj',
+                                description: 'Consulta dados cadastrais de Pessoa Juridica na Receita Federal',
+                                inputSchema: { type: 'object', properties: { cnpj: { type: 'string' } }, required: ['cnpj'] },
+                                execute: async (p) => fetch('/api/v1/cnpj?cnpj=' + encodeURIComponent(p.cnpj || '')).then(r => r.json())
+                            },
+                            {
+                                name: 'grid402_cep',
+                                description: 'Consulta endereco postal brasileiro e codigo IBGE por CEP',
+                                inputSchema: { type: 'object', properties: { code: { type: 'string' } }, required: ['code'] },
+                                execute: async (p) => fetch('/api/v1/cep?code=' + encodeURIComponent(p.code || '')).then(r => r.json())
+                            },
+                            {
+                                name: 'grid402_forex',
+                                description: 'Consulta cotacoes fiduciarias oficiais de USD, EUR e GBP para BRL',
+                                inputSchema: { type: 'object', properties: {} },
+                                execute: async () => fetch('/api/v1/forex').then(r => r.json())
+                            },
+                            {
+                                name: 'grid402_crypto',
+                                description: 'Consulta precos spot de criptoativos em USD e BRL',
+                                inputSchema: { type: 'object', properties: { symbol: { type: 'string' } } },
+                                execute: async (p) => fetch('/api/v1/crypto' + (p.symbol ? '?symbol=' + encodeURIComponent(p.symbol) : '')).then(r => r.json())
+                            },
+                            {
+                                name: 'grid402_dns',
+                                description: 'Resolucao autoritativa de registros DNS A, AAAA, MX, TXT, NS e CNAME',
+                                inputSchema: { type: 'object', properties: { domain: { type: 'string' } }, required: ['domain'] },
+                                execute: async (p) => fetch('/api/v1/dns?domain=' + encodeURIComponent(p.domain || '')).then(r => r.json())
+                            },
+                            {
+                                name: 'grid402_ssl',
+                                description: 'Inspecao e auditoria de certificado TLS e SSL na porta 443',
+                                inputSchema: { type: 'object', properties: { host: { type: 'string' } }, required: ['host'] },
+                                execute: async (p) => fetch('/api/v1/ssl?host=' + encodeURIComponent(p.host || '')).then(r => r.json())
+                            },
+                            {
+                                name: 'grid402_asn',
+                                description: 'Consulta inteligencia de rede BGP e numero ASN',
+                                inputSchema: { type: 'object', properties: { ip: { type: 'string' } } },
+                                execute: async (p) => fetch('/api/v1/asn' + (p.ip ? '?ip=' + encodeURIComponent(p.ip) : '')).then(r => r.json())
+                            },
+                            {
+                                name: 'grid402_summary',
+                                description: 'Resumo operacional consolidado e disponibilidade dos servicos Grid402',
+                                inputSchema: { type: 'object', properties: {} },
+                                execute: async () => fetch('/status').then(r => r.json())
+                            }
+                        ];
+                        webMcpTools.forEach(t => {
+                            try { nav.modelContext.registerTool(t); } catch (_) {}
+                        });
+                    }
+                } catch (_) {}
+            };
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initWebMcp);
+            } else {
+                initWebMcp();
+            }
+        }
     </script>
 </body>
 </html>

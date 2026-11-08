@@ -32,6 +32,9 @@ ServerSignature Off
     RewriteCond %{REQUEST_METHOD} OPTIONS
     RewriteRule ^(.*)$ $1 [R=204,L]
 
+    # Handler Dinamico para robots.txt com Content-Signal e Sitemap
+    RewriteRule ^robots\.txt$ robots.php [L]
+
     # Rotas de Badges SVG
     RewriteRule ^badge/([a-zA-Z0-9_\-]+)\.svg$ badge.php?target=$1 [QSA,L]
     RewriteRule ^badge/([a-zA-Z0-9_\-]+)/?$ badge.php?target=$1 [QSA,L]
@@ -44,14 +47,17 @@ ServerSignature Off
     RewriteRule ^api/v1/ssl/?$ index.php?api=ssl [QSA,L]
     RewriteRule ^api/v1/asn/?$ index.php?api=asn [QSA,L]
     RewriteRule ^api/v1/cep/?$ index.php?api=cep [QSA,L]
+    RewriteRule ^api/v1/cnpj/?$ index.php?api=cnpj [QSA,L]
 
     # Painel Administrativo de Monitoramento e Faturamento
     RewriteRule ^admin/?$ admin.php [QSA,L]
     RewriteRule ^dashboard/?$ admin.php [QSA,L]
 
-    # Rotas Legadas / Atalhos
+    # Rotas Institucionais e Atalhos
     RewriteRule ^status/?$ index.php?api=summary [QSA,L]
-    RewriteRule ^telemetry/?$ index.php?api=summary&detail=true [QSA,L]
+    RewriteRule ^telemetry/?$ index.php?api=summary [QSA,L]
+    RewriteRule ^about/?$ index.php?page=about [QSA,L]
+    RewriteRule ^contact/?$ index.php?page=contact [QSA,L]
     RewriteRule ^terms/?$ index.php?page=terms [QSA,L]
     RewriteRule ^privacy/?$ index.php?page=privacy [QSA,L]
 

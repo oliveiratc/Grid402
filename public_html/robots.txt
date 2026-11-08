@@ -1,5 +1,7 @@
-# robots.txt para Grid402 // Hub de Utilitários de Rede e Dados Públicos (Protocolo x402)
-# Permissão explícita para Crawlers de Busca, Agentes de IA e Robôs Autônomos
+# robots.txt para Grid402 // Hub de Utilitarios de Rede e Dados Publicos (Protocolo x402)
+# Permissao explicita para Crawlers de Busca, Agentes de IA e Robos Autonomos
+
+Content-Signal: search=yes, ai-train=no
 
 User-agent: *
 Allow: /
@@ -7,9 +9,12 @@ Allow: /status
 Allow: /api/v1/
 Allow: /llms.txt
 Allow: /openapi.json
+Allow: /.well-known/mcp/server-card.json
 Allow: /badge/
 Allow: /terms
 Allow: /privacy
+Allow: /about
+Allow: /contact
 Disallow: /private_data/
 
 # Agentes de IA e Modelos de Linguagem (LLM Crawlers)
@@ -43,7 +48,6 @@ Allow: /
 User-agent: FacebookBot
 Allow: /
 
-# Apontamento de Sitemaps e Documentação de Máquina
-Sitemap: https://www.grid402.com.br/sitemap.xml
+# Apontamento de Sitemaps e Documentacao de Maquina
 Sitemap: https://orangered-jackal-900744.hostingersite.com/sitemap.xml
-
+Sitemap: https://www.grid402.com.br/sitemap.xml

@@ -1,124 +1,29 @@
-# Grid402 // Open Data e Network Utility Hub for AI Agents (x402 Protocol)
-> Unified micro-services oracle providing foreign exchange rates, crypto tickers, DNS records, SSL inspection, ASN/IP intelligence, public postal data, and corporate CNPJ registration data with autonomous on-chain micropayments.
+# Grid402
 
-## 1. Overview
-Grid402 allows autonomous AI agents, crawlers, and M2M systems to access critical network utilities and public open data without API keys, email signups, or SaaS subscriptions. Queries are settled per-call using the **x402 protocol** in USDC on the **Base Mainnet**.
+> Hub de micro-servicos e dados abertos para agentes autonomos de IA e aplicacoes M2M sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.
 
-- **Production Domain:** https://www.grid402.com.br
-- **Settlement Network:** Base Mainnet (EVM Chain ID: 8453)
-- **Accepted Token:** USDC (`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`)
-- **Cost per Technical Query:** $0.0005 USDC (Forex, Crypto, DNS, SSL, ASN, CEP) / $0.0020 USDC (Corporate CNPJ)
-- **Oracle Wallet Address:** 0xa31c31069c43ac1c0075a93c325b0dcd7744356c
+## Core Documentation
+- [OpenAPI Specification](https://orangered-jackal-900744.hostingersite.com/openapi.json): Especificacao completa e interativa da API no padrao OpenAPI 3.1
+- [Status e Saude do Hub](https://orangered-jackal-900744.hostingersite.com/status): Verificacao de disponibilidade e resumo operacional dos servicos
+- [Termos de Servico](https://orangered-jackal-900744.hostingersite.com/terms): Condicoes de uso, licenca MIT e termos M2M
+- [Politica de Privacidade](https://orangered-jackal-900744.hostingersite.com/privacy): Diretrizes de privacidade, conformidade LGPD e retencao de logs
+- [MCP Server Card](https://orangered-jackal-900744.hostingersite.com/.well-known/mcp/server-card.json): Ficha de descoberta de capacidades SEP-1649 para servidores MCP
 
----
+## Public Micro-Services APIs
+- [Forex Rates API](https://orangered-jackal-900744.hostingersite.com/api/v1/forex): Cotacoes cambiais oficiais de USD, EUR e GBP para BRL em tempo real
+- [Crypto Tickers API](https://orangered-jackal-900744.hostingersite.com/api/v1/crypto): Precos de mercado spot de BTC, ETH, SOL, USDC e BASE
+- [DNS Records Lookup](https://orangered-jackal-900744.hostingersite.com/api/v1/dns?domain=base.org): Resolucao autoritativa de registros A, AAAA, MX, TXT, NS e CNAME
+- [TLS and SSL Inspector](https://orangered-jackal-900744.hostingersite.com/api/v1/ssl?host=base.org): Inspecao e auditoria de certificados TLS e SSL na porta 443
+- [ASN and BGP Intelligence](https://orangered-jackal-900744.hostingersite.com/api/v1/asn?ip=1.1.1.1): Roteamento BGP, bloco alocado e numero ASN de IPs
+- [CEP Postal Address API](https://orangered-jackal-900744.hostingersite.com/api/v1/cep?code=01310100): Resolucao de endereco postal brasileiro e codigo municipal IBGE
+- [CNPJ Corporate Registry API](https://orangered-jackal-900744.hostingersite.com/api/v1/cnpj?cnpj=00000000000191): Dados cadastrais de Pessoa Juridica na Receita Federal
 
-## 2. API Endpoints Catalog
+## SDKs and Agent Frameworks
+- [Python SDK (PyPI)](https://pypi.org/project/grid402/): Pacote oficial grid402 para Python com suporte a Pydantic e Coinbase AgentKit
+- [Node.js and TypeScript SDK (npm)](https://www.npmjs.com/package/grid402): Pacote oficial grid402 no npm com suporte hibrido ESM e CommonJS
+- [Model Context Protocol Server (npm)](https://www.npmjs.com/package/grid402-mcp): Servidor MCP oficial para Claude Desktop, Cursor e Smithery
+- [Coinbase AgentKit Providers](https://github.com/oliveiratc/Grid402/tree/main/integrations/agentkit): Provedores de acoes com auto-liquidacao on-chain para carteiras CDP
 
-### 2.1. Free Discovery e Summary Endpoint
-Returns consolidated status across all 6 services with latest market summaries. Zero payment required.
-- **Endpoint:** `GET /status` or `GET /api/v1/summary`
-- **Headers:** `Accept: application/json`
-- **Response:**
-```json
-{
-  "protocol": "x402",
-  "hub": "Grid402",
-  "network": "Base",
-  "chain_id": 8453,
-  "status": "OPERATIONAL",
-  "services": {
-    "forex": { "status": "UP", "usd_brl": 5.503, "eur_brl": 6.130 },
-    "crypto": { "status": "UP", "btc_usd": 75820.0, "eth_usd": 2236.0 },
-    "dns": { "status": "UP", "endpoint": "/api/v1/dns" },
-    "ssl": { "status": "UP", "endpoint": "/api/v1/ssl" },
-    "asn": { "status": "UP", "endpoint": "/api/v1/asn" },
-    "cep": { "status": "UP", "endpoint": "/api/v1/cep" }
-  }
-}
-```
-
----
-
-### 2.2. Foreign Exchange Rates API (`/api/v1/forex`)
-Real-time exchange rates for major currencies (USD, EUR, GBP to BRL).
-- **Method:** `GET /api/v1/forex`
-- **Requires:** `X-Payment: <base_tx_hash>` (or returns HTTP 402 challenge)
-- **Output:** Bid/ask prices, percentage changes, and timestamps.
-
----
-
-### 2.3. Cryptocurrency Tickers API (`/api/v1/crypto`)
-Spot market prices for BTC, ETH, SOL, USDC, and Base ecosystem tokens.
-- **Method:** `GET /api/v1/crypto`
-- **Requires:** `X-Payment: <base_tx_hash>`
-- **Output:** Current prices in USD and BRL with network metadata.
-
----
-
-### 2.4. DNS Records Lookup API (`/api/v1/dns`)
-Authoritative DNS resolution for any valid FQDN.
-- **Method:** `GET /api/v1/dns?domain=<domain_name>`
-- **Requires:** `X-Payment: <base_tx_hash>`
-- **Output:** A, AAAA, MX, TXT, NS, and CNAME records with TTLs.
-
----
-
-### 2.5. TLS/SSL Inspector API (`/api/v1/ssl`)
-Deep inspection of TLS certificate chain on port 443.
-- **Method:** `GET /api/v1/ssl?host=<hostname>`
-- **Requires:** `X-Payment: <base_tx_hash>`
-- **Output:** Common Name, Issuer, Validity start/end, Days remaining, and SANs.
-
----
-
-### 2.6. ASN e IP Intelligence API (`/api/v1/asn`)
-BGP routing metadata, ASN number, organization, and geographic location.
-- **Method:** `GET /api/v1/asn?ip=<ipv4_or_ipv6>`
-- **Requires:** `X-Payment: <base_tx_hash>`
-
----
-
-### 2.7. CEP e IBGE Public Address API (`/api/v1/cep`)
-Postal resolution and official Brazilian municipal IBGE code.
-- **Method:** `GET /api/v1/cep?code=<8_digits_cep>`
-- **Cost:** $0.0005 USDC
-- **Requires:** `X-Payment: <base_tx_hash>`
-
----
-
-### 2.8. Brazilian CNPJ Company Registration API (`/api/v1/cnpj`)
-Public corporate registration data from Brazilian Federal Revenue (Receita Federal) with zero personal data/PII (strictly corporate entity attributes).
-- **Method:** `GET /api/v1/cnpj?cnpj=<14_digits_cnpj>`
-- **Validation:** Modulo 11 check digit verification performed upfront. Invalid CNPJs return HTTP 400 Bad Request without charging.
-- **Cost:** $0.0020 USDC (2000 atomic units)
-- **Requires:** `X-Payment: <base_tx_hash>`
-- **Output:** Company Name (Razao Social), Trade Name, Status (Ativa/Inapta/Baixada), Main/Secondary CNAE economic activities, Opening date, Legal nature, Address, Capital Stock.
-
----
-
-## 3. Autonomous M2M Workflow (x402 Protocol)
-
-When an agent requests any technical endpoint without the `X-Payment` header:
-1. Server responds with `HTTP 402 Payment Required`.
-2. Headers returned:
-   - `X-Authenticate: x402`
-   - `X-Accept-Payment: base:usdc:0xa31c31069c43ac1c0075a93c325b0dcd7744356c:0.0005`
-3. Agent signs a transfer of `0.0005 USDC` (500 units) to `0xa31c31069c43ac1c0075a93c325b0dcd7744356c` on the **Base Mainnet** (Chain ID: 8453).
-4. Agent retries request with header: `X-Payment: <tx_hash>`.
-5. Server validates on-chain via Base JSON-RPC with atomic file locking (`flock`), logs the transaction, and returns the requested payload with `HTTP 200 OK`.
-
-### 3.1. Free Sandbox Mode for Testing and CI/CD
-Agents and developers can test all technical queries without spending USDC:
-- Send header `X-Payment: demo` on any request.
-- Returns full payload with flag `sandbox: true` (rate limited to 20 requests per hour per IP).
-
-### 3.2. AI Framework Distribution
-- **Model Context Protocol (MCP):** Install via Smithery CLI (`npx -y @smithery/cli install grid402-mcp --client claude` or `--client cursor`).
-- **Coinbase AgentKit:** Ready-to-use action providers in TypeScript and Python (`integrations/agentkit/`) with automatic on-chain settlement for CDP wallets.
-
----
-
-## 4. Legal e Privacy Notice (LGPD Compliant)
-- **Data Scope:** 100% public domain datasets and open internet protocols. Zero Personally Identifiable Information (PII) is processed or retained.
-- **Connection Logs:** IP addresses and timestamps are maintained for 6 months strictly under Art. 15 of Brazilian Internet Law (Lei nº 12.965/2014).
-- **Anti-Replay Cache:** Transaction hashes are retained with a 7-day TTL strictly for fraud prevention under Legitimate Interest (Art. 7º, IX of LGPD).
+## Micropayment Protocol Details
+- [Base Mainnet Scanner](https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c): Carteira oraculo recebedora de micropagamentos (0xa31c31069c43ac1c0075a93c325b0dcd7744356c)
+- [USDC Contract on Base](https://basescan.org/token/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913): Contrato oficial de USDC na rede Base Mainnet (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)

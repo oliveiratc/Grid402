@@ -1,0 +1,67 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/server-card/v1.json",
+  "name": "grid402-mcp",
+  "version": "1.2.2",
+  "description": "Grid402 MCP Server - Hub de micro-servicos publicos e utilitarios de rede (Forex, Cripto, DNS, SSL, ASN, CEP, CNPJ) sob o protocolo x402 na Base.",
+  "homepage": "https://orangered-jackal-900744.hostingersite.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oliveiratc/Grid402"
+  },
+  "endpoint": "https://orangered-jackal-900744.hostingersite.com",
+  "transport": {
+    "type": "stdio",
+    "command": "npx",
+    "args": [
+      "-y",
+      "grid402-mcp"
+    ]
+  },
+  "capabilities": {
+    "tools": {
+      "listChanged": false
+    },
+    "resources": {
+      "subscribe": false,
+      "listChanged": false
+    },
+    "prompts": {
+      "listChanged": false
+    }
+  },
+  "tools": [
+    {
+      "name": "grid402_summary",
+      "description": "Consulta o resumo consolidado de saude e disponibilidade dos micro-servicos do Grid402 (gratuito)."
+    },
+    {
+      "name": "grid402_forex",
+      "description": "Consulta cotacoes fiduciarias oficiais em tempo real de USD, EUR e GBP para BRL."
+    },
+    {
+      "name": "grid402_crypto",
+      "description": "Consulta precos de mercado spot de BTC, ETH, SOL, USDC e BASE."
+    },
+    {
+      "name": "grid402_dns",
+      "description": "Executa resolucao autoritativa de registros DNS A, AAAA, MX, TXT, NS e CNAME."
+    },
+    {
+      "name": "grid402_ssl",
+      "description": "Inspeciona e valida o certificado TLS e SSL na porta 443 de um host."
+    },
+    {
+      "name": "grid402_asn",
+      "description": "Consulta inteligencia de rede BGP, bloco alocado e numero ASN de qualquer IP."
+    },
+    {
+      "name": "grid402_cep",
+      "description": "Consulta endereco postal brasileiro e codigo municipal IBGE por CEP."
+    },
+    {
+      "name": "grid402_cnpj",
+      "description": "Consulta dados cadastrais de Pessoa Juridica na Receita Federal."
+    }
+  ]
+}
+
