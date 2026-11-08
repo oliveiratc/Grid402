@@ -727,6 +727,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                     <input type="text" id="tx-input" class="console-input" style="flex: 1; min-width: 260px;" placeholder="Cole o hash de pagamento na Base (0x...) para testar liberação com X-Payment">
                     <button class="btn-sm" onclick="runConsole('paid')">Enviar com X-Payment</button>
                     <button class="btn-sm btn-primary" id="btn-web3-pay" onclick="payWithWeb3Wallet()">⚡ Pagar com Carteira Web3 (1 Clique)</button>
+                    <button class="btn-sm btn-outline" onclick="openWeb3Modal()" title="Abrir QR Code e instruções de pagamento">📱 QR Code / Celular</button>
                 </div>
                 <div class="response-header">
                     <span id="console-status-text">Selecione uma das ações acima para testar o retorno da API.</span>
@@ -799,7 +800,7 @@ curl "https://www.grid402.com.br/api/v1/dns?domain=github.com" \
         </section>
 
         <footer>
-            <div>Grid402 // Open Data & Utility Hub • Base Mainnet</div>
+            <div>Grid402 // Open Data e Utility Hub • Base Mainnet</div>
             <div>
                 <a href="/terms" onclick="openLegalModal('terms'); return false;">Termos de Uso</a> • 
                 <a href="/privacy" onclick="openLegalModal('privacy'); return false;">Privacidade (LGPD)</a> • 
@@ -824,6 +825,99 @@ curl "https://www.grid402.com.br/api/v1/dns?domain=github.com" \
                     <button id="modal-tab-privacy-btn" class="modal-tab-btn" onclick="switchLegalModal('privacy')">Privacidade e LGPD</button>
                 </div>
                 <div class="modal-body" id="modal-body-content"></div>
+            </div>
+        </div>
+
+        <!-- Modal de Pagamento Web3 e QR Code Celular -->
+        <div id="web3-modal-overlay" class="modal-overlay" onclick="handleWeb3OverlayClick(event)">
+            <div class="modal-card" style="max-width: 580px;">
+                <div class="modal-header">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 1.25rem;">⚡</span>
+                        <span class="modal-title">Pagamento Web3 (Base Mainnet)</span>
+                    </div>
+                    <button class="modal-close" onclick="closeWeb3Modal()">✕</button>
+                </div>
+                <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+                    <!-- Aviso se nenhuma carteira EVM foi detectada -->
+                    <div id="web3-no-wallet-banner" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.85rem; color: #fde68a; display: flex; align-items: flex-start; gap: 10px;">
+                        <span style="font-size: 1.2rem; line-height: 1;">ℹ️</span>
+                        <div>
+                            <strong>Nenhuma extensão Web3 ativa detectada nesta aba</strong><br>
+                            Para pagar com 1 clique direto na página, é necessário ter a extensão MetaMask, Rabby ou Coinbase Wallet instalada e ativa. Ou pague pelo celular via QR Code abaixo.
+                        </div>
+                    </div>
+
+                    <!-- Duas opções visuais -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;">
+                        <!-- Coluna 1: Celular / QR Code -->
+                        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: space-between;">
+                            <div>
+                                <div style="font-weight: 700; color: #fff; margin-bottom: 0.5rem; font-size: 0.9rem;">📱 Pagar pelo Celular</div>
+                                <div style="background: #fff; padding: 8px; border-radius: 8px; display: inline-block; margin-bottom: 0.6rem;">
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?data=0xa31c31069c43ac1c0075a93c325b0dcd7744356c" alt="QR Code Carteira Oraculo" style="display: block; width: 130px; height: 130px;" />
+                                </div>
+                                <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">
+                                    Escaneie pelo app da MetaMask, Rainbow ou Coinbase Wallet e envie <strong><span id="web3-modal-price">0.0005</span> USDC</strong> na rede <strong>Base</strong>.
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Coluna 2: Instalação / Extensão no PC -->
+                        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; display: flex; flex-direction: column; justify-content: space-between;">
+                            <div>
+                                <div style="font-weight: 700; color: #fff; margin-bottom: 0.5rem; font-size: 0.9rem;">💻 Extensão no Navegador</div>
+                                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.5;">
+                                    Instale a MetaMask para autorizar micropagamentos de USDC com apenas 1 clique em qualquer requisição.
+                                </p>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <a href="https://metamask.io/download/" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="justify-content: center; font-size: 0.85rem; padding: 0.6rem 0.8rem; text-decoration: none;">
+                                    🦊 Instalar MetaMask
+                                </a>
+                                <button class="btn btn-outline" onclick="location.reload()" style="justify-content: center; font-size: 0.8rem; padding: 0.5rem;">
+                                    🔄 Já instalei, recarregar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Dados Técnicos da Transferência -->
+                    <div style="background: #030712; border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem 1rem; font-size: 0.8rem; font-family: var(--font-mono); margin-bottom: 1.25rem;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                            <span style="color: var(--text-muted);">Rede:</span>
+                            <span style="color: #38bdf8; font-weight: 600;">Base Mainnet (Chain ID 8453)</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                            <span style="color: var(--text-muted);">Token:</span>
+                            <span style="color: #fff;">USDC</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                            <span style="color: var(--text-muted);">Valor da Consulta:</span>
+                            <span style="color: var(--primary); font-weight: 700;"><span id="web3-modal-price-detail">0.0005</span> USDC</span>
+                        </div>
+                        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(255, 255, 255, 0.1);">
+                            <div style="color: var(--text-muted); margin-bottom: 4px; font-size: 0.75rem;">Endereço de Destino (Carteira do Oráculo):</div>
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <input type="text" id="web3-wallet-dest-input" readonly value="<?php echo GRID402_WALLET_ADDRESS; ?>" style="flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); color: #fff; padding: 6px 8px; border-radius: 6px; font-size: 0.75rem; font-family: var(--font-mono);" />
+                                <button type="button" class="btn-sm" onclick="copyOracleAddress()" id="btn-copy-oracle" style="font-size: 0.75rem; padding: 6px 10px; white-space: nowrap;">📋 Copiar</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Inserção rápida de Hash para validação imediata -->
+                    <div>
+                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #fff; margin-bottom: 6px;">
+                            Já enviou? Cole o hash da transação para desbloquear os dados:
+                        </label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="web3-hash-direct-input" class="console-input" style="flex: 1; font-size: 0.8rem;" placeholder="0x... (Hash da transação gerado na Base)" />
+                            <button class="btn btn-primary" onclick="submitModalPaymentHash()" style="font-size: 0.8rem; padding: 0.6rem 1rem; white-space: nowrap;">
+                                ⚡ Desbloquear Consulta
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -899,7 +993,7 @@ curl "https://www.grid402.com.br/api/v1/dns?domain=github.com" \
             const out = document.getElementById('console-output');
 
             if (!window.ethereum) {
-                alert('Nenhuma carteira Web3 compatível com EVM (MetaMask, Coinbase Wallet, Rabby, etc.) foi detectada no seu navegador.\n\nVocê pode enviar os fundos para a carteira do oráculo e colar o hash no campo de texto.');
+                openWeb3Modal();
                 return;
             }
 
@@ -1035,8 +1129,58 @@ curl "https://www.grid402.com.br/api/v1/dns?domain=github.com" \
         function handleOverlayClick(e) {
             if (e.target.id === 'legal-modal-overlay') closeLegalModal();
         }
+
+        // Modal de Pagamento Web3
+        function openWeb3Modal() {
+            const isCnpj = (currentServiceAction === 'cnpj');
+            const price = isCnpj ? '0.0020' : '0.0005';
+            const priceEl = document.getElementById('web3-modal-price');
+            const priceDetailEl = document.getElementById('web3-modal-price-detail');
+            if (priceEl) priceEl.textContent = price;
+            if (priceDetailEl) priceDetailEl.textContent = price;
+
+            const banner = document.getElementById('web3-no-wallet-banner');
+            if (banner) {
+                banner.style.display = window.ethereum ? 'none' : 'flex';
+            }
+
+            document.getElementById('web3-modal-overlay').classList.add('active');
+        }
+
+        function closeWeb3Modal() {
+            document.getElementById('web3-modal-overlay').classList.remove('active');
+        }
+
+        function handleWeb3OverlayClick(e) {
+            if (e.target.id === 'web3-modal-overlay') closeWeb3Modal();
+        }
+
+        function copyOracleAddress() {
+            const input = document.getElementById('web3-wallet-dest-input');
+            navigator.clipboard.writeText(input.value).then(() => {
+                const btn = document.getElementById('btn-copy-oracle');
+                const orig = btn.textContent;
+                btn.textContent = 'Copiado!';
+                setTimeout(() => { btn.textContent = orig; }, 2000);
+            });
+        }
+
+        function submitModalPaymentHash() {
+            const hash = document.getElementById('web3-hash-direct-input').value.trim();
+            if (!hash) {
+                alert('Por favor, cole o hash da transação (0x...).');
+                return;
+            }
+            document.getElementById('tx-input').value = hash;
+            closeWeb3Modal();
+            runConsole('paid');
+        }
+
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeLegalModal();
+            if (e.key === 'Escape') {
+                closeLegalModal();
+                closeWeb3Modal();
+            }
         });
     </script>
 </body>
