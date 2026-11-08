@@ -128,6 +128,13 @@ $servicesSummary = [
         'endpoint' => '/api/v1/cep',
         'category' => 'Dados Abertos',
     ],
+    'cnpj' => [
+        'name' => 'Consulta Cadastral CNPJ',
+        'status' => 'UP',
+        'endpoint' => '/api/v1/cnpj',
+        'category' => 'Corporativo',
+        'price_usdc' => GRID402_PRICE_CNPJ,
+    ],
 ];
 
 $totalDurationMs = round((microtime(true) - $startTime) * 1000, 2);
@@ -149,7 +156,7 @@ $summaryPayload = [
 grid402_atomic_write_json(GRID402_FILE_FREE, $summaryPayload);
 
 // Saída em CLI ou resposta HTTP
-$logMessage = "[Grid402 Collector] Hub sincronizado em {$totalDurationMs} ms. 6/6 serviços operantes.\n";
+$logMessage = "[Grid402 Collector] Hub sincronizado em {$totalDurationMs} ms. 7/7 serviços operantes.\n";
 
 if ($isCli) {
     echo $logMessage;

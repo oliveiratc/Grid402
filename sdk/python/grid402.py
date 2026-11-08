@@ -133,6 +133,12 @@ class Grid402Client:
         q = urllib.parse.urlencode({"code": code})
         return self._request(f"/api/v1/cep?{q}", headers=headers)
 
+    def get_cnpj(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Consulta dados cadastrais públicos de Pessoa Jurídica da Receita Federal (razão social, CNAE, situação, endereço)."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        q = urllib.parse.urlencode({"cnpj": cnpj})
+        return self._request(f"/api/v1/cnpj?{q}", headers=headers)
+
     def is_healthy(self, service_name: str = "forex") -> bool:
         """Verifica se um serviço específico ou o hub está operacional."""
         summary = self.get_summary()

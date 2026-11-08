@@ -106,6 +106,8 @@ define('GRID402_USDC_CONTRACT', strtolower((string) grid402_env('GRID402_USDC_CO
 define('GRID402_CHAIN_ID', 8453); // Base Mainnet
 define('GRID402_USDC_REQUIRED_RAW', (int) grid402_env('GRID402_USDC_REQUIRED_RAW', 500)); // 0.000500 USDC
 define('GRID402_PRICE_DISPLAY', (string) grid402_env('GRID402_PRICE_DISPLAY', '0.0005'));
+define('GRID402_PRICE_CNPJ', (string) grid402_env('GRID402_PRICE_CNPJ', '0.0020'));
+define('GRID402_USDC_CNPJ_RAW', (int) grid402_env('GRID402_USDC_CNPJ_RAW', 2000)); // 0.002000 USDC
 define('GRID402_CRON_SECRET', (string) grid402_env('GRID402_CRON_SECRET', 'grid402_secret_token_change_me'));
 
 // 3. Parâmetros de Performance e Timeout
@@ -162,6 +164,7 @@ define('GRID402_FILE_FOREX', GRID402_PRIVATE_DIR . '/forex_cache.json');
 define('GRID402_FILE_CRYPTO', GRID402_PRIVATE_DIR . '/crypto_cache.json');
 define('GRID402_FILE_METRICS', GRID402_PRIVATE_DIR . '/metrics.json');
 define('GRID402_FILE_ADMIN_AUTH', GRID402_PRIVATE_DIR . '/admin_auth.json');
+define('GRID402_FILE_CNPJ', GRID402_PRIVATE_DIR . '/cnpj_cache.json');
 
 // 5. Catálogo Oficial dos 6 Micro-Serviços Core de Dados Públicos e Rede
 function grid402_get_utility_services(): array {
@@ -213,6 +216,15 @@ function grid402_get_utility_services(): array {
             'endpoint' => '/api/v1/cep',
             'category' => 'Dados Abertos',
             'type' => 'on_demand',
+        ],
+        'cnpj' => [
+            'id' => 'cnpj',
+            'name' => 'Consulta Cadastral CNPJ',
+            'description' => 'Situação cadastral, razão social, CNAE, data de abertura e endereço da PJ',
+            'endpoint' => '/api/v1/cnpj',
+            'category' => 'Corporativo',
+            'type' => 'on_demand',
+            'price_usdc' => GRID402_PRICE_CNPJ,
         ],
     ];
 }

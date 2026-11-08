@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "grid402"
-version = "2.0.0"
+version = "2.1.0"
 description = "Official Python client for Grid402 - Public Open Data e Network Utilities Hub (Forex, Crypto, DNS, SSL, ASN, CEP) with Base x402 micropayments."
 readme = "README.md"
 requires-python = ">=3.8"

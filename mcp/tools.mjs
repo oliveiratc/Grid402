@@ -119,6 +119,24 @@ export const MCP_TOOLS_DEFINITIONS = [
       required: ['code'],
     },
   },
+  {
+    name: 'grid402_cnpj',
+    description: 'Consulta dados cadastrais públicos de Pessoa Jurídica da Receita Federal (razão social, nome fantasia, situação cadastral, CNAE, endereço e capital social). Requer 0.0020 USDC.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cnpj: {
+          type: 'string',
+          description: 'Número de CNPJ com 14 dígitos com ou sem formatação (ex: "00.000.000/0001-91" ou "00000000000191").',
+        },
+        payment_tx_hash: {
+          type: 'string',
+          description: 'Hash opcional de transação na Base Mainnet com 0.0020 USDC.',
+        },
+      },
+      required: ['cnpj'],
+    },
+  },
 ];
 
 /**
@@ -157,6 +175,10 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
     case 'cep':
       path = '/api/v1/cep';
       if (params.code) queryParams.set('code', params.code);
+      break;
+    case 'cnpj':
+      path = '/api/v1/cnpj';
+      if (params.cnpj) queryParams.set('cnpj', params.cnpj);
       break;
     default:
       throw new Error(`Serviço desconhecido: ${service}`);

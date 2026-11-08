@@ -152,6 +152,7 @@ export declare class Grid402Client {
     getSsl(host: string, paymentTxHash?: string): Promise<SslResponse>;
     getAsn(ip?: string, paymentTxHash?: string): Promise<AsnResponse>;
     getCep(code: string, paymentTxHash?: string): Promise<CepResponse>;
+    getCnpj(cnpj: string, paymentTxHash?: string): Promise<Record<string, any>>;
     isHealthy(serviceName?: string): Promise<boolean>;
     guard<T>(serviceName: string, action: () => Promise<T> | T, fallback?: () => Promise<T> | T): Promise<T>;
 }

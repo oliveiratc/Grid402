@@ -18,6 +18,7 @@ require_once __DIR__ . '/services/dns.php';
 require_once __DIR__ . '/services/ssl.php';
 require_once __DIR__ . '/services/asn.php';
 require_once __DIR__ . '/services/cep.php';
+require_once __DIR__ . '/services/cnpj.php';
 require_once __DIR__ . '/metrics.php';
 
 // Leitura de cabeçalhos e rotas
@@ -117,22 +118,43 @@ if (!$prefersHtml || $apiParam !== '') {
         }
     }
 
-    // 2.2. Verificação de Pagamento x402 para Micro-serviços Técnicos
+    // 2.2. Verificação prévia defensiva (CNPJ inválido retorna 400 antes de cobrar)
+    $isCnpj = ($apiParam === 'cnpj');
+    $servicePriceDisplay = $isCnpj ? GRID402_PRICE_CNPJ : GRID402_PRICE_DISPLAY;
+    $servicePriceRaw = $isCnpj ? GRID402_USDC_CNPJ_RAW : GRID402_USDC_REQUIRED_RAW;
+
+    if ($isCnpj) {
+        $cnpjInput = (string) ($_GET['cnpj'] ?? $_GET['code'] ?? '');
+        if ($cnpjInput === '' || !grid402_validate_cnpj_digits($cnpjInput)) {
+            http_response_code(400);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'success' => false,
+                'error' => 'InvalidCNPJ',
+                'message' => 'O CNPJ informado é matematicamente inválido ou possui dígitos verificadores incorretos.',
+                'cnpj' => $cnpjInput,
+                'code' => 400,
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+    }
+
+    // 2.3. Verificação de Pagamento x402 para Micro-serviços Técnicos
     if ($paymentProof === '') {
         $serviceLabel = $apiParam !== '' ? $apiParam : 'technical-utility';
-        grid402_respond_402($serviceLabel);
+        grid402_respond_402($serviceLabel, null, $servicePriceDisplay, $servicePriceRaw);
     }
 
     // Auditoria on-chain com trava atômica anti-replay
-    $validation = grid402_validate_payment($paymentProof);
+    $validation = grid402_validate_payment($paymentProof, $servicePriceRaw);
     if (!$validation['valid']) {
         $serviceLabel = $apiParam !== '' ? $apiParam : 'technical-utility';
-        grid402_record_telemetry($serviceLabel, $validation['code'], false, $paymentProof);
+        grid402_record_telemetry($serviceLabel, $validation['code'], false, $paymentProof, null, (float)$servicePriceDisplay);
         http_response_code($validation['code']);
         header('Content-Type: application/json; charset=utf-8');
         if ($validation['code'] === 402) {
             header('X-Authenticate: x402');
-            header('X-Accept-Payment: base:usdc:' . GRID402_WALLET_ADDRESS . ':' . GRID402_PRICE_DISPLAY);
+            header('X-Accept-Payment: base:usdc:' . GRID402_WALLET_ADDRESS . ':' . $servicePriceDisplay);
         }
         echo json_encode([
             'error' => ($validation['code'] === 403) ? 'ReplayAttackDetected' : 'PaymentFailed',
@@ -143,11 +165,11 @@ if (!$prefersHtml || $apiParam !== '') {
     }
 
     // Pagamento validado com sucesso! Executa o micro-serviço requisitado
-    grid402_record_telemetry($apiParam, 200, true, $paymentProof, null, (float)GRID402_PRICE_DISPLAY);
+    grid402_record_telemetry($apiParam, 200, true, $paymentProof, null, (float)$servicePriceDisplay);
     http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');
     header('X-Payment-Status: Accepted');
-    header('X-Payment-Amount: ' . GRID402_PRICE_DISPLAY . ' USDC');
+    header('X-Payment-Amount: ' . $servicePriceDisplay . ' USDC');
     header('X-Payment-Network: Base (ChainID 8453)');
     header('Cache-Control: private, no-cache');
 
@@ -183,6 +205,17 @@ if (!$prefersHtml || $apiParam !== '') {
         case 'cep':
             $code = (string) ($_GET['code'] ?? '01310100');
             $result = grid402_service_cep($code);
+            if (isset($result['code']) && $result['code'] !== 200) {
+                http_response_code($result['code']);
+            }
+            break;
+        case 'cnpj':
+            $cnpjVal = (string) ($_GET['cnpj'] ?? $_GET['code'] ?? '00000000000191');
+            $result = grid402_service_cnpj($cnpjVal);
+            if (isset($result['code']) && $result['code'] !== 200) {
+                http_response_code($result['code']);
+            }
+            break;
             if (isset($result['code']) && $result['code'] !== 200) {
                 http_response_code($result['code']);
             }
@@ -636,14 +669,14 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             </div>
             <div class="badge-live">
                 <span class="badge-pulse"></span>
-                <span>Base Mainnet (8453) • 6/6 Serviços Operantes</span>
+                <span>Base Mainnet (8453) • 7/7 Serviços Operantes</span>
             </div>
         </header>
 
         <section class="hero">
             <div class="hero-tag">Hub de Micro-Serviços para Robôs e Agentes de IA</div>
             <h1>Utilitários de Rede e Dados Públicos Abertos</h1>
-            <p>Acesse cotações de câmbio, cripto, DNS, certificados SSL, BGP/ASN e dados de CEP em milissegundos sem cadastro ou chaves de API. Micropagamentos por chamada em USDC na Base.</p>
+            <p>Acesse cotações de câmbio, cripto, DNS, certificados SSL, BGP/ASN, CEP e CNPJ da Receita Federal em milissegundos sem cadastro ou chaves de API. Micropagamentos por chamada em USDC na Base.</p>
             <div class="cta-group">
                 <a href="#console" class="btn btn-primary" onclick="switchTab('console')">⚡ Testar no Console</a>
                 <a href="/llms.txt" class="btn btn-outline">Documentação llms.txt</a>
@@ -688,6 +721,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                     <button class="btn-sm" onclick="runConsole('ssl')">SSL (/api/v1/ssl)</button>
                     <button class="btn-sm" onclick="runConsole('asn')">ASN (/api/v1/asn)</button>
                     <button class="btn-sm" onclick="runConsole('cep')">CEP (/api/v1/cep)</button>
+                    <button class="btn-sm" onclick="runConsole('cnpj')">CNPJ (/api/v1/cnpj)</button>
                 </div>
                 <div class="input-group">
                     <input type="text" id="tx-input" class="console-input" placeholder="Cole o hash de pagamento na Base (0x...) para testar liberação com X-Payment">
@@ -822,6 +856,7 @@ curl "https://www.grid402.com.br/api/v1/dns?domain=github.com" \
                 case 'ssl': url = '/api/v1/ssl?host=base.org'; break;
                 case 'asn': url = '/api/v1/asn?ip=1.1.1.1'; break;
                 case 'cep': url = '/api/v1/cep?code=01310100'; break;
+                case 'cnpj': url = '/api/v1/cnpj?cnpj=00000000000191'; break;
                 case 'paid':
                     const tx = document.getElementById('tx-input').value.trim();
                     if (!tx) {

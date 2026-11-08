@@ -1,6 +1,6 @@
 {
   "name": "grid402",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Official client SDK for Grid402 - Public Open Data e Network Utilities Hub (Forex, Crypto, DNS, SSL, ASN, CEP) with x402 Base micropayments.",
   "main": "./grid402.mjs",
   "module": "./grid402.mjs",

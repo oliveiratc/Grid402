@@ -10,8 +10,8 @@ async function runTests() {
   console.log('=== Testando Servidor MCP Grid402 ===\n');
 
   // 1. Validação de Schemas das Ferramentas
-  console.log('[1/4] Validando registro e schemas das 7 ferramentas MCP...');
-  assert.strictEqual(MCP_TOOLS_DEFINITIONS.length, 7, 'Deve conter exatamente 7 ferramentas registradas');
+  console.log('[1/4] Validando registro e schemas das 8 ferramentas MCP...');
+  assert.strictEqual(MCP_TOOLS_DEFINITIONS.length, 8, 'Deve conter exatamente 8 ferramentas registradas');
 
   const toolNames = MCP_TOOLS_DEFINITIONS.map(t => t.name);
   const expectedTools = [
@@ -22,12 +22,13 @@ async function runTests() {
     'grid402_ssl',
     'grid402_asn',
     'grid402_cep',
+    'grid402_cnpj',
   ];
 
   for (const expected of expectedTools) {
     assert.ok(toolNames.includes(expected), `Ferramenta ${expected} deve estar presente`);
   }
-  console.log('  ✓ Todas as 7 ferramentas MCP validadas com sucesso!');
+  console.log('  ✓ Todas as 8 ferramentas MCP validadas com sucesso!');
 
   // 2. Teste de Consulta Gratuita (summary)
   console.log('\n[2/4] Testando consulta à ferramenta gratuita grid402_summary...');
@@ -38,7 +39,7 @@ async function runTests() {
   console.log('  ✓ Resumo de saúde recebido com sucesso (Hub operacional)');
 
   // 3. Teste de Captura de Desafio x402 sem Chave Privada
-  console.log('\n[3/4] Testando resposta de desafio 402 para consulta detalhada (grid402_dns)...');
+  console.log('\n[3/4] Testando resposta de desafio 402 para consulta detalhada (grid402_dns e grid402_cnpj)...');
   const dnsChallenge = await executeGrid402Request('dns', { domain: 'github.com' });
   assert.strictEqual(dnsChallenge.payment_required, true, 'Deve indicar payment_required: true');
   assert.ok(dnsChallenge.challenge, 'Deve conter objeto challenge');
@@ -47,7 +48,11 @@ async function runTests() {
     GRID402_RECIPIENT_WALLET,
     'Carteira recebedora deve coincidir com a oficial'
   );
-  console.log('  ✓ Desafio x402 capturado com instruções e carteira oficial!');
+
+  const cnpjChallenge = await executeGrid402Request('cnpj', { cnpj: '00000000000191' });
+  assert.strictEqual(cnpjChallenge.payment_required, true, 'CNPJ deve indicar payment_required: true');
+  assert.ok(cnpjChallenge.challenge, 'Deve conter desafio estruturado');
+  console.log('  ✓ Desafio x402 capturado com instruções e carteira oficial para DNS e CNPJ!');
 
   // 4. Teste de Validação Defensiva de Chave Privada
   console.log('\n[4/4] Testando validação defensiva de formato de chave privada...');

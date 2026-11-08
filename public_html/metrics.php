@@ -61,6 +61,7 @@ function grid402_default_metrics(): array {
             'ssl' => 0,
             'asn' => 0,
             'cep' => 0,
+            'cnpj' => 0,
             'summary' => 0,
         ],
         'daily' => [],

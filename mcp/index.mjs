@@ -58,6 +58,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'grid402_cep':
         service = 'cep';
         break;
+      case 'grid402_cnpj':
+        service = 'cnpj';
+        break;
       default:
         throw new Error(`Ferramenta MCP desconhecida: ${toolName}`);
     }

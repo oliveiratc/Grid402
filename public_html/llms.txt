@@ -1,5 +1,5 @@
-# Grid402 // Open Data & Network Utility Hub for AI Agents (x402 Protocol)
-> Unified micro-services oracle providing foreign exchange rates, crypto tickers, DNS records, SSL inspection, ASN/IP intelligence, and public postal data with autonomous on-chain micropayments.
+# Grid402 // Open Data e Network Utility Hub for AI Agents (x402 Protocol)
+> Unified micro-services oracle providing foreign exchange rates, crypto tickers, DNS records, SSL inspection, ASN/IP intelligence, public postal data, and corporate CNPJ registration data with autonomous on-chain micropayments.
 
 ## 1. Overview
 Grid402 allows autonomous AI agents, crawlers, and M2M systems to access critical network utilities and public open data without API keys, email signups, or SaaS subscriptions. Queries are settled per-call using the **x402 protocol** in USDC on the **Base Mainnet**.
@@ -7,14 +7,14 @@ Grid402 allows autonomous AI agents, crawlers, and M2M systems to access critica
 - **Production Domain:** https://www.grid402.com.br
 - **Settlement Network:** Base Mainnet (EVM Chain ID: 8453)
 - **Accepted Token:** USDC (`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`)
-- **Cost per Technical Query:** $0.0005 USDC (500 atomic units, 6 decimals)
+- **Cost per Technical Query:** $0.0005 USDC (Forex, Crypto, DNS, SSL, ASN, CEP) / $0.0020 USDC (Corporate CNPJ)
 - **Oracle Wallet Address:** 0xa31c31069c43ac1c0075a93c325b0dcd7744356c
 
 ---
 
 ## 2. API Endpoints Catalog
 
-### 2.1. Free Discovery & Summary Endpoint
+### 2.1. Free Discovery e Summary Endpoint
 Returns consolidated status across all 6 services with latest market summaries. Zero payment required.
 - **Endpoint:** `GET /status` or `GET /api/v1/summary`
 - **Headers:** `Accept: application/json`
@@ -71,17 +71,28 @@ Deep inspection of TLS certificate chain on port 443.
 
 ---
 
-### 2.6. ASN & IP Intelligence API (`/api/v1/asn`)
+### 2.6. ASN e IP Intelligence API (`/api/v1/asn`)
 BGP routing metadata, ASN number, organization, and geographic location.
 - **Method:** `GET /api/v1/asn?ip=<ipv4_or_ipv6>`
 - **Requires:** `X-Payment: <base_tx_hash>`
 
 ---
 
-### 2.7. CEP & IBGE Public Address API (`/api/v1/cep`)
+### 2.7. CEP e IBGE Public Address API (`/api/v1/cep`)
 Postal resolution and official Brazilian municipal IBGE code.
 - **Method:** `GET /api/v1/cep?code=<8_digits_cep>`
+- **Cost:** $0.0005 USDC
 - **Requires:** `X-Payment: <base_tx_hash>`
+
+---
+
+### 2.8. Brazilian CNPJ Company Registration API (`/api/v1/cnpj`)
+Public corporate registration data from Brazilian Federal Revenue (Receita Federal) with zero personal data/PII (strictly corporate entity attributes).
+- **Method:** `GET /api/v1/cnpj?cnpj=<14_digits_cnpj>`
+- **Validation:** Modulo 11 check digit verification performed upfront. Invalid CNPJs return HTTP 400 Bad Request without charging.
+- **Cost:** $0.0020 USDC (2000 atomic units)
+- **Requires:** `X-Payment: <base_tx_hash>`
+- **Output:** Company Name (Razao Social), Trade Name, Status (Ativa/Inapta/Baixada), Main/Secondary CNAE economic activities, Opening date, Legal nature, Address, Capital Stock.
 
 ---
 
@@ -98,7 +109,7 @@ When an agent requests any technical endpoint without the `X-Payment` header:
 
 ---
 
-## 4. Legal & Privacy Notice (LGPD Compliant)
+## 4. Legal e Privacy Notice (LGPD Compliant)
 - **Data Scope:** 100% public domain datasets and open internet protocols. Zero Personally Identifiable Information (PII) is processed or retained.
 - **Connection Logs:** IP addresses and timestamps are maintained for 6 months strictly under Art. 15 of Brazilian Internet Law (Lei nº 12.965/2014).
 - **Anti-Replay Cache:** Transaction hashes are retained with a 7-day TTL strictly for fraud prevention under Legitimate Interest (Art. 7º, IX of LGPD).

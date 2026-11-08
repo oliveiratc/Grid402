@@ -629,7 +629,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 <div class="panel-title">Volume por Micro-Serviço</div>
                 <div id="service-bars-container">
                     <?php
-                    $servicesList = ['forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'summary'];
+                    $servicesList = ['forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'summary'];
                     $serviceCounts = $metrics['service_counts'] ?? [];
                     $maxSvc = max(array_values($serviceCounts) ?: [1]);
                     if ($maxSvc <= 0) $maxSvc = 1;
@@ -760,7 +760,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 document.getElementById('kpi-conversion').textContent = conv + '%';
 
                 // 2. Atualizar Barras de Serviços
-                const servicesList = ['forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'summary'];
+                const servicesList = ['forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'summary'];
                 const sCounts = data.service_counts || {};
                 const maxS = Math.max(...Object.values(sCounts).concat([1]));
                 let sHtml = '';

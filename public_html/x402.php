@@ -190,7 +190,7 @@ function grid402_mark_transaction_used(string $txHash): bool {
  * 
  * Retorna array ['valid' => bool, 'reason' => string, 'code' => int]
  */
-function grid402_validate_payment(string $txHash): array {
+function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null): array {
     $txHash = strtolower(trim($txHash));
 
     // 1. Validação do formato (0x + 64 hex)
@@ -236,7 +236,8 @@ function grid402_validate_payment(string $txHash): array {
     $transferTopic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
     $usdcContract = GRID402_USDC_CONTRACT;
     $targetWallet = substr(GRID402_WALLET_ADDRESS, 2); // sem 0x
-    $requiredAmount = GRID402_USDC_REQUIRED_RAW;
+    $requiredAmount = $requiredRawUnits ?? GRID402_USDC_REQUIRED_RAW;
+    $displayAmount = ($requiredRawUnits !== null) ? number_format($requiredRawUnits / 1e6, 4) : GRID402_PRICE_DISPLAY;
 
     $validTransferFound = false;
     $logs = $receipt['logs'] ?? [];
@@ -275,7 +276,7 @@ function grid402_validate_payment(string $txHash): array {
         grid402_release_transaction_lock($txHash);
         return [
             'valid' => false,
-            'reason' => 'Nenhuma transferência de USDC válida para a carteira do oráculo com valor mínimo de ' . GRID402_PRICE_DISPLAY . ' USDC foi identificada nesta transação.',
+            'reason' => 'Nenhuma transferência de USDC válida para a carteira do oráculo com valor mínimo de ' . $displayAmount . ' USDC foi identificada nesta transação.',
             'code' => 402,
         ];
     }
@@ -291,17 +292,20 @@ function grid402_validate_payment(string $txHash): array {
 /**
  * Emite a resposta HTTP 402 Payment Required estruturada
  */
-function grid402_respond_402(?string $serviceName = null, ?string $errorMessage = null): void {
+function grid402_respond_402(?string $serviceName = null, ?string $errorMessage = null, ?string $priceDisplay = null, ?int $priceRawUnits = null): void {
+    $priceDisplay = $priceDisplay ?? GRID402_PRICE_DISPLAY;
+    $priceRawUnits = $priceRawUnits ?? GRID402_USDC_REQUIRED_RAW;
+
     if (function_exists('grid402_record_telemetry')) {
-        grid402_record_telemetry($serviceName ?? 'unknown', 402, false);
+        grid402_record_telemetry($serviceName ?? 'unknown', 402, false, null, null, (float)$priceDisplay);
     }
     http_response_code(402);
     header('HTTP/1.1 402 Payment Required', true, 402);
     header('Content-Type: application/json; charset=utf-8');
     header('X-Authenticate: x402');
-    header('X-Accept-Payment: base:usdc:' . GRID402_WALLET_ADDRESS . ':' . GRID402_PRICE_DISPLAY);
+    header('X-Accept-Payment: base:usdc:' . GRID402_WALLET_ADDRESS . ':' . $priceDisplay);
 
-    $msg = $errorMessage ?? ($serviceName ? "Acesso à API '{$serviceName}' requer micropagamento de " . GRID402_PRICE_DISPLAY . " USDC via protocolo x402." : 'Consulta técnica requer micropagamento sob demanda via protocolo x402.');
+    $msg = $errorMessage ?? ($serviceName ? "Acesso à API '{$serviceName}' requer micropagamento de {$priceDisplay} USDC via protocolo x402." : 'Consulta técnica requer micropagamento sob demanda via protocolo x402.');
 
     $payload = [
         'error' => 'PaymentRequired',
@@ -311,10 +315,10 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         'chain_id' => GRID402_CHAIN_ID,
         'token' => 'USDC',
         'token_contract' => GRID402_USDC_CONTRACT,
-        'price_usdc' => GRID402_PRICE_DISPLAY,
-        'price_raw_units' => GRID402_USDC_REQUIRED_RAW,
+        'price_usdc' => $priceDisplay,
+        'price_raw_units' => $priceRawUnits,
         'recipient_wallet' => GRID402_WALLET_ADDRESS,
-        'action_required' => 'Envie 0.0005 USDC para a carteira recipient_wallet na rede Base e refaça a requisição incluindo o cabeçalho "X-Payment: <tx_hash>".',
+        'action_required' => "Envie {$priceDisplay} USDC para a carteira recipient_wallet na rede Base e refaça a requisição incluindo o cabeçalho \"X-Payment: <tx_hash>\".",
         'docs' => 'https://www.grid402.com.br/llms.txt',
     ];
 

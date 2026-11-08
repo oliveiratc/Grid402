@@ -188,6 +188,18 @@ export class Grid402Client {
     }
 
     /**
+     * Consulta dados cadastrais de Pessoa Jurídica da Receita Federal (razão social, CNAE, situação, endereço).
+     * @param {string} cnpj
+     * @param {string} [paymentTxHash]
+     * @returns {Promise<Object>}
+     */
+    async getCnpj(cnpj, paymentTxHash) {
+        const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+        const q = new URLSearchParams({ cnpj }).toString();
+        return this._request(`/api/v1/cnpj?${q}`, headers);
+    }
+
+    /**
      * Verifica rapidamente se um serviço específico ou o hub está saudável (UP).
      * @param {string} [serviceName]
      * @returns {Promise<boolean>}
