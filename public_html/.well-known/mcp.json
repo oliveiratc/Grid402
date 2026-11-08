@@ -1,0 +1,189 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/mcp.json",
+  "name": "grid402-mcp",
+  "version": "1.4.0",
+  "description": "Servidor MCP oficial do Grid402 para consulta de dados publicos do Brasil sob o protocolo x402 com prova criptografica de oraculo.",
+  "homepage": "https://orangered-jackal-900744.hostingersite.com",
+  "repository": "https://github.com/oliveiratc/Grid402",
+  "payment": {
+    "protocol": "x402",
+    "network": "base-mainnet",
+    "chain_id": 8453,
+    "token": "USDC",
+    "recipient": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c"
+  },
+  "tools": [
+    {
+      "name": "grid402_summary",
+      "description": "Verifica a saude operacional e status geral dos servicos do Grid402 (gratuito).",
+      "cost_usdc": "0.0000",
+      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/summary",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "grid402_forex",
+      "description": "Consulta cotacoes cambiais oficiais de USD, EUR e GBP em relacao ao Real brasileiro (BRL).",
+      "cost_usdc": "0.0005",
+      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/forex",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "grid402_crypto",
+      "description": "Consulta cotacoes spot de criptoativos (BTC, ETH, SOL, USDC, BASE) com variacao 24h.",
+      "cost_usdc": "0.0005",
+      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/crypto",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "grid402_dns",
+      "description": "Resolve registros de DNS autoritativos (A, AAAA, MX, TXT, NS, CNAME) para um dominio.",
+      "cost_usdc": "0.0005",
+      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/dns",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "description": "Nome de dominio para consulta (ex: base.org)"
+          }
+        },
+        "required": ["domain"]
+      }
+    },
+    {
+      "name": "grid402_ssl",
+      "description": "Inspeciona certificados TLS e SSL na porta 443, retornando emissor, validade e cifras.",
+      "cost_usdc": "0.0005",
+      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/ssl",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "host": {
+            "type": "string",
+            "description": "Hostname ou endereco IP para inspecao de certificado (ex: base.org)"
+          }
+        },
+        "required": ["host"]
+      }
+    },
+    {
+      "name": "grid402_asn",
+      "description": "Resolve inteligencia de roteamento BGP, bloco de rede alocado e numero ASN de um IP.",
+      "cost_usdc": "0.0005",
+      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/asn",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ip": {
+            "type": "string",
+            "description": "Endereco IPv4 ou IPv6 para consulta BGP (ex: 1.1.1.1)"
+          }
+        },
+        "required": ["ip"]
+      }
+    },
+    {
+      "name": "grid402_cep",
+      "description": "Localiza endereco postal brasileiro, bairro, cidade, UF e codigo IBGE a partir do CEP.",
+      "cost_usdc": "0.0005",
+      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/cep",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Codigo postal brasileiro com 8 digitos (ex: 01310100)"
+          }
+        },
+        "required": ["code"]
+      }
+    },
+    {
+      "name": "grid402_cnpj",
+      "description": "Consulta dados oficiais de Pessoa Juridica na Receita Federal (razao social, situacao cadastral, CNAE, socios).",
+      "cost_usdc": "0.0020",
+      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/cnpj",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "cnpj": {
+            "type": "string",
+            "description": "Numero de CNPJ com 14 digitos numericos (ex: 00000000000191)"
+          }
+        },
+        "required": ["cnpj"]
+      }
+    },
+    {
+      "name": "grid402_indicators",
+      "description": "Consulta taxas oficiais de juros e inflacao do Brasil: Selic Meta, Selic Diaria, CDI anual, IPCA 12m.",
+      "cost_usdc": "0.0005",
+      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/indicators",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "grid402_holidays",
+      "description": "Consulta o calendario oficial de feriados nacionais e bancarios brasileiros para um ano.",
+      "cost_usdc": "0.0005",
+      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/holidays",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "year": {
+            "type": "integer",
+            "description": "Ano de referencia (ex: 2026)"
+          }
+        }
+      }
+    },
+    {
+      "name": "grid402_workdays",
+      "description": "Calcula a contagem de dias uteis bancarios da ANBIMA entre duas datas no Brasil.",
+      "cost_usdc": "0.0005",
+      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/workdays",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "start_date": {
+            "type": "string",
+            "description": "Data inicial no formato YYYY-MM-DD"
+          },
+          "end_date": {
+            "type": "string",
+            "description": "Data final no formato YYYY-MM-DD"
+          }
+        },
+        "required": ["start_date", "end_date"]
+      }
+    },
+    {
+      "name": "grid402_verify",
+      "description": "Valida sem estado a assinatura criptografica secp256k1 de oraculo do Grid402 (gratuito).",
+      "cost_usdc": "0.0000",
+      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/verify",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "payload": {
+            "type": "string",
+            "description": "Payload JSON completo com o objeto _oracle_proof a ser verificado"
+          }
+        },
+        "required": ["payload"]
+      }
+    }
+  ]
+}
+

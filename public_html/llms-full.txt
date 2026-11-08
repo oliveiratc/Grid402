@@ -1,0 +1,214 @@
+# Grid402 - Documentacao Tecnica Completa para Modelos de Linguagem e Agentes de IA
+
+> Especificacao exaustiva de endpoints, protocolo de micropagamento HTTP 402 (x402), oraculo criptografico ECDSA secp256k1 e integracao com agentes autonomos de IA.
+
+## 1. Visao Geral da Plataforma
+O Grid402 e um hub de microservicos e dados abertos publicos da Republica Federativa do Brasil, operando sob uma arquitetura Zero-DB de ultrabaixa latencia (inferior a 20 milissegundos).
+Todas as consultas tecnicas e cadastrais sao monetizadas por chamada (pay-per-call) utilizando o codigo de status nativo HTTP 402 Payment Required e stablecoins (USDC) na rede Base (Coinbase Layer 2).
+
+- Dominio Base: https://orangered-jackal-900744.hostingersite.com
+- Rede Blockchain: Base Mainnet (EVM Chain ID 8453)
+- Moeda de Liquidacao: USDC (Contrato: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
+- Carteira Recebedora: 0xa31c31069c43ac1c0075a93c325b0dcd7744356c
+- Padrao de Assinatura: ECDSA secp256k1 (SHA-256)
+
+---
+
+## 2. Fluxo do Protocolo x402 (HTTP 402 Payment Required)
+
+Quando um agente de IA efetua uma requisicao a um endpoint tarifado sem um comprovante de pagamento valido, o servidor responde com HTTP 402:
+
+```http
+HTTP/1.1 402 Payment Required
+Content-Type: application/json; charset=utf-8
+Access-Control-Allow-Origin: *
+X-Accept-Payment: usdc-base
+X-Payment-Amount: 0.0005
+X-Payment-Receiver: 0xa31c31069c43ac1c0075a93c325b0dcd7744356c
+X-Payment-Network: base-mainnet
+
+{
+  "status": "error",
+  "code": 402,
+  "message": "Payment Required. Please settle payment on Base network.",
+  "payment_details": {
+    "network": "base-mainnet",
+    "chain_id": 8453,
+    "token": "USDC",
+    "amount": "0.0005",
+    "recipient": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c"
+  }
+}
+```
+
+### Como o Agente Autonomo Deve Proceder:
+1. Ler os dados de pagamento dos cabecalhos ou do corpo JSON.
+2. Executar a transferencia ERC-20 de USDC na Base para o endereco destinatario.
+3. Obter o transaction hash (`0x...`).
+4. Reenviar a requisicao original incluindo o cabecalho HTTP:
+   `X-Payment: 0xSEU_TRANSACTION_HASH`
+5. O servidor valida a transacao on-chain e entrega o payload com status HTTP 200 e a prova de oraculo `_oracle_proof`.
+
+---
+
+## 3. Prova Criptografica de Oraculo (`_oracle_proof`)
+
+Cada resposta tarifada ou validada inclui um objeto `_oracle_proof`:
+
+```json
+{
+  "_oracle_proof": {
+    "version": "1.0",
+    "oracle_address": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c",
+    "timestamp_epoch": 1794140000,
+    "algorithm": "secp256k1-sha256",
+    "digest_sha256": "4a5e3f...",
+    "signature_hex": "3045022100...0220..."
+  }
+}
+```
+
+### Validacao sem Estado (`/api/v1/verify`):
+Para verificar se os dados nao foram adulterados em transito, o agente pode submeter a resposta ao endpoint de verificacao via POST:
+
+```bash
+curl -X POST https://orangered-jackal-900744.hostingersite.com/api/v1/verify \
+  -H "Content-Type: application/json" \
+  -d '{"full_response_with_proof": {...}}'
+```
+
+Resposta de verificacao:
+```json
+{
+  "status": "success",
+  "valid": true,
+  "oracle_address": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c",
+  "digest_sha256": "4a5e3f...",
+  "verification_time_ms": 0.42
+}
+```
+
+---
+
+## 4. Catalogo Completo de Endpoints
+
+### 1. Resumo do Sistema (Gratuito)
+- Rota: `GET /api/v1/summary`
+- Tarifa: 0.0000 USDC
+- Descricao: Status de conectividade e contadores de servicos do Grid402.
+
+### 2. Taxas de Cambio (Forex)
+- Rota: `GET /api/v1/forex`
+- Tarifa: 0.0005 USDC
+- Descricao: Cotacoes oficiais do Banco Central do Brasil para USD, EUR e GBP em relacao ao BRL.
+
+### 3. Tickers de Criptoativos
+- Rota: `GET /api/v1/crypto`
+- Tarifa: 0.0005 USDC
+- Descricao: Precos spot de BTC, ETH, SOL, USDC e BASE com variacao percentual em 24 horas.
+
+### 4. Consulta DNS
+- Rota: `GET /api/v1/dns?domain={dominio}`
+- Tarifa: 0.0005 USDC
+- Exemplo: `/api/v1/dns?domain=base.org`
+- Descricao: Registros autoritativos A, AAAA, MX, TXT, NS e CNAME.
+
+### 5. Inspecao TLS e SSL
+- Rota: `GET /api/v1/ssl?host={host}`
+- Tarifa: 0.0005 USDC
+- Exemplo: `/api/v1/ssl?host=base.org`
+- Descricao: Analise de certificado digital, emissor, data de expiracao e protocolos suportados.
+
+### 6. Inteligencia ASN e BGP
+- Rota: `GET /api/v1/asn?ip={ip}`
+- Tarifa: 0.0005 USDC
+- Exemplo: `/api/v1/asn?ip=1.1.1.1`
+- Descricao: Resolucao de Sistema Autonomo (ASN), bloco CIDR e organizacao detentora do IP.
+
+### 7. Endereco Postal por CEP
+- Rota: `GET /api/v1/cep?code={cep}`
+- Tarifa: 0.0005 USDC
+- Exemplo: `/api/v1/cep?code=01310100`
+- Descricao: Logradouro, bairro, cidade, UF e codigo IBGE oficial do municipio.
+
+### 8. Cadastro de Pessoa Juridica (CNPJ)
+- Rota: `GET /api/v1/cnpj?cnpj={cnpj}`
+- Tarifa: 0.0020 USDC
+- Exemplo: `/api/v1/cnpj?cnpj=00000000000191`
+- Descricao: Razao social, nome fantasia, situacao cadastral, CNAE principal, socios e capital social na Receita Federal.
+
+### 9. Indicadores Economicos Brasileiros
+- Rota: `GET /api/v1/indicators`
+- Tarifa: 0.0005 USDC
+- Descricao: Taxa Selic (meta e acumulada), CDI diario e anualizado, IPCA acumulado de 12 meses e variacao mensal.
+
+### 10. Calendario de Feriados Oficiais
+- Rota: `GET /api/v1/holidays?year={ano}`
+- Tarifa: 0.0005 USDC
+- Exemplo: `/api/v1/holidays?year=2026`
+- Descricao: Feriados nacionais e bancarios oficiais (ANBIMA e Febraban) com algoritmo de calculo pascoal Meeus.
+
+### 11. Calculadora de Dias Uteis ANBIMA
+- Rota: `GET /api/v1/workdays?start_date={data1}` (com parametro adicional `end_date={data2}`)
+- Tarifa: 0.0005 USDC
+- Exemplo: `/api/v1/workdays?start_date=2026-01-01 e end_date=2026-12-31`
+- Descricao: Contagem de dias uteis financeiros e projecao de liquidacao financeira segundo padrao ANBIMA.
+
+### 12. Verificador de Oraculo Criptografico
+- Rota: `POST /api/v1/verify` (ou `GET /api/v1/verify?payload={url_encoded_payload}`)
+- Tarifa: 0.0000 USDC (Gratuito)
+- Descricao: Validacao matematico-criptografica de assinaturas de dados geradas pelo Grid402.
+
+---
+
+## 5. Exemplo de Codigo em Python para Agentes
+
+```python
+import requests
+
+BASE_URL = "https://orangered-jackal-900744.hostingersite.com"
+
+def consultar_cnpj(cnpj, payment_tx_hash=None):
+    headers = {}
+    if payment_tx_hash:
+        headers["X-Payment"] = payment_tx_hash
+    
+    url = f"{BASE_URL}/api/v1/cnpj?cnpj={cnpj}"
+    res = requests.get(url, headers=headers)
+    
+    if res.status_code == 402:
+        payment_info = res.json()["payment_details"]
+        print(f"[402] Pagamento necessario de {payment_info['amount']} USDC para {payment_info['recipient']}")
+        return res.json()
+    
+    data = res.json()
+    print("[200] Dados obtidos com sucesso! Assinatura de Oraculo presente:", "_oracle_proof" in data)
+    return data
+
+# Modo teste / visualizacao de desafio:
+consultar_cnpj("00000000000191")
+```
+
+---
+
+## 6. Integracao via Model Context Protocol (MCP)
+
+Para conectar o Grid402 ao Claude Desktop ou Cursor:
+Arquivo `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "grid402": {
+      "command": "npx",
+      "args": ["-y", "grid402-mcp@latest"],
+      "env": {
+        "GRID402_BASE_URL": "https://orangered-jackal-900744.hostingersite.com"
+      }
+    }
+  }
+}
+```
+
+Manifesto remoto de ferramentas disponivel em:
+`https://orangered-jackal-900744.hostingersite.com/.well-known/mcp.json`

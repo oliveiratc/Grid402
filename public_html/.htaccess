@@ -63,6 +63,9 @@ ServerSignature Off
     RewriteRule ^api/v1/workdays/?$ index.php?api=workdays [QSA,L]
     RewriteRule ^workdays/?$ index.php?api=workdays [QSA,L]
 
+    # Central de Agentes de IA
+    RewriteRule ^agents/?$ agents.php [QSA,L]
+
     # Painel Administrativo de Monitoramento e Faturamento
     RewriteRule ^admin/?$ admin.php [QSA,L]
     RewriteRule ^dashboard/?$ admin.php [QSA,L]

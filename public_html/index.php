@@ -175,6 +175,7 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
             </div>
             <nav class="nav-links">
                 <a href="/">Home</a>
+                <a href="/agents" <?php echo $canonicalPath === '/agents' ? 'class="active"' : ''; ?>>Agentes IA</a>
                 <a href="/about" <?php echo $canonicalPath === '/about' ? 'class="active"' : ''; ?>>About</a>
                 <a href="/contact" <?php echo $canonicalPath === '/contact' ? 'class="active"' : ''; ?>>Contact</a>
                 <a href="/terms" <?php echo $canonicalPath === '/terms' ? 'class="active"' : ''; ?>>Terms</a>
@@ -188,6 +189,7 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
         <footer>
             <div class="footer-links">
                 <a href="/">Home</a>
+                <a href="/agents">Agentes IA</a>
                 <a href="/about">About</a>
                 <a href="/contact">Contact</a>
                 <a href="/terms">Terms</a>
@@ -357,13 +359,19 @@ if ($requestPath === '/admin' || $requestPath === '/dashboard' || $pageParam ===
     exit;
 }
 
+// 1.2. Central de Agentes de IA (/agents)
+if ($requestPath === '/agents' || $pageParam === 'agents') {
+    require __DIR__ . '/agents.php';
+    exit;
+}
+
 // 2. Classificação de Rotas
 $isStatusRoute = ($requestPath === '/status' || $requestPath === '/api/v1/summary' || $requestPath === '/telemetry');
 $isHomeRoute = ($requestPath === '/' || $requestPath === '/index.php');
 $isVerifyRoute = ($requestPath === '/api/v1/verify' || $apiParam === 'verify');
 $validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays'];
 $isValidApiAction = in_array($apiParam, $validApiEndpoints, true);
-$isInstitutionalRoute = in_array($requestPath, ['/about', '/contact', '/terms', '/privacy', '/admin', '/dashboard'], true);
+$isInstitutionalRoute = in_array($requestPath, ['/about', '/contact', '/terms', '/privacy', '/admin', '/dashboard', '/agents'], true);
 
 // 3. Rota Inexistente: Retorna HTTP 404 Real (Issue 3)
 if (!$isHomeRoute && !$isStatusRoute && !$isValidApiAction && !$isInstitutionalRoute && !$isVerifyRoute) {
@@ -1620,6 +1628,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                 <a href="#services">Servicos</a>
                 <a href="#playground">Playground</a>
                 <a href="#console">Console</a>
+                <a href="/agents" style="color: var(--primary); font-weight: 600;">Agentes IA</a>
                 <a href="/about">About</a>
                 <a href="/contact">Contact</a>
                 <a href="/terms">Terms</a>
@@ -1636,10 +1645,9 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             <h1>Grid402: Hub de Utilitarios de Rede e Dados Publicos para Agentes de IA</h1>
             <p>Acesse cotacoes de cambio, cripto, indicadores economicos oficiais (Selic, CDI e IPCA), feriados nacionais e bancarios, DNS, certificados SSL, BGP/ASN, CEP e CNPJ da Receita Federal em milissegundos sem cadastro ou chaves de API. Micropagamentos por chamada em USDC na Base.</p>
             <div class="cta-group">
-                <a href="#playground" class="btn btn-primary">⚡ Testar no Playground</a>
+                <a href="/agents" class="btn btn-primary">🤖 Central de Agentes IA</a>
+                <a href="#playground" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary);">⚡ Testar no Playground</a>
                 <a href="#console" class="btn btn-outline" onclick="switchTab('console')">Console e SDKs</a>
-                <a href="/about" class="btn btn-outline">About Us</a>
-                <a href="/contact" class="btn btn-outline">Contact Us</a>
                 <a href="/llms.txt" class="btn btn-outline">Documentacao llms.txt</a>
                 <a href="/status" class="btn btn-outline">Resumo Gratuito (JSON)</a>
             </div>
@@ -2191,11 +2199,13 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
         <!-- Rodapé Semântico -->
         <footer>
             <div class="footer-links">
+                <a href="/agents" style="color: var(--primary); font-weight: 600;">Agentes IA</a>
                 <a href="/about">About</a>
                 <a href="/contact">Contact</a>
                 <a href="/terms" target="_blank">Terms of Service</a>
                 <a href="/privacy" target="_blank">Privacy Policy</a>
                 <a href="/llms.txt" target="_blank">llms.txt</a>
+                <a href="/.well-known/mcp.json" target="_blank">MCP Manifest</a>
                 <a href="/openapi.json" target="_blank">OpenAPI 3.1</a>
                 <a href="/.well-known/mcp/server-card.json" target="_blank">MCP Server Card</a>
                 <a href="mailto:contato@grid402.com.br">contato@grid402.com.br</a>

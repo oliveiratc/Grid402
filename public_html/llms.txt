@@ -1,16 +1,20 @@
 # Grid402
 
-> Hub de micro-servicos e dados abertos para agentes autonomos de IA e aplicacoes M2M sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.
+> Hub de microservicos e dados abertos para agentes autonomos de IA e aplicacoes M2M sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.
 
 ## Core Documentation
+- [Full LLM Context](https://orangered-jackal-900744.hostingersite.com/llms-full.txt): Documentacao exaustiva com schemas JSON e contratos de endpoints para modelos de linguagem
+- [Central de Agentes de IA](https://orangered-jackal-900744.hostingersite.com/agents): Guia rapido de integracao para agentes autonomos, Claude Desktop, Python e cURL
 - [OpenAPI Specification](https://orangered-jackal-900744.hostingersite.com/openapi.json): Especificacao completa e interativa da API no padrao OpenAPI 3.1
+- [MCP Server Card](https://orangered-jackal-900744.hostingersite.com/.well-known/mcp/server-card.json): Ficha de descoberta de capacidades SEP-1649 para servidores MCP
+- [MCP Well-Known Manifest](https://orangered-jackal-900744.hostingersite.com/.well-known/mcp.json): Manifesto estruturado com a lista de ferramentas MCP do Grid402
+- [AI Plugin Manifest](https://orangered-jackal-900744.hostingersite.com/.well-known/ai-plugin.json): Manifesto padrao para plugins e descoberta por motores de IA
+- [Oracle Verifier API](https://orangered-jackal-900744.hostingersite.com/api/v1/verify): Endpoint sem estado para validacao criptografica de provas de oraculo em menos de 1 ms
 - [Status e Saude do Hub](https://orangered-jackal-900744.hostingersite.com/status): Verificacao de disponibilidade e resumo operacional dos servicos
 - [Sobre a Organizacao](https://orangered-jackal-900744.hostingersite.com/about): Missao, arquitetura Zero-DB e endereco institucional
 - [Canais de Contato](https://orangered-jackal-900744.hostingersite.com/contact): Suporte tecnico, encarregado de dados DPO e telefonia
 - [Termos de Servico](https://orangered-jackal-900744.hostingersite.com/terms): Condicoes de uso, licenca MIT e termos M2M
 - [Politica de Privacidade](https://orangered-jackal-900744.hostingersite.com/privacy): Diretrizes de privacidade, conformidade LGPD e retencao de logs
-- [Oracle Verifier API](https://orangered-jackal-900744.hostingersite.com/api/v1/verify): Endpoint sem estado para validacao criptografica de provas de oraculo em menos de 1 ms
-- [MCP Server Card](https://orangered-jackal-900744.hostingersite.com/.well-known/mcp/server-card.json): Ficha de descoberta de capacidades SEP-1649 para servidores MCP
 
 ## Public Micro-Services APIs
 - [Forex Rates API](https://orangered-jackal-900744.hostingersite.com/api/v1/forex): Cotacoes cambiais oficiais de USD, EUR e GBP para BRL em tempo real
@@ -28,11 +32,11 @@
 - [Python SDK (PyPI)](https://pypi.org/project/grid402/): Pacote oficial grid402 para Python com suporte a Pydantic e Coinbase AgentKit
 - [Node.js and TypeScript SDK (npm)](https://www.npmjs.com/package/grid402): Pacote oficial grid402 no npm com suporte hibrido ESM e CommonJS
 - [Model Context Protocol Server (npm)](https://www.npmjs.com/package/grid402-mcp): Servidor MCP oficial para Claude Desktop, Cursor e Smithery
-- [Coinbase AgentKit Providers](https://github.com/oliveiratc/Grid402/tree/main/integrations/agentkit): Provedores de acoes com auto-liquidacao on-chain para carteiras CDP
+- [Coinbase AgentKit Providers](https://github.com/oliveiratc/Grid402/tree/main/integrations/agentkit): Provedores de acoes com autoliquidacao on-chain para carteiras CDP
 
 ## Micropayment Protocol Details
 - Rede e Chain ID: Base Mainnet (Chain ID 8453)
-- Tarifa Padrao por Requisicao: 0.0005 USDC
+- Tarifa Padrao por Requisicao: 0.0005 USDC (CNPJ: 0.0020 USDC)
 - [Base Mainnet Scanner](https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c): Carteira oraculo recebedora de micropagamentos (0xa31c31069c43ac1c0075a93c325b0dcd7744356c)
 - [USDC Contract on Base](https://basescan.org/token/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913): Contrato oficial de USDC na rede Base Mainnet (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
 
