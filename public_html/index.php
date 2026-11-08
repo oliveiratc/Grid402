@@ -365,6 +365,10 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             padding: 0 1.5rem;
             min-height: 100vh;
         }
+        p {
+            text-align: justify;
+            text-justify: inter-word;
+        }
         .container {
             max-width: 1100px;
             margin: 0 auto;
@@ -449,6 +453,8 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             font-size: 1.15rem;
             max-width: 680px;
             margin: 0 auto 2rem;
+            text-align: justify;
+            text-justify: inter-word;
         }
         .cta-group {
             display: flex;
@@ -522,6 +528,8 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             font-size: 0.9rem;
             margin-bottom: 1rem;
             min-height: 42px;
+            text-align: justify;
+            text-justify: inter-word;
         }
         .card-route {
             font-family: var(--font-mono);
@@ -551,6 +559,8 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             color: var(--text-muted);
             font-size: 0.95rem;
             margin-bottom: 1.5rem;
+            text-align: justify;
+            text-justify: inter-word;
         }
         .tabs-header {
             display: flex;
@@ -659,6 +669,12 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             font-size: 0.75rem;
             line-height: 1.6;
             color: #64748B;
+            text-align: justify;
+            text-justify: inter-word;
+        }
+        .footer-legal p {
+            text-align: justify;
+            text-justify: inter-word;
         }
 
         /* Modal */
@@ -713,6 +729,12 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             font-size: 0.875rem;
             line-height: 1.7;
             color: #CBD5E1;
+            text-align: justify;
+            text-justify: inter-word;
+        }
+        .modal-body p {
+            text-align: justify;
+            text-justify: inter-word;
         }
         .modal-body h3 { font-size: 1rem; color: #fff; margin: 1.25rem 0 0.5rem; }
         .modal-body h3:first-child { margin-top: 0; }
