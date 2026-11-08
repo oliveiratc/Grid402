@@ -292,7 +292,7 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null)
 /**
  * Emite a resposta HTTP 402 Payment Required estruturada
  */
-function grid402_respond_402(?string $serviceName = null, ?string $errorMessage = null, ?string $priceDisplay = null, ?int $priceRawUnits = null): void {
+function grid402_respond_402(?string $serviceName = null, ?string $errorMessage = null, ?string $priceDisplay = null, ?int $priceRawUnits = null, ?array $preview = null, ?array $lockedFields = null): void {
     $priceDisplay = $priceDisplay ?? GRID402_PRICE_DISPLAY;
     $priceRawUnits = $priceRawUnits ?? GRID402_USDC_REQUIRED_RAW;
 
@@ -311,6 +311,7 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         'error' => 'PaymentRequired',
         'message' => $msg,
         'protocol' => 'x402',
+        'service' => $serviceName ?? 'unknown',
         'network' => 'Base',
         'chain_id' => GRID402_CHAIN_ID,
         'token' => 'USDC',
@@ -321,6 +322,13 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         'action_required' => "Envie {$priceDisplay} USDC para a carteira recipient_wallet na rede Base e refaça a requisição incluindo o cabeçalho \"X-Payment: <tx_hash>\".",
         'docs' => 'https://www.grid402.com.br/llms.txt',
     ];
+
+    if ($preview !== null && !empty($preview)) {
+        $payload['preview'] = $preview;
+    }
+    if ($lockedFields !== null && !empty($lockedFields)) {
+        $payload['locked_fields'] = $lockedFields;
+    }
 
     echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;

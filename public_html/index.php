@@ -139,10 +139,37 @@ if (!$prefersHtml || $apiParam !== '') {
         }
     }
 
-    // 2.3. Verificação de Pagamento x402 para Micro-serviços Técnicos
+    // 2.3. Verificação de Pagamento x402 para Micro-serviços Técnicos com Teaser Preview
     if ($paymentProof === '') {
         $serviceLabel = $apiParam !== '' ? $apiParam : 'technical-utility';
-        grid402_respond_402($serviceLabel, null, $servicePriceDisplay, $servicePriceRaw);
+        $previewData = null;
+        $lockedFields = null;
+
+        if ($apiParam === 'cnpj') {
+            $cnpjInput = (string) ($_GET['cnpj'] ?? $_GET['code'] ?? '00000000000191');
+            $cnpjResult = grid402_get_cnpj_preview($cnpjInput);
+            if (!($cnpjResult['success'] ?? false)) {
+                http_response_code($cnpjResult['code'] ?? 400);
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode($cnpjResult, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+            $previewData = $cnpjResult['preview'];
+            $lockedFields = $cnpjResult['locked_fields'];
+        } elseif ($apiParam === 'cep') {
+            $cepInput = (string) ($_GET['code'] ?? $_GET['cep'] ?? '01310100');
+            $cepResult = grid402_get_cep_preview($cepInput);
+            if (!($cepResult['success'] ?? false)) {
+                http_response_code($cepResult['code'] ?? 400);
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode($cepResult, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+            $previewData = $cepResult['preview'];
+            $lockedFields = $cepResult['locked_fields'];
+        }
+
+        grid402_respond_402($serviceLabel, null, $servicePriceDisplay, $servicePriceRaw, $previewData, $lockedFields);
     }
 
     // Auditoria on-chain com trava atômica anti-replay
@@ -212,10 +239,6 @@ if (!$prefersHtml || $apiParam !== '') {
         case 'cnpj':
             $cnpjVal = (string) ($_GET['cnpj'] ?? $_GET['code'] ?? '00000000000191');
             $result = grid402_service_cnpj($cnpjVal);
-            if (isset($result['code']) && $result['code'] !== 200) {
-                http_response_code($result['code']);
-            }
-            break;
             if (isset($result['code']) && $result['code'] !== 200) {
                 http_response_code($result['code']);
             }
@@ -729,6 +752,31 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                     <button class="btn-sm btn-primary" id="btn-web3-pay" onclick="payWithWeb3Wallet()">⚡ Pagar com Carteira Web3 (1 Clique)</button>
                     <button class="btn-sm btn-outline" onclick="openWeb3Modal()" title="Abrir QR Code e instruções de pagamento">📱 QR Code / Celular</button>
                 </div>
+
+                <!-- Card de Destaque da Amostra (Teaser Preview) -->
+                <div id="console-teaser-card" style="display: none; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 1.25rem; margin-top: 1rem; margin-bottom: 0.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="background: var(--primary); color: #030712; font-weight: 700; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;">AMOSTRA GRATUITA ENCONTRADA</span>
+                            <span id="teaser-title" style="font-weight: 700; color: #fff; font-size: 0.95rem;"></span>
+                        </div>
+                        <span id="teaser-badge-price" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent); font-weight: 600;"></span>
+                    </div>
+                    <div id="teaser-content" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 0.85rem; margin-bottom: 1rem;">
+                    </div>
+                    <div style="background: rgba(0, 0, 0, 0.25); border-radius: 6px; padding: 0.6rem 0.8rem; margin-bottom: 1rem; font-size: 0.8rem; color: var(--text-muted);">
+                        <strong>🔒 Campos protegidos que serão liberados no HTTP 200:</strong>
+                        <div id="teaser-locked-fields" style="margin-top: 4px; color: #94a3b8; font-family: var(--font-mono); font-size: 0.75rem;"></div>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                        <button class="btn btn-primary" onclick="payWithWeb3Wallet()" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                            ⚡ Desbloquear Dados Completos com Web3
+                        </button>
+                        <button class="btn btn-outline" onclick="openWeb3Modal()" style="font-size: 0.85rem; padding: 0.5rem 0.9rem;">
+                            📱 Pagar com QR Code / Celular
+                        </button>
+                    </div>
+                </div>
                 <div class="response-header">
                     <span id="console-status-text">Selecione uma das ações acima para testar o retorno da API.</span>
                     <span id="console-latency-badge" style="display:none;" class="card-category"></span>
@@ -937,6 +985,8 @@ curl "https://www.grid402.com.br/api/v1/dns?domain=github.com" \
             const out = document.getElementById('console-output');
             const statusText = document.getElementById('console-status-text');
             const badge = document.getElementById('console-latency-badge');
+            const teaserCard = document.getElementById('console-teaser-card');
+            if (teaserCard) teaserCard.style.display = 'none';
 
             out.textContent = 'Carregando requisição...';
             badge.style.display = 'none';
@@ -979,6 +1029,35 @@ curl "https://www.grid402.com.br/api/v1/dns?domain=github.com" \
                 statusText.textContent = `HTTP ${res.status} ${res.status === 200 ? 'OK' : (res.status === 402 ? 'Payment Required (Desafio x402)' : 'Error')}`;
                 badge.style.display = 'inline-block';
                 badge.textContent = `${duration} ms`;
+
+                if (res.status === 402 && json.preview && teaserCard) {
+                    teaserCard.style.display = 'block';
+                    const teaserTitle = document.getElementById('teaser-title');
+                    const teaserPrice = document.getElementById('teaser-badge-price');
+                    const teaserContent = document.getElementById('teaser-content');
+                    const teaserLocked = document.getElementById('teaser-locked-fields');
+
+                    teaserTitle.textContent = (action === 'cnpj') ? 'Dados Cadastrais da Empresa (Prévia)' : 'Localidade Postal (Prévia)';
+                    teaserPrice.textContent = `${json.price_usdc || '0.0005'} USDC na Base`;
+
+                    let html = '';
+                    for (const [key, val] of Object.entries(json.preview)) {
+                        const label = key.replace(/_/g, ' ').toUpperCase();
+                        html += `<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px;">
+                            <span style="display: block; font-size: 0.7rem; color: var(--text-muted);">${label}</span>
+                            <span style="font-weight: 600; color: #fff;">${val || 'N/A'}</span>
+                        </div>`;
+                    }
+                    teaserContent.innerHTML = html;
+
+                    if (json.locked_fields && Array.isArray(json.locked_fields)) {
+                        teaserLocked.textContent = json.locked_fields.join(', ');
+                    } else {
+                        teaserLocked.textContent = 'Dados completos desbloqueados mediante liquidação.';
+                    }
+                } else if (teaserCard) {
+                    teaserCard.style.display = 'none';
+                }
 
                 out.textContent = JSON.stringify(json, null, 2);
             } catch (err) {

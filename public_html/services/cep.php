@@ -78,3 +78,31 @@ function grid402_service_cep(string $code): array {
     ];
 }
 
+/**
+ * Extrai a amostra parcial (teaser data) para inclusao no desafio HTTP 402
+ * Retorna array com ['success' => true, 'preview' => [...], 'locked_fields' => [...]]
+ * ou ['success' => false, 'code' => 400|404, ...] em caso de erro cadastral
+ */
+function grid402_get_cep_preview(string $code): array {
+    $full = grid402_service_cep($code);
+    if (!($full['success'] ?? false)) {
+        return $full;
+    }
+
+    return [
+        'success' => true,
+        'preview' => [
+            'cep' => $full['cep'] ?? $code,
+            'cidade' => $full['cidade'] ?? '',
+            'uf' => $full['uf'] ?? '',
+        ],
+        'locked_fields' => [
+            'logradouro',
+            'bairro',
+            'complemento',
+            'ddd',
+            'ibge',
+        ],
+    ];
+}
+

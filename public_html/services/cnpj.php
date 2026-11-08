@@ -232,3 +232,37 @@ function grid402_fetch_cnpj_url(string $url, int $timeoutSeconds = 4): array {
     ];
 }
 
+/**
+ * Extrai a amostra parcial (teaser data) para inclusao no desafio HTTP 402
+ * Retorna array com ['success' => true, 'preview' => [...], 'locked_fields' => [...]]
+ * ou ['success' => false, 'code' => 400|404, ...] em caso de erro cadastral
+ */
+function grid402_get_cnpj_preview(string $cnpj): array {
+    $full = grid402_service_cnpj($cnpj);
+    if (!($full['success'] ?? false)) {
+        return $full;
+    }
+
+    return [
+        'success' => true,
+        'preview' => [
+            'cnpj' => $full['cnpj'] ?? grid402_format_cnpj($cnpj),
+            'razao_social' => $full['razao_social'] ?? '',
+            'nome_fantasia' => $full['nome_fantasia'] ?? '',
+            'uf' => $full['endereco']['uf'] ?? '',
+            'situacao_cadastral' => $full['situacao_cadastral'] ?? 'ATIVA',
+        ],
+        'locked_fields' => [
+            'qsa_socios_administradores',
+            'capital_social',
+            'natureza_juridica',
+            'data_abertura',
+            'cnae_fiscal_principal',
+            'cnaes_secundarios',
+            'telefones',
+            'email',
+            'endereco_completo',
+        ],
+    ];
+}
+
