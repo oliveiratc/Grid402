@@ -1,32 +1,25 @@
-# grid402 (Node.js & TypeScript SDK) ⚡
+# Grid402 - SDK Node.js e TypeScript Oficial
 
-[![npm version](https://img.shields.io/npm/v/grid402.svg)](https://www.npmjs.com/package/grid402)
-[![Base Mainnet](https://img.shields.io/badge/Network-Base%20(8453)-0052FF.svg)](https://base.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Grid402 Status](https://www.grid402.com.br/badge/system.svg)](https://www.grid402.com.br)
+Biblioteca cliente oficial para integracao com o ecossistema **Grid402** e consumo de dados abertos e utilitarios de rede sob o protocolo HTTP 402 na rede Base.
 
-SDK oficial em JavaScript/TypeScript (zero dependências externas) para o **Grid402** — Hub de Alta Performance de Utilitários de Rede e Dados Públicos com micropagamentos via protocolo **x402** na rede **Base Mainnet** (US$ 0.0005 USDC por consulta).
+Projetada especificamente para agentes autonomos de IA, frameworks como Coinbase AgentKit, LangChain.js, ElizaOS, desenvolvedores Node.js, Next.js e TypeScript.
 
 ---
 
-## 🚀 Funcionalidades
+## Recursos Principais
 
-* **Zero Dependências:** Construído unicamente sobre a API nativa `fetch` (Node.js 18+ e navegadores modernos).
-* **TypeScript Nativo:** Tipagem estrita completa via `grid402.d.ts`.
-* **6 Micro-serviços Técnicos:**
-  1. `getForex()`: Cotações fiduciárias em tempo real (USD, EUR, GBP para BRL).
-  2. `getCrypto()`: Cotações spot de criptoativos (BTC, ETH, SOL, USDC, BASE).
-  3. `getDns(domain)`: Resolução de registros RFC 1035 (A, AAAA, MX, TXT, NS, CNAME).
-  4. `getSsl(host)`: Inspeção TLS na porta 443 (validade, emissor, SANs e dias restantes).
-  5. `getAsn(ip)`: Metadados BGP, ASN e país para um IP.
-  6. `getCep(code)`: Endereço público e código oficial IBGE do município.
-* **Resumo Gratuito:** `/api/v1/summary` para monitoramento e discovery sem fricção.
-* **Protocolo x402 Nativo:** Suporte a cabeçalhos `X-Payment` e tratamento de erros de desafio HTTP 402.
-* **Circuit Breaker (`guard`):** Execução segura de pipelines e automações.
+- **8 Micro-Servicos Integrados:** CNPJ da Receita Federal, CEP postal e IBGE, cotacoes Forex e Cripto spot, resolucao DNS, auditoria TLS e SSL, analise ASN e BGP e status do ecossistema.
+- **Suporte Hibrido ESM e CJS:** Compativel nativamente com `import` (ES Modules) e `require` (CommonJS).
+- **Modo Sandbox Gratuito:** Teste e homologue localmente sem custos informando `sandbox: true`.
+- **Integracao Nativa com IA:** Inclui `Grid402ActionProvider` com auto-liquidacao na rede Base para agentes autônomos.
+- **Tipagem TypeScript Estrita:** Definicoes `.d.ts` completas para IDEs modernas.
+- **Zero Dependencias Externas:** Construido inteiramente sobre a API padrao `fetch` do Node.js 18+.
 
 ---
 
-## 📦 Instalação
+## Instalacao
+
+Instale o pacote diretamente do registro npm:
 
 ```bash
 npm install grid402
@@ -34,58 +27,103 @@ npm install grid402
 
 ---
 
-## ⚡ Guia Rápido
+## Inicio Rapido
 
-### 1. Resumo Gratuito e Checagem de Saúde
-```typescript
+### 1. Consultas em Modo Sandbox (Sem Custo)
+
+Ideal para testes locais, ambientes de integracao continua e desenvolvimento:
+
+```javascript
 import { Grid402Client } from 'grid402';
 
-const client = new Grid402Client();
+// Inicializa o cliente em modo Sandbox gratuito
+const client = new Grid402Client({ sandbox: true });
 
-// Resumo gratuito
-const summary = await client.getSummary();
-console.log('Status do Hub:', summary.status);
+// Consulta cadastral de Pessoa Juridica na Receita Federal
+const cnpjData = await client.getCnpj('00000000000191');
+console.log('Razao Social:', cnpjData.razao_social);
 
-// Checagem booleana rápida
-if (await client.isHealthy('dns')) {
-  console.log('Resolução DNS operacional!');
-}
+// Resolucao de endereco postal e codigo IBGE por CEP
+const cepData = await client.getCep('01310100');
+console.log('Logradouro:', cepData.logradouro, '-', cepData.uf);
+
+// Cotacoes de moedas fiduciarias
+const forexData = await client.getForex();
+console.log('USD para BRL:', forexData.rates?.USD?.bid);
 ```
 
-### 2. Consultas Técnicas com Micropagamento x402
-```typescript
+---
+
+### 2. Uso com CommonJS (require)
+
+Em projetos legados ou scripts Node.js tradicionais:
+
+```javascript
+const { Grid402Client } = require('grid402');
+
+const client = new Grid402Client({ sandbox: true });
+client.getSummary().then(summary => {
+  console.log('Status do Grid402:', summary.status);
+});
+```
+
+---
+
+### 3. Tratamento Estruturado de HTTP 402 e Teaser Data
+
+Quando uma consulta requer micropagamento em producao, o Grid402 lanca `PaymentRequiredError` contendo amostra parcial gratuita dos dados:
+
+```javascript
 import { Grid402Client, PaymentRequiredError } from 'grid402';
 
-const client = new Grid402Client();
-const txHash = '0x<sua_transacao_base_mainnet>';
+const client = new Grid402Client({ sandbox: false });
 
 try {
-  // Câmbio
-  const forex = await client.getForex(txHash);
-  console.log('USD/BRL:', forex.rates.USD.bid);
-
-  // DNS
-  const dns = await client.getDns('github.com', txHash);
-  console.log('IPs (A):', dns.records.A);
-
-  // Inspetor SSL
-  const ssl = await client.getSsl('base.org', txHash);
-  console.log('Expira em dias:', ssl.certificate?.days_remaining);
-
-  // CEP & IBGE
-  const cep = await client.getCep('01310100', txHash);
-  console.log('Código IBGE:', cep.ibge);
-
+  const dados = await client.getCnpj('00000000000191');
 } catch (err) {
   if (err instanceof PaymentRequiredError) {
-    console.log(`Pagamento requerido: envie ${err.priceUsdc} USDC para ${err.recipientWallet} na Base.`);
+    console.log('Preco exigido:', err.priceUsdc, err.token);
+    console.log('Carteira recebedora:', err.recipientWallet);
+    console.log('Pre-visualizacao parcial (amostra gratuita):', err.previewData);
   }
 }
 ```
 
 ---
 
-## 📄 Licença e Conformidade Legal
-- **Licença:** MIT.
-- **Isenção AS-IS:** Dados disponibilizados no estado em que se encontram sem garantias comerciais.
-- **Zero PII / LGPD:** Todos os utilitários operam sobre registros técnicos de domínio e protocolo sem dados pessoais.
+### 4. Utilizacao com Coinbase AgentKit e Auto-Liquidacao
+
+Agentes autonomos equipados com carteiras CDP na rede Base liquidam chamadas M2M de forma transparente:
+
+```javascript
+import { Grid402ActionProvider } from 'grid402';
+
+const provider = new Grid402ActionProvider();
+
+// Ao fornecer o walletProvider do agente CDP, o provedor
+// detecta o 402, transfere o USDC e retorna os dados completos
+const resultado = await provider.queryCnpj('00000000000191', meuWalletProvider);
+console.log('Razao Social:', resultado.razao_social);
+console.log('Comprovante on-chain:', resultado._x402_settlement);
+```
+
+---
+
+## Catalogo de Ferramentas
+
+| Metodo | Descricao | Preco Base (USDC) |
+|---|---|---|
+| `getSummary()` | Resumo operacional consolidado e saude do hub | Gratuito |
+| `getForex(txHash?)` | Cotacoes cambiais de USD, EUR e GBP para BRL | 0.0005 |
+| `getCrypto(txHash?, symbol?)` | Precos spot de BTC, ETH, SOL e USDC | 0.0005 |
+| `getDns(domain, txHash?)` | Resolucao DNS com registros A, AAAA, MX, TXT, NS e CNAME | 0.0005 |
+| `getSsl(host, txHash?)` | Inspecao e auditoria de certificado TLS e SSL na porta 443 | 0.0005 |
+| `getAsn(ip?, txHash?)` | Inteligencia de roteamento BGP, bloco alocado e ASN | 0.0005 |
+| `getCep(code, txHash?)` | Consulta de logradouro postal brasileiro e codigo IBGE | 0.0005 |
+| `getCnpj(cnpj, txHash?)` | Dados cadastrais completos de PJ na Receita Federal | 0.0020 |
+
+---
+
+## Licenca
+
+Distribuido sob os termos da licenca MIT. Consulte o arquivo `LICENSE` para detalhes.

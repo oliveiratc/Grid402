@@ -1,233 +1,431 @@
 /**
- * Grid402 Client SDK (Node.js / ESM / Browser)
- * Zero-dependency client for autonomous AI agents and M2M applications.
- * Access public open data and network utilities via x402 micropayments on Base.
+ * Grid402 Client SDK para Node.js, TypeScript e Navegadores (ESM)
+ * Biblioteca oficial para micro-servicos de dados abertos e rede sob o protocolo HTTP 402 na Base.
+ * 
+ * Suporte nativo para Modo Sandbox gratuito, Teaser Data e Coinbase AgentKit.
  */
 
-export const DEFAULT_GRID402_URL = 'https://orangered-jackal-900744.hostingersite.com';
+export const DEFAULT_GRID402_URL = 'https://grid402.com.br';
+export const GRID402_ORACLE_WALLET = '0xa31c31069c43ac1c0075a93c325b0dcd7744356c';
+export const BASE_USDC_CONTRACT = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
+/**
+ * Excecao base de erros do Grid402
+ */
 export class Grid402Error extends Error {
-    constructor(message) {
-        super(message);
-        this.name = 'Grid402Error';
-    }
-}
-
-export class PaymentRequiredError extends Grid402Error {
-    constructor(challenge) {
-        super(challenge.message || 'Pagamento x402 requerido');
-        this.name = 'PaymentRequiredError';
-        this.challenge = challenge;
-        this.recipientWallet = challenge.recipient_wallet;
-        this.priceUsdc = challenge.price_usdc;
-        this.priceRawUnits = challenge.price_raw_units;
-        this.network = challenge.network;
-        this.chainId = challenge.chain_id;
-        this.tokenContract = challenge.token_contract;
-    }
-}
-
-export class ReplayAttackError extends Grid402Error {
-    constructor(message) {
-        super(message || 'Replay attack detectado');
-        this.name = 'ReplayAttackError';
-    }
+  constructor(message) {
+    super(message);
+    this.name = 'Grid402Error';
+  }
 }
 
 /**
- * Cliente oficial para integração com o Hub de Utilitários e Dados Públicos Grid402.
- * 
- * AVISO LEGAL (AS-IS):
- * Software e dados fornecidos 'NO ESTADO EM QUE SE ENCONTRAM' (AS-IS),
- * sem garantias de qualquer natureza. O usuário assume total responsabilidade
- * pelas decisões e operações tomadas com base nestes dados.
+ * Excecao lancada quando a requisicao requer micropagamento sob o protocolo x402
+ */
+export class PaymentRequiredError extends Grid402Error {
+  constructor(challenge) {
+    const defaultMsg = challenge?.message || 'Pagamento x402 obrigatorio';
+    super(defaultMsg);
+    this.name = 'PaymentRequiredError';
+    this.challenge = challenge || {};
+    this.recipientWallet = challenge?.recipient_wallet || GRID402_ORACLE_WALLET;
+    this.priceUsdc = challenge?.price_usdc || '0.0005';
+    this.network = challenge?.network || 'Base';
+    this.chainId = challenge?.chain_id || 8453;
+    this.token = challenge?.token || 'USDC';
+    this.tokenContract = challenge?.token_contract || BASE_USDC_CONTRACT;
+    this.previewData = challenge?.preview_data || null;
+    this.paymentDetails = challenge?.payment_details || null;
+  }
+}
+
+/**
+ * Excecao lancada em tentativa de reuso de transacao (replay attack)
+ */
+export class ReplayAttackError extends Grid402Error {
+  constructor(message) {
+    super(message || 'Replay attack detectado: comprovante ja utilizado');
+    this.name = 'ReplayAttackError';
+  }
+}
+
+/**
+ * Cliente oficial para consumo dos servicos do Grid402
  */
 export class Grid402Client {
-    /**
-     * @param {Object} [options]
-     * @param {string} [options.baseUrl]
-     * @param {number} [options.timeout]
-     */
-    constructor(options = {}) {
-        this.baseUrl = (options.baseUrl || DEFAULT_GRID402_URL).replace(/\/$/, '');
-        this.timeout = options.timeout || 5000;
+  /**
+   * @param {Object} [options]
+   * @param {string} [options.baseUrl] - URL base da API Grid402
+   * @param {boolean} [options.sandbox] - Se true, ativa o Modo Sandbox gratuito de testes
+   * @param {string} [options.paymentTxHash] - Hash padrao opcional de transacao na Base
+   * @param {number} [options.timeout] - Timeout em milissegundos (padrao: 10000ms)
+   * @param {boolean} [options.raiseForPayment] - Se true, lanca PaymentRequiredError no HTTP 402 (padrao: true)
+   */
+  constructor(options = {}) {
+    this.baseUrl = (options.baseUrl || DEFAULT_GRID402_URL).replace(/\/$/, '');
+    this.sandbox = Boolean(options.sandbox);
+    this.paymentTxHash = options.paymentTxHash || null;
+    this.timeout = options.timeout || 10000;
+    this.raiseForPayment = options.raiseForPayment !== false;
+  }
+
+  /**
+   * Executa a requisicao HTTP para o endpoint especificado
+   * @private
+   */
+  async _request(endpoint, headers = {}) {
+    const url = `${this.baseUrl}${endpoint}`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeout);
+
+    const mergedHeaders = {
+      'Accept': 'application/json',
+      'User-Agent': 'Grid402-Node-SDK/2.2',
+      ...headers,
+    };
+
+    if (this.paymentTxHash) {
+      if (!mergedHeaders['X-Payment']) {
+        mergedHeaders['X-Payment'] = this.paymentTxHash;
+      }
+    } else if (this.sandbox) {
+      if (!mergedHeaders['X-Payment']) {
+        mergedHeaders['X-Payment'] = 'demo';
+      }
     }
 
-    async _request(endpoint, headers = {}) {
-        const url = `${this.baseUrl}${endpoint}`;
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), this.timeout);
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: mergedHeaders,
+        signal: controller.signal,
+      });
 
-        try {
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'User-Agent': 'Grid402-Node-SDK/2.0',
-                    ...headers,
-                },
-                signal: controller.signal,
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { error: 'InvalidJSON', message: text };
+      }
+
+      if (response.status === 402) {
+        if (this.raiseForPayment) {
+          throw new PaymentRequiredError(data);
+        }
+        data.payment_required = true;
+        return data;
+      }
+
+      if (response.status === 403) {
+        if (data.error === 'ReplayAttackDetected') {
+          throw new ReplayAttackError(data.message);
+        }
+      }
+
+      if (!response.ok) {
+        throw new Grid402Error(`HTTP ${response.status}: ${data.message || data.error || response.statusText}`);
+      }
+
+      return data;
+    } catch (err) {
+      if (err instanceof Grid402Error) throw err;
+      throw new Grid402Error(`Erro de conexao com Grid402: ${err.message}`);
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  /**
+   * Obtem o resumo operacional gratuito do hub e disponibilidade dos servicos
+   * @returns {Promise<Object>}
+   */
+  async getSummary() {
+    return this._request('/status');
+  }
+
+  /**
+   * Dispara consulta para obter o desafio x402 e parametros da Base
+   * @param {string} [endpoint]
+   * @returns {Promise<Object>}
+   */
+  async getChallenge(endpoint = '/api/v1/forex') {
+    const prevRaise = this.raiseForPayment;
+    this.raiseForPayment = true;
+    try {
+      await this._request(endpoint);
+      throw new Grid402Error('Esperado desafio HTTP 402, mas a rota respondeu sem restricao.');
+    } catch (err) {
+      if (err instanceof PaymentRequiredError) {
+        return err.challenge;
+      }
+      throw err;
+    } finally {
+      this.raiseForPayment = prevRaise;
+    }
+  }
+
+  /**
+   * Consulta cotacoes cambiais oficiais em tempo real (USD, EUR, GBP para BRL)
+   * @param {string} [paymentTxHash]
+   * @returns {Promise<Object>}
+   */
+  async getForex(paymentTxHash) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    return this._request('/api/v1/forex', headers);
+  }
+
+  /**
+   * Consulta precos de mercado spot de criptoativos (BTC, ETH, SOL, USDC, BASE)
+   * @param {string} [paymentTxHash]
+   * @param {string} [symbol]
+   * @returns {Promise<Object>}
+   */
+  async getCrypto(paymentTxHash, symbol) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    const query = symbol ? `?symbol=${encodeURIComponent(symbol)}` : '';
+    return this._request(`/api/v1/crypto${query}`, headers);
+  }
+
+  /**
+   * Executa resolucao autoritativa de registros DNS (A, AAAA, MX, TXT, NS, CNAME)
+   * @param {string} domain
+   * @param {string} [paymentTxHash]
+   * @returns {Promise<Object>}
+   */
+  async getDns(domain, paymentTxHash) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    const query = `?domain=${encodeURIComponent(domain)}`;
+    return this._request(`/api/v1/dns${query}`, headers);
+  }
+
+  /**
+   * Inspeciona e valida o certificado TLS e SSL na porta 443 de um host
+   * @param {string} host
+   * @param {string} [paymentTxHash]
+   * @returns {Promise<Object>}
+   */
+  async getSsl(host, paymentTxHash) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    const query = `?host=${encodeURIComponent(host)}`;
+    return this._request(`/api/v1/ssl${query}`, headers);
+  }
+
+  /**
+   * Consulta inteligencia de rede BGP, identificando numero de ASN e organizacao titular
+   * @param {string} [ip]
+   * @param {string} [paymentTxHash]
+   * @returns {Promise<Object>}
+   */
+  async getAsn(ip, paymentTxHash) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    const query = ip ? `?ip=${encodeURIComponent(ip)}` : '';
+    return this._request(`/api/v1/asn${query}`, headers);
+  }
+
+  /**
+   * Consulta a base publica de enderecamento postal brasileiro e codigo IBGE por CEP
+   * @param {string} code
+   * @param {string} [paymentTxHash]
+   * @returns {Promise<Object>}
+   */
+  async getCep(code, paymentTxHash) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    const query = `?code=${encodeURIComponent(code)}`;
+    return this._request(`/api/v1/cep${query}`, headers);
+  }
+
+  /**
+   * Consulta dados cadastrais publicos de Pessoa Juridica na Receita Federal por CNPJ
+   * @param {string} cnpj
+   * @param {string} [paymentTxHash]
+   * @returns {Promise<Object>}
+   */
+  async getCnpj(cnpj, paymentTxHash) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    const query = `?cnpj=${encodeURIComponent(cnpj)}`;
+    return this._request(`/api/v1/cnpj${query}`, headers);
+  }
+
+  /**
+   * Verifica se o hub ou um servico especifico esta operacional
+   * @param {string} [serviceName]
+   * @returns {Promise<boolean>}
+   */
+  async isHealthy(serviceName = 'forex') {
+    try {
+      const summary = await this.getSummary();
+      const services = summary.services || {};
+      if (services[serviceName]) {
+        return services[serviceName].status === 'UP';
+      }
+      return summary.status === 'OPERATIONAL';
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Circuit breaker: executa a acao somente se o servico estiver UP
+   * @param {string} serviceName
+   * @param {Function} action
+   * @param {Function} [fallback]
+   * @returns {Promise<any>}
+   */
+  async guard(serviceName, action, fallback) {
+    const healthy = await this.isHealthy(serviceName);
+    if (healthy) {
+      return action();
+    }
+    if (fallback) {
+      return fallback();
+    }
+    throw new Grid402Error(`Circuito aberto: o servico '${serviceName}' esta indisponivel no momento.`);
+  }
+}
+
+/**
+ * Provedor de acoes compativel com Coinbase Developer Platform (CDP) AgentKit, LangChain.js e ElizaOS
+ */
+export class Grid402ActionProvider {
+  /**
+   * @param {Object} [options]
+   * @param {string} [options.baseUrl] - URL base da API Grid402
+   * @param {boolean} [options.sandbox] - Se true, opera em modo Sandbox sem consumir saldo real
+   */
+  constructor(options = {}) {
+    this.baseUrl = (options.baseUrl || DEFAULT_GRID402_URL).replace(/\/$/, '');
+    this.sandbox = Boolean(options.sandbox);
+  }
+
+  /**
+   * Executa a chamada com auto-liquidacao de micropagamentos on-chain via wallet_provider
+   * @private
+   */
+  async _executeWithSettlement(path, params = {}, walletProvider = null) {
+    const queryParams = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v !== undefined) {
+        if (v !== null) {
+          if (v !== '') {
+            queryParams.set(k, String(v));
+          }
+        }
+      }
+    }
+
+    const queryString = queryParams.toString();
+    const url = `${this.baseUrl}${path}${queryString ? '?' + queryString : ''}`;
+
+    const headers = {
+      'Accept': 'application/json',
+      'User-Agent': 'Grid402-CoinbaseAgentKit-Node/2.2',
+    };
+
+    if (this.sandbox) {
+      headers['X-Payment'] = 'demo';
+    }
+
+    // 1. Primeira requisicao
+    const response = await fetch(url, { method: 'GET', headers });
+
+    if (response.status === 200) {
+      return await response.json();
+    }
+
+    // 2. Se retornou HTTP 402 Payment Required
+    if (response.status === 402) {
+      const challenge = await response.json();
+
+      // Se temos walletProvider e nao estamos em sandbox, auto-liquida on-chain na Base
+      if (walletProvider) {
+        if (!this.sandbox) {
+          const priceUsdc = challenge.price_usdc || '0.0005';
+          const recipient = challenge.recipient_wallet || GRID402_ORACLE_WALLET;
+
+          try {
+            const transferResult = await walletProvider.transfer({
+              to: recipient,
+              amount: priceUsdc,
+              assetId: 'usdc',
             });
 
-            const text = await response.text();
-            let data;
-            try {
-                data = JSON.parse(text);
-            } catch {
-                data = { error: 'InvalidJSON', message: text };
+            const txHash = transferResult?.transactionHash || transferResult?.hash || String(transferResult);
+
+            headers['X-Payment'] = txHash;
+            const retryResponse = await fetch(url, { method: 'GET', headers });
+
+            if (retryResponse.status === 200) {
+              const data = await retryResponse.json();
+              data._x402_settlement = {
+                settled: true,
+                tx_hash: txHash,
+                price_usdc: priceUsdc,
+                network: 'Base',
+                token: 'USDC',
+              };
+              return data;
             }
-
-            if (response.status === 402) {
-                throw new PaymentRequiredError(data);
-            } else if (response.status === 403 && data.error === 'ReplayAttackDetected') {
-                throw new ReplayAttackError(data.message);
-            } else if (!response.ok) {
-                throw new Grid402Error(`HTTP ${response.status}: ${data.message || response.statusText}`);
-            }
-
-            return data;
-        } catch (err) {
-            if (err instanceof Grid402Error) throw err;
-            throw new Grid402Error(`Erro de conexão com Grid402: ${err.message}`);
-        } finally {
-            clearTimeout(timer);
+          } catch (payErr) {
+            challenge.payment_error = payErr.message || String(payErr);
+            challenge.payment_required = true;
+            return challenge;
+          }
         }
+      }
+
+      challenge.payment_required = true;
+      return challenge;
     }
 
-    /**
-     * Obtém o resumo executivo gratuito (status e latências dos 6 micro-serviços).
-     * @returns {Promise<Object>}
-     */
-    async getSummary() {
-        return this._request('/api/v1/summary');
+    const errText = await response.text();
+    try {
+      return JSON.parse(errText);
+    } catch {
+      throw new Grid402Error(`Erro na API Grid402 (HTTP ${response.status}): ${errText}`);
     }
+  }
 
-    /**
-     * Dispara consulta técnica sem pagamento para obter o desafio x402 e parâmetros da Base.
-     * @param {string} [endpoint]
-     * @returns {Promise<Object>}
-     */
-    async getChallenge(endpoint = '/api/v1/forex') {
-        try {
-            await this._request(endpoint);
-            throw new Grid402Error('Esperado desafio HTTP 402, mas a rota respondeu sem restrição.');
-        } catch (err) {
-            if (err instanceof PaymentRequiredError) {
-                return err.challenge;
-            }
-            throw err;
-        }
-    }
+  async getSummary() {
+    return this._executeWithSettlement('/status');
+  }
 
-    /**
-     * Consulta cotações fiduciárias em tempo real (USD, EUR, GBP para BRL).
-     * @param {string} [paymentTxHash]
-     * @returns {Promise<Object>}
-     */
-    async getForex(paymentTxHash) {
-        const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
-        return this._request('/api/v1/forex', headers);
-    }
+  async queryForex(walletProvider = null) {
+    return this._executeWithSettlement('/api/v1/forex', {}, walletProvider);
+  }
 
-    /**
-     * Consulta preços de mercado spot de criptoativos (BTC, ETH, SOL, USDC, BASE).
-     * @param {string} [paymentTxHash]
-     * @returns {Promise<Object>}
-     */
-    async getCrypto(paymentTxHash) {
-        const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
-        return this._request('/api/v1/crypto', headers);
-    }
+  async queryCrypto(walletProvider = null, symbol = null) {
+    const params = symbol ? { symbol } : {};
+    return this._executeWithSettlement('/api/v1/crypto', params, walletProvider);
+  }
 
-    /**
-     * Resolve registros DNS (A, AAAA, MX, TXT, NS, CNAME) para um domínio.
-     * @param {string} domain
-     * @param {string} [paymentTxHash]
-     * @returns {Promise<Object>}
-     */
-    async getDns(domain, paymentTxHash) {
-        const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
-        const q = new URLSearchParams({ domain }).toString();
-        return this._request(`/api/v1/dns?${q}`, headers);
-    }
+  async queryDns(domain, walletProvider = null) {
+    return this._executeWithSettlement('/api/v1/dns', { domain }, walletProvider);
+  }
 
-    /**
-     * Inspeciona certificado TLS/SSL na porta 443 de um host (emissor, validade e dias restantes).
-     * @param {string} host
-     * @param {string} [paymentTxHash]
-     * @returns {Promise<Object>}
-     */
-    async getSsl(host, paymentTxHash) {
-        const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
-        const q = new URLSearchParams({ host }).toString();
-        return this._request(`/api/v1/ssl?${q}`, headers);
-    }
+  async querySsl(host, walletProvider = null) {
+    return this._executeWithSettlement('/api/v1/ssl', { host }, walletProvider);
+  }
 
-    /**
-     * Resolve metadados BGP, ASN e país para um endereço IP.
-     * @param {string} [ip]
-     * @param {string} [paymentTxHash]
-     * @returns {Promise<Object>}
-     */
-    async getAsn(ip, paymentTxHash) {
-        const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
-        const q = ip ? `?${new URLSearchParams({ ip }).toString()}` : '';
-        return this._request(`/api/v1/asn${q}`, headers);
-    }
+  async queryAsn(ip = null, walletProvider = null) {
+    const params = ip ? { ip } : {};
+    return this._executeWithSettlement('/api/v1/asn', params, walletProvider);
+  }
 
-    /**
-     * Resolve endereço público e código IBGE a partir de um CEP brasileiro.
-     * @param {string} code
-     * @param {string} [paymentTxHash]
-     * @returns {Promise<Object>}
-     */
-    async getCep(code, paymentTxHash) {
-        const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
-        const q = new URLSearchParams({ code }).toString();
-        return this._request(`/api/v1/cep?${q}`, headers);
-    }
+  async queryCep(code, walletProvider = null) {
+    return this._executeWithSettlement('/api/v1/cep', { code }, walletProvider);
+  }
 
-    /**
-     * Consulta dados cadastrais de Pessoa Jurídica da Receita Federal (razão social, CNAE, situação, endereço).
-     * @param {string} cnpj
-     * @param {string} [paymentTxHash]
-     * @returns {Promise<Object>}
-     */
-    async getCnpj(cnpj, paymentTxHash) {
-        const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
-        const q = new URLSearchParams({ cnpj }).toString();
-        return this._request(`/api/v1/cnpj?${q}`, headers);
-    }
+  async queryCnpj(cnpj, walletProvider = null) {
+    return this._executeWithSettlement('/api/v1/cnpj', { cnpj }, walletProvider);
+  }
 
-    /**
-     * Verifica rapidamente se um serviço específico ou o hub está saudável (UP).
-     * @param {string} [serviceName]
-     * @returns {Promise<boolean>}
-     */
-    async isHealthy(serviceName = 'forex') {
-        const summary = await this.getSummary();
-        const services = summary.services || {};
-        if (services[serviceName]) {
-            return services[serviceName].status === 'UP';
-        }
-        return summary.status === 'OPERATIONAL';
-    }
-
-    /**
-     * Circuit Breaker: Só executa a função action se o serviço estiver UP.
-     * @param {string} serviceName
-     * @param {Function} action
-     * @param {Function} [fallback]
-     * @returns {Promise<any>}
-     */
-    async guard(serviceName, action, fallback) {
-        const healthy = await this.isHealthy(serviceName);
-        if (healthy) {
-            return action();
-        }
-        if (fallback) {
-            return fallback();
-        }
-        throw new Grid402Error(`Circuito aberto: O serviço '${serviceName}' está indisponível no momento.`);
-    }
+  // Aliases de conveniencia
+  get getCnpj() { return this.queryCnpj; }
+  get getCep() { return this.queryCep; }
+  get getForex() { return this.queryForex; }
+  get getCrypto() { return this.queryCrypto; }
+  get getDns() { return this.queryDns; }
+  get getSsl() { return this.querySsl; }
+  get getAsn() { return this.queryAsn; }
 }

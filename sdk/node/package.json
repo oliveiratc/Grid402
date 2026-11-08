@@ -1,26 +1,29 @@
 {
   "name": "grid402",
-  "version": "2.1.0",
-  "description": "Official client SDK for Grid402 - Public Open Data e Network Utilities Hub (Forex, Crypto, DNS, SSL, ASN, CEP) with x402 Base micropayments.",
-  "main": "./grid402.mjs",
+  "version": "2.2.0",
+  "description": "Official client SDK for Grid402 - Public Open Data and Network Utilities Hub with x402 Base micropayments for AI Agents, Node.js and TypeScript.",
+  "main": "./grid402.cjs",
   "module": "./grid402.mjs",
   "types": "./grid402.d.ts",
-  "type": "module",
   "exports": {
     ".": {
       "types": "./grid402.d.ts",
       "import": "./grid402.mjs",
+      "require": "./grid402.cjs",
       "default": "./grid402.mjs"
     }
   },
   "files": [
     "grid402.mjs",
+    "grid402.cjs",
     "grid402.d.ts",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
-    "test": "node test_sdk.mjs"
+    "test": "node test_sdk.mjs",
+    "test:cjs": "node test_cjs.cjs",
+    "test:live": "node test_live_sandbox.mjs"
   },
   "repository": {
     "type": "git",
@@ -35,12 +38,14 @@
     "usdc",
     "ai-agents",
     "m2m",
+    "coinbase-agentkit",
     "forex",
     "crypto",
     "dns",
     "ssl",
     "asn",
     "cep",
+    "cnpj",
     "open-data"
   ],
   "author": "Grid402 Team <contato@grid402.com.br>",
@@ -53,4 +58,3 @@
     "node": ">=18.0.0"
   }
 }
-

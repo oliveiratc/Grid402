@@ -1,12 +1,15 @@
 export declare const DEFAULT_GRID402_URL: string;
+export declare const GRID402_ORACLE_WALLET: string;
+export declare const BASE_USDC_CONTRACT: string;
 
 export interface ServiceSummary {
     name: string;
     description: string;
     status: 'UP' | 'DEGRADED' | 'DOWN';
-    latency_ms: number;
-    price: string;
+    latency_ms?: number;
+    price?: string;
     endpoint: string;
+    category?: string;
 }
 
 export interface SummaryResponse {
@@ -15,7 +18,6 @@ export interface SummaryResponse {
     chain_id: number;
     status: 'OPERATIONAL' | 'DEGRADED' | 'DOWN';
     timestamp: string;
-    updated_at: string;
     services: Record<string, ServiceSummary>;
     rates_sample?: Record<string, any>;
     crypto_sample?: Record<string, any>;
@@ -23,7 +25,7 @@ export interface SummaryResponse {
 }
 
 export interface X402Challenge {
-    error: 'PaymentRequired';
+    error?: string;
     message: string;
     protocol: 'x402';
     network: 'Base';
@@ -31,46 +33,52 @@ export interface X402Challenge {
     token: string;
     token_contract: string;
     price_usdc: string;
-    price_raw_units: number;
+    price_raw_units?: number;
     recipient_wallet: string;
-    action_required: string;
-    docs: string;
+    preview_data?: Record<string, any>;
+    payment_details?: Record<string, any>;
+    action_required?: string;
+    docs?: string;
+    payment_required?: boolean;
 }
 
 export interface ForexResponse {
-    success: boolean;
+    service: string;
+    status: string;
+    base: string;
     timestamp: string;
-    cached_seconds_ago: number;
     rates: Record<string, {
         code: string;
         name: string;
         bid: number;
         ask: number;
-        high: number;
-        low: number;
+        high?: number;
+        low?: number;
         pctChange: number;
-        create_date: string;
+        timestamp?: string;
     }>;
+    sandbox?: boolean;
 }
 
 export interface CryptoResponse {
-    success: boolean;
+    service: string;
+    status: string;
+    network: string;
+    chain_id: number;
     timestamp: string;
-    cached_seconds_ago: number;
     tickers: Record<string, {
         symbol: string;
         name: string;
         price_usd: number;
-        change_24h_pct: number;
-        market_cap_usd: number;
+        timestamp?: string;
     }>;
+    sandbox?: boolean;
 }
 
 export interface DnsResponse {
     success: boolean;
     domain: string;
     timestamp: string;
-    resolved_in_ms: number;
     records: {
         A?: string[];
         AAAA?: string[];
@@ -79,6 +87,7 @@ export interface DnsResponse {
         NS?: string[];
         CNAME?: string[];
     };
+    sandbox?: boolean;
     error?: string;
 }
 
@@ -87,7 +96,6 @@ export interface SslResponse {
     host: string;
     port: number;
     timestamp: string;
-    handshake_ms: number;
     certificate?: {
         common_name: string;
         issuer: string;
@@ -97,6 +105,7 @@ export interface SslResponse {
         is_valid: boolean;
         subject_alt_names: string[];
     };
+    sandbox?: boolean;
     error?: string;
 }
 
@@ -104,11 +113,11 @@ export interface AsnResponse {
     success: boolean;
     ip: string;
     timestamp: string;
-    resolved_in_ms: number;
     asn?: string;
     org?: string;
     country?: string;
     cidr?: string;
+    sandbox?: boolean;
     error?: string;
 }
 
@@ -121,38 +130,111 @@ export interface CepResponse {
     uf?: string;
     ibge?: string;
     ddd?: string;
-    resolved_in_ms: number;
+    sandbox?: boolean;
     error?: string;
 }
 
+export interface CnpjResponse {
+    success: boolean;
+    cnpj: string;
+    razao_social: string;
+    nome_fantasia?: string;
+    situacao_cadastral?: string;
+    data_inicio_atividade?: string;
+    cnae_fiscal?: string;
+    cnae_fiscal_descricao?: string;
+    logradouro?: string;
+    numero?: string;
+    municipio?: string;
+    uf?: string;
+    capital_social?: number;
+    sandbox?: boolean;
+    error?: string;
+}
+
+export interface SettlementReceipt {
+    settled: boolean;
+    tx_hash: string;
+    price_usdc: string;
+    network: string;
+    token: string;
+}
+
 export declare class Grid402Error extends Error {}
+
 export declare class PaymentRequiredError extends Grid402Error {
     challenge: X402Challenge;
     recipientWallet: string;
     priceUsdc: string;
-    priceRawUnits: number;
     network: string;
     chainId: number;
+    token: string;
     tokenContract: string;
+    previewData: Record<string, any> | null;
+    paymentDetails: Record<string, any> | null;
 }
+
 export declare class ReplayAttackError extends Grid402Error {}
 
 export interface Grid402Options {
     baseUrl?: string;
+    sandbox?: boolean;
+    paymentTxHash?: string;
     timeout?: number;
+    raiseForPayment?: boolean;
 }
 
 export declare class Grid402Client {
+    baseUrl: string;
+    sandbox: boolean;
+    paymentTxHash: string | null;
+    timeout: number;
+    raiseForPayment: boolean;
+
     constructor(options?: Grid402Options);
+
     getSummary(): Promise<SummaryResponse>;
     getChallenge(endpoint?: string): Promise<X402Challenge>;
     getForex(paymentTxHash?: string): Promise<ForexResponse>;
-    getCrypto(paymentTxHash?: string): Promise<CryptoResponse>;
+    getCrypto(paymentTxHash?: string, symbol?: string): Promise<CryptoResponse>;
     getDns(domain: string, paymentTxHash?: string): Promise<DnsResponse>;
     getSsl(host: string, paymentTxHash?: string): Promise<SslResponse>;
     getAsn(ip?: string, paymentTxHash?: string): Promise<AsnResponse>;
     getCep(code: string, paymentTxHash?: string): Promise<CepResponse>;
-    getCnpj(cnpj: string, paymentTxHash?: string): Promise<Record<string, any>>;
+    getCnpj(cnpj: string, paymentTxHash?: string): Promise<CnpjResponse>;
     isHealthy(serviceName?: string): Promise<boolean>;
     guard<T>(serviceName: string, action: () => Promise<T> | T, fallback?: () => Promise<T> | T): Promise<T>;
+}
+
+export interface ActionProviderOptions {
+    baseUrl?: string;
+    sandbox?: boolean;
+}
+
+export interface WalletProvider {
+    transfer(params: { to: string; amount: string; assetId: string }): Promise<any>;
+}
+
+export declare class Grid402ActionProvider {
+    baseUrl: string;
+    sandbox: boolean;
+
+    constructor(options?: ActionProviderOptions);
+
+    getSummary(): Promise<SummaryResponse>;
+    queryForex(walletProvider?: WalletProvider): Promise<ForexResponse>;
+    queryCrypto(walletProvider?: WalletProvider, symbol?: string): Promise<CryptoResponse>;
+    queryDns(domain: string, walletProvider?: WalletProvider): Promise<DnsResponse>;
+    querySsl(host: string, walletProvider?: WalletProvider): Promise<SslResponse>;
+    queryAsn(ip?: string, walletProvider?: WalletProvider): Promise<AsnResponse>;
+    queryCep(code: string, walletProvider?: WalletProvider): Promise<CepResponse>;
+    queryCnpj(cnpj: string, walletProvider?: WalletProvider): Promise<CnpjResponse>;
+
+    getCnpj(cnpj: string, walletProvider?: WalletProvider): Promise<CnpjResponse>;
+    getCep(code: string, walletProvider?: WalletProvider): Promise<CepResponse>;
+    getForex(walletProvider?: WalletProvider): Promise<ForexResponse>;
+    getCrypto(walletProvider?: WalletProvider, symbol?: string): Promise<CryptoResponse>;
+    getDns(domain: string, walletProvider?: WalletProvider): Promise<DnsResponse>;
+    getSsl(host: string, walletProvider?: WalletProvider): Promise<SslResponse>;
+    getAsn(ip?: string, walletProvider?: WalletProvider): Promise<AsnResponse>;
 }
