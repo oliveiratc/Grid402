@@ -1,0 +1,40 @@
+# Delta Spec: python-sdk
+
+## ADDED Requirements
+
+### Requirement: Cliente HTTP Central do Grid402
+O SDK SHALL fornecer a classe `Grid402Client` para executar requisições HTTP às 8 ferramentas públicas do Grid402.
+
+#### Scenario: Consulta no Modo Sandbox sem custos
+- **GIVEN** uma instância de `Grid402Client(sandbox=True)`
+- **WHEN** o método `get_cnpj("00000000000191")` é executado
+- **THEN** a requisição SHALL incluir o cabeçalho `X-Payment: demo` e retornar o payload cadastral completo com `sandbox: true`.
+
+#### Scenario: Consulta sem pagamento retorna desafio x402 estruturado
+- **GIVEN** uma instância de `Grid402Client(sandbox=False)`
+- **WHEN** uma consulta protegida é executada sem chave ou comprovante
+- **THEN** o cliente SHALL capturar o HTTP 402 e retornar o dicionário contendo o desafio x402 e a amostra de dados `preview`.
+
+### Requirement: Provedor de Ações para Coinbase AgentKit
+O SDK SHALL exportar a classe `Grid402ActionProvider` permitindo que agentes autônomos realizem a auto-liquidação de tarifas x402 na Base.
+
+#### Scenario: Auto-liquidação com carteira CDP na Base
+- **GIVEN** o provedor configurado com um `wallet_provider` da Coinbase na rede Base
+- **WHEN** o agente invoca qualquer ação de utilitário ou dado público
+- **THEN** o provedor SHALL interceptar o desafio 402, transferir os USDC requeridos na Base, reenviar com o hash da transação e retornar os dados completos com HTTP 200.
+
+### Requirement: Modelos de Entrada Pydantic Tipados
+O SDK SHALL fornecer modelos Pydantic para validação estática e inferência de schemas por orquestradores de IA.
+
+#### Scenario: Validação e serialização de parâmetros
+- **GIVEN** os modelos `CnpjInput`, `CepInput`, `DnsInput`, `SslInput` e `AsnInput`
+- **WHEN** uma função ou ferramenta de IA é anotada com um desses modelos
+- **THEN** os parâmetros SHALL ser validados em tempo de execução garantindo conformidade de tipo e documentação de campo.
+
+### Requirement: Empacotamento e Distribuição PyPI
+O SDK SHALL ser estruturado em conformidade com PEP 517 / PEP 621 em `python/pyproject.toml` para geração de arquivos `.whl` e `.tar.gz`.
+
+#### Scenario: Validação de metadados do pacote
+- **GIVEN** o diretório `python/` com a configuração de build
+- **WHEN** o comando de checagem do build é executado
+- **THEN** os artefatos de distribuição SHALL ser validados sem erros de metadados ou arquivos ausentes.

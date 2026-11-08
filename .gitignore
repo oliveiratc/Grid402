@@ -13,6 +13,10 @@ mcp/node_modules/
 __pycache__/
 *.pyc
 *.pyo
+python/.venv/
+python/build/
+python/*.egg-info/
+python/dist/
 
 # Dados locais e temporários
 grid402_storage/

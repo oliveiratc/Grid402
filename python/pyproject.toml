@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "grid402"
+version = "1.0.0"
+description = "SDK Python oficial do Grid402: Micropagamentos HTTP 402 na Base para Agentes Autonomos e IA"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [
+    { name = "Grid402 Team", email = "contato@grid402.com.br" },
+]
+keywords = [
+    "x402",
+    "http-402",
+    "micropayments",
+    "base",
+    "coinbase-agentkit",
+    "agentic-web",
+    "mcp",
+    "ai-agents",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "pydantic>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "build",
+    "twine",
+]
+
+[project.urls]
+Homepage = "https://grid402.com.br"
+Documentation = "https://grid402.com.br/docs"
+Repository = "https://github.com/thiagobg90/Grid402"
+Issues = "https://github.com/thiagobg90/Grid402/issues"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["grid402*"]
+
+[tool.setuptools.package-data]
+grid402 = ["py.typed"]
