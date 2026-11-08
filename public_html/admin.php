@@ -14,6 +14,133 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/metrics.php';
 require_once __DIR__ . '/services/forex.php';
 
+/**
+ * Consulta os saldos on-chain em USDC e ETH da carteira oficial na Base Mainnet com cache de 60s
+ */
+function grid402_get_oracle_wallet_balances(): array {
+    $cacheFile = __DIR__ . '/private_data/wallet_balance_cache.json';
+    $now = time();
+    $cacheTtl = 60; // 60 segundos de cache
+
+    if (file_exists($cacheFile)) {
+        $cacheRaw = @file_get_contents($cacheFile);
+        $cached = $cacheRaw ? @json_decode($cacheRaw, true) : null;
+        if (is_array($cached) && isset($cached['cached_at']) && ($now - (int)$cached['cached_at']) < $cacheTtl) {
+            return $cached;
+        }
+    }
+
+    $oracleAddress = defined('GRID402_WALLET_ADDRESS') ? GRID402_WALLET_ADDRESS : '0xa31c31069c43ac1c0075a93c325b0dcd7744356c';
+    $usdcContract = defined('GRID402_USDC_CONTRACT') ? GRID402_USDC_CONTRACT : '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+    $baseRpcUrl = defined('GRID402_BASE_RPC_URL') ? GRID402_BASE_RPC_URL : 'https://mainnet.base.org';
+
+    $rpcUrls = [
+        $baseRpcUrl,
+        'https://base.llamarpc.com',
+        'https://1rpc.io/base',
+    ];
+
+    $usdcBalance = 0.0;
+    $ethBalance = 0.0;
+    $rpcOk = false;
+
+    // Helper interno para executar chamadas JSON-RPC
+    $execRpc = function (string $method, array $params) use ($rpcUrls): mixed {
+        $payload = json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => $method,
+            'params' => $params,
+        ]);
+
+        foreach ($rpcUrls as $url) {
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => $payload,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                CURLOPT_TIMEOUT => 3,
+                CURLOPT_CONNECTTIMEOUT => 2,
+                CURLOPT_USERAGENT => 'Grid402-Admin-Probe/2.0',
+                CURLOPT_SSL_VERIFYPEER => false,
+            ]);
+
+            $response = curl_exec($ch);
+            $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($httpCode === 200 && is_string($response)) {
+                $json = @json_decode($response, true);
+                if (isset($json['result'])) {
+                    return $json['result'];
+                }
+            }
+        }
+
+        return null;
+    };
+
+    try {
+        // 1. Saldo USDC (ERC-20 balanceOf)
+        $cleanAddr = str_starts_with($oracleAddress, '0x') ? substr($oracleAddress, 2) : $oracleAddress;
+        $callData = '0x70a08231' . str_pad($cleanAddr, 64, '0', STR_PAD_LEFT);
+        $resUsdc = $execRpc('eth_call', [
+            [
+                'to' => $usdcContract,
+                'data' => $callData,
+            ],
+            'latest'
+        ]);
+
+        if (is_string($resUsdc) && str_starts_with($resUsdc, '0x')) {
+            $hexVal = substr($resUsdc, 2);
+            $rawInt = hexdec($hexVal);
+            $usdcBalance = round($rawInt / 1000000, 4); // USDC tem 6 decimais
+            $rpcOk = true;
+        }
+
+        // 2. Saldo ETH (eth_getBalance para reserva de gas)
+        $resEth = $execRpc('eth_getBalance', [
+            $oracleAddress,
+            'latest'
+        ]);
+
+        if (is_string($resEth) && str_starts_with($resEth, '0x')) {
+            $hexEth = substr($resEth, 2);
+            $rawEth = hexdec($hexEth);
+            $ethBalance = round($rawEth / 1e18, 5); // ETH tem 18 decimais
+            $rpcOk = true;
+        }
+    } catch (\Throwable $e) {
+        if (file_exists($cacheFile)) {
+            $cacheRaw = @file_get_contents($cacheFile);
+            $cached = $cacheRaw ? @json_decode($cacheRaw, true) : null;
+            if (is_array($cached)) {
+                return $cached;
+            }
+        }
+    }
+
+    $result = [
+        'oracle_address' => $oracleAddress,
+        'usdc_balance' => $usdcBalance,
+        'eth_balance' => $ethBalance,
+        'network' => 'Base Mainnet',
+        'chain_id' => 8453,
+        'cached_at' => $now,
+        'rpc_operational' => $rpcOk,
+    ];
+
+    $dir = dirname($cacheFile);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+    @file_put_contents($cacheFile, (string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+    return $result;
+}
+
 // 1. Configuração estrita de sessão segura
 $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['SERVER_PORT'] ?? 80) == 443);
 session_name('GRID402_ADMIN_SESS');
@@ -61,10 +188,65 @@ if ($action === 'reset' && !empty($_GET['secret']) && hash_equals(GRID402_CRON_S
     exit;
 }
 
-// 3. Processamento de POST (Setup ou Login)
+// 3. Processamento de POST (Setup, Login ou Alteracao de Senha)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // 3.1. Setup de Primeiro Acesso
-    if (!$hasSetup) {
+    // 3.0. Alteracao de Senha Autenticada
+    if ($action === 'change_password') {
+        $isJsonReq = (isset($_GET['format']) && $_GET['format'] === 'json') ||
+                     (str_contains((string)($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json'));
+
+        if (!$isLoggedIn) {
+            http_response_code(401);
+            if ($isJsonReq) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['success' => false, 'error' => 'Sessao administrativa expirada ou nao autenticada.']);
+            } else {
+                header('Location: /admin');
+            }
+            exit;
+        }
+
+        $currPass = (string) ($_POST['current_password'] ?? '');
+        $newPass = (string) ($_POST['new_password'] ?? '');
+        $newPassConfirm = (string) ($_POST['new_password_confirm'] ?? '');
+
+        $authContent = @file_get_contents($authFile);
+        $authData = $authContent ? @json_decode($authContent, true) : null;
+
+        $pErr = '';
+        if (!$authData || !password_verify($currPass, (string)($authData['password_hash'] ?? ''))) {
+            $pErr = 'A senha atual informada esta incorreta.';
+        } elseif (strlen($newPass) < 8) {
+            $pErr = 'A nova senha deve ter no minimo 8 caracteres.';
+        } elseif ($newPass !== $newPassConfirm) {
+            $pErr = 'A nova senha e a confirmacao nao coincidem.';
+        }
+
+        if ($pErr !== '') {
+            if ($isJsonReq) {
+                http_response_code(400);
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['success' => false, 'error' => $pErr]);
+                exit;
+            } else {
+                $errorMsg = $pErr;
+            }
+        } else {
+            $newHash = password_hash($newPass, PASSWORD_BCRYPT, ['cost' => 11]);
+            $authData['password_hash'] = $newHash;
+            $authData['updated_at'] = gmdate('Y-m-d\TH:i:s\Z');
+            grid402_atomic_write($authFile, $authData);
+
+            if ($isJsonReq) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['success' => true, 'message' => 'Senha alterada com sucesso!']);
+                exit;
+            } else {
+                $successMsg = 'Senha alterada com sucesso!';
+            }
+        }
+    } elseif (!$hasSetup) {
+        // 3.1. Setup de Primeiro Acesso
         $user = trim((string) ($_POST['username'] ?? ''));
         $pass = (string) ($_POST['password'] ?? '');
         $passConfirm = (string) ($_POST['password_confirm'] ?? '');
@@ -126,7 +308,67 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// 4. Endpoint de Polling JSON (/admin?api=stats)
+// 4. Endpoints de API JSON e Exportacao CSV
+// 4.1. Endpoint de Exportacao Financeira CSV (/admin?api=export_csv)
+if ($apiParam === 'export_csv') {
+    if (!$isLoggedIn) {
+        http_response_code(401);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['error' => 'Unauthorized', 'message' => 'Sessão administrativa expirada ou inválida.'], JSON_PRETTY_PRINT);
+        exit;
+    }
+
+    $metrics = grid402_get_metrics();
+    $forex = grid402_service_forex();
+    $usdRate = (float)($forex['rates']['USD']['bid'] ?? 5.50);
+    $events = $metrics['recent_events'] ?? [];
+
+    $filename = 'grid402_telemetria_' . gmdate('Y-m-d') . '.csv';
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+
+    // UTF-8 BOM para abertura correta no Microsoft Excel
+    echo "\xEF\xBB\xBF";
+
+    $output = fopen('php://output', 'w');
+    if ($output) {
+        fputcsv($output, [
+            'Horario UTC',
+            'Servico',
+            'Status HTTP',
+            'Tipo',
+            'Valor USDC',
+            'Cotacao PTAX BRL',
+            'Valor BRL Estimado',
+            'Hash BaseScan',
+            'IP Mascarado'
+        ], ';');
+
+        foreach ($events as $ev) {
+            $priceUsdc = (float)($ev['price_usdc'] ?? 0.0);
+            $priceBrl = round($priceUsdc * $usdRate, 4);
+            $evType = $ev['type'] ?? ($ev['is_paid'] ? 'paid' : 'free');
+
+            fputcsv($output, [
+                $ev['timestamp'] ?? '',
+                $ev['service'] ?? '',
+                $ev['status'] ?? 200,
+                $evType,
+                number_format($priceUsdc, 4, '.', ''),
+                number_format($usdRate, 4, '.', ''),
+                number_format($priceBrl, 2, ',', '.'),
+                $ev['tx_hash'] ?? '',
+                $ev['ip_masked'] ?? ''
+            ], ';');
+        }
+
+        fclose($output);
+    }
+    exit;
+}
+
+// 4.2. Endpoint de Polling JSON (/admin?api=stats)
 if ($apiParam === 'stats') {
     if (!$isLoggedIn) {
         http_response_code(401);
@@ -138,6 +380,8 @@ if ($apiParam === 'stats') {
     $metrics = grid402_get_metrics();
     $forex = grid402_service_forex();
     $usdRate = (float)($forex['rates']['USD']['bid'] ?? 5.50);
+    $wallet = grid402_get_oracle_wallet_balances();
+    $oracleConfigured = defined('GRID402_ORACLE_PRIVATE_KEY') && !empty(GRID402_ORACLE_PRIVATE_KEY);
 
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-cache, no-store, must-revalidate');
@@ -156,6 +400,8 @@ if ($apiParam === 'stats') {
         'today_revenue_usdc' => $todayUsdc,
         'today_revenue_brl' => round($todayUsdc * $usdRate, 2),
         'usd_rate' => $usdRate,
+        'wallet_balances' => $wallet,
+        'oracle_configured' => $oracleConfigured,
         'status_counts' => $metrics['status_counts'] ?? [],
         'service_counts' => $metrics['service_counts'] ?? [],
         'recent_events' => $metrics['recent_events'] ?? [],
@@ -332,6 +578,8 @@ if (!$isLoggedIn) {
 $metrics = grid402_get_metrics();
 $forex = grid402_service_forex();
 $usdRate = (float)($forex['rates']['USD']['bid'] ?? 5.50);
+$wallet = grid402_get_oracle_wallet_balances();
+$oracleConfigured = defined('GRID402_ORACLE_PRIVATE_KEY') && !empty(GRID402_ORACLE_PRIVATE_KEY);
 
 $revenueUsdc = (float)($metrics['total_revenue_usdc'] ?? 0.0);
 $revenueBrl = round($revenueUsdc * $usdRate, 2);
@@ -404,7 +652,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             border-radius: 6px;
         }
         .logo-title { font-size: 1.4rem; font-weight: 800; }
-        .user-nav { display: flex; align-items: center; gap: 1rem; font-size: 0.85rem; }
+        .user-nav { display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; flex-wrap: wrap; }
         .live-indicator {
             display: flex;
             align-items: center;
@@ -438,13 +686,16 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             font-weight: 600;
             text-decoration: none;
             transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
         }
         .btn-outline:hover { background: var(--surface); border-color: var(--accent); }
 
-        /* KPI Cards Grid */
+        /* KPI Cards Grid (5 colunas responsivas) */
         .kpi-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
             gap: 1.25rem;
             margin-bottom: 2.5rem;
         }
@@ -469,6 +720,9 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             font-weight: 600;
             letter-spacing: 0.5px;
             margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .kpi-value {
             font-size: 1.85rem;
@@ -510,10 +764,10 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 0.85rem;
-            font-size: 0.85rem;
+            margin-bottom: 0.65rem;
+            font-size: 0.82rem;
         }
-        .bar-label { width: 90px; font-family: var(--font-mono); }
+        .bar-label { width: 95px; font-family: var(--font-mono); color: var(--text-main); }
         .bar-track {
             flex: 1;
             height: 8px;
@@ -530,7 +784,69 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
         }
         .bar-count { width: 50px; text-align: right; font-family: var(--font-mono); color: var(--text-muted); }
 
-        /* Table */
+        /* Barra de Ferramentas e Filtros Reativos do Feed */
+        .feed-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            background: rgba(3, 7, 18, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.65rem 0.85rem;
+        }
+        .filter-group {
+            display: flex;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 0.35rem 0.65rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .filter-btn:hover {
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .filter-btn.active {
+            background: rgba(56, 189, 248, 0.15);
+            border-color: var(--accent);
+            color: #fff;
+        }
+        .search-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+            min-width: 240px;
+            justify-content: flex-end;
+        }
+        .search-input {
+            background: #030712;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.8rem;
+            padding: 0.4rem 0.65rem;
+            font-family: var(--font-sans);
+            width: 100%;
+            max-width: 280px;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        /* Tabela */
         .table-wrap {
             overflow-x: auto;
             border-radius: 8px;
@@ -540,7 +856,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 0.85rem;
+            font-size: 0.82rem;
             text-align: left;
         }
         th {
@@ -550,11 +866,11 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             font-weight: 600;
             border-bottom: 1px solid var(--border);
             text-transform: uppercase;
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             letter-spacing: 0.5px;
         }
         td {
-            padding: 0.85rem 1rem;
+            padding: 0.75rem 1rem;
             border-bottom: 1px solid rgba(255,255,255,0.03);
             font-family: var(--font-mono);
         }
@@ -569,6 +885,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
         .status-200 { background: rgba(16, 185, 129, 0.15); color: #34D399; }
         .status-402 { background: rgba(245, 158, 11, 0.15); color: #FBBF24; }
         .status-403 { background: rgba(239, 68, 68, 0.15); color: #F87171; }
+        .status-sandbox { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
         .tag-paid {
             background: rgba(56, 189, 248, 0.15);
             color: var(--accent);
@@ -579,6 +896,42 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
         }
         .tx-link { color: var(--accent); text-decoration: none; }
         .tx-link:hover { text-decoration: underline; }
+
+        /* Modal de Alteracao de Senha */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(3, 7, 18, 0.85);
+            backdrop-filter: blur(6px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-title { font-size: 1.1rem; font-weight: 700; color: #fff; }
+        .modal-close {
+            background: none; border: none; font-size: 1.25rem; color: var(--text-muted);
+            cursor: pointer; padding: 0.25rem;
+        }
+        .modal-close:hover { color: #fff; }
     </style>
 </head>
 <body>
@@ -593,13 +946,15 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                     <span class="pulse-dot"></span>
                     <span id="live-timer-text">Ao Vivo (5s)</span>
                 </div>
-                <button class="btn-outline" onclick="fetchLiveStats(true)">🔄 Atualizar</button>
+                <a href="/admin?api=export_csv" class="btn-outline" title="Baixar histórico completo de consultas em CSV">📥 Exportar CSV</a>
+                <button type="button" class="btn-outline" onclick="openPasswordModal()">🔑 Alterar Senha</button>
+                <button type="button" class="btn-outline" onclick="fetchLiveStats(true)">🔄 Atualizar</button>
                 <a href="/" target="_blank" class="btn-outline">🌐 Ver Portal</a>
                 <a href="/admin?action=logout" class="btn-outline" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.3);">Sair</a>
             </div>
         </header>
 
-        <!-- KPI Cards -->
+        <!-- KPI Cards (5 Cards) -->
         <div class="kpi-grid">
             <div class="kpi-card">
                 <div class="kpi-title">Faturamento Total</div>
@@ -621,15 +976,23 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 <div class="kpi-value" id="kpi-conversion"><?php echo $conversionRate; ?>%</div>
                 <div class="kpi-sub">Pagos / Desafios 402 emitidos</div>
             </div>
+            <div class="kpi-card">
+                <div class="kpi-title">
+                    <span>Saldo On-Chain (Base)</span>
+                    <span id="kpi-rpc-status" style="font-size: 0.68rem; font-family: var(--font-mono); color: var(--primary);">RPC ATIVO</span>
+                </div>
+                <div class="kpi-value" id="kpi-wallet-usdc">US$ <?php echo number_format((float)($wallet['usdc_balance'] ?? 0.0), 4); ?></div>
+                <div class="kpi-sub" id="kpi-wallet-eth"><?php echo number_format((float)($wallet['eth_balance'] ?? 0.0), 5); ?> ETH (Gas) • Base</div>
+            </div>
         </div>
 
-        <!-- 2 Columns: Tráfego por Serviço e Códigos de Status -->
+        <!-- 2 Columns: Tráfego por Micro-Serviço (11 Serviços) e Códigos de Status -->
         <div class="analytics-row">
             <div class="panel">
-                <div class="panel-title">Volume por Micro-Serviço</div>
+                <div class="panel-title">Volume por Micro-Serviço (11 Nós)</div>
                 <div id="service-bars-container">
                     <?php
-                    $servicesList = ['forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'summary'];
+                    $servicesList = ['workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'summary'];
                     $serviceCounts = $metrics['service_counts'] ?? [];
                     $maxSvc = max(array_values($serviceCounts) ?: [1]);
                     if ($maxSvc <= 0) $maxSvc = 1;
@@ -672,12 +1035,33 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             </div>
         </div>
 
-        <!-- Feed de Consultas em Tempo Real -->
+        <!-- Feed de Consultas em Tempo Real (Buffer de 100 Eventos) -->
         <div class="panel">
-            <div class="panel-title">
-                <span>Feed de Consultas Recentes (Últimas 50)</span>
-                <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted);" id="last-updated-text">Atualizado há instantes</span>
+            <div class="panel-title" style="flex-wrap: wrap; gap: 0.75rem;">
+                <div>
+                    <span>Feed de Consultas Recentes (Buffer de 100 Eventos)</span>
+                    <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted); margin-left: 0.5rem;" id="last-updated-text">Atualizado há instantes</span>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                    <a href="/admin?api=export_csv" class="btn-outline" style="font-size: 0.75rem; padding: 0.35rem 0.65rem;">📥 Exportar CSV</a>
+                </div>
             </div>
+
+            <!-- Barra de Filtros Reativos e Busca Textual -->
+            <div class="feed-toolbar">
+                <div class="filter-group">
+                    <button type="button" class="filter-btn active" id="filter-btn-all" onclick="setFeedFilter('all')">Todos (<span id="count-all">0</span>)</button>
+                    <button type="button" class="filter-btn" id="filter-btn-paid" onclick="setFeedFilter('paid')">🟢 Pagos (<span id="count-paid">0</span>)</button>
+                    <button type="button" class="filter-btn" id="filter-btn-sandbox" onclick="setFeedFilter('sandbox')">🧪 Sandbox (<span id="count-sandbox">0</span>)</button>
+                    <button type="button" class="filter-btn" id="filter-btn-challenge" onclick="setFeedFilter('challenge_402')">🟡 Desafios 402 (<span id="count-challenge">0</span>)</button>
+                    <button type="button" class="filter-btn" id="filter-btn-blocked" onclick="setFeedFilter('blocked_403')">🔴 Bloqueados 403 (<span id="count-blocked">0</span>)</button>
+                </div>
+                <div class="search-wrap">
+                    <input type="text" id="feed-search-input" class="search-input" placeholder="Buscar por serviço, IP ou hash..." oninput="applyFeedSearch()">
+                    <span id="feed-visible-count" style="font-size: 0.75rem; color: var(--text-muted); white-space: nowrap;">Mostrando 0 de 0</span>
+                </div>
+            </div>
+
             <div class="table-wrap">
                 <table>
                     <thead>
@@ -696,21 +1080,29 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                         $events = $metrics['recent_events'] ?? [];
                         if (empty($events)):
                         ?>
-                        <tr>
+                        <tr id="no-events-row">
                             <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Nenhuma consulta registrada até o momento.</td>
                         </tr>
                         <?php else: ?>
-                            <?php foreach ($events as $ev): ?>
-                            <tr>
+                            <?php foreach ($events as $ev):
+                                $evType = $ev['type'] ?? ($ev['is_paid'] ? 'paid' : 'free');
+                                $st = (int)($ev['status'] ?? 200);
+                            ?>
+                            <tr class="event-row" data-type="<?php echo htmlspecialchars($evType, ENT_QUOTES); ?>">
                                 <td><?php echo substr($ev['timestamp'] ?? '', 11, 8); ?></td>
                                 <td><strong><?php echo htmlspecialchars((string)($ev['service'] ?? ''), ENT_QUOTES); ?></strong></td>
                                 <td>
-                                    <?php $st = (int)($ev['status'] ?? 200); ?>
                                     <span class="tag-status status-<?php echo $st; ?>">HTTP <?php echo $st; ?></span>
                                 </td>
                                 <td>
-                                    <?php if (!empty($ev['is_paid'])): ?>
+                                    <?php if ($evType === 'paid'): ?>
                                         <span class="tag-paid">PAGO x402</span>
+                                    <?php elseif ($evType === 'sandbox'): ?>
+                                        <span class="tag-status status-sandbox">SANDBOX (demo)</span>
+                                    <?php elseif ($evType === 'challenge_402'): ?>
+                                        <span class="tag-status status-402">DESAFIO 402</span>
+                                    <?php elseif ($evType === 'blocked_403'): ?>
+                                        <span class="tag-status status-403">BLOQUEADO 403</span>
                                     <?php else: ?>
                                         <span style="color: var(--text-muted); font-size: 0.75rem;">GRATUITO</span>
                                     <?php endif; ?>
@@ -735,7 +1127,99 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
         </div>
     </div>
 
+    <!-- Modal de Alteracao de Senha do Operador -->
+    <div id="password-modal-overlay" class="modal-overlay" onclick="handlePasswordOverlayClick(event)">
+        <div class="modal-card">
+            <div class="modal-header">
+                <span class="modal-title">🔑 Alterar Senha do Operador</span>
+                <button type="button" class="modal-close" onclick="closePasswordModal()">✕</button>
+            </div>
+            <form id="change-password-form" onsubmit="submitPasswordChange(event)" style="padding: 1.5rem;">
+                <div id="password-modal-alert" style="display: none; padding: 0.65rem 0.85rem; border-radius: 6px; font-size: 0.82rem; margin-bottom: 1rem;"></div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="modal-curr-pass" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">Senha Atual</label>
+                    <input type="password" id="modal-curr-pass" required class="search-input" style="max-width: 100%; width: 100%;" autocomplete="current-password">
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="modal-new-pass" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">Nova Senha (min. 8 caracteres)</label>
+                    <input type="password" id="modal-new-pass" required minlength="8" class="search-input" style="max-width: 100%; width: 100%;" autocomplete="new-password">
+                </div>
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label for="modal-confirm-pass" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">Confirmar Nova Senha</label>
+                    <input type="password" id="modal-confirm-pass" required minlength="8" class="search-input" style="max-width: 100%; width: 100%;" autocomplete="new-password">
+                </div>
+                <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                    <button type="button" class="btn-outline" onclick="closePasswordModal()">Cancelar</button>
+                    <button type="submit" id="btn-submit-password" class="btn" style="width: auto; padding: 0.5rem 1.25rem; font-size: 0.85rem; margin-top: 0;">Salvar Nova Senha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
+        let currentFeedFilter = 'all';
+        let currentFeedSearchText = '';
+        let cachedEvents = [];
+
+        function setFeedFilter(filter) {
+            currentFeedFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            const activeBtn = document.getElementById('filter-btn-' + (filter === 'challenge_402' ? 'challenge' : (filter === 'blocked_403' ? 'blocked' : filter)));
+            if (activeBtn) activeBtn.classList.add('active');
+            applyFeedFilterAndSearch();
+        }
+
+        function applyFeedSearch() {
+            const input = document.getElementById('feed-search-input');
+            currentFeedSearchText = input ? input.value.trim().toLowerCase() : '';
+            applyFeedFilterAndSearch();
+        }
+
+        function applyFeedFilterAndSearch() {
+            const rows = document.querySelectorAll('.event-row');
+            let visibleCount = 0;
+            let totalCount = rows.length;
+
+            let countPaid = 0;
+            let countSandbox = 0;
+            let countChallenge = 0;
+            let countBlocked = 0;
+
+            rows.forEach(r => {
+                const type = r.getAttribute('data-type') || 'free';
+                if (type === 'paid') countPaid++;
+                if (type === 'sandbox') countSandbox++;
+                if (type === 'challenge_402') countChallenge++;
+                if (type === 'blocked_403') countBlocked++;
+
+                const matchesFilter = (currentFeedFilter === 'all' || type === currentFeedFilter);
+                const rowText = r.textContent.toLowerCase();
+                const matchesSearch = (!currentFeedSearchText || rowText.includes(currentFeedSearchText));
+
+                if (matchesFilter && matchesSearch) {
+                    r.style.display = '';
+                    visibleCount++;
+                } else {
+                    r.style.display = 'none';
+                }
+            });
+
+            const countAllEl = document.getElementById('count-all');
+            const countPaidEl = document.getElementById('count-paid');
+            const countSandboxEl = document.getElementById('count-sandbox');
+            const countChallengeEl = document.getElementById('count-challenge');
+            const countBlockedEl = document.getElementById('count-blocked');
+
+            if (countAllEl) countAllEl.textContent = totalCount;
+            if (countPaidEl) countPaidEl.textContent = countPaid;
+            if (countSandboxEl) countSandboxEl.textContent = countSandbox;
+            if (countChallengeEl) countChallengeEl.textContent = countChallenge;
+            if (countBlockedEl) countBlockedEl.textContent = countBlocked;
+
+            const visCountEl = document.getElementById('feed-visible-count');
+            if (visCountEl) visCountEl.textContent = 'Mostrando ' + visibleCount + ' de ' + totalCount;
+        }
+
         async function fetchLiveStats(isManual = false) {
             try {
                 const res = await fetch('/admin?api=stats');
@@ -746,7 +1230,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 const data = await res.json();
                 if (data.status !== 'success') return;
 
-                // 1. Atualizar KPIs
+                // 1. Atualizar KPIs Financeiros e Operacionais
                 document.getElementById('kpi-total-usdc').textContent = 'US$ ' + Number(data.total_revenue_usdc).toFixed(4);
                 document.getElementById('kpi-total-brl').textContent = '≈ R$ ' + Number(data.total_revenue_brl).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
                 document.getElementById('kpi-today-usdc').textContent = 'US$ ' + Number(data.today_revenue_usdc).toFixed(4);
@@ -759,8 +1243,22 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 const conv = (reqs402 + paid > 0) ? ((paid / (reqs402 + paid)) * 100).toFixed(1) : 0;
                 document.getElementById('kpi-conversion').textContent = conv + '%';
 
-                // 2. Atualizar Barras de Serviços
-                const servicesList = ['forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'summary'];
+                // 2. Atualizar Card On-Chain (Base Mainnet)
+                if (data.wallet_balances) {
+                    const w = data.wallet_balances;
+                    const usdcEl = document.getElementById('kpi-wallet-usdc');
+                    const ethEl = document.getElementById('kpi-wallet-eth');
+                    const rpcEl = document.getElementById('kpi-rpc-status');
+                    if (usdcEl) usdcEl.textContent = 'US$ ' + Number(w.usdc_balance || 0).toFixed(4);
+                    if (ethEl) ethEl.textContent = Number(w.eth_balance || 0).toFixed(5) + ' ETH (Gas) • Base';
+                    if (rpcEl) {
+                        rpcEl.textContent = w.rpc_operational ? 'RPC ATIVO' : 'CACHE OFFLINE';
+                        rpcEl.style.color = w.rpc_operational ? 'var(--primary)' : 'var(--warning)';
+                    }
+                }
+
+                // 3. Atualizar Barras de Serviços (11 Micro-Serviços)
+                const servicesList = ['workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'summary'];
                 const sCounts = data.service_counts || {};
                 const maxS = Math.max(...Object.values(sCounts).concat([1]));
                 let sHtml = '';
@@ -776,26 +1274,40 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 });
                 document.getElementById('service-bars-container').innerHTML = sHtml;
 
-                // 3. Atualizar Tabela de Eventos
+                // 4. Atualizar Tabela de Eventos (100 Eventos)
                 const tbody = document.getElementById('recent-events-tbody');
                 const events = data.recent_events || [];
+                cachedEvents = events;
+
                 if (events.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Nenhuma consulta registrada até o momento.</td></tr>';
+                    tbody.innerHTML = '<tr id="no-events-row"><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Nenhuma consulta registrada até o momento.</td></tr>';
                 } else {
                     let rowsHtml = '';
                     events.forEach(ev => {
                         const time = (ev.timestamp || '').substr(11, 8);
                         const st = ev.status || 200;
-                        const paidTag = ev.is_paid ? '<span class="tag-paid">PAGO x402</span>' : '<span style="color: var(--text-muted); font-size: 0.75rem;">GRATUITO</span>';
+                        const type = ev.type || (ev.is_paid ? 'paid' : 'free');
+
+                        let typeBadge = '<span style="color: var(--text-muted); font-size: 0.75rem;">GRATUITO</span>';
+                        if (type === 'paid') {
+                            typeBadge = '<span class="tag-paid">PAGO x402</span>';
+                        } else if (type === 'sandbox') {
+                            typeBadge = '<span class="tag-status status-sandbox">SANDBOX (demo)</span>';
+                        } else if (type === 'challenge_402') {
+                            typeBadge = '<span class="tag-status status-402">DESAFIO 402</span>';
+                        } else if (type === 'blocked_403') {
+                            typeBadge = '<span class="tag-status status-403">BLOQUEADO 403</span>';
+                        }
+
                         const val = ev.is_paid ? '$' + ev.price_usdc : '-';
                         const tx = ev.tx_hash ? `<a href="https://basescan.org/tx/${ev.tx_hash}" target="_blank" class="tx-link">${ev.tx_hash.substr(0, 8)}...${ev.tx_hash.substr(-6)} ↗</a>` : '<span style="color: var(--text-muted);">-</span>';
 
                         rowsHtml += `
-                        <tr>
+                        <tr class="event-row" data-type="${type}">
                             <td>${time}</td>
                             <td><strong>${ev.service}</strong></td>
                             <td><span class="tag-status status-${st}">HTTP ${st}</span></td>
-                            <td>${paidTag}</td>
+                            <td>${typeBadge}</td>
                             <td>${val}</td>
                             <td>${tx}</td>
                             <td style="color: var(--text-muted);">${ev.ip_masked}</td>
@@ -805,14 +1317,96 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 }
 
                 document.getElementById('last-updated-text').textContent = 'Última atualização: ' + new Date().toLocaleTimeString('pt-BR');
+                applyFeedFilterAndSearch();
             } catch (e) {
                 console.error('Erro ao buscar stats em tempo real:', e);
             }
         }
 
-        // Inicia polling a cada 5 segundos
+        // Modal de Alteracao de Senha
+        function openPasswordModal() {
+            const overlay = document.getElementById('password-modal-overlay');
+            const alertBox = document.getElementById('password-modal-alert');
+            if (alertBox) alertBox.style.display = 'none';
+            if (overlay) overlay.classList.add('active');
+            const currInp = document.getElementById('modal-curr-pass');
+            if (currInp) currInp.focus();
+        }
+
+        function closePasswordModal() {
+            const overlay = document.getElementById('password-modal-overlay');
+            if (overlay) overlay.classList.remove('active');
+            const form = document.getElementById('change-password-form');
+            if (form) form.reset();
+        }
+
+        function handlePasswordOverlayClick(e) {
+            if (e.target.id === 'password-modal-overlay') closePasswordModal();
+        }
+
+        async function submitPasswordChange(e) {
+            e.preventDefault();
+            const currPass = document.getElementById('modal-curr-pass').value;
+            const newPass = document.getElementById('modal-new-pass').value;
+            const confirmPass = document.getElementById('modal-confirm-pass').value;
+            const alertBox = document.getElementById('password-modal-alert');
+            const btn = document.getElementById('btn-submit-password');
+
+            if (newPass !== confirmPass) {
+                alertBox.style.display = 'block';
+                alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                alertBox.style.color = '#FCA5A5';
+                alertBox.textContent = 'A nova senha e a confirmacao nao coincidem.';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Salvando...';
+
+            try {
+                const formData = new FormData();
+                formData.append('current_password', currPass);
+                formData.append('new_password', newPass);
+                formData.append('new_password_confirm', confirmPass);
+
+                const res = await fetch('/admin?action=change_password&format=json', {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json' },
+                    body: formData
+                });
+                const data = await res.json();
+
+                alertBox.style.display = 'block';
+                if (data.success) {
+                    alertBox.style.background = 'rgba(16, 185, 129, 0.15)';
+                    alertBox.style.color = '#34D399';
+                    alertBox.textContent = data.message || 'Senha alterada com sucesso!';
+                    setTimeout(() => {
+                        closePasswordModal();
+                    }, 1500);
+                } else {
+                    alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                    alertBox.style.color = '#FCA5A5';
+                    alertBox.textContent = data.error || 'Nao foi possivel alterar a senha.';
+                }
+            } catch (err) {
+                alertBox.style.display = 'block';
+                alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                alertBox.style.color = '#FCA5A5';
+                alertBox.textContent = 'Erro ao conectar ao servidor: ' + err.message;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Salvar Nova Senha';
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closePasswordModal();
+        });
+
+        // Inicializacao dos contadores e polling
+        applyFeedFilterAndSearch();
         setInterval(fetchLiveStats, 5000);
     </script>
 </body>
 </html>
-

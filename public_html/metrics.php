@@ -62,6 +62,9 @@ function grid402_default_metrics(): array {
             'asn' => 0,
             'cep' => 0,
             'cnpj' => 0,
+            'indicators' => 0,
+            'holidays' => 0,
+            'workdays' => 0,
             'summary' => 0,
         ],
         'daily' => [],
@@ -94,7 +97,8 @@ function grid402_record_telemetry(
     bool $isPaid = false,
     ?string $txHash = null,
     ?string $ip = null,
-    ?float $priceUsdc = null
+    ?float $priceUsdc = null,
+    ?string $type = null
 ): void {
     $file = GRID402_FILE_METRICS;
     $dir = dirname($file);
@@ -118,6 +122,24 @@ function grid402_record_telemetry(
         $svc = strtolower(trim($service));
         if ($svc === '') {
             $svc = 'summary';
+        }
+
+        // Determinacao da tipagem do evento de telemetria
+        $eventTrafficType = $type;
+        if ($eventTrafficType === null || trim($eventTrafficType) === '') {
+            $cleanTx = strtolower(trim((string)$txHash));
+            $reqProof = isset($_SERVER['HTTP_X_PAYMENT']) ? strtolower(trim((string)$_SERVER['HTTP_X_PAYMENT'])) : '';
+            if ($isPaid) {
+                $eventTrafficType = 'paid';
+            } elseif ($cleanTx === 'demo' || $reqProof === 'demo') {
+                $eventTrafficType = 'sandbox';
+            } elseif ($statusCode === 402) {
+                $eventTrafficType = 'challenge_402';
+            } elseif ($statusCode === 403) {
+                $eventTrafficType = 'blocked_403';
+            } else {
+                $eventTrafficType = 'free';
+            }
         }
 
         // 1. Contadores gerais
@@ -155,7 +177,7 @@ function grid402_record_telemetry(
             $metrics['daily'][$today]['usdc'] = round(((float)$metrics['daily'][$today]['usdc']) + $effectivePrice, 4);
         }
 
-        // 4. Buffer circular de eventos recentes (máximo 50)
+        // 4. Buffer circular de eventos recentes (limite expandido para 100)
         if (!isset($metrics['recent_events']) || !is_array($metrics['recent_events'])) {
             $metrics['recent_events'] = [];
         }
@@ -167,14 +189,15 @@ function grid402_record_telemetry(
             'service' => $svc,
             'status' => $statusCode,
             'is_paid' => $isPaid,
+            'type' => $eventTrafficType,
             'price_usdc' => $isPaid ? (string)$effectivePrice : '0.0000',
             'tx_hash' => $txHash ? strtolower(trim($txHash)) : null,
             'ip_masked' => $maskedIp,
         ];
 
         array_unshift($metrics['recent_events'], $event);
-        if (count($metrics['recent_events']) > 50) {
-            $metrics['recent_events'] = array_slice($metrics['recent_events'], 0, 50);
+        if (count($metrics['recent_events']) > 100) {
+            $metrics['recent_events'] = array_slice($metrics['recent_events'], 0, 100);
         }
 
         // Gravação segura

@@ -351,6 +351,12 @@ if ($pageParam === 'privacy' || $requestPath === '/privacy') {
     }
 }
 
+// 1.1. Fallback Resiliente para o Painel Administrativo (/admin e /dashboard)
+if ($requestPath === '/admin' || $requestPath === '/dashboard' || $pageParam === 'admin' || $pageParam === 'dashboard') {
+    require __DIR__ . '/admin.php';
+    exit;
+}
+
 // 2. Classificação de Rotas
 $isStatusRoute = ($requestPath === '/status' || $requestPath === '/api/v1/summary' || $requestPath === '/telemetry');
 $isHomeRoute = ($requestPath === '/' || $requestPath === '/index.php');

@@ -19,8 +19,8 @@ assert(str_starts_with(grid402_mask_ip('2001:0db8:85a3:0000:0000:8a2e:0370:7334'
 assert(grid402_mask_ip('127.0.0.1') === '127.0.xxx.xxx', 'Localhost deve ser mascarado');
 echo "OK!\n";
 
-// --- Teste 2: Gravação Atômica de Telemetria e Buffer Circular ---
-echo "[2/5] Testando gravação atômica de telemetria e buffer circular... ";
+// --- Teste 2: Gravação Atômica de Telemetria e Buffer Circular (100 eventos e Tipos de Tráfego) ---
+echo "[2/5] Testando gravação atômica de telemetria, classificação de tipo e buffer circular de 100 eventos... ";
 // Usa um arquivo de métricas temporário para testes
 $backupMetricsFile = GRID402_FILE_METRICS . '.bak_test';
 if (file_exists(GRID402_FILE_METRICS)) {
@@ -36,28 +36,45 @@ grid402_record_telemetry('forex', 200, false, null, '200.150.10.5');
 // Grava 1 desafio 402 de DNS
 grid402_record_telemetry('dns', 402, false, null, '189.40.50.2');
 
+// Grava 1 bloqueio 403 de SSL (rate limit)
+grid402_record_telemetry('ssl', 403, false, null, '189.40.50.2');
+
 // Grava 1 consulta paga de DNS com tx_hash
 $dummyTx = '0x' . bin2hex(random_bytes(32));
 grid402_record_telemetry('dns', 200, true, $dummyTx, '189.40.50.2', 0.0005);
 
+// Grava 1 consulta sandbox
+grid402_record_telemetry('cep', 200, false, null, '127.0.0.1', 0.0, 'sandbox');
+
 $m = grid402_get_metrics();
-assert($m['total_requests'] === 3, 'Total de requisições deve ser 3');
+assert($m['total_requests'] === 5, 'Total de requisições deve ser 5');
 assert($m['total_paid_requests'] === 1, 'Total de requisições pagas deve ser 1');
 assert($m['total_revenue_usdc'] === 0.0005, 'Faturamento total em USDC deve ser 0.0005');
 assert($m['service_counts']['forex'] === 1, 'Consultas de forex deve ser 1');
 assert($m['service_counts']['dns'] === 2, 'Consultas de dns deve ser 2');
-assert($m['status_counts']['200'] === 2, 'Status 200 deve ser 2');
+assert($m['service_counts']['ssl'] === 1, 'Consultas de ssl deve ser 1');
+assert($m['service_counts']['cep'] === 1, 'Consultas de cep deve ser 1');
+assert(count($m['service_counts']) >= 11, 'Deve conter catalogo de pelo menos 11 microservicos');
+assert($m['status_counts']['200'] === 3, 'Status 200 deve ser 3');
 assert($m['status_counts']['402'] === 1, 'Status 402 deve ser 1');
-assert(count($m['recent_events']) === 3, 'Deve haver 3 eventos recentes');
-assert($m['recent_events'][0]['tx_hash'] === strtolower($dummyTx), 'Último evento deve conter o hash da transação');
-assert($m['recent_events'][0]['ip_masked'] === '189.40.xxx.xxx', 'IP deve estar anonimizado no evento');
+assert($m['status_counts']['403'] === 1, 'Status 403 deve ser 1');
+assert(count($m['recent_events']) === 5, 'Deve haver 5 eventos recentes');
 
-// Teste de Buffer Circular (adicionar 60 eventos e garantir que no máximo 50 permanecem)
-for ($i = 0; $i < 60; $i++) {
+// Verificação de tipos de tráfego
+assert($m['recent_events'][0]['type'] === 'sandbox', 'Primeiro evento deve ser classificado como sandbox');
+assert($m['recent_events'][1]['type'] === 'paid', 'Segundo evento deve ser classificado como paid');
+assert($m['recent_events'][1]['tx_hash'] === strtolower($dummyTx), 'Evento pago deve conter o hash da transação');
+assert($m['recent_events'][2]['type'] === 'blocked_403', 'Terceiro evento deve ser classificado como blocked_403');
+assert($m['recent_events'][3]['type'] === 'challenge_402', 'Quarto evento deve ser classificado como challenge_402');
+assert($m['recent_events'][4]['type'] === 'free', 'Quinto evento deve ser classificado como free');
+assert($m['recent_events'][1]['ip_masked'] === '189.40.xxx.xxx', 'IP deve estar anonimizado no evento');
+
+// Teste de Buffer Circular (adicionar 110 eventos e garantir que no máximo 100 permanecem)
+for ($i = 0; $i < 110; $i++) {
     grid402_record_telemetry('crypto', 200, false);
 }
 $mAfter = grid402_get_metrics();
-assert(count($mAfter['recent_events']) === 50, 'Buffer circular deve reter exatamente 50 eventos recentes no máximo');
+assert(count($mAfter['recent_events']) === 100, 'Buffer circular deve reter exatamente 100 eventos recentes no maximo');
 echo "OK!\n";
 
 // --- Teste 3: Autenticação Segura com Bcrypt ---
@@ -68,7 +85,7 @@ assert(password_verify($testPass, $hash) === true, 'Senha correta deve ser verif
 assert(password_verify('SenhaIncorreta', $hash) === false, 'Senha incorreta deve ser recusada');
 echo "OK!\n";
 
-// --- Teste 4 & 5: Ciclo HTTP do Painel Admin (Setup, Login, 401 e Dashboard) ---
+// --- Teste 4 e 5: Ciclo HTTP do Painel Admin (Setup, Login, 401, CSV, Senha e Dashboard) ---
 echo "[4/5] Subindo servidor web local para testar fluxos HTTP do /admin...\n";
 
 $port = 8959;
@@ -145,10 +162,65 @@ try {
     assert($statsJson['status'] === 'success', 'Status deve ser success');
     assert(isset($statsJson['total_revenue_usdc']), 'Deve conter total_revenue_usdc');
     assert(isset($statsJson['service_counts']), 'Deve conter service_counts');
+    assert(count($statsJson['service_counts']) >= 11, 'Deve conter os 11 microservicos no snapshot');
     assert(isset($statsJson['recent_events']), 'Deve conter recent_events');
-    echo "     ✓ Snapshot JSON em tempo real validado com sucesso!\n";
+    assert(isset($statsJson['wallet_balances']), 'Deve conter wallet_balances');
+    assert(isset($statsJson['oracle_configured']), 'Deve conter oracle_configured');
+    assert(isset($statsJson['wallet_balances']['usdc_balance']), 'Deve conter usdc_balance');
+    assert(isset($statsJson['wallet_balances']['eth_balance']), 'Deve conter eth_balance');
+    echo "     ✓ Snapshot JSON em tempo real com saldos on-chain validado com sucesso!\n";
 
-    // 4.5. Acessar Dashboard HTML com sessão autenticada
+    // 4.5. Testar exportação de CSV autenticado
+    echo "  -> Testando exportação de relatório financeiro CSV...\n";
+    $csvResp = curl_admin("http://127.0.0.1:{$port}/admin?api=export_csv", [
+        CURLOPT_COOKIEFILE => $cookieFile,
+    ]);
+    assert($csvResp['code'] === 200, "Exportação CSV deve retornar HTTP 200");
+    assert(stripos($csvResp['headers'], 'Content-Type: text/csv') !== false, 'Header deve ser text/csv');
+    assert(str_starts_with($csvResp['body'], "\xEF\xBB\xBF"), 'CSV deve iniciar com BOM UTF-8');
+    assert(str_contains($csvResp['body'], 'Servico') && str_contains($csvResp['body'], 'Tipo') && str_contains($csvResp['body'], 'Valor USDC'), 'Deve conter colunas principais do CSV');
+    echo "     ✓ Relatório CSV com BOM UTF-8 e 9 colunas validado com sucesso!\n";
+
+    // 4.6. Testar alteração de senha autenticada
+    echo "  -> Testando alteração de senha (validação de credencial atual)...\n";
+    // Tentativa com senha atual errada via JSON
+    $badChange = curl_admin("http://127.0.0.1:{$port}/admin?action=change_password", [
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => ['Accept: application/json'],
+        CURLOPT_POSTFIELDS => http_build_query([
+            'current_password' => 'SenhaErrada123',
+            'new_password' => 'NovaSenha#2026',
+            'new_password_confirm' => 'NovaSenha#2026',
+        ]),
+        CURLOPT_COOKIEFILE => $cookieFile,
+    ]);
+    assert($badChange['code'] === 400, "Alteração de senha com senha atual errada deve retornar 400");
+    $badChangeJson = json_decode($badChange['body'], true);
+    assert($badChangeJson['success'] === false, 'Deve retornar success false');
+    assert(isset($badChangeJson['error']), 'Deve conter mensagem de erro');
+
+    // Tentativa com sucesso
+    $goodChange = curl_admin("http://127.0.0.1:{$port}/admin?action=change_password", [
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => ['Accept: application/json'],
+        CURLOPT_POSTFIELDS => http_build_query([
+            'current_password' => 'Segredo#Forte2026',
+            'new_password' => 'NovaSenha#Forte2026',
+            'new_password_confirm' => 'NovaSenha#Forte2026',
+        ]),
+        CURLOPT_COOKIEFILE => $cookieFile,
+    ]);
+    assert($goodChange['code'] === 200, "Alteração de senha válida deve retornar 200");
+    $goodChangeJson = json_decode($goodChange['body'], true);
+    assert($goodChangeJson['success'] === true, 'Deve retornar success true');
+    assert(isset($goodChangeJson['message']), 'Deve conter mensagem de sucesso');
+
+    // Verifica se o hash no arquivo foi atualizado
+    $authDataUpdated = json_decode((string) file_get_contents(GRID402_FILE_ADMIN_AUTH), true);
+    assert(password_verify('NovaSenha#Forte2026', (string) $authDataUpdated['password_hash']) === true, 'Novo hash de senha deve ser validado');
+    echo "     ✓ Fluxo seguro de alteração de senha homologado com sucesso!\n";
+
+    // 4.7. Acessar Dashboard HTML com sessão autenticada
     echo "  -> Acessando Dashboard HTML autenticado...\n";
     $dashResp = curl_admin("http://127.0.0.1:{$port}/admin", [
         CURLOPT_COOKIEFILE => $cookieFile,
@@ -156,9 +228,11 @@ try {
     assert($dashResp['code'] === 200, "Dashboard autenticado deve retornar 200");
     assert(str_contains($dashResp['body'], 'Monitoramento e Faturamento'), 'Deve conter título do Dashboard');
     assert(str_contains($dashResp['body'], 'Ao Vivo'), 'Deve conter indicador de atualização Ao Vivo');
-    echo "     ✓ Dashboard dark-mode renderizado com sucesso!\n";
+    assert(str_contains($dashResp['body'], 'Saldo On-Chain (Base)'), 'Deve conter card de Saldo On-Chain');
+    assert(str_contains($dashResp['body'], 'password-modal-overlay'), 'Deve conter modal de alteração de senha');
+    echo "     ✓ Dashboard dark-mode com saldos e modais renderizado com sucesso!\n";
 
-    // 4.6. Testar Logout
+    // 4.8. Testar Logout
     echo "  -> Testando encerramento de sessão (Logout)...\n";
     $logoutResp = curl_admin("http://127.0.0.1:{$port}/admin?action=logout", [
         CURLOPT_COOKIEFILE => $cookieFile,
