@@ -731,6 +731,8 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             <p>Acesse cotações de câmbio, cripto, DNS, certificados SSL, BGP/ASN, CEP e CNPJ da Receita Federal em milissegundos sem cadastro ou chaves de API. Micropagamentos por chamada em USDC na Base.</p>
             <div class="cta-group">
                 <a href="#console" class="btn btn-primary" onclick="switchTab('console')">⚡ Testar no Console</a>
+                <a href="#console" class="btn btn-outline" onclick="switchTab('smithery')">📦 Smithery MCP</a>
+                <a href="#console" class="btn btn-outline" onclick="switchTab('agentkit')">🪙 Coinbase AgentKit</a>
                 <a href="/llms.txt" class="btn btn-outline">Documentação llms.txt</a>
                 <a href="/status" class="btn btn-outline">Resumo Gratuito (JSON)</a>
             </div>
@@ -757,6 +759,8 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
 
             <div class="tabs-header">
                 <button class="tab-btn active" onclick="switchTab('console')">⚡ Console Interativo</button>
+                <button class="tab-btn" onclick="switchTab('smithery')">📦 Smithery MCP (1 Clique)</button>
+                <button class="tab-btn" onclick="switchTab('agentkit')">🪙 Coinbase AgentKit (M2M)</button>
                 <button class="tab-btn" onclick="switchTab('python')">🐍 Python SDK</button>
                 <button class="tab-btn" onclick="switchTab('node')">🟢 Node.js SDK</button>
                 <button class="tab-btn" onclick="switchTab('curl')">💻 cURL CLI</button>
@@ -815,6 +819,79 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                     <span id="console-latency-badge" style="display:none;" class="card-category"></span>
                 </div>
                 <pre id="console-output" class="code-block">// Resposta da API aparecerá aqui...</pre>
+            </div>
+
+            <!-- Tab Smithery MCP -->
+            <div id="tab-smithery" class="tab-content">
+                <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 0.75rem;">
+                        <span style="font-weight: 700; color: #fff; font-size: 1.05rem;">📦 Instalação em 1 Clique via Smithery.ai</span>
+                        <span class="card-category">Claude Desktop • Cursor • MCP Stdout</span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.5;">
+                        O Grid402 está catalogado no registro global da Smithery.ai. Você pode registrar instantaneamente o servidor de ferramentas no seu Claude Desktop ou Cursor sem precisar editar arquivos de configuração manualmente.
+                    </p>
+                    
+                    <div style="margin-bottom: 1rem;">
+                        <div style="font-size: 0.8rem; color: var(--accent); margin-bottom: 0.35rem; font-weight: 600;">Comando de Instalação no Claude Desktop:</div>
+                        <pre class="code-block" style="margin-bottom: 0.75rem;">npx -y @smithery/cli install grid402-mcp --client claude</pre>
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <div style="font-size: 0.8rem; color: var(--accent); margin-bottom: 0.35rem; font-weight: 600;">Comando de Instalação no Cursor:</div>
+                        <pre class="code-block" style="margin-bottom: 0.75rem;">npx -y @smithery/cli install grid402-mcp --client cursor</pre>
+                    </div>
+
+                    <div style="background: rgba(0, 0, 0, 0.3); border-radius: 6px; padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--text-muted);">
+                        <strong style="color: #fff;">💡 Parâmetros Suportados no smithery.yaml:</strong>
+                        <ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;">
+                            <li><code>sandbox: true</code> — Ativa o Modo Sandbox gratuito (20 consultas por hora por IP) para testes sem necessidade de carteira.</li>
+                            <li><code>privateKey: 0x...</code> — Chave privada EVM opcional para auto-liquidação em USDC na Base (0.0005 a 0.0020 USDC por chamada).</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Coinbase AgentKit -->
+            <div id="tab-agentkit" class="tab-content">
+                <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 0.75rem;">
+                        <span style="font-weight: 700; color: #fff; font-size: 1.05rem;">🪙 Integração Nativa Coinbase AgentKit (CDP)</span>
+                        <span class="card-category">M2M Auto-Settlement • LangChain • CrewAI</span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.5;">
+                        Permita que agentes de IA com carteiras CDP na Base consultem dados públicos e utilitários de rede pagando tarifas x402 de forma 100% autônoma, sem interrupção humana. O provedor de ações intercepta o desafio 402, transfere o USDC e reenvia a requisição de forma transparente.
+                    </p>
+
+                    <div style="margin-bottom: 1rem;">
+                        <div style="font-size: 0.8rem; color: var(--accent); margin-bottom: 0.35rem; font-weight: 600;">Exemplo em TypeScript (@coinbase/agentkit):</div>
+                        <pre class="code-block" style="margin-bottom: 0.75rem;">import { AgentKit, CdpWalletProvider } from "@coinbase/agentkit";
+import { Grid402ActionProvider } from "./integrations/agentkit/grid402_action_provider";
+
+// Inicializa a carteira CDP na Base
+const walletProvider = await CdpWalletProvider.configureWithWallet();
+
+// Conecta o Grid402 com auto-liquidacao de micropagamentos
+const agentKit = await AgentKit.from({
+  walletProvider,
+  actionProviders: [new Grid402ActionProvider()]
+});</pre>
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <div style="font-size: 0.8rem; color: var(--accent); margin-bottom: 0.35rem; font-weight: 600;">Exemplo em Python (cdp-agentkit-core):</div>
+                        <pre class="code-block" style="margin-bottom: 0.75rem;">from cdp_agentkit_core.actions import CdpActionProvider
+from integrations.agentkit.grid402_action_provider import Grid402ActionProvider
+
+# Conecta o provedor com suporte a sandbox ou liquidacao on-chain automatica
+grid402_actions = Grid402ActionProvider(sandbox=False)</pre>
+                    </div>
+
+                    <div style="background: rgba(0, 0, 0, 0.3); border-radius: 6px; padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--text-muted);">
+                        <strong style="color: #fff;">📂 Documentação Completa e Código-Fonte:</strong>
+                        <p style="margin: 0.4rem 0 0 0;">Consulte o diretório <code>integrations/agentkit/</code> no repositório para implementações prontas com LangChain, CrewAI e guias de configuração.</p>
+                    </div>
+                </div>
             </div>
 
             <!-- Tab 2: Python -->
@@ -1017,8 +1094,14 @@ curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
         function switchTab(name) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            event.target.classList.add('active');
-            document.getElementById('tab-' + name).classList.add('active');
+            const targetBtn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + name + "'"));
+            if (targetBtn) {
+                targetBtn.classList.add('active');
+            } else if (typeof event !== 'undefined' && event && event.target && event.target.classList.contains('tab-btn')) {
+                event.target.classList.add('active');
+            }
+            const tabEl = document.getElementById('tab-' + name);
+            if (tabEl) tabEl.classList.add('active');
         }
 
         let currentServiceAction = 'summary';

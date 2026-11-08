@@ -1,0 +1,23 @@
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      privateKey:
+        type: string
+        description: Chave privada EVM com saldo em USDC e gas na Base para auto-liquidacao de consultas.
+      sandbox:
+        type: boolean
+        description: Ativa o Modo Sandbox gratuito de testes (20 consultas por hora por IP) sem necessidade de carteira.
+        default: false
+      apiUrl:
+        type: string
+        description: URL base da API do Grid402.
+        default: https://grid402.com.br
+  commandFunction:
+    node:
+      cmd: npx
+      args:
+        - -y
+        - grid402-mcp
+

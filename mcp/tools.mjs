@@ -4,7 +4,7 @@
 
 import { settleX402Payment } from './x402_payer.mjs';
 
-export const DEFAULT_ENDPOINT = process.env.GRID402_ENDPOINT || 'https://orangered-jackal-900744.hostingersite.com';
+export const DEFAULT_ENDPOINT = process.env.GRID402_ENDPOINT || process.env.GRID402_API_URL || 'https://orangered-jackal-900744.hostingersite.com';
 
 /**
  * Definições formais das 7 ferramentas no padrão MCP
@@ -189,11 +189,13 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
 
   const headers = {
     'Accept': 'application/json',
-    'User-Agent': 'Grid402-MCP-Server/1.0',
+    'User-Agent': 'Grid402-MCP-Server/1.1',
   };
 
   if (params.payment_tx_hash) {
     headers['X-Payment'] = params.payment_tx_hash;
+  } else if (process.env.GRID402_SANDBOX === 'true' || process.env.GRID402_SANDBOX === '1') {
+    headers['X-Payment'] = 'demo';
   }
 
   // 1. Primeira tentativa de requisição
