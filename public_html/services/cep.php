@@ -1,6 +1,6 @@
 <?php
 /**
- * Grid402 - Micro-serviço de CEP & IBGE
+ * Grid402 - Micro-serviço de CEP e IBGE
  * Resolução de logradouro, bairro, cidade, UF e código IBGE oficial via base pública.
  */
 

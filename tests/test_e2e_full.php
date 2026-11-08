@@ -2,7 +2,7 @@
 /**
  * Grid402 - Teste de Homologação Ponta a Ponta (End-to-End)
  * 
- * Valida todos os cenários da especificação do Hub de Utilitários de Rede & Dados Públicos:
+ * Valida todos os cenários da especificação do Hub de Utilitários de Rede e Dados Públicos:
  * 1. Execução do Coletor e geração do resumo atômico gratuito
  * 2. Manifesto llms.txt para crawlers e agentes de IA
  * 3. Ciclo de vida M2M via Servidor HTTP Local:

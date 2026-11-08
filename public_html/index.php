@@ -1,6 +1,6 @@
 <?php
 /**
- * Grid402 // Hub de Utilitários de Rede & Dados Públicos Abertos (Protocolo x402)
+ * Grid402 // Hub de Utilitários de Rede e Dados Públicos Abertos (Protocolo x402)
  * 
  * Gateway central:
  * - text/html: Landing Page dark-mode e console interativo para desenvolvedores e humanos
@@ -222,7 +222,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grid402 // Hub de Utilitários de Rede & Dados Públicos (x402)</title>
+    <title>Grid402 // Hub de Utilitários de Rede e Dados Públicos (x402)</title>
     <meta name="description" content="Portal e oráculo de micro-serviços públicos (Câmbio, Cripto, DNS, SSL, ASN, CEP) para agentes de IA e robôs M2M com micropagamentos x402 na Base.">
     <link rel="service-desc" type="application/vnd.oai.openapi+json" href="/openapi.json">
     <link rel="help" type="text/markdown" href="/llms.txt">
@@ -641,8 +641,8 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
         </header>
 
         <section class="hero">
-            <div class="hero-tag">Hub de Micro-Serviços para Robôs & Agentes de IA</div>
-            <h1>Utilitários de Rede & Dados Públicos Abertos</h1>
+            <div class="hero-tag">Hub de Micro-Serviços para Robôs e Agentes de IA</div>
+            <h1>Utilitários de Rede e Dados Públicos Abertos</h1>
             <p>Acesse cotações de câmbio, cripto, DNS, certificados SSL, BGP/ASN e dados de CEP em milissegundos sem cadastro ou chaves de API. Micropagamentos por chamada em USDC na Base.</p>
             <div class="cta-group">
                 <a href="#console" class="btn btn-primary" onclick="switchTab('console')">⚡ Testar no Console</a>
@@ -665,9 +665,9 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             <?php endforeach; ?>
         </div>
 
-        <!-- Console Interativo & Integrações -->
+        <!-- Console Interativo e Integrações -->
         <section id="console" class="protocol-box">
-            <h2>Console de Teste & Especificações de Integração</h2>
+            <h2>Console de Teste e Especificações de Integração</h2>
             <p>Experimente as requisições em tempo real ou copie os snippets para seus agentes autônomos.</p>
 
             <div class="tabs-header">
@@ -770,7 +770,6 @@ curl "https://www.grid402.com.br/api/v1/dns?domain=github.com" \
                 <a href="/privacy" onclick="openLegalModal('privacy'); return false;">Privacidade (LGPD)</a> • 
                 <a href="/openapi.json" target="_blank">OpenAPI 3.1</a> • 
                 <a href="/llms.txt" target="_blank">llms.txt</a> • 
-                <a href="https://basescan.org/address/<?php echo GRID402_WALLET_ADDRESS; ?>" target="_blank" rel="noopener">BaseScan</a> •
                 <span>Taxa: US$ <?php echo GRID402_PRICE_DISPLAY; ?> / consulta</span>
             </div>
             <div class="footer-legal">
@@ -787,7 +786,7 @@ curl "https://www.grid402.com.br/api/v1/dns?domain=github.com" \
                 </div>
                 <div class="modal-tabs">
                     <button id="modal-tab-terms-btn" class="modal-tab-btn active" onclick="switchLegalModal('terms')">Termos de Uso</button>
-                    <button id="modal-tab-privacy-btn" class="modal-tab-btn" onclick="switchLegalModal('privacy')">Privacidade & LGPD</button>
+                    <button id="modal-tab-privacy-btn" class="modal-tab-btn" onclick="switchLegalModal('privacy')">Privacidade e LGPD</button>
                 </div>
                 <div class="modal-body" id="modal-body-content"></div>
             </div>
@@ -893,7 +892,7 @@ curl "https://www.grid402.com.br/api/v1/dns?domain=github.com" \
             const privacyBtn = document.getElementById('modal-tab-privacy-btn');
 
             if (tab === 'privacy') {
-                title.textContent = 'Política de Privacidade & LGPD';
+                title.textContent = 'Política de Privacidade e LGPD';
                 body.innerHTML = legalContent.privacy;
                 termsBtn.classList.remove('active');
                 privacyBtn.classList.add('active');

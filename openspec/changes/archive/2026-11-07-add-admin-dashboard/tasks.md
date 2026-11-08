@@ -1,4 +1,4 @@
-# Tarefas de Implementação: Painel de Monitoramento & Faturamento
+# Tarefas de Implementação: Painel de Monitoramento e Faturamento
 
 ## 1. Módulo de Telemetria e Métricas Zero-DB
 - [x] 1.1 Criar `public_html/metrics.php` com `grid402_record_telemetry(...)` usando trava exclusiva `flock(LOCK_EX)` e buffer circular de 50 eventos

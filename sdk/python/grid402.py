@@ -46,11 +46,15 @@ class Grid402Client:
     sem qualquer garantia de adequação a um propósito comercial específico.
     """
 
-    def __init__(self, base_url: str = DEFAULT_GRID402_URL, timeout: float = 5.0, verify_ssl: bool = True):
+    def __init__(self, base_url: str = DEFAULT_GRID402_URL, timeout: float = 5.0, verify_ssl: Optional[bool] = None):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
-        self.verify_ssl = verify_ssl
-        self._ssl_context = ssl.create_default_context() if verify_ssl else ssl._create_unverified_context()
+        if verify_ssl is None:
+            # Auto-fallback para preview domains em ambientes sem certificados raiz intermediários
+            self.verify_ssl = False if "hostingersite.com" in self.base_url else True
+        else:
+            self.verify_ssl = verify_ssl
+        self._ssl_context = ssl.create_default_context() if self.verify_ssl else ssl._create_unverified_context()
 
     def _request(self, endpoint: str, headers: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         url = f"{self.base_url}{endpoint}"

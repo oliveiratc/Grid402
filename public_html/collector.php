@@ -85,7 +85,7 @@ $solPrice = $cryptoData['tickers']['SOL']['price_usd'] ?? 180.0;
 
 $servicesSummary = [
     'forex' => [
-        'name' => 'Câmbio & Moedas',
+        'name' => 'Câmbio e Moedas',
         'status' => 'UP',
         'endpoint' => '/api/v1/forex',
         'category' => 'Mercado',
@@ -117,13 +117,13 @@ $servicesSummary = [
         'port' => 443,
     ],
     'asn' => [
-        'name' => 'ASN & IP Info',
+        'name' => 'ASN e IP Info',
         'status' => 'UP',
         'endpoint' => '/api/v1/asn',
         'category' => 'Rede',
     ],
     'cep' => [
-        'name' => 'CEP & IBGE',
+        'name' => 'CEP e IBGE',
         'status' => 'UP',
         'endpoint' => '/api/v1/cep',
         'category' => 'Dados Abertos',

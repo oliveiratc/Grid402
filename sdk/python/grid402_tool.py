@@ -9,7 +9,7 @@ import json
 from grid402 import Grid402Client, PaymentRequiredError
 
 
-def create_grid402_tools(base_url: Optional[str] = None, verify_ssl: bool = True) -> Dict[str, Any]:
+def create_grid402_tools(base_url: Optional[str] = None, verify_ssl: Optional[bool] = None) -> Dict[str, Any]:
     """
     Cria um conjunto de funções invocáveis por agentes de IA para utilitários de rede e dados públicos.
     Compatível com CrewAI, LangChain e Function Calling do Gemini/OpenAI/Claude.
@@ -88,7 +88,7 @@ def create_grid402_tools(base_url: Optional[str] = None, verify_ssl: bool = True
     }
 
 
-def create_grid402_tool(base_url: Optional[str] = None, verify_ssl: bool = True):
+def create_grid402_tool(base_url: Optional[str] = None, verify_ssl: Optional[bool] = None):
     """
     Função utilitária unificada (dispatcher) para orquestradores como CrewAI e LangChain.
     """

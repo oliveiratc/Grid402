@@ -66,20 +66,36 @@ function grid402_env(string $key, mixed $default = null): mixed {
 }
 
 /**
- * Escrita atômica em arquivo via arquivo temporário e rename
+ * Escrita atômica em arquivo via arquivo temporário com fallback direto seguro
  */
 if (!function_exists('grid402_atomic_write')) {
     function grid402_atomic_write(string $filePath, mixed $data): bool {
         $dir = dirname($filePath);
         if (!is_dir($dir)) {
-            @mkdir($dir, 0755, true);
+            @mkdir($dir, 0775, true);
+            @chmod($dir, 0775);
         }
         $content = is_array($data) ? (string) json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : (string)$data;
         $tmp = $filePath . '.' . bin2hex(random_bytes(6)) . '.tmp';
-        if (file_put_contents($tmp, $content, LOCK_EX) === false) {
-            return false;
+
+        // 1. Tentar escrita atômica via arquivo temporário + rename
+        $written = @file_put_contents($tmp, $content, LOCK_EX);
+        if ($written !== false) {
+            if (@rename($tmp, $filePath)) {
+                @chmod($filePath, 0664);
+                return true;
+            }
+            @unlink($tmp);
         }
-        return @rename($tmp, $filePath);
+
+        // 2. Fallback imediato: escrita direta com trava exclusiva caso rename seja restrito pelo SO/host
+        $directWritten = @file_put_contents($filePath, $content, LOCK_EX);
+        if ($directWritten !== false) {
+            @chmod($filePath, 0664);
+            return true;
+        }
+
+        return false;
     }
 }
 
@@ -98,8 +114,47 @@ define('GRID402_CONNECT_TIMEOUT_MS', (int) grid402_env('GRID402_CONNECT_TIMEOUT_
 define('GRID402_USER_AGENT', (string) grid402_env('GRID402_PROBE_USER_AGENT', 'Grid402-Telemetry-Probe/1.0 (+https://www.grid402.com.br)'));
 define('GRID402_SSL_VERIFY', (bool) grid402_env('GRID402_SSL_VERIFY', false)); // false por padrão para compatibilidade com cadeias ICP-Brasil SEFAZ
 
-// 4. Caminhos de Arquivos e Armazenamento Privado
-define('GRID402_PRIVATE_DIR', __DIR__ . '/private_data');
+// 4. Caminhos de Arquivos e Armazenamento Privado (Persistente & Zero-DB)
+function grid402_get_storage_dir(): string {
+    static $storageDir = null;
+    if ($storageDir !== null) {
+        return $storageDir;
+    }
+
+    // 0. Sobrescrita via variável de ambiente se configurada
+    $envStorage = (string) grid402_env('GRID402_STORAGE_DIR', '');
+    if ($envStorage !== '' && is_dir($envStorage) && is_writable($envStorage)) {
+        $storageDir = rtrim($envStorage, '/\\');
+        return $storageDir;
+    }
+
+    // 1. Tentar diretório persistente fora do DocumentRoot (imune a deploys na Hostinger)
+    $parentDir = dirname(__DIR__);
+    $isLocalDev = (DIRECTORY_SEPARATOR === '\\') || str_contains(__DIR__, 'Projetos');
+
+    if (!$isLocalDev && $parentDir !== __DIR__ && is_dir($parentDir) && is_writable($parentDir)) {
+        $externalDir = $parentDir . '/grid402_storage';
+        if (!is_dir($externalDir)) {
+            @mkdir($externalDir, 0775, true);
+            @chmod($externalDir, 0775);
+        }
+        if (is_dir($externalDir) && is_writable($externalDir)) {
+            $storageDir = $externalDir;
+            return $storageDir;
+        }
+    }
+
+    // 2. Fallback: private_data dentro de public_html
+    $internalDir = __DIR__ . '/private_data';
+    if (!is_dir($internalDir)) {
+        @mkdir($internalDir, 0775, true);
+        @chmod($internalDir, 0775);
+    }
+    $storageDir = $internalDir;
+    return $storageDir;
+}
+
+define('GRID402_PRIVATE_DIR', grid402_get_storage_dir());
 define('GRID402_FILE_FREE', GRID402_PRIVATE_DIR . '/summary_free.json');
 define('GRID402_FILE_PAID', GRID402_PRIVATE_DIR . '/telemetry_paid.json');
 define('GRID402_FILE_USED_TXS', GRID402_PRIVATE_DIR . '/used_txs.json');
@@ -113,7 +168,7 @@ function grid402_get_utility_services(): array {
     return [
         'forex' => [
             'id' => 'forex',
-            'name' => 'Câmbio & Moedas',
+            'name' => 'Câmbio e Moedas',
             'description' => 'Cotações em tempo real de USD, EUR, GBP para BRL com variação diária',
             'endpoint' => '/api/v1/forex',
             'category' => 'Mercado',
@@ -145,7 +200,7 @@ function grid402_get_utility_services(): array {
         ],
         'asn' => [
             'id' => 'asn',
-            'name' => 'ASN & IP Info',
+            'name' => 'ASN e IP Info',
             'description' => 'Metadados de roteamento BGP, número de ASN, bloco IP e país',
             'endpoint' => '/api/v1/asn',
             'category' => 'Rede',
@@ -153,7 +208,7 @@ function grid402_get_utility_services(): array {
         ],
         'cep' => [
             'id' => 'cep',
-            'name' => 'CEP & IBGE',
+            'name' => 'CEP e IBGE',
             'description' => 'Resolução de logradouro, bairro, município, UF e código IBGE oficial',
             'endpoint' => '/api/v1/cep',
             'category' => 'Dados Abertos',
@@ -257,7 +312,7 @@ function grid402_get_targets(): array {
         [
             'id' => 'bacen_dados',
             'name' => 'Banco Central do Brasil (BCB)',
-            'category' => 'Bancos & PIX',
+            'category' => 'Bancos e PIX',
             'url' => 'https://olinda.bcb.gov.br/olinda/servico/PTAX/versao/v1/odata/Moedas?$top=1&$format=json',
             'method' => 'GET',
             'expected_codes' => [200, 403],
@@ -265,7 +320,7 @@ function grid402_get_targets(): array {
         [
             'id' => 'openfinance_dir',
             'name' => 'Diretório Open Finance Brasil',
-            'category' => 'Bancos & PIX',
+            'category' => 'Bancos e PIX',
             'url' => 'https://data.directory.openbankingbrasil.org.br/participants',
             'method' => 'GET',
             'expected_codes' => [200],
@@ -273,7 +328,7 @@ function grid402_get_targets(): array {
         [
             'id' => 'nubank_status',
             'name' => 'Nubank Public Gateway',
-            'category' => 'Bancos & PIX',
+            'category' => 'Bancos e PIX',
             'url' => 'https://prod-global-auth.nubank.com.br/api/discovery',
             'method' => 'GET',
             'expected_codes' => [200, 401, 404],
@@ -281,7 +336,7 @@ function grid402_get_targets(): array {
         [
             'id' => 'inter_api',
             'name' => 'Banco Inter Developers',
-            'category' => 'Bancos & PIX',
+            'category' => 'Bancos e PIX',
             'url' => 'https://cdpj.partners.bancointer.com.br/',
             'method' => 'GET',
             'expected_codes' => [200, 403, 404],
@@ -291,7 +346,7 @@ function grid402_get_targets(): array {
         [
             'id' => 'cloudflare_sp',
             'name' => 'Cloudflare Edge SP (GRU)',
-            'category' => 'Telecom & Infra',
+            'category' => 'Telecom e Infra',
             'url' => 'https://1.1.1.1/cdn-cgi/trace',
             'method' => 'GET',
             'expected_codes' => [200, 404],
@@ -299,7 +354,7 @@ function grid402_get_targets(): array {
         [
             'id' => 'aws_sa_east',
             'name' => 'AWS São Paulo (sa-east-1)',
-            'category' => 'Telecom & Infra',
+            'category' => 'Telecom e Infra',
             'url' => 'https://dynamodb.sa-east-1.amazonaws.com',
             'method' => 'GET',
             'expected_codes' => [200, 400, 403, 404],
@@ -307,7 +362,7 @@ function grid402_get_targets(): array {
         [
             'id' => 'google_cloud_br',
             'name' => 'Google Cloud South America',
-            'category' => 'Telecom & Infra',
+            'category' => 'Telecom e Infra',
             'url' => 'https://southamerica-east1-docker.pkg.dev/v2/',
             'method' => 'GET',
             'expected_codes' => [200, 401, 405],
@@ -315,7 +370,7 @@ function grid402_get_targets(): array {
         [
             'id' => 'rnp_ix_br',
             'name' => 'IX.br / NIC.br PTT Ponto de Troca',
-            'category' => 'Telecom & Infra',
+            'category' => 'Telecom e Infra',
             'url' => 'https://ix.br/',
             'method' => 'GET',
             'expected_codes' => [200, 301, 302],

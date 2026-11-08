@@ -1,4 +1,4 @@
-# Design Técnico: Grid402 // Hub de Utilitários de Rede & Dados Públicos
+# Design Técnico: Grid402 // Hub de Utilitários de Rede e Dados Públicos
 
 ## 1. Arquitetura do Sistema
 
@@ -12,8 +12,8 @@ O sistema preserva a arquitetura **Zero-DB** (sem MySQL, sem SQLite) hospedada n
         [ Utilitários sob Demanda ]                                    [ Dados Periódicos de Mercado ]
           - DNS Lookup (dns_get_record)                                  - Câmbio (USD/EUR/BRL/GBP)
           - SSL Inspector (stream_socket_client)                         - Cripto (BTC/ETH/SOL/USDC)
-          - ASN & IP Info (API pública de roteamento)                            │
-          - CEP & IBGE (Base pública aberta)                                     ▼
+          - ASN e IP Info (API pública de roteamento)                            │
+          - CEP e IBGE (Base pública aberta)                                     ▼
                    │                                                   [ collector.php (Cron) ]
                    │                                                             │
                    ▼                                                             ▼
@@ -21,14 +21,14 @@ O sistema preserva a arquitetura **Zero-DB** (sem MySQL, sem SQLite) hospedada n
 ```
 
 ### 1.1. Utilitários Periódicos (Background Cron via `collector.php`):
-- **Câmbio & Moedas:** Atualizado a cada 2 minutos consultando a API pública aberta do Banco Central / AwesomeAPI e persistido em `private_data/forex_cache.json`.
+- **Câmbio e Moedas:** Atualizado a cada 2 minutos consultando a API pública aberta do Banco Central / AwesomeAPI e persistido em `private_data/forex_cache.json`.
 - **Cripto Tickers:** Atualizado a cada 2 minutos consultando tickers públicos de mercado spot e persistido em `private_data/crypto_cache.json`.
 
 ### 1.2. Utilitários Resolvidos On-Demand (Tempo Real com Cache de Curto Prazo):
 - **DNS Records:** Executado via função nativa `dns_get_record()` do PHP com fallback para `1.1.1.1` e cache de 60s em disco/memória.
 - **SSL Inspector:** Abre conexão TLS pontual na porta 443 via `stream_socket_client('ssl://host:443', ...)` capturando o contexto do certificado X.509 (`stream_context_get_params`), calculando data de validade, emissor e dias restantes.
-- **ASN & IP Info:** Identifica dados do bloco IP e ASN BGP através de serviços abertos de roteamento.
-- **CEP & IBGE:** Consulta base pública nacional aberta com sanitização de entrada e normalização.
+- **ASN e IP Info:** Identifica dados do bloco IP e ASN BGP através de serviços abertos de roteamento.
+- **CEP e IBGE:** Consulta base pública nacional aberta com sanitização de entrada e normalização.
 
 ---
 
@@ -61,7 +61,7 @@ fclose($fp);
 
 ---
 
-## 3. Contratos de API (Endpoints & Schemas)
+## 3. Contratos de API (Endpoints e Schemas)
 
 ### 3.1. Rota Gratuita: Resumo Geral
 - **URL:** `GET /status` ou `GET /api/v1/summary`
@@ -90,7 +90,7 @@ fclose($fp);
 - **DNS Lookup:** `GET /api/v1/dns?domain=github.com`
 - **SSL Inspector:** `GET /api/v1/ssl?host=base.org`
 - **ASN / IP Info:** `GET /api/v1/asn?ip=8.8.8.8`
-- **CEP & IBGE:** `GET /api/v1/cep?code=01310100`
+- **CEP e IBGE:** `GET /api/v1/cep?code=01310100`
 
 Se requisitadas sem `X-Payment`, o servidor retorna `HTTP 402` informando valor de `0.0005 USDC` e a carteira `0xa31c31069c43ac1c0075a93c325b0dcd7744356c` na Base. Se requisitadas com `X-Payment: <tx_hash>`, valida on-chain e entrega o JSON completo.
 

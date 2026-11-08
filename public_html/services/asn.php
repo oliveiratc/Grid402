@@ -1,6 +1,6 @@
 <?php
 /**
- * Grid402 - Micro-serviço de ASN & Inteligência de IP
+ * Grid402 - Micro-serviço de ASN e Inteligência de IP
  * Metadados de roteamento BGP, número de ASN, bloco IP e país.
  */
 

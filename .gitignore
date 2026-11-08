@@ -5,12 +5,17 @@
 *.log
 dist/
 
+# Node modules
+node_modules/
+mcp/node_modules/
+
 # Python cache
 __pycache__/
 *.pyc
 *.pyo
 
 # Dados locais e temporários
+grid402_storage/
 public_html/private_data/*.json
 !public_html/private_data/.htaccess
 

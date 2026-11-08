@@ -1,4 +1,4 @@
-# PRD: Grid402 // Hub de Utilitários de Rede & Dados Públicos Abertos para Agentes M2M (Protocolo x402)
+# PRD: Grid402 // Hub de Utilitários de Rede e Dados Públicos Abertos para Agentes M2M (Protocolo x402)
 
 **Status:** Em revisão  
 **Data:** 2026-11-07  
@@ -46,7 +46,7 @@ O **Grid402** resolve esse problema ao fornecer um catálogo unificado de 6 micr
 
 1. **Agente Autônomo de IA (Persona Primária):** Scripts autônomos em Python, TypeScript ou frameworks como LangChain e CrewAI que possuem carteiras Web3 (EVM) e demandam utilitários de rede ou conversões financeiras em tempo real.
 2. **Desenvolvedores de Bots e Scraping:** Engenheiros que constroem pipelines de dados e precisam enriquecer metadados (DNS, SSL, ASN, CEP) sem rate-limits asfixiantes de APIs públicas gratuitas.
-3. **Sistemas M2M & Microsserviços:** Aplicações de backend que necessitam de consultas rápidas sob demanda sem assinar planos SaaS mensais caros.
+3. **Sistemas M2M e Microsserviços:** Aplicações de backend que necessitam de consultas rápidas sob demanda sem assinar planos SaaS mensais caros.
 
 ---
 
@@ -69,12 +69,12 @@ O **Grid402** resolve esse problema ao fornecer um catálogo unificado de 6 micr
 | **RF02** | **API de Criptoativos** | Retorna cotação de BTC, ETH, SOL e tokens da Base em USD e BRL. | Must |
 | **RF03** | **API de DNS Lookup** | Resolve registros A, AAAA, MX, TXT, NS e CNAME de qualquer domínio solicitado via query string. | Must |
 | **RF04** | **API de Inspeção SSL** | Conecta na porta 443 do host alvo e extrai emissor, validade, SANs e dias até expirar. | Must |
-| **RF05** | **API de ASN & IP Info** | Retorna metadados de rede pública de um IP ou do requisitante (ASN, organização, país). | Must |
-| **RF06** | **API de CEP & IBGE** | Consulta base pública de endereçamento nacional retornando logradouro, bairro, UF e código IBGE. | Must |
+| **RF05** | **API de ASN e IP Info** | Retorna metadados de rede pública de um IP ou do requisitante (ASN, organização, país). | Must |
+| **RF06** | **API de CEP e IBGE** | Consulta base pública de endereçamento nacional retornando logradouro, bairro, UF e código IBGE. | Must |
 | **RF07** | **Porteiro HTTP 402 (x402)** | Emite desafio `402 Payment Required` quando solicitada consulta detalhada/raw e valida o recibo on-chain na Base Mainnet. | Must |
 | **RF08** | **Prevenção Anti-Replay Atômica** | Garante com trava de arquivo (`flock`) que cada hash de transação na Base só possa ser liquidado uma única vez. | Must |
 | **RF09** | **Camada Gratuita de Descoberta** | Endpoint `/status` ou `/summary` entregando visão consolidada dos utilitários sem cobrança para health checks. | Must |
-| **RF10** | **Landing Page & Playground** | Interface dark-mode adaptativa para navegadores com console interativo de testes de cada um dos 6 serviços. | Should |
+| **RF10** | **Landing Page e Playground** | Interface dark-mode adaptativa para navegadores com console interativo de testes de cada um dos 6 serviços. | Should |
 | **RF11** | **Manifesto `llms.txt`** | Documentação padronizada na raiz do domínio para indexação direta por crawlers de LLM (GPT, Claude, Gemini, Perplexity). | Must |
 | **RF12** | **Badges Dinâmicos SVG** | Rota `/badge/{servico}.svg` para exibição de status em READMEs do GitHub. | Should |
 
@@ -84,7 +84,7 @@ O **Grid402** resolve esse problema ao fornecer um catálogo unificado de 6 micr
 
 - **RNF01 (Performance):** Consultas com dados em cache devem responder em menos de **50 ms**; consultas ativas de rede (DNS/SSL) devem responder em menos de **600 ms**.
 - **RNF02 (Arquitetura Zero-DB):** Persistência estritamente baseada em arquivos JSON atômicos com `.htaccess` bloqueando acesso externo a `private_data/`.
-- **RNF03 (Segurança & LGPD):** Zero armazenamento de dados pessoais. Registros de IP mantidos por 6 meses estritamente conforme o Art. 15 do Marco Civil da Internet.
+- **RNF03 (Segurança e LGPD):** Zero armazenamento de dados pessoais. Registros de IP mantidos por 6 meses estritamente conforme o Art. 15 do Marco Civil da Internet.
 - **RNF04 (Compatibilidade de Plataforma):** Código PHP 8.1+ puro, sem extensões exóticas, compatível com o ambiente Hostinger LiteSpeed.
 - **RNF05 (Robustez Blockchain):** Validação JSON-RPC direta contra a Base Mainnet (`eth_getTransactionReceipt`) checando status de sucesso, valor mínimo (500 units) e contrato oficial do USDC (`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`).
 

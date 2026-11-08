@@ -77,7 +77,7 @@ switch ($targetId) {
 
     case 'cep':
     case 'ibge':
-        $label = 'CEP & IBGE';
+        $label = 'CEP e IBGE';
         $value = 'ONLINE';
         $color = '#10b981';
         break;

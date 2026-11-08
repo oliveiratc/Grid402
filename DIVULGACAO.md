@@ -1,4 +1,4 @@
-# Grid402 // Guia de Divulgação Orgânica & Distribuição M2M
+# Grid402 // Guia de Divulgação Orgânica e Distribuição M2M
 
 Este guia reúne todos os materiais, comandos e templates prontos para você cadastrar e distribuir o **Grid402** de forma 100% orgânica e passiva.
 
@@ -62,7 +62,7 @@ A rede Base (Coinbase) possui um diretório oficial onde projetos pioneiros no u
 
 ---
 
-## 3. Post de Divulgação Técnica (Warpcast / Farcaster & X)
+## 3. Post de Divulgação Técnica (Warpcast / Farcaster e X)
 
 Canais prioritários no Farcaster: `/base`, `/dev`, `/ai-agents`.
 
@@ -122,7 +122,7 @@ Adicionar sob a seção **AI / Infrastructure / Micropayments**:
 ```
 
 ### 4.2. Repositório: `awesome-ai-agents` ou `awesome-ai-tools`
-Adicionar sob **Agent Infrastructure & Utility Hubs**:
+Adicionar sob **Agent Infrastructure e Utility Hubs**:
 ```markdown
 - [Grid402](https://www.grid402.com.br) - Public data & network utilities hub (forex, crypto, DNS, SSL, ASN, CEP) for autonomous AI agents with HTTP 402 micropayments.
 ```

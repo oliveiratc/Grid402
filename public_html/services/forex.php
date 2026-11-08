@@ -1,6 +1,6 @@
 <?php
 /**
- * Grid402 - Micro-serviço de Câmbio & Moedas Fiduciárias (Forex)
+ * Grid402 - Micro-serviço de Câmbio e Moedas Fiduciárias (Forex)
  * Dados abertos públicos em tempo real para agentes e robôs.
  */
 

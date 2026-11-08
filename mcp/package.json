@@ -1,0 +1,43 @@
+{
+  "name": "@grid402/mcp-server",
+  "version": "1.0.0",
+  "description": "Official Model Context Protocol (MCP) Server for Grid402 - Public Open Data & Network Utilities Hub (Forex, Crypto, DNS, SSL, ASN, CEP) with Base x402 micropayments.",
+  "type": "module",
+  "bin": {
+    "grid402-mcp": "./index.mjs"
+  },
+  "main": "./index.mjs",
+  "scripts": {
+    "start": "node index.mjs",
+    "test": "node test_mcp.mjs"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "claude",
+    "cursor",
+    "smithery",
+    "ai-agents",
+    "x402",
+    "base",
+    "usdc",
+    "forex",
+    "crypto",
+    "dns",
+    "ssl",
+    "asn",
+    "cep"
+  ],
+  "author": "Grid402 Team <contato@grid402.com.br>",
+  "license": "MIT",
+  "homepage": "https://www.grid402.com.br",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oliveiratc/Grid402.git"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.6.0",
+    "ethers": "^6.13.5"
+  }
+}
+

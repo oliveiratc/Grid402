@@ -47,16 +47,16 @@ assert($ssl['certificate']['is_valid'] === true, "Certificado deve ser válido")
 assert($ssl['certificate']['days_remaining'] > 0, "Dias restantes devem ser > 0");
 echo "OK (Emissor: {$ssl['certificate']['issuer']}, Expira em: {$ssl['certificate']['days_remaining']} dias)\n";
 
-// 5. ASN & IP Info
-echo "[5/6] Testando ASN & IP Info (asn)... ";
+// 5. ASN e IP Info
+echo "[5/6] Testando ASN e IP Info (asn)... ";
 $asn = grid402_service_asn('1.1.1.1');
 assert($asn['success'] === true, "ASN deve responder com sucesso");
 assert($asn['ip'] === '1.1.1.1', "IP deve coincidir");
 assert(!empty($asn['asn']), "ASN não deve estar vazio");
 echo "OK (ASN: {$asn['asn']} - {$asn['org']})\n";
 
-// 6. CEP & IBGE
-echo "[6/6] Testando CEP & IBGE (cep)... ";
+// 6. CEP e IBGE
+echo "[6/6] Testando CEP e IBGE (cep)... ";
 $cep = grid402_service_cep('01310100'); // Av. Paulista
 assert($cep['success'] === true, "CEP deve resolver com sucesso");
 assert($cep['cidade'] === 'São Paulo', "Cidade deve ser São Paulo");

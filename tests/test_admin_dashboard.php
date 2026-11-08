@@ -154,7 +154,7 @@ try {
         CURLOPT_COOKIEFILE => $cookieFile,
     ]);
     assert($dashResp['code'] === 200, "Dashboard autenticado deve retornar 200");
-    assert(str_contains($dashResp['body'], 'Monitoramento & Faturamento'), 'Deve conter título do Dashboard');
+    assert(str_contains($dashResp['body'], 'Monitoramento e Faturamento'), 'Deve conter título do Dashboard');
     assert(str_contains($dashResp['body'], 'Ao Vivo'), 'Deve conter indicador de atualização Ao Vivo');
     echo "     ✓ Dashboard dark-mode renderizado com sucesso!\n";
 

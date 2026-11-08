@@ -1,4 +1,4 @@
-# Pivot para Hub de Utilitários de Rede & Dados Públicos Abertos (Grid402)
+# Pivot para Hub de Utilitários de Rede e Dados Públicos Abertos (Grid402)
 
 ## Por quê
 Conforme especificado no PRD ([`openspec/prds/grid402-open-data-utility-hub.md`](file:///c:/Antigravity/Projetos/Grid402/openspec/prds/grid402-open-data-utility-hub.md)), o foco do projeto é pivotado para prover um portal e oráculo de micro-serviços técnicos de utilidade pública e rede voltado para agentes de IA, robôs e pipelines de automação/scraping. 
@@ -7,12 +7,12 @@ Esta mudança elimina integralmente os riscos jurídicos de LGPD (zero dados pes
 
 ## O que muda
 - **Novo Catálogo Core (6 APIs de Utilitários):**
-  1. `Câmbio & Moedas`: Cotações de USD, EUR, GBP para BRL com variação e timestamp.
+  1. `Câmbio e Moedas`: Cotações de USD, EUR, GBP para BRL com variação e timestamp.
   2. `Cripto Tickers`: Preços de BTC, ETH, SOL, USDC e BASE.
   3. `DNS Records Lookup`: Resolução de registros A, AAAA, MX, TXT, NS e CNAME de qualquer host.
   4. `Inspetor SSL`: Validade, dias até expirar, emissor e SANs de certificados TLS/SSL.
-  5. `ASN & IP Info`: Metadados de roteamento BGP, provedor e geolocalização pública de IP.
-  6. `CEP & IBGE`: Logradouro, bairro, município, UF e código IBGE via base de dados públicos.
+  5. `ASN e IP Info`: Metadados de roteamento BGP, provedor e geolocalização pública de IP.
+  6. `CEP e IBGE`: Logradouro, bairro, município, UF e código IBGE via base de dados públicos.
 - **Porteiro x402 Reforçado:**
   - Implementação de trava atômica (`flock(LOCK_EX)`) para eliminar vulnerabilidade de condição de corrida (*TOCTOU*) na checagem anti-replay.
   - Manutenção do preço de US$ 0.0005 USDC (500 unidades atômicas) na Base Mainnet.

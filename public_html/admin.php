@@ -36,7 +36,7 @@ $apiParam = (string) ($_GET['api'] ?? '');
 $errorMsg = '';
 $successMsg = '';
 
-// 2. Ação de Logout
+// 2. Ações de Logout e Reset de Segurança
 if ($action === 'logout') {
     $_SESSION = [];
     if (ini_get("session.use_cookies")) {
@@ -48,6 +48,16 @@ if ($action === 'logout') {
     }
     session_destroy();
     header('Location: /admin');
+    exit;
+}
+
+if ($action === 'reset' && !empty($_GET['secret']) && hash_equals(GRID402_CRON_SECRET, (string)$_GET['secret'])) {
+    if (file_exists($authFile)) {
+        @unlink($authFile);
+    }
+    $_SESSION = [];
+    session_destroy();
+    header('Location: /admin?reset=done');
     exit;
 }
 
@@ -74,13 +84,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'last_login' => gmdate('Y-m-d\TH:i:s\Z'),
                 'login_count' => 1,
             ];
-            grid402_atomic_write($authFile, $authData);
+            $saved = grid402_atomic_write($authFile, $authData);
 
-            session_regenerate_id(true);
-            $_SESSION['admin_logged_in'] = true;
-            $_SESSION['admin_user'] = $user;
-            header('Location: /admin?setup=success');
-            exit;
+            if (!$saved || !file_exists($authFile)) {
+                $errorMsg = 'Erro crítico: não foi possível gravar as credenciais no disco. Verifique permissões do diretório de armazenamento.';
+            } else {
+                $_SESSION['admin_logged_in'] = true;
+                $_SESSION['admin_user'] = $user;
+                if (session_status() === PHP_SESSION_ACTIVE) {
+                    session_write_close();
+                }
+                header('Location: /admin?setup=success');
+                exit;
+            }
         }
     } else {
         // 3.2. Login Normal
@@ -91,7 +107,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $authData = $authContent ? @json_decode($authContent, true) : null;
 
         if ($authData && $user === ($authData['username'] ?? '') && password_verify($pass, (string)($authData['password_hash'] ?? ''))) {
-            session_regenerate_id(true);
             $_SESSION['admin_logged_in'] = true;
             $_SESSION['admin_user'] = $authData['username'];
 
@@ -99,6 +114,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $authData['login_count'] = ((int)($authData['login_count'] ?? 0)) + 1;
             grid402_atomic_write($authFile, $authData);
 
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                session_write_close();
+            }
             header('Location: /admin');
             exit;
         } else {
@@ -284,10 +302,10 @@ if (!$isLoggedIn) {
                 <div class="alert-error"><?php echo htmlspecialchars($errorMsg, ENT_QUOTES, 'UTF-8'); ?></div>
             <?php endif; ?>
 
-            <form method="POST" action="/admin">
+            <form method="POST" action="<?php echo htmlspecialchars($_SERVER['REQUEST_URI'] ?? '/admin', ENT_QUOTES, 'UTF-8'); ?>">
                 <div class="form-group">
                     <label for="username">Usuário Administrador</label>
-                    <input type="text" id="username" name="username" required autocomplete="username" autofocus>
+                    <input type="text" id="username" name="username" value="<?php echo htmlspecialchars($user ?? '', ENT_QUOTES, 'UTF-8'); ?>" required autocomplete="username" autofocus>
                 </div>
                 <div class="form-group">
                     <label for="password">Senha</label>
@@ -568,7 +586,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
         <header>
             <div class="logo-wrap">
                 <span class="logo-badge">GRID // 402</span>
-                <span class="logo-title">Monitoramento & Faturamento</span>
+                <span class="logo-title">Monitoramento e Faturamento</span>
             </div>
             <div class="user-nav">
                 <div class="live-indicator">
@@ -605,7 +623,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             </div>
         </div>
 
-        <!-- 2 Columns: Tráfego por Serviço & Códigos de Status -->
+        <!-- 2 Columns: Tráfego por Serviço e Códigos de Status -->
         <div class="analytics-row">
             <div class="panel">
                 <div class="panel-title">Volume por Micro-Serviço</div>

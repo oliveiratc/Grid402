@@ -41,7 +41,23 @@ if (Test-Path "$publicHtml\private_data\.htaccess") {
 
 Remove-Item -Path "$tempStage\private_data\*.json" -Force -ErrorAction SilentlyContinue
 
-Compress-Archive -Path "$tempStage\*" -DestinationPath $zipPath -Force
+# Compactação usando .NET ZipArchive com barras POSIX (/) para total compatibilidade com Linux/Hostinger
+Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+$zip = [System.IO.Compression.ZipFile]::Open($zipPath, [System.IO.Compression.ZipArchiveMode]::Create)
+$stageDirPath = (Resolve-Path $tempStage).Path
+
+Get-ChildItem -Path $tempStage -Recurse -File -Force | ForEach-Object {
+    $relPath = $_.FullName.Substring($stageDirPath.Length + 1).Replace('\', '/')
+    [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+        $zip,
+        $_.FullName,
+        $relPath,
+        [System.IO.Compression.CompressionLevel]::Optimal
+    ) | Out-Null
+}
+$zip.Dispose()
 
 Remove-Item $tempStage -Recurse -Force
 
