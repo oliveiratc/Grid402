@@ -495,3 +495,73 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
     echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
 }
+
+/**
+ * Notificacao em tempo real de micropagamentos x402 no Telegram
+ * Disparo nao-bloqueante (timeout de 1s) e tratamento silencioso de erros.
+ */
+function grid402_notify_telegram_purchase(string $service, float $priceUsdc, string $txHash): bool {
+    $token = defined('GRID402_TELEGRAM_BOT_TOKEN') ? GRID402_TELEGRAM_BOT_TOKEN : (string) grid402_env('GRID402_TELEGRAM_BOT_TOKEN', '');
+    $chatId = defined('GRID402_TELEGRAM_CHAT_ID') ? GRID402_TELEGRAM_CHAT_ID : (string) grid402_env('GRID402_TELEGRAM_CHAT_ID', '');
+
+    if ($token === '' or $chatId === '') {
+        return false;
+    }
+
+    $serviceNames = [
+        'cnpj' => 'Receita Federal CNPJ',
+        'cep' => 'Correios e IBGE Geolocation CEP',
+        'forex' => 'Cotacoes de Cambio BRL',
+        'crypto' => 'Precos Cripto Spot (BTC, ETH, SOL)',
+        'indicators' => 'Indicadores Economicos (Selic, CDI e IPCA)',
+        'holidays' => 'Feriados Nacionais e Bancarios ANBIMA',
+        'workdays' => 'Calculadora de Dias Uteis Financeiros',
+        'dns' => 'Utilitario DNS Avancado',
+        'ssl' => 'Auditoria de Certificado SSL e TLS',
+        'asn' => 'Roteamento BGP e ASN de Rede',
+    ];
+
+    $cleanSvc = strtolower(trim($service));
+    $displayName = $serviceNames[$cleanSvc] ?? ('Servico ' . strtoupper($service));
+    $displayPrice = number_format($priceUsdc, 4, '.', '') . ' USDC';
+    $nowUtc = gmdate('Y-m-d H:i:s') . ' UTC';
+    $cleanTx = trim($txHash);
+    $txLink = 'https://basescan.org/tx/' . $cleanTx;
+
+    $text = "💰 *Nova Compra no Grid402!*\n\n"
+          . "📦 *Servico:* " . $displayName . "\n"
+          . "💵 *Valor:* " . $displayPrice . "\n"
+          . "🌐 *Rede:* Base Mainnet (ChainID 8453)\n"
+          . "🕒 *Data:* " . $nowUtc . "\n"
+          . "🔗 *Transacao:* [BaseScan](" . $txLink . ")";
+
+    $apiUrl = 'https://api.telegram.org/bot' . $token . '/sendMessage';
+    $payloadJson = json_encode([
+        'chat_id' => $chatId,
+        'text' => $text,
+        'parse_mode' => 'Markdown',
+        'disable_web_page_preview' => false,
+    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+    $ch = @curl_init($apiUrl);
+    if (!$ch) {
+        return false;
+    }
+
+    @curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $payloadJson,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 1,
+        CURLOPT_CONNECTTIMEOUT => 1,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+    ]);
+
+    $resp = @curl_exec($ch);
+    $httpCode = (int) @curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    @curl_close($ch);
+
+    return ($httpCode === 200);
+}

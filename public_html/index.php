@@ -632,6 +632,9 @@ if ($isValidApiAction) {
     // Pagamento ou Sandbox validado com sucesso! Executa o micro-serviço requisitado
     $isSandbox = !empty($validation['sandbox']);
     grid402_record_telemetry($apiParam, 200, true, $paymentProof, null, $isSandbox ? 0.0 : (float)$servicePriceDisplay);
+    if (!$isSandbox) {
+        grid402_notify_telegram_purchase($apiParam, (float)$servicePriceDisplay, $paymentProof);
+    }
     http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');
     header('X-Payment-Status: Accepted');
