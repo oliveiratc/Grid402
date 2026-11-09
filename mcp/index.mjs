@@ -13,7 +13,7 @@ import { MCP_TOOLS_DEFINITIONS, executeGrid402Request, DEFAULT_ENDPOINT } from '
 const server = new Server(
   {
     name: 'grid402-mcp-server',
-    version: '1.6.0',
+    version: '1.7.0',
   },
   {
     capabilities: {

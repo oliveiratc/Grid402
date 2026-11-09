@@ -26,7 +26,7 @@ $descriptors = [
 
 $phpBinary = PHP_BINARY;
 if (!file_exists($phpBinary)) {
-    $phpBinary = 'C:\Users\thiag\AppData\Local\Microsoft\WinGet\Packages\PHP.PHP.8.3_Microsoft.Winget.Source_8wekyb3d8bbwe\php.exe';
+    $phpBinary = defined('PHP_BINARY') && !empty(PHP_BINARY) ? PHP_BINARY : 'php';
 }
 
 $routerScript = __DIR__ . '/router.php';

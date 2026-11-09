@@ -9,7 +9,7 @@ $descriptors = [
     2 => ['pipe', 'w'],
 ];
 
-$phpBinary = 'C:\Users\thiag\AppData\Local\Microsoft\WinGet\Packages\PHP.PHP.8.3_Microsoft.Winget.Source_8wekyb3d8bbwe\php.exe';
+$phpBinary = defined('PHP_BINARY') && !empty(PHP_BINARY) ? PHP_BINARY : 'php';
 $cmd = "\"{$phpBinary}\" -S 127.0.0.1:8942 -t \"" . __DIR__ . "/../public_html\"";
 
 $process = proc_open($cmd, $descriptors, $pipes);

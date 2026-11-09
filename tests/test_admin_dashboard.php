@@ -90,7 +90,7 @@ echo "[4/5] Subindo servidor web local para testar fluxos HTTP do /admin...\n";
 
 $port = 8959;
 $descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
-$phpBinary = 'C:\Users\thiag\AppData\Local\Microsoft\WinGet\Packages\PHP.PHP.8.3_Microsoft.Winget.Source_8wekyb3d8bbwe\php.exe';
+$phpBinary = defined('PHP_BINARY') && !empty(PHP_BINARY) ? PHP_BINARY : 'php';
 $cmd = "\"{$phpBinary}\" -S 127.0.0.1:{$port} -t \"" . __DIR__ . "/../public_html\" \"" . __DIR__ . "/../public_html/router.php\"";
 $proc = proc_open($cmd, $descriptors, $pipes);
 usleep(350000); // 350ms
