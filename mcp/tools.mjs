@@ -4,7 +4,7 @@
 
 import { settleX402Payment } from './x402_payer.mjs';
 
-export const DEFAULT_ENDPOINT = process.env.GRID402_ENDPOINT || process.env.GRID402_API_URL || 'https://orangered-jackal-900744.hostingersite.com';
+export const DEFAULT_ENDPOINT = process.env.GRID402_ENDPOINT || process.env.GRID402_API_URL || 'https://grid402.online';
 
 /**
  * Definições formais das 11 ferramentas no padrão MCP

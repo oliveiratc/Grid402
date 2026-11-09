@@ -14,7 +14,7 @@ class TestLiveSandboxGrid402(unittest.TestCase):
     def setUpClass(cls) -> None:
         # Usa o endpoint oficial da Hostinger para testes ponta a ponta
         cls.client = Grid402Client(
-            base_url="https://orangered-jackal-900744.hostingersite.com",
+            base_url="https://grid402.online",
             sandbox=True,
             timeout=15,
         )

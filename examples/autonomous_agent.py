@@ -12,7 +12,7 @@ import urllib.parse
 import urllib.request
 import urllib.error
 
-GRID402_ENDPOINT = os.getenv("GRID402_ENDPOINT", "https://orangered-jackal-900744.hostingersite.com").rstrip("/")
+GRID402_ENDPOINT = os.getenv("GRID402_ENDPOINT", "https://grid402.online").rstrip("/")
 AGENT_PRIVATE_KEY = os.getenv("AGENT_PRIVATE_KEY", None)
 
 def get_ssl_context():

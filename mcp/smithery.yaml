@@ -12,7 +12,7 @@ startCommand:
       GRID402_ENDPOINT:
         type: string
         description: "Grid402 Hub API Endpoint"
-        default: "https://orangered-jackal-900744.hostingersite.com"
+        default: "https://grid402.online"
       GRID402_PRIVATE_KEY:
         type: string
         description: "EVM private key on Base Mainnet for automated 0.0005 USDC x402 payment settlement (optional)"

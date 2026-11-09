@@ -470,7 +470,7 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
 
     $msg = $errorMessage ?? ($serviceName ? "Acesso à API '{$serviceName}' requer micropagamento de {$priceDisplay} USDC via protocolo x402." : 'Consulta técnica requer micropagamento sob demanda via protocolo x402.');
 
-    $host = $_SERVER['HTTP_HOST'] ?? 'orangered-jackal-900744.hostingersite.com';
+    $host = $_SERVER['HTTP_HOST'] ?? (defined('GRID402_CANONICAL_HOST') ? GRID402_CANONICAL_HOST : 'grid402.online');
     $isHttps = (isset($_SERVER['HTTPS']) and $_SERVER['HTTPS'] === 'on') or (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) and $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
     $proto = $isHttps ? 'https' : 'http';
     $reqUri = $_SERVER['REQUEST_URI'] ?? ('/api/v1/' . ($serviceName ?? 'forex'));
@@ -524,7 +524,7 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         'price_raw_units' => $priceRawUnits,
         'recipient_wallet' => GRID402_WALLET_ADDRESS,
         'action_required' => "Envie {$priceDisplay} USDC para a carteira recipient_wallet na rede Base e refaça a requisição incluindo o cabeçalho \"X-Payment: <tx_hash>\".",
-        'docs' => 'https://www.grid402.com.br/llms.txt',
+        'docs' => (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . '/llms.txt',
     ];
 
     if ($preview !== null and !empty($preview)) {

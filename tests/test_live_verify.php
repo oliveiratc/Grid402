@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-$liveUrl = 'https://orangered-jackal-900744.hostingersite.com';
+$liveUrl = 'https://grid402.online';
 echo "Testando Hostinger Live: {$liveUrl}\n\n";
 
 // 1. Landing Page

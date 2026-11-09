@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 import { Grid402Client } from './grid402.mjs';
 
 const client = new Grid402Client({
-  baseUrl: 'https://orangered-jackal-900744.hostingersite.com',
+  baseUrl: 'https://grid402.online',
   sandbox: true,
   timeout: 15000,
 });

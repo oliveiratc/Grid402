@@ -11,7 +11,7 @@ import urllib.error
 import json
 import ssl
 
-DEFAULT_GRID402_URL = "https://orangered-jackal-900744.hostingersite.com"
+DEFAULT_GRID402_URL = "https://grid402.online"
 
 
 class Grid402Error(Exception):

@@ -56,7 +56,7 @@ Adicione ao seu arquivo de configuração (`claude_desktop_config.json`):
       "command": "npx",
       "args": ["-y", "grid402-mcp"],
       "env": {
-        "GRID402_ENDPOINT": "https://orangered-jackal-900744.hostingersite.com",
+        "GRID402_ENDPOINT": "https://grid402.online",
         "GRID402_SANDBOX": "false",
         "GRID402_PRIVATE_KEY": "0xsua_chave_privada_base_aqui"
       }

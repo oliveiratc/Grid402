@@ -18,7 +18,7 @@ export class Grid402ActionProvider {
   private sandbox: boolean;
 
   constructor(config?: Grid402Config) {
-    this.baseUrl = config?.baseUrl || 'https://orangered-jackal-900744.hostingersite.com';
+    this.baseUrl = config?.baseUrl || 'https://grid402.online';
     this.sandbox = config?.sandbox || false;
   }
 

@@ -13,7 +13,7 @@ startCommand:
       apiUrl:
         type: string
         description: URL base da API do Grid402.
-        default: https://orangered-jackal-900744.hostingersite.com
+        default: https://grid402.online
   commandFunction:
     node:
       cmd: npx

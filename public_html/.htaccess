@@ -29,7 +29,7 @@ ServerSignature Off
         Header set Access-Control-Allow-Origin "*"
         Header set Access-Control-Allow-Methods "GET, OPTIONS"
         Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Payment"
-        Header set Access-Control-Expose-Headers "WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network"
+        Header set Access-Control-Expose-Headers "WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Payment-Required, payment-required"
     </IfModule>
 </FilesMatch>
 
@@ -37,6 +37,17 @@ ServerSignature Off
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteBase /
+
+    # 0. Redirecionamento Canonico de Dominio (301)
+    RewriteCond %{HTTP_HOST} ^orangered-jackal-900744\.hostingersite\.com$ [NC]
+    RewriteRule ^(.*)$ https://grid402.online/$1 [R=301,L]
+
+    RewriteCond %{HTTP_HOST} ^www\.grid402\.online$ [NC]
+    RewriteRule ^(.*)$ https://grid402.online/$1 [R=301,L]
+
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP_HOST} ^(www\.)?grid402\.online$ [NC]
+    RewriteRule ^(.*)$ https://grid402.online/$1 [R=301,L]
 
     # Responder pre-flight OPTIONS imediatamente
     RewriteCond %{REQUEST_METHOD} OPTIONS

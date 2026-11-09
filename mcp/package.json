@@ -1,6 +1,6 @@
 {
   "name": "grid402-mcp",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Official Model Context Protocol (MCP) Server for Grid402 - Public Open Data e Network Utilities Hub (Forex, Crypto, DNS, SSL, ASN, CEP, CNPJ, Indicators, Holidays, Workdays, Oracle Verifier) with Base x402 micropayments, Oracle Proof e Sandbox.",
   "type": "module",
   "bin": {
@@ -44,9 +44,9 @@
     "proof-of-data",
     "sandbox"
   ],
-  "author": "Grid402 Team <contato@grid402.com.br>",
+  "author": "Grid402 Team <contato@grid402.online>",
   "license": "MIT",
-  "homepage": "https://www.grid402.com.br",
+  "homepage": "https://grid402.online",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/oliveiratc/Grid402.git"

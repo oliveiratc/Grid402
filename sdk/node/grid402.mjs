@@ -7,7 +7,7 @@
 
 import crypto from 'node:crypto';
 
-export const DEFAULT_GRID402_URL = 'https://grid402.com.br';
+export const DEFAULT_GRID402_URL = 'https://grid402.online';
 export const GRID402_ORACLE_WALLET = '0xa31c31069c43ac1c0075a93c325b0dcd7744356c';
 export const BASE_USDC_CONTRACT = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 export const DEFAULT_ORACLE_PUBKEY = `-----BEGIN PUBLIC KEY-----

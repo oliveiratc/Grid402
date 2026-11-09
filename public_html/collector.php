@@ -161,7 +161,7 @@ $summaryPayload = [
     'timestamp' => $isoTimestamp,
     'execution_time_ms' => $totalDurationMs,
     'services' => $servicesSummary,
-    'notice' => 'Consultas detalhadas e sob demanda requerem micropagamento de US$ ' . GRID402_PRICE_DISPLAY . ' em USDC na Base via cabeçalho X-Payment. Consulte https://www.grid402.com.br/llms.txt',
+    'notice' => 'Consultas detalhadas e sob demanda requerem micropagamento de US$ ' . GRID402_PRICE_DISPLAY . ' em USDC na Base via cabeçalho X-Payment. Consulte https://grid402.online/llms.txt',
 ];
 
 // Persistência em summary_free.json

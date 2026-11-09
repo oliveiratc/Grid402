@@ -10,9 +10,9 @@ Este guia contem todas as informacoes, descricoes, metadados e tags prontos para
 - **Name:** Grid402 - Brazil Public Data e Cryptographic Oracle
 - **Tagline:** Brazil official economic and public data for AI agents via HTTP 402 on Base.
 - **Category:** Data / Oracle / Finance
-- **Base URL:** `https://orangered-jackal-900744.hostingersite.com`
-- **Documentation URL:** `https://orangered-jackal-900744.hostingersite.com/llms.txt`
-- **OpenAPI URL:** `https://orangered-jackal-900744.hostingersite.com/openapi.json`
+- **Base URL:** `https://grid402.online`
+- **Documentation URL:** `https://grid402.online/llms.txt`
+- **OpenAPI URL:** `https://grid402.online/openapi.json`
 - **Settlement Protocol:** x402 (HTTP 402)
 - **Settlement Network:** Base Mainnet (Chain ID 8453)
 - **Settlement Asset:** USDC (Token: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`)
@@ -34,9 +34,9 @@ Este guia contem todas as informacoes, descricoes, metadados e tags prontos para
 - **Short Summary:** Pay-per-call Brazilian government, economic and network data with cryptographic oracle proof.
 - **Protocol:** x402 / HTTP 402 Payment Required
 - **Auth Header:** `X-Payment` (Transaction Hash on Base Mainnet)
-- **OpenAPI Schema:** `https://orangered-jackal-900744.hostingersite.com/openapi.json`
-- **MCP Manifest:** `https://orangered-jackal-900744.hostingersite.com/.well-known/mcp.json`
-- **Website:** `https://orangered-jackal-900744.hostingersite.com/agents`
+- **OpenAPI Schema:** `https://grid402.online/openapi.json`
+- **MCP Manifest:** `https://grid402.online/.well-known/mcp.json`
+- **Website:** `https://grid402.online/agents`
 - **Full Description:**
   > Provides automated, friction-free access to official Brazilian datasets for AI agents without monthly subscriptions or API keys. Pay strictly per call in fractions of a cent using USDC on Base. Includes deterministic cryptographic proofs for smart contracts and autonomous audit agents.
 
@@ -50,7 +50,7 @@ Este guia contem todas as informacoes, descricoes, metadados e tags prontos para
 - **Transport:** stdio
 - **Command:** `npx -y grid402-mcp@latest`
 - **Environment Variables:**
-  - `GRID402_BASE_URL`: `https://orangered-jackal-900744.hostingersite.com`
+  - `GRID402_BASE_URL`: `https://grid402.online`
   - `GRID402_PRIVATE_KEY`: *(Opcional - chave privada de carteira Base para auto-liquidacao de micropagamentos)*
 - **Tools Included:**
   1. `grid402_summary` (Free system status)
@@ -85,7 +85,7 @@ Este guia contem todas as informacoes, descricoes, metadados e tags prontos para
       "command": "npx",
       "args": ["-y", "grid402-mcp@latest"],
       "env": {
-        "GRID402_BASE_URL": "https://orangered-jackal-900744.hostingersite.com"
+        "GRID402_BASE_URL": "https://grid402.online"
       }
     }
   }

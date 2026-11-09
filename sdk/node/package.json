@@ -1,6 +1,6 @@
 {
   "name": "grid402",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "description": "Official client SDK for Grid402 - Public Open Data and Network Utilities Hub with x402 Base micropayments and Cryptographic Oracle Proof for AI Agents, Node.js and TypeScript.",
   "main": "./grid402.cjs",
   "module": "./grid402.mjs",
@@ -51,12 +51,12 @@
     "proof-of-data",
     "secp256k1"
   ],
-  "author": "Grid402 Team <contato@grid402.com.br>",
+  "author": "Grid402 Team <contato@grid402.online>",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/oliveiratc/Grid402/issues"
   },
-  "homepage": "https://www.grid402.com.br",
+  "homepage": "https://grid402.online",
   "engines": {
     "node": ">=18.0.0"
   }

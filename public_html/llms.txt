@@ -3,30 +3,30 @@
 > Hub de microservicos e dados abertos para agentes autonomos de IA e aplicacoes M2M sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.
 
 ## Core Documentation
-- [Full LLM Context](https://orangered-jackal-900744.hostingersite.com/llms-full.txt): Documentacao exaustiva com schemas JSON e contratos de endpoints para modelos de linguagem
-- [Central de Agentes de IA](https://orangered-jackal-900744.hostingersite.com/agents): Guia rapido de integracao para agentes autonomos, Claude Desktop, Python e cURL
-- [OpenAPI Specification](https://orangered-jackal-900744.hostingersite.com/openapi.json): Especificacao completa e interativa da API no padrao OpenAPI 3.1
-- [MCP Server Card](https://orangered-jackal-900744.hostingersite.com/.well-known/mcp/server-card.json): Ficha de descoberta de capacidades SEP-1649 para servidores MCP
-- [MCP Well-Known Manifest](https://orangered-jackal-900744.hostingersite.com/.well-known/mcp.json): Manifesto estruturado com a lista de ferramentas MCP do Grid402
-- [AI Plugin Manifest](https://orangered-jackal-900744.hostingersite.com/.well-known/ai-plugin.json): Manifesto padrao para plugins e descoberta por motores de IA
-- [Oracle Verifier API](https://orangered-jackal-900744.hostingersite.com/api/v1/verify): Endpoint sem estado para validacao criptografica de provas de oraculo em menos de 1 ms
-- [Status e Saude do Hub](https://orangered-jackal-900744.hostingersite.com/status): Verificacao de disponibilidade e resumo operacional dos servicos
-- [Sobre a Organizacao](https://orangered-jackal-900744.hostingersite.com/about): Missao, arquitetura Zero-DB e endereco institucional
-- [Canais de Contato](https://orangered-jackal-900744.hostingersite.com/contact): Suporte tecnico, encarregado de dados DPO e telefonia
-- [Termos de Servico](https://orangered-jackal-900744.hostingersite.com/terms): Condicoes de uso, licenca MIT e termos M2M
-- [Politica de Privacidade](https://orangered-jackal-900744.hostingersite.com/privacy): Diretrizes de privacidade, conformidade LGPD e retencao de logs
+- [Full LLM Context](https://grid402.online/llms-full.txt): Documentacao exaustiva com schemas JSON e contratos de endpoints para modelos de linguagem
+- [Central de Agentes de IA](https://grid402.online/agents): Guia rapido de integracao para agentes autonomos, Claude Desktop, Python e cURL
+- [OpenAPI Specification](https://grid402.online/openapi.json): Especificacao completa e interativa da API no padrao OpenAPI 3.1
+- [MCP Server Card](https://grid402.online/.well-known/mcp/server-card.json): Ficha de descoberta de capacidades SEP-1649 para servidores MCP
+- [MCP Well-Known Manifest](https://grid402.online/.well-known/mcp.json): Manifesto estruturado com a lista de ferramentas MCP do Grid402
+- [AI Plugin Manifest](https://grid402.online/.well-known/ai-plugin.json): Manifesto padrao para plugins e descoberta por motores de IA
+- [Oracle Verifier API](https://grid402.online/api/v1/verify): Endpoint sem estado para validacao criptografica de provas de oraculo em menos de 1 ms
+- [Status e Saude do Hub](https://grid402.online/status): Verificacao de disponibilidade e resumo operacional dos servicos
+- [Sobre a Organizacao](https://grid402.online/about): Missao, arquitetura Zero-DB e endereco institucional
+- [Canais de Contato](https://grid402.online/contact): Suporte tecnico, encarregado de dados DPO e telefonia
+- [Termos de Servico](https://grid402.online/terms): Condicoes de uso, licenca MIT e termos M2M
+- [Politica de Privacidade](https://grid402.online/privacy): Diretrizes de privacidade, conformidade LGPD e retencao de logs
 
 ## Public Micro-Services APIs
-- [Forex Rates API](https://orangered-jackal-900744.hostingersite.com/api/v1/forex): Cotacoes cambiais oficiais de USD, EUR e GBP para BRL em tempo real
-- [Crypto Tickers API](https://orangered-jackal-900744.hostingersite.com/api/v1/crypto): Precos de mercado spot de BTC, ETH, SOL, USDC e BASE
-- [DNS Records Lookup](https://orangered-jackal-900744.hostingersite.com/api/v1/dns?domain=base.org): Resolucao autoritativa de registros A, AAAA, MX, TXT, NS e CNAME
-- [TLS and SSL Inspector](https://orangered-jackal-900744.hostingersite.com/api/v1/ssl?host=base.org): Inspecao e auditoria de certificados TLS e SSL na porta 443
-- [ASN and BGP Intelligence](https://orangered-jackal-900744.hostingersite.com/api/v1/asn?ip=1.1.1.1): Roteamento BGP, bloco alocado e numero ASN de IPs
-- [CEP Postal Address API](https://orangered-jackal-900744.hostingersite.com/api/v1/cep?code=01310100): Resolucao de endereco postal brasileiro e codigo municipal IBGE
-- [CNPJ Corporate Registry API](https://orangered-jackal-900744.hostingersite.com/api/v1/cnpj?cnpj=00000000000191): Dados cadastrais de Pessoa Juridica na Receita Federal
-- [Economic Indicators API](https://orangered-jackal-900744.hostingersite.com/api/v1/indicators): Taxas oficiais Selic (meta e diaria), CDI anual e diario, IPCA 12m e mensal (BCB e IBGE)
-- [National and Banking Holidays API](https://orangered-jackal-900744.hostingersite.com/api/v1/holidays?year=2026): Calendario oficial de feriados nacionais e bancarios (ANBIMA e Febraban) com calculo matematico Meeus
-- [ANBIMA Workdays Calculator API](https://orangered-jackal-900744.hostingersite.com/api/v1/workdays): Calculadora de dias uteis bancarios ANBIMA com contagem de intervalo e projecao de prazos
+- [Forex Rates API](https://grid402.online/api/v1/forex): Cotacoes cambiais oficiais de USD, EUR e GBP para BRL em tempo real
+- [Crypto Tickers API](https://grid402.online/api/v1/crypto): Precos de mercado spot de BTC, ETH, SOL, USDC e BASE
+- [DNS Records Lookup](https://grid402.online/api/v1/dns?domain=base.org): Resolucao autoritativa de registros A, AAAA, MX, TXT, NS e CNAME
+- [TLS and SSL Inspector](https://grid402.online/api/v1/ssl?host=base.org): Inspecao e auditoria de certificados TLS e SSL na porta 443
+- [ASN and BGP Intelligence](https://grid402.online/api/v1/asn?ip=1.1.1.1): Roteamento BGP, bloco alocado e numero ASN de IPs
+- [CEP Postal Address API](https://grid402.online/api/v1/cep?code=01310100): Resolucao de endereco postal brasileiro e codigo municipal IBGE
+- [CNPJ Corporate Registry API](https://grid402.online/api/v1/cnpj?cnpj=00000000000191): Dados cadastrais de Pessoa Juridica na Receita Federal
+- [Economic Indicators API](https://grid402.online/api/v1/indicators): Taxas oficiais Selic (meta e diaria), CDI anual e diario, IPCA 12m e mensal (BCB e IBGE)
+- [National and Banking Holidays API](https://grid402.online/api/v1/holidays?year=2026): Calendario oficial de feriados nacionais e bancarios (ANBIMA e Febraban) com calculo matematico Meeus
+- [ANBIMA Workdays Calculator API](https://grid402.online/api/v1/workdays): Calculadora de dias uteis bancarios ANBIMA com contagem de intervalo e projecao de prazos
 
 ## SDKs and Agent Frameworks
 - [Python SDK (PyPI)](https://pypi.org/project/grid402/): Pacote oficial grid402 para Python com suporte a Pydantic e Coinbase AgentKit

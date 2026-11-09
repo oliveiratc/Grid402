@@ -6,7 +6,7 @@
 O Grid402 e um hub de microservicos e dados abertos publicos da Republica Federativa do Brasil, operando sob uma arquitetura Zero-DB de ultrabaixa latencia (inferior a 20 milissegundos).
 Todas as consultas tecnicas e cadastrais sao monetizadas por chamada (pay-per-call) utilizando o codigo de status nativo HTTP 402 Payment Required e stablecoins (USDC) na rede Base (Coinbase Layer 2).
 
-- Dominio Base: https://orangered-jackal-900744.hostingersite.com
+- Dominio Base: https://grid402.online
 - Rede Blockchain: Base Mainnet (EVM Chain ID 8453)
 - Moeda de Liquidacao: USDC (Contrato: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
 - Carteira Recebedora: 0xa31c31069c43ac1c0075a93c325b0dcd7744356c
@@ -72,7 +72,7 @@ Cada resposta tarifada ou validada inclui um objeto `_oracle_proof`:
 Para verificar se os dados nao foram adulterados em transito, o agente pode submeter a resposta ao endpoint de verificacao via POST:
 
 ```bash
-curl -X POST https://orangered-jackal-900744.hostingersite.com/api/v1/verify \
+curl -X POST https://grid402.online/api/v1/verify \
   -H "Content-Type: application/json" \
   -d '{"full_response_with_proof": {...}}'
 ```
@@ -166,7 +166,7 @@ Resposta de verificacao:
 ```python
 import requests
 
-BASE_URL = "https://orangered-jackal-900744.hostingersite.com"
+BASE_URL = "https://grid402.online"
 
 def consultar_cnpj(cnpj, payment_tx_hash=None):
     headers = {}
@@ -203,7 +203,7 @@ Arquivo `claude_desktop_config.json`:
       "command": "npx",
       "args": ["-y", "grid402-mcp@latest"],
       "env": {
-        "GRID402_BASE_URL": "https://orangered-jackal-900744.hostingersite.com"
+        "GRID402_BASE_URL": "https://grid402.online"
       }
     }
   }
@@ -211,4 +211,4 @@ Arquivo `claude_desktop_config.json`:
 ```
 
 Manifesto remoto de ferramentas disponivel em:
-`https://orangered-jackal-900744.hostingersite.com/.well-known/mcp.json`
+`https://grid402.online/.well-known/mcp.json`

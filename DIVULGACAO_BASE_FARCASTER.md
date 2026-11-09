@@ -59,8 +59,8 @@ npm publish --access public
 > 
 > Zero API keys. Zero subscriptions. Native x402 Base settlement.
 > 
-> 🔗 Portal e Live Console: https://orangered-jackal-900744.hostingersite.com  
-> 📖 Agent Spec: https://orangered-jackal-900744.hostingersite.com/llms.txt  
+> 🔗 Portal e Live Console: https://grid402.online  
+> 📖 Agent Spec: https://grid402.online/llms.txt  
 > 💻 MCP Server: `npx -y grid402-mcp`
 
 ---
@@ -101,7 +101,7 @@ npm publish --access public
 > - OpenAPI 3.1 e llms.txt discovery
 > - Official MCP Server live via npx
 > 
-> Try the interactive tester: https://orangered-jackal-900744.hostingersite.com
+> Try the interactive tester: https://grid402.online
 
 ---
 

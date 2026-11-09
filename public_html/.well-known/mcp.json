@@ -3,7 +3,7 @@
   "name": "grid402-mcp",
   "version": "1.4.0",
   "description": "Servidor MCP oficial do Grid402 para consulta de dados publicos do Brasil sob o protocolo x402 com prova criptografica de oraculo.",
-  "homepage": "https://orangered-jackal-900744.hostingersite.com",
+  "homepage": "https://grid402.online",
   "repository": "https://github.com/oliveiratc/Grid402",
   "payment": {
     "protocol": "x402",
@@ -17,7 +17,7 @@
       "name": "grid402_summary",
       "description": "Verifica a saude operacional e status geral dos servicos do Grid402 (gratuito).",
       "cost_usdc": "0.0000",
-      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/summary",
+      "endpoint": "https://grid402.online/api/v1/summary",
       "inputSchema": {
         "type": "object",
         "properties": {}
@@ -27,7 +27,7 @@
       "name": "grid402_forex",
       "description": "Consulta cotacoes cambiais oficiais de USD, EUR e GBP em relacao ao Real brasileiro (BRL).",
       "cost_usdc": "0.0005",
-      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/forex",
+      "endpoint": "https://grid402.online/api/v1/forex",
       "inputSchema": {
         "type": "object",
         "properties": {}
@@ -37,7 +37,7 @@
       "name": "grid402_crypto",
       "description": "Consulta cotacoes spot de criptoativos (BTC, ETH, SOL, USDC, BASE) com variacao 24h.",
       "cost_usdc": "0.0005",
-      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/crypto",
+      "endpoint": "https://grid402.online/api/v1/crypto",
       "inputSchema": {
         "type": "object",
         "properties": {}
@@ -47,7 +47,7 @@
       "name": "grid402_dns",
       "description": "Resolve registros de DNS autoritativos (A, AAAA, MX, TXT, NS, CNAME) para um dominio.",
       "cost_usdc": "0.0005",
-      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/dns",
+      "endpoint": "https://grid402.online/api/v1/dns",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -63,7 +63,7 @@
       "name": "grid402_ssl",
       "description": "Inspeciona certificados TLS e SSL na porta 443, retornando emissor, validade e cifras.",
       "cost_usdc": "0.0005",
-      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/ssl",
+      "endpoint": "https://grid402.online/api/v1/ssl",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -79,7 +79,7 @@
       "name": "grid402_asn",
       "description": "Resolve inteligencia de roteamento BGP, bloco de rede alocado e numero ASN de um IP.",
       "cost_usdc": "0.0005",
-      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/asn",
+      "endpoint": "https://grid402.online/api/v1/asn",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -95,7 +95,7 @@
       "name": "grid402_cep",
       "description": "Localiza endereco postal brasileiro, bairro, cidade, UF e codigo IBGE a partir do CEP.",
       "cost_usdc": "0.0005",
-      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/cep",
+      "endpoint": "https://grid402.online/api/v1/cep",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -111,7 +111,7 @@
       "name": "grid402_cnpj",
       "description": "Consulta dados oficiais de Pessoa Juridica na Receita Federal (razao social, situacao cadastral, CNAE, socios).",
       "cost_usdc": "0.0020",
-      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/cnpj",
+      "endpoint": "https://grid402.online/api/v1/cnpj",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -127,7 +127,7 @@
       "name": "grid402_indicators",
       "description": "Consulta taxas oficiais de juros e inflacao do Brasil: Selic Meta, Selic Diaria, CDI anual, IPCA 12m.",
       "cost_usdc": "0.0005",
-      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/indicators",
+      "endpoint": "https://grid402.online/api/v1/indicators",
       "inputSchema": {
         "type": "object",
         "properties": {}
@@ -137,7 +137,7 @@
       "name": "grid402_holidays",
       "description": "Consulta o calendario oficial de feriados nacionais e bancarios brasileiros para um ano.",
       "cost_usdc": "0.0005",
-      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/holidays",
+      "endpoint": "https://grid402.online/api/v1/holidays",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -152,7 +152,7 @@
       "name": "grid402_workdays",
       "description": "Calcula a contagem de dias uteis bancarios da ANBIMA entre duas datas no Brasil.",
       "cost_usdc": "0.0005",
-      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/workdays",
+      "endpoint": "https://grid402.online/api/v1/workdays",
       "inputSchema": {
         "type": "object",
         "properties": {
@@ -172,7 +172,7 @@
       "name": "grid402_verify",
       "description": "Valida sem estado a assinatura criptografica secp256k1 de oraculo do Grid402 (gratuito).",
       "cost_usdc": "0.0000",
-      "endpoint": "https://orangered-jackal-900744.hostingersite.com/api/v1/verify",
+      "endpoint": "https://grid402.online/api/v1/verify",
       "inputSchema": {
         "type": "object",
         "properties": {

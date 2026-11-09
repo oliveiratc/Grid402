@@ -39,7 +39,7 @@ const walletProvider = await CdpWalletProvider.configureWithWallet({
 
 // 2. Inicializa o provedor de acoes do Grid402
 const grid402 = new Grid402ActionProvider({
-  baseUrl: "https://orangered-jackal-900744.hostingersite.com",
+  baseUrl: "https://grid402.online",
   sandbox: false, // configure true para testar sem custos (cota de 20 req/h)
 });
 

@@ -160,6 +160,10 @@ define('GRID402_CRON_SECRET', (string) grid402_env('GRID402_CRON_SECRET', 'grid4
 define('GRID402_TELEGRAM_BOT_TOKEN', (string) grid402_env('GRID402_TELEGRAM_BOT_TOKEN', ''));
 define('GRID402_TELEGRAM_CHAT_ID', (string) grid402_env('GRID402_TELEGRAM_CHAT_ID', ''));
 
+// 2.3. Dominio Canonico Oficial do Grid402
+define('GRID402_CANONICAL_DOMAIN', (string) grid402_env('GRID402_CANONICAL_DOMAIN', 'https://grid402.online'));
+define('GRID402_CANONICAL_HOST', (string) grid402_env('GRID402_CANONICAL_HOST', 'grid402.online'));
+
 // 2.1. Parâmetros de Assinatura Criptográfica do Oráculo (Proof of Data)
 define('GRID402_ORACLE_WALLET', strtolower((string) grid402_env('GRID402_ORACLE_WALLET', GRID402_WALLET_ADDRESS)));
 define('GRID402_ORACLE_ALGORITHM', 'secp256k1-sha256');
@@ -167,7 +171,7 @@ define('GRID402_ORACLE_ALGORITHM', 'secp256k1-sha256');
 // 3. Parâmetros de Performance e Timeout
 define('GRID402_TIMEOUT_MS', (int) grid402_env('GRID402_TIMEOUT_MS', 2800));
 define('GRID402_CONNECT_TIMEOUT_MS', (int) grid402_env('GRID402_CONNECT_TIMEOUT_MS', 1500));
-define('GRID402_USER_AGENT', (string) grid402_env('GRID402_PROBE_USER_AGENT', 'Grid402-Telemetry-Probe/1.0 (+https://www.grid402.com.br)'));
+define('GRID402_USER_AGENT', (string) grid402_env('GRID402_PROBE_USER_AGENT', 'Grid402-Telemetry-Probe/1.0 (+https://grid402.online)'));
 define('GRID402_SSL_VERIFY', (bool) grid402_env('GRID402_SSL_VERIFY', false)); // false por padrão para compatibilidade com cadeias ICP-Brasil SEFAZ
 
 // 4. Caminhos de Arquivos e Armazenamento Privado (Persistente e Zero-DB)

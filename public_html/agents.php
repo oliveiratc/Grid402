@@ -20,7 +20,7 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Central de Agentes de IA e MCP - Grid402</title>
     <meta name="description" content="Integracao oficial do Grid402 para agentes autonomos de IA, servidores MCP (Claude Desktop e Cursor) e Coinbase AgentKit sob protocolo HTTP 402 na Base.">
-    <link rel="canonical" href="https://orangered-jackal-900744.hostingersite.com/agents">
+    <link rel="canonical" href="https://grid402.online/agents">
     <link rel="help" type="text/markdown" href="/llms.txt">
     <link rel="service-meta" type="application/json" href="/.well-known/mcp.json">
     <link rel="service-desc" type="application/vnd.oai.openapi+json" href="/openapi.json">
@@ -412,7 +412,7 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
       "command": "npx",
       "args": ["-y", "grid402-mcp@latest"],
       "env": {
-        "GRID402_BASE_URL": "https://orangered-jackal-900744.hostingersite.com"
+        "GRID402_BASE_URL": "https://grid402.online"
       }
     }
   }
@@ -427,7 +427,7 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
             <button class="copy-btn" onclick="copySnippet('code-py', this)">Copiar Python</button>
             <pre id="code-py">import requests
 
-BASE_URL = "https://orangered-jackal-900744.hostingersite.com"
+BASE_URL = "https://grid402.online"
 
 def consultar_dados(endpoint, payment_tx=None):
     headers = {}
@@ -458,14 +458,14 @@ consultar_dados("/api/v1/cnpj?cnpj=00000000000191")</pre>
         <div class="code-box">
             <button class="copy-btn" onclick="copySnippet('code-curl', this)">Copiar cURL</button>
             <pre id="code-curl"># 1. Obter desafio de pagamento HTTP 402
-curl -i "https://orangered-jackal-900744.hostingersite.com/api/v1/indicators"
+curl -i "https://grid402.online/api/v1/indicators"
 
 # 2. Requisicao com comprovante on-chain na Base
 curl -H "X-Payment: 0xSEU_TRANSACTION_HASH_ON_BASE" \
-  "https://orangered-jackal-900744.hostingersite.com/api/v1/indicators"
+  "https://grid402.online/api/v1/indicators"
 
 # 3. Validar prova criptografica de oraculo (sem custo)
-curl -X POST "https://orangered-jackal-900744.hostingersite.com/api/v1/verify" \
+curl -X POST "https://grid402.online/api/v1/verify" \
   -H "Content-Type: application/json" \
   -d '{"full_response_with_proof": {...}}'</pre>
         </div>

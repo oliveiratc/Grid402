@@ -19,7 +19,7 @@ try {
 }
 
 // Endpoint oficial do oráculo
-const GRID402_ENDPOINT = process.env.GRID402_ENDPOINT || 'https://orangered-jackal-900744.hostingersite.com';
+const GRID402_ENDPOINT = process.env.GRID402_ENDPOINT || 'https://grid402.online';
 
 // Chave privada da carteira do agente (carregada via variável de ambiente)
 const AGENT_PRIVATE_KEY = process.env.AGENT_PRIVATE_KEY || null;

@@ -9,11 +9,11 @@
   },
   "api": {
     "type": "openapi",
-    "url": "https://orangered-jackal-900744.hostingersite.com/openapi.json",
+    "url": "https://grid402.online/openapi.json",
     "is_user_authenticated": false
   },
-  "logo_url": "https://orangered-jackal-900744.hostingersite.com/badge/summary.svg",
-  "contact_email": "contato@grid402.org",
-  "legal_info_url": "https://orangered-jackal-900744.hostingersite.com/terms"
+  "logo_url": "https://grid402.online/badge/summary.svg",
+  "contact_email": "contato@grid402.online",
+  "legal_info_url": "https://grid402.online/terms"
 }
 

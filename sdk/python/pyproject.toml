@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "MIT" }
 authors = [
-    { name = "Grid402 Team", email = "contato@grid402.com.br" }
+    { name = "Grid402 Team", email = "contato@grid402.online" }
 ]
 keywords = [
     "grid402",
@@ -48,8 +48,8 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://www.grid402.com.br"
-Documentation = "https://www.grid402.com.br/llms.txt"
+Homepage = "https://grid402.online"
+Documentation = "https://grid402.online/llms.txt"
 Repository = "https://github.com/oliveiratc/Grid402"
 "Bug Tracker" = "https://github.com/oliveiratc/Grid402/issues"
 

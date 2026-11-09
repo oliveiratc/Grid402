@@ -6,22 +6,26 @@
     "description": "High-performance autonomous M2M public data and network utilities oracle designed for AI agents, crawlers, and automation pipelines. Settled via the x402 protocol with Base Mainnet USDC micropayments (US$ 0.0005 standard, US$ 0.0020 corporate CNPJ).",
     "contact": {
       "name": "Grid402 Support",
-      "url": "https://www.grid402.com.br",
-      "email": "contato@grid402.com.br"
+      "url": "https://grid402.online",
+      "email": "contato@grid402.online"
     },
     "license": {
       "name": "MIT e AS-IS Public Data Terms",
-      "url": "https://www.grid402.com.br/terms"
+      "url": "https://grid402.online/terms"
     }
   },
   "servers": [
     {
-      "url": "https://orangered-jackal-900744.hostingersite.com",
-      "description": "Hostinger Cloud Production / Active Live Cluster"
+      "url": "https://grid402.online",
+      "description": "Hostinger Cloud Production / Canonical Domain"
     },
     {
-      "url": "https://www.grid402.com.br",
-      "description": "Primary Production Domain"
+      "url": "https://www.grid402.online",
+      "description": "Alternative Production with WWW"
+    },
+    {
+      "url": "https://orangered-jackal-900744.hostingersite.com",
+      "description": "Legacy Staging Host (301 Redirect to Canonical)"
     },
     {
       "url": "http://localhost:8000",
@@ -578,7 +582,7 @@
           "price_raw_units": { "type": "integer", "example": 500 },
           "recipient_wallet": { "type": "string", "example": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c" },
           "action_required": { "type": "string" },
-          "docs": { "type": "string", "example": "https://www.grid402.com.br/llms.txt" }
+          "docs": { "type": "string", "example": "https://grid402.online/llms.txt" }
         }
       },
       "ForexResponse": {

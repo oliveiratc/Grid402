@@ -82,7 +82,7 @@ BASE_USDC_CONTRACT = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 class Grid402ActionProvider:
     """Provedor de acoes do Grid402 compativel com Coinbase AgentKit e LangChain."""
 
-    def __init__(self, base_url: str = "https://orangered-jackal-900744.hostingersite.com", sandbox: bool = False):
+    def __init__(self, base_url: str = "https://grid402.online", sandbox: bool = False):
         self.base_url = base_url.rstrip("/")
         self.sandbox = sandbox
 
