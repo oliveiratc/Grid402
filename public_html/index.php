@@ -2045,6 +2045,57 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                 font-size: 0.8rem;
             }
         }
+
+        /* Seletor de Idioma Cyberpunk Bilíngue (PT-BR / EN) */
+        .lang-switcher-wrap {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 3px 5px;
+            gap: 4px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.05);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .lang-switcher-wrap:hover {
+            border-color: rgba(0, 240, 255, 0.4);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.15);
+        }
+        .lang-globe-icon {
+            font-size: 0.85rem;
+            padding-left: 4px;
+            opacity: 0.85;
+            user-select: none;
+        }
+        .lang-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            letter-spacing: 0.5px;
+        }
+        .lang-btn:hover {
+            color: #fff;
+        }
+        .lang-btn.active {
+            background: rgba(0, 240, 255, 0.18);
+            color: var(--accent);
+            border: 1px solid rgba(0, 240, 255, 0.45);
+            box-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+        }
+        .lang-divider {
+            color: rgba(148, 163, 184, 0.3);
+            font-size: 0.7rem;
+            user-select: none;
+        }
     </style>
 </head>
 <body>
@@ -2056,32 +2107,40 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                 <span class="logo-badge">x402</span>
             </a>
             <nav class="nav-links">
-                <a href="#services">Servicos</a>
-                <a href="#comparador" style="color: var(--accent); font-weight: 600;">Economia 98%</a>
-                <a href="#playground">Playground</a>
-                <a href="#console">Console</a>
-                <a href="/agents" style="color: var(--accent); font-weight: 600;">Agentes IA</a>
-                <a href="/about">About</a>
-                <a href="/contact">Contact</a>
-                <a href="/terms">Terms</a>
-                <a href="/privacy">Privacy</a>
+                <a href="#services" data-i18n="nav.services">Serviços</a>
+                <a href="#comparador" style="color: var(--accent); font-weight: 600;" data-i18n="nav.savings">Economia 98%</a>
+                <a href="#playground" data-i18n="nav.playground">Playground</a>
+                <a href="#console" data-i18n="nav.console">Console</a>
+                <a href="/agents" style="color: var(--accent); font-weight: 600;" data-i18n="nav.agents">Agentes IA</a>
+                <a href="/about" data-i18n="nav.about">About</a>
+                <a href="/contact" data-i18n="nav.contact">Contact</a>
+                <a href="/terms" data-i18n="nav.terms">Terms</a>
+                <a href="/privacy" data-i18n="nav.privacy">Privacy</a>
             </nav>
-            <div class="badge-live">
-                <span class="badge-pulse"></span>
-                <span>Base Mainnet (8453) • <?php echo count($servicesCatalog); ?>/<?php echo count($servicesCatalog); ?> Servicos Operantes</span>
+            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                <div class="lang-switcher-wrap" id="lang-switch-btn" title="Alternar idioma / Switch language">
+                    <span class="lang-globe-icon">🌐</span>
+                    <button type="button" class="lang-btn active" id="lang-btn-pt" onclick="setLanguage('pt')">PT</button>
+                    <span class="lang-divider">|</span>
+                    <button type="button" class="lang-btn" id="lang-btn-en" onclick="setLanguage('en')">EN</button>
+                </div>
+                <div class="badge-live">
+                    <span class="badge-pulse"></span>
+                    <span data-i18n-count="<?php echo count($servicesCatalog); ?>" id="badge-live-text">Base Mainnet (8453) • <?php echo count($servicesCatalog); ?>/<?php echo count($servicesCatalog); ?> Serviços Operantes</span>
+                </div>
             </div>
         </header>
 
         <section class="hero">
-            <div class="hero-tag">Hub de Micro-Servicos para Robos e Agentes de IA</div>
-            <h1>Grid402: Hub de Utilitarios de Rede e Dados Publicos para Agentes de IA</h1>
-            <p>Acesse cotacoes de cambio, cripto, suite de compliance e antifraude (score 360, sancoes da CGU e Simples Nacional), indicadores economicos oficiais (Selic, CDI e IPCA), feriados bancarios ANBIMA, DNS, certificados SSL, BGP/ASN, CEP e CNPJ da Receita Federal em milissegundos sem cadastro ou chaves de API. Micropagamentos por chamada em USDC na Base.</p>
+            <div class="hero-tag" data-i18n="hero.tag">Hub de Micro-Serviços para Robôs e Agentes de IA</div>
+            <h1 data-i18n="hero.title">Grid402: Hub de Utilitários de Rede e Dados Públicos para Agentes de IA</h1>
+            <p data-i18n="hero.desc">Acesse cotações de câmbio, cripto, suíte de compliance e antifraude (score 360, sanções da CGU e Simples Nacional), indicadores econômicos oficiais (Selic, CDI e IPCA), feriados bancários ANBIMA, DNS, certificados SSL, BGP/ASN, CEP e CNPJ da Receita Federal em milissegundos sem cadastro ou chaves de API. Micropagamentos por chamada em USDC na Base.</p>
             <div class="cta-group">
-                <a href="/agents" class="btn btn-primary">🤖 Central de Agentes IA</a>
-                <a href="#playground" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary);">⚡ Testar no Playground</a>
-                <a href="#console" class="btn btn-outline" onclick="switchTab('console')">Console e SDKs</a>
-                <a href="/llms.txt" class="btn btn-outline">Documentacao llms.txt</a>
-                <a href="/status" class="btn btn-outline">Resumo Gratuito (JSON)</a>
+                <a href="/agents" class="btn btn-primary" data-i18n="hero.btn.agents">🤖 Central de Agentes IA</a>
+                <a href="#playground" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary);" data-i18n="hero.btn.playground">⚡ Testar no Playground</a>
+                <a href="#console" class="btn btn-outline" onclick="switchTab('console')" data-i18n="hero.btn.console">Console e SDKs</a>
+                <a href="/llms.txt" class="btn btn-outline" data-i18n="hero.btn.llms">Documentação llms.txt</a>
+                <a href="/status" class="btn btn-outline" data-i18n="hero.btn.status">Resumo Gratuito (JSON)</a>
             </div>
         </section>
 
@@ -2102,74 +2161,74 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
         <!-- Comparativo e Calculadora de Economia: Tradicional vs Grid402 -->
         <section id="comparador" class="roi-calculator-box">
             <div class="playground-header-wrap">
-                <div class="hero-tag" style="margin-bottom: 0.4rem; background: rgba(0, 240, 255, 0.12); color: var(--accent); border: 1px solid rgba(0, 240, 255, 0.3);">Reducao Real de Custos para Startups e Agentes</div>
-                <h2>Por que pagar R$ 500 por mes se o seu agente pode pagar R$ 0,01 por consulta?</h2>
-                <p>Compare o modelo arcaico dos biros tradicionais (mensalidades obrigatorias, analise de credito e fidelidade de 12 meses) com o modelo aberto M2M do Grid402 liquidado via protocolo x402 na Base.</p>
+                <div class="hero-tag" style="margin-bottom: 0.4rem; background: rgba(0, 240, 255, 0.12); color: var(--accent); border: 1px solid rgba(0, 240, 255, 0.3);" data-i18n="roi.tag">Redução Real de Custos para Startups e Agentes</div>
+                <h2 data-i18n="roi.title">Por que pagar R$ 500 por mês se o seu agente pode pagar R$ 0,01 por consulta?</h2>
+                <p data-i18n="roi.desc">Compare o modelo arcaico dos birôs tradicionais (mensalidades obrigatórias, análise de crédito e fidelidade de 12 meses) com o modelo aberto M2M do Grid402 liquidado via protocolo x402 na Base.</p>
             </div>
 
             <div class="roi-grid">
                 <!-- Coluna 1: Tabela Comparativa -->
                 <div class="roi-table-card">
                     <div>
-                        <div style="font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 0.75rem;">
-                            Comparativo Tecnico e Comercial
+                        <div style="font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 0.75rem;" data-i18n="roi.table.title">
+                            Comparativo Técnico e Comercial
                         </div>
                         <div class="roi-table-wrap">
                             <table class="roi-table">
                                 <thead>
                                     <tr>
-                                        <th>Criterio</th>
-                                        <th>Biros Tradicionais</th>
-                                        <th>Grid402 (x402)</th>
+                                        <th data-i18n="roi.table.th.criteria">Critério</th>
+                                        <th data-i18n="roi.table.th.trad">Birôs Tradicionais</th>
+                                        <th data-i18n="roi.table.th.grid">Grid402 (x402)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td><strong>Consulta CNPJ</strong></td>
-                                        <td class="col-trad">R$ 0,50 a R$ 2,50</td>
-                                        <td class="col-grid">R$ 0,01 (0.0020 USDC)</td>
+                                        <td><strong data-i18n="roi.table.cnpj">Consulta CNPJ</strong></td>
+                                        <td class="col-trad" data-i18n="roi.table.cnpj.trad">R$ 0,50 a R$ 2,50</td>
+                                        <td class="col-grid" data-i18n="roi.table.cnpj.grid">R$ 0,01 (0.0020 USDC)</td>
                                     </tr>
                                     <tr>
-                                        <td><strong>Mensalidade Minima</strong></td>
-                                        <td class="col-trad">R$ 500 a R$ 2.000 / mes</td>
-                                        <td class="col-grid">R$ 0,00 (Zero mensalidade)</td>
+                                        <td><strong data-i18n="roi.table.monthly">Mensalidade Mínima</strong></td>
+                                        <td class="col-trad" data-i18n="roi.table.monthly.trad">R$ 500 a R$ 2.000 / mês</td>
+                                        <td class="col-grid" data-i18n="roi.table.monthly.grid">R$ 0,00 (Zero mensalidade)</td>
                                     </tr>
                                     <tr>
-                                        <td><strong>Burocracia e Contrato</strong></td>
-                                        <td class="col-trad">Fidelidade 12 meses</td>
-                                        <td class="col-grid">Zero contrato, sem cadastro</td>
+                                        <td><strong data-i18n="roi.table.contract">Burocracia e Contrato</strong></td>
+                                        <td class="col-trad" data-i18n="roi.table.contract.trad">Fidelidade 12 meses</td>
+                                        <td class="col-grid" data-i18n="roi.table.contract.grid">Zero contrato, sem cadastro</td>
                                     </tr>
                                     <tr>
-                                        <td><strong>Autenticacao</strong></td>
-                                        <td class="col-trad">API Keys que expiram</td>
-                                        <td class="col-grid">Protocolo x402 nativo</td>
+                                        <td><strong data-i18n="roi.table.auth">Autenticação</strong></td>
+                                        <td class="col-trad" data-i18n="roi.table.auth.trad">API Keys que expiram</td>
+                                        <td class="col-grid" data-i18n="roi.table.auth.grid">Protocolo x402 nativo</td>
                                     </tr>
                                     <tr>
-                                        <td><strong>Garantia Matematica</strong></td>
-                                        <td class="col-trad">Nenhuma (dados crus)</td>
-                                        <td class="col-grid">Assinatura ECDSA secp256k1</td>
+                                        <td><strong data-i18n="roi.table.math">Garantia Matemática</strong></td>
+                                        <td class="col-trad" data-i18n="roi.table.math.trad">Nenhuma (dados crus)</td>
+                                        <td class="col-grid" data-i18n="roi.table.math.grid">Assinatura ECDSA secp256k1</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
-                    <div style="margin-top: 1rem; font-size: 0.78rem; color: var(--text-muted); line-height: 1.5;">
-                        * Valores de mercado baseados em planos de entrada dos principais biros de dados e compliance no Brasil.
+                    <div style="margin-top: 1rem; font-size: 0.78rem; color: var(--text-muted); line-height: 1.5;" data-i18n="roi.table.disclaimer">
+                        * Valores de mercado baseados em planos de entrada dos principais birôs de dados e compliance no Brasil.
                     </div>
                 </div>
 
                 <!-- Coluna 2: Calculadora Interativa de Economia -->
                 <div class="roi-calc-card">
-                    <div style="font-size: 0.95rem; font-weight: 700; color: #fff;">
+                    <div style="font-size: 0.95rem; font-weight: 700; color: #fff;" data-i18n="roi.calc.title">
                         Simulador de Economia em CNPJ e Dados
                     </div>
-                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
-                        Ajuste o volume mensal de consultas do seu robo ou sistema:
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;" data-i18n="roi.calc.subtitle">
+                        Ajuste o volume mensal de consultas do seu robô ou sistema:
                     </div>
 
                     <div class="roi-slider-wrap">
                         <div class="roi-slider-label">
-                            <span>Volume Mensal de Consultas:</span>
+                            <span data-i18n="roi.calc.label">Volume Mensal de Consultas:</span>
                             <span id="roi-vol-display" class="roi-slider-val">1.000 / mes</span>
                         </div>
                         <input type="range" id="roi-slider-input" class="roi-slider" min="100" max="20000" step="100" value="1000" oninput="updateRoiCalc(this.value)">
@@ -2184,11 +2243,11 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
 
                     <div class="roi-cost-summary">
                         <div class="roi-cost-item">
-                            <div class="roi-cost-item-label">Custo Tradicional</div>
+                            <div class="roi-cost-item-label" data-i18n="roi.calc.cost.trad">Custo Tradicional</div>
                             <div id="roi-cost-trad" class="roi-cost-item-val" style="color: #EF4444;">R$ 1.500,00</div>
                         </div>
                         <div class="roi-cost-item">
-                            <div class="roi-cost-item-label">Custo no Grid402</div>
+                            <div class="roi-cost-item-label" data-i18n="roi.calc.cost.grid">Custo no Grid402</div>
                             <div id="roi-cost-grid" class="roi-cost-item-val" style="color: var(--primary);">R$ 10,80</div>
                         </div>
                     </div>
@@ -2199,8 +2258,8 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                     </div>
 
                     <div style="display: flex; gap: 0.6rem; margin-top: 1.25rem;">
-                        <a href="/agents" class="btn-sm btn-primary" style="flex: 1; text-decoration: none; padding: 0.6rem; display: inline-block;">🤖 Integrar Agente IA</a>
-                        <a href="#playground" class="btn-sm btn-outline" style="flex: 1; text-decoration: none; padding: 0.6rem; display: inline-block; border-color: var(--primary); color: var(--primary);" onclick="selectPlaygroundPreset('cnpj')">⚡ Testar CNPJ</a>
+                        <a href="/agents" class="btn-sm btn-primary" style="flex: 1; text-decoration: none; padding: 0.6rem; display: inline-block;" data-i18n="roi.calc.btn.agents">🤖 Integrar Agente IA</a>
+                        <a href="#playground" class="btn-sm btn-outline" style="flex: 1; text-decoration: none; padding: 0.6rem; display: inline-block; border-color: var(--primary); color: var(--primary);" onclick="selectPlaygroundPreset('cnpj')" data-i18n="roi.calc.btn.test">⚡ Testar CNPJ</a>
                     </div>
                 </div>
             </div>
@@ -2209,9 +2268,9 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
         <!-- Playground Interativo e Verificador de Oraculo -->
         <section id="playground" class="protocol-box">
             <div class="playground-header-wrap">
-                <div class="hero-tag" style="margin-bottom: 0.4rem;">Auditoria Criptografica M2M</div>
-                <h2>Playground Interativo e Verificador de Oraculo</h2>
-                <p>Execute consultas reais nos <?php echo count($servicesCatalog); ?> micro-servicos do Grid402 em modo Sandbox gratuito ou simule o desafio x402. Valide instantaneamente a atestacao criptografica ECDSA secp256k1 (_oracle_proof) com o motor matematico em tempo real.</p>
+                <div class="hero-tag" style="margin-bottom: 0.4rem;" data-i18n="playground.tag">Auditoria Criptográfica M2M</div>
+                <h2 data-i18n="playground.title">Playground Interativo e Verificador de Oráculo</h2>
+                <p data-i18n="playground.desc">Execute consultas reais nos <?php echo count($servicesCatalog); ?> micro-serviços do Grid402 em modo Sandbox gratuito ou simule o desafio x402. Valide instantaneamente a atestação criptográfica ECDSA secp256k1 (_oracle_proof) com o motor matemático em tempo real.</p>
             </div>
 
             <!-- Presets de Micro-Servicos -->
@@ -2222,16 +2281,16 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             <!-- Barra de Controles e Alternador de Modo -->
             <div class="playground-toolbar">
                 <div class="mode-toggle-group">
-                    <button type="button" class="mode-toggle-btn active" id="btn-mode-challenge" onclick="setPlaygroundMode('challenge')">🔒 Desafio x402 (HTTP 402)</button>
-                    <button type="button" class="mode-toggle-btn" id="btn-mode-sandbox" onclick="setPlaygroundMode('sandbox')">🧪 Sandbox (3 testes/h)</button>
-                    <button type="button" class="mode-toggle-btn" id="btn-mode-manual" onclick="setPlaygroundMode('manual')">✍️ Validar JSON Externo</button>
+                    <button type="button" class="mode-toggle-btn active" id="btn-mode-challenge" onclick="setPlaygroundMode('challenge')" data-i18n="playground.btn.challenge">🔒 Desafio x402 (HTTP 402)</button>
+                    <button type="button" class="mode-toggle-btn" id="btn-mode-sandbox" onclick="setPlaygroundMode('sandbox')" data-i18n="playground.btn.sandbox">🧪 Sandbox (3 testes/h)</button>
+                    <button type="button" class="mode-toggle-btn" id="btn-mode-manual" onclick="setPlaygroundMode('manual')" data-i18n="playground.btn.manual">✍️ Validar JSON Externo</button>
                 </div>
                 <div class="playground-url-bar">
-                    <span>Rota:</span>
+                    <span data-i18n="playground.route">Rota:</span>
                     <span id="playground-endpoint-display" class="playground-url-pill">GET /api/v1/workdays</span>
                 </div>
                 <div>
-                    <button type="button" id="btn-run-query" class="btn-sm btn-primary" onclick="runPlaygroundQuery()">⚡ Executar Consulta</button>
+                    <button type="button" id="btn-run-query" class="btn-sm btn-primary" onclick="runPlaygroundQuery()" data-i18n="playground.btn.run">⚡ Executar Consulta</button>
                 </div>
             </div>
 
@@ -2240,13 +2299,13 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                 <!-- Coluna 1: Parametros ou Area de JSON Manual -->
                 <div class="playground-card" id="playground-col-params">
                     <div class="playground-card-title">
-                        <span id="playground-col-title">Configuracao da Consulta</span>
+                        <span id="playground-col-title" data-i18n="playground.config.title">Configuração da Consulta</span>
                         <span id="playground-service-badge" class="card-category">workdays</span>
                     </div>
 
                     <div id="playground-preset-controls">
                         <p id="playground-service-desc" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1rem;">
-                            Calculo de dias uteis bancarios ANBIMA e projecao de prazos D+N.
+                            Cálculo de dias úteis bancários ANBIMA e projeção de prazos D+N.
                         </p>
                         <div id="playground-params-inputs" style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem;">
                             <!-- Parametros dinamicos do preset atual -->
@@ -2254,13 +2313,13 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                     </div>
 
                     <div id="playground-manual-controls" style="display: none; flex-direction: column; height: 100%;">
-                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;">
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.75rem;" data-i18n="playground.manual.desc">
                             Cole abaixo qualquer resposta JSON retornada pelo Grid402 ou utilize um dos modelos de teste:
                         </p>
                         <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
-                            <button type="button" class="btn-sm" onclick="loadManualTemplate('valid')">Carregar Exemplo Valido</button>
-                            <button type="button" class="btn-sm" onclick="loadManualTemplate('tampered')">Carregar Exemplo Adulterado</button>
-                            <button type="button" class="btn-sm btn-primary" onclick="verifyManualPayload()">Auditar JSON</button>
+                            <button type="button" class="btn-sm" onclick="loadManualTemplate('valid')" data-i18n="playground.btn.template.valid">Carregar Modelo Válido</button>
+                            <button type="button" class="btn-sm" onclick="loadManualTemplate('tampered')" data-i18n="playground.btn.template.tampered">Carregar Modelo Adulterado (Falso)</button>
+                            <button type="button" class="btn-sm btn-primary" onclick="verifyManualPayload()" data-i18n="playground.btn.audit.manual">🔍 Auditar Assinatura deste JSON</button>
                         </div>
                         <textarea id="playground-manual-input" class="console-input" style="flex: 1; min-height: 220px; font-family: var(--font-mono); font-size: 0.8rem; resize: vertical;" placeholder="Cole o JSON da resposta contendo o bloco _oracle_proof..."></textarea>
                     </div>
@@ -2273,7 +2332,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                             <span id="playground-http-status" class="card-category">Pronto</span>
                             <span id="playground-latency-tag" class="card-category" style="display: none;"></span>
-                            <button type="button" class="btn-copy-json" id="btn-copy-playground" onclick="copyPlaygroundJson()">Copiar JSON</button>
+                            <button type="button" class="btn-copy-json" id="btn-copy-playground" onclick="copyPlaygroundJson()" data-i18n="playground.btn.copy">Copiar JSON</button>
                         </div>
                     </div>
                     <pre id="playground-json-viewer" class="json-viewer-pre">// O resultado da consulta ou da auditoria aparecera aqui...</pre>
@@ -2282,7 +2341,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                     <div id="playground-audit-card" class="audit-card" style="display: none;">
                         <div class="audit-card-header">
                             <div>
-                                <span style="font-weight: 700; color: #fff; font-size: 0.95rem;">Auditoria Criptografica</span>
+                                <span style="font-weight: 700; color: #fff; font-size: 0.95rem;" data-i18n="playground.audit.title">Motor de Auditoria Matemática ECDSA (Browser)</span>
                                 <span id="audit-engine-badge" style="font-size: 0.75rem; color: var(--accent); margin-left: 0.5rem; font-family: var(--font-mono);">OpenSSL C (secp256k1)</span>
                             </div>
                             <span id="audit-overall-badge" class="audit-badge badge-pending">AGUARDANDO ANALISE</span>
@@ -2294,11 +2353,11 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                                 <div id="audit-step-1-icon" class="audit-step-icon icon-pending">1</div>
                                 <div class="audit-step-body">
                                     <div class="audit-step-title">
-                                        <span>1. Integridade dos Dados (Payload Hash)</span>
+                                        <span data-i18n="playground.audit.s1.title">1. Canonicidade do Payload & Hash SHA-256</span>
                                         <span id="audit-step-1-status" class="card-category">Aguardando</span>
                                     </div>
-                                    <div class="audit-step-desc">
-                                        Calcula o hash SHA-256 dos campos do payload e confere se nao houve modificacao apos a assinatura.
+                                    <div class="audit-step-desc" data-i18n="playground.audit.s1.desc">
+                                        Reconstrói o payload normalizado em formato canônico e calcula o hash criptográfico:
                                     </div>
                                     <div id="audit-step-1-meta" class="audit-step-meta" style="display: none;"></div>
                                 </div>
@@ -2309,11 +2368,11 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                                 <div id="audit-step-2-icon" class="audit-step-icon icon-pending">2</div>
                                 <div class="audit-step-body">
                                     <div class="audit-step-title">
-                                        <span>2. Carteira Oficial do Oraculo (BaseScan)</span>
+                                        <span data-i18n="playground.audit.s2.title">2. Verificação da Assinatura secp256k1</span>
                                         <span id="audit-step-2-status" class="card-category">Aguardando</span>
                                     </div>
-                                    <div class="audit-step-desc">
-                                        Valida se o endereco recuperado corresponde a carteira oficial autorizada na rede Base.
+                                    <div class="audit-step-desc" data-i18n="playground.audit.s2.desc">
+                                        Valida matematicamente a assinatura digital DER/ECDSA contra o hash canônico.
                                     </div>
                                     <div id="audit-step-2-meta" class="audit-step-meta" style="display: none;"></div>
                                 </div>
@@ -2324,11 +2383,11 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                                 <div id="audit-step-3-icon" class="audit-step-icon icon-pending">3</div>
                                 <div class="audit-step-body">
                                     <div class="audit-step-title">
-                                        <span>3. Assinatura Criptografica ECDSA</span>
+                                        <span data-i18n="playground.audit.s3.title">3. Recuperação de Endereço do Oráculo</span>
                                         <span id="audit-step-3-status" class="card-category">Aguardando</span>
                                     </div>
-                                    <div class="audit-step-desc">
-                                        Comprova matematicamente a autoria do oraculo com a curva secp256k1 via OpenSSL.
+                                    <div class="audit-step-desc" data-i18n="playground.audit.s3.desc">
+                                        Confirma que a chave recuperada corresponde exatamente à identidade pública do oráculo oficial:
                                     </div>
                                     <div id="audit-step-3-meta" class="audit-step-meta" style="display: none;"></div>
                                 </div>
@@ -2341,17 +2400,17 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
 
         <!-- Console Interativo e Integrações -->
         <section id="console" class="protocol-box">
-            <h2>Console de Teste e Especificações de Integração</h2>
-            <p>Experimente as requisições em tempo real ou copie os snippets para seus agentes autônomos.</p>
+            <h2 data-i18n="console.title">Console de Teste e Especificações de Integração</h2>
+            <p data-i18n="console.desc">Experimente as requisições em tempo real ou copie os snippets para seus agentes autônomos.</p>
 
             <div class="tabs-header">
-                <button class="tab-btn active" onclick="switchTab('console')">⚡ Console Interativo</button>
-                <button class="tab-btn" onclick="switchTab('smithery')">📦 Smithery MCP (1 Clique)</button>
-                <button class="tab-btn" onclick="switchTab('agentkit')">🪙 Coinbase AgentKit (M2M)</button>
-                <button class="tab-btn" onclick="switchTab('python')">🐍 Python SDK</button>
-                <button class="tab-btn" onclick="switchTab('node')">🟢 Node.js SDK</button>
-                <button class="tab-btn" onclick="switchTab('curl')">💻 cURL CLI</button>
-                <button class="tab-btn" onclick="switchTab('badges')">🛡️ Badges SVG</button>
+                <button class="tab-btn active" onclick="switchTab('console')" data-i18n="console.tab.interactive">⚡ Console Interativo</button>
+                <button class="tab-btn" onclick="switchTab('smithery')" data-i18n="console.tab.smithery">📦 Smithery MCP (1 Clique)</button>
+                <button class="tab-btn" onclick="switchTab('agentkit')" data-i18n="console.tab.agentkit">🪙 Coinbase AgentKit (M2M)</button>
+                <button class="tab-btn" onclick="switchTab('python')" data-i18n="console.tab.python">🐍 Python SDK</button>
+                <button class="tab-btn" onclick="switchTab('node')" data-i18n="console.tab.node">🟢 Node.js SDK</button>
+                <button class="tab-btn" onclick="switchTab('curl')" data-i18n="console.tab.curl">💻 cURL CLI</button>
+                <button class="tab-btn" onclick="switchTab('badges')" data-i18n="console.tab.badges">🛡️ Badges SVG</button>
             </div>
 
             <!-- Tab 1: Console Interativo -->
@@ -2373,18 +2432,18 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                     <button type="button" class="btn-sm" onclick="runConsole('compliance')">Score 360 (/api/v1/compliance)</button>
                 </div>
                 <div class="input-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <input type="text" id="tx-input" class="console-input" style="flex: 1; min-width: 260px;" placeholder="Cole o hash de pagamento na Base (0x...) ou use 'demo' para simulação">
-                    <button type="button" class="btn-sm" onclick="runConsole('paid')">Enviar com X-Payment</button>
-                    <button type="button" class="btn-sm btn-primary" id="btn-web3-pay" onclick="payWithWeb3Wallet()">⚡ Pagar com Carteira Web3 (1 Clique)</button>
-                    <button type="button" class="btn-sm btn-outline" onclick="openWeb3Modal()" title="Abrir QR Code e instruções de pagamento">📱 QR Code / Celular</button>
-                    <button type="button" class="btn-sm btn-outline" onclick="runSandboxSimulation()" title="Simular pagamento gratuitamente no Modo Sandbox">🧪 Simular Sandbox (demo)</button>
+                    <input type="text" id="tx-input" class="console-input" style="flex: 1; min-width: 260px;" placeholder="Cole o hash de pagamento na Base (0x...) ou use 'demo' para simulação" data-i18n-placeholder="console.input.placeholder">
+                    <button type="button" class="btn-sm" onclick="runConsole('paid')" data-i18n="console.btn.send_payment">Enviar com X-Payment</button>
+                    <button type="button" class="btn-sm btn-primary" id="btn-web3-pay" onclick="payWithWeb3Wallet()" data-i18n="console.btn.web3_pay">⚡ Pagar com Carteira Web3 (1 Clique)</button>
+                    <button type="button" class="btn-sm btn-outline" onclick="openWeb3Modal()" title="Abrir QR Code e instruções de pagamento" data-i18n="console.btn.web3_qr">📱 QR Code / Celular</button>
+                    <button type="button" class="btn-sm btn-outline" onclick="runSandboxSimulation()" title="Simular pagamento gratuitamente no Modo Sandbox" data-i18n="console.btn.sandbox_demo">🧪 Simular Sandbox (demo)</button>
                 </div>
 
                 <!-- Card de Destaque da Amostra (Teaser Preview) -->
                 <div id="console-teaser-card" style="display: none; background: rgba(0, 240, 255, 0.05); border: 1px solid rgba(0, 240, 255, 0.3); border-radius: 10px; padding: 1.25rem; margin-top: 1rem; margin-bottom: 0.5rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 8px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <span style="background: var(--primary); color: #030712; font-weight: 700; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;">AMOSTRA GRATUITA ENCONTRADA</span>
+                            <span style="background: var(--primary); color: #030712; font-weight: 700; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;" data-i18n="console.teaser.badge">AMOSTRA GRATUITA ENCONTRADA</span>
                             <span id="teaser-title" style="font-weight: 700; color: #fff; font-size: 0.95rem;"></span>
                         </div>
                         <span id="teaser-badge-price" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent); font-weight: 600;"></span>
@@ -2392,18 +2451,21 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                     <div id="teaser-content" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 0.85rem; margin-bottom: 1rem;">
                     </div>
                     <div style="background: rgba(0, 0, 0, 0.25); border-radius: 6px; padding: 0.6rem 0.8rem; margin-bottom: 1rem; font-size: 0.8rem; color: var(--text-muted);">
-                        <strong>🔒 Campos protegidos que serão liberados no HTTP 200:</strong>
+                        <strong data-i18n="console.teaser.locked">🔒 Campos protegidos que serão liberados no HTTP 200:</strong>
                         <div id="teaser-locked-fields" style="margin-top: 4px; color: #94a3b8; font-family: var(--font-mono); font-size: 0.75rem;"></div>
                     </div>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                        <button class="btn btn-primary" onclick="payWithWeb3Wallet()" style="font-size: 0.85rem; padding: 0.5rem 1rem;">
+                        <button class="btn btn-primary" onclick="payWithWeb3Wallet()" style="font-size: 0.85rem; padding: 0.5rem 1rem;" data-i18n="console.teaser.unlock_btn">
                             ⚡ Desbloquear Dados Completos com Web3
                         </button>
-                        <button class="btn btn-outline" onclick="openWeb3Modal()" style="font-size: 0.85rem; padding: 0.5rem 0.9rem;">
+                        <button class="btn btn-outline" onclick="openWeb3Modal()" style="font-size: 0.85rem; padding: 0.5rem 0.9rem;" data-i18n="console.btn.web3_qr">
                             📱 Pagar com QR Code / Celular
                         </button>
-                        <button class="btn btn-outline" onclick="runSandboxSimulation()" style="font-size: 0.85rem; padding: 0.5rem 0.9rem;">
+                        <button class="btn btn-outline" onclick="runSandboxSimulation()" style="font-size: 0.85rem; padding: 0.5rem 0.9rem;" data-i18n="console.btn.sandbox_demo">
                             🧪 Testar via Sandbox (demo)
+                        </button>
+                        <button class="btn btn-outline" onclick="document.getElementById('console-teaser-card').style.display='none'" style="font-size: 0.85rem; padding: 0.5rem 0.9rem;" data-i18n="console.teaser.close_btn">
+                            ✕ Fechar Amostra
                         </button>
                     </div>
                 </div>
@@ -2546,7 +2608,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
             <!-- Tab 5: Badges -->
             <div id="tab-badges" class="tab-content">
-                <p style="color: var(--text-muted); margin-bottom: 1rem;">
+                <p style="color: var(--text-muted); margin-bottom: 1rem;" data-i18n="console.badges.intro">
                     Badges em SVG dinâmicos para embeddar no README do seu repositório no GitHub:
                 </p>
                 <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
@@ -2554,7 +2616,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                         <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; font-weight: 600;">Exemplo de Badge em Tempo Real:</div>
                         <img id="badge-preview-img" src="/badge/system.svg" alt="Badge Preview" style="height: 22px; display: block;" onerror="this.src='/badge.php?target=system'">
                     </div>
-                    <button class="btn-sm" onclick="copyBadgeMarkdown()">📋 Copiar Markdown</button>
+                    <button class="btn-sm" onclick="copyBadgeMarkdown()" data-i18n="console.badges.btn.copy">📋 Copiar Markdown</button>
                 </div>
                 <pre id="badge-markdown-code" class="code-block">[![Grid402 Hub](https://www.grid402.online/badge/system.svg)](https://www.grid402.online)</pre>
             </div>
@@ -2562,23 +2624,23 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
         <footer>
             <div>
-                <div>Grid402 // Open Data e Utility Hub • Base Mainnet</div>
-                <div style="margin-top: 4px; font-size: 0.78rem; color: #64748B;">
+                <div data-i18n="footer.hub">Grid402 // Open Data e Utility Hub • Base Mainnet</div>
+                <div style="margin-top: 4px; font-size: 0.78rem; color: #64748B;" id="footer-copyright-text">
                     © <?php echo date('Y'); ?> Grid402. Todos os direitos reservados. Licenciado sob Licença MIT.
                 </div>
             </div>
             <div>
-                <a href="/about">About</a> • 
-                <a href="/contact">Contact</a> • 
-                <a href="/terms" onclick="openLegalModal('terms'); return false;">Terms of Use</a> • 
-                <a href="/privacy" onclick="openLegalModal('privacy'); return false;">Privacy (LGPD)</a> • 
+                <a href="/about" data-i18n="nav.about">About</a> • 
+                <a href="/contact" data-i18n="nav.contact">Contact</a> • 
+                <a href="/terms" onclick="openLegalModal('terms'); return false;" data-i18n="nav.terms">Terms of Use</a> • 
+                <a href="/privacy" onclick="openLegalModal('privacy'); return false;" data-i18n="nav.privacy">Privacy (LGPD)</a> • 
                 <a href="/openapi.json" target="_blank">OpenAPI 3.1</a> • 
                 <a href="/llms.txt" target="_blank">llms.txt</a> • 
-                <span>Taxa: US$ <?php echo GRID402_PRICE_DISPLAY; ?> / consulta</span>
+                <span id="footer-fee-text">Taxa: US$ <?php echo GRID402_PRICE_DISPLAY; ?> / consulta</span>
             </div>
             <div class="footer-legal">
-                <p><strong>Direitos Autorais e Propriedade Intelectual:</strong> © <?php echo date('Y'); ?> Grid402. O software, arquitetura do servidor MCP e documentações são de titularidade do Grid402 e disponibilizados sob a Licença MIT. Os dados técnicos retornados provêm de registros públicos governamentais abertos, protocolos livres da internet (DNS, BGP/ASN, TLS/SSL) e fontes de domínio público, mantendo-se livres de qualquer exclusividade proprietária conforme a legislação vigente.</p>
-                <p style="margin-top: 0.5rem;"><strong>Isenção de Responsabilidade e Dados Públicos:</strong> O Grid402 é um hub utilitário de acesso a dados de domínio público e protocolos abertos de rede fornecido 'NO ESTADO EM QUE SE ENCONTRA' (AS-IS). Não tratamos dados pessoais sensíveis (PII) e operamos em estrita observância à Lei Geral de Proteção de Dados (Lei nº 13.709/2018) e ao Marco Civil da Internet (Lei nº 12.965/2014).</p>
+                <p><strong data-i18n="footer.ip.title">Direitos Autorais e Propriedade Intelectual:</strong> <span data-i18n="footer.ip.desc">© <?php echo date('Y'); ?> Grid402. O software, arquitetura do servidor MCP e documentações são de titularidade do Grid402 e disponibilizados sob a Licença MIT. Os dados técnicos retornados provêm de registros públicos governamentais abertos, protocolos livres da internet (DNS, BGP/ASN, TLS/SSL) e fontes de domínio público, mantendo-se livres de qualquer exclusividade proprietária conforme a legislação vigente.</span></p>
+                <p style="margin-top: 0.5rem;"><strong data-i18n="footer.disclaimer.title">Isenção de Responsabilidade e Dados Públicos:</strong> <span data-i18n="footer.disclaimer.desc">O Grid402 é um hub utilitário de acesso a dados de domínio público e protocolos abertos de rede fornecido 'NO ESTADO EM QUE SE ENCONTRA' (AS-IS). Não tratamos dados pessoais sensíveis (PII) e operamos em estrita observância à Lei Geral de Proteção de Dados (Lei nº 13.709/2018) e ao Marco Civil da Internet (Lei nº 12.965/2014).</span></p>
             </div>
         </footer>
 
@@ -2586,12 +2648,12 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
         <div id="legal-modal-overlay" class="modal-overlay" onclick="handleOverlayClick(event)">
             <div class="modal-card">
                 <div class="modal-header">
-                    <span class="modal-title" id="modal-title-text">Termos de Uso</span>
+                    <span class="modal-title" id="modal-title-text" data-i18n="modal.terms.title">Termos de Uso</span>
                     <button class="modal-close" onclick="closeLegalModal()">✕</button>
                 </div>
                 <div class="modal-tabs">
-                    <button id="modal-tab-terms-btn" class="modal-tab-btn active" onclick="switchLegalModal('terms')">Termos de Uso</button>
-                    <button id="modal-tab-privacy-btn" class="modal-tab-btn" onclick="switchLegalModal('privacy')">Privacidade e LGPD</button>
+                    <button id="modal-tab-terms-btn" class="modal-tab-btn active" onclick="switchLegalModal('terms')" data-i18n="modal.terms.tab">Termos de Uso</button>
+                    <button id="modal-tab-privacy-btn" class="modal-tab-btn" onclick="switchLegalModal('privacy')" data-i18n="modal.privacy.tab">Privacidade e LGPD</button>
                 </div>
                 <div class="modal-body" id="modal-body-content"></div>
             </div>
@@ -2603,7 +2665,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 <div class="modal-header">
                     <div style="display: flex; align-items: center; gap: 8px;">
                         <span style="font-size: 1.25rem;">⚡</span>
-                        <span class="modal-title">Pagamento Web3 (Base Mainnet)</span>
+                        <span class="modal-title" data-i18n="modal.web3.title">Pagamento Web3 (Base Mainnet)</span>
                     </div>
                     <button class="modal-close" onclick="closeWeb3Modal()">✕</button>
                 </div>
@@ -2612,8 +2674,8 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     <div id="web3-no-wallet-banner" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.85rem; color: #fde68a; display: flex; align-items: flex-start; gap: 10px;">
                         <span style="font-size: 1.2rem; line-height: 1;">ℹ️</span>
                         <div>
-                            <strong>Nenhuma extensão Web3 ativa detectada nesta aba</strong><br>
-                            Para pagar com 1 clique direto na página, é necessário ter a extensão MetaMask, Rabby ou Coinbase Wallet instalada e ativa. Ou pague pelo celular via QR Code abaixo.
+                            <strong data-i18n="modal.web3.no_wallet.title">Nenhuma extensão Web3 ativa detectada nesta aba</strong><br>
+                            <span data-i18n="modal.web3.no_wallet.desc">Para pagar com 1 clique direto na página, é necessário ter a extensão MetaMask, Rabby ou Coinbase Wallet instalada e ativa. Ou pague pelo celular via QR Code abaixo.</span>
                         </div>
                     </div>
 
@@ -2622,11 +2684,11 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                         <!-- Coluna 1: Celular / QR Code -->
                         <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: space-between;">
                             <div>
-                                <div style="font-weight: 700; color: #fff; margin-bottom: 0.5rem; font-size: 0.9rem;">📱 Pagar pelo Celular</div>
+                                <div style="font-weight: 700; color: #fff; margin-bottom: 0.5rem; font-size: 0.9rem;" data-i18n="modal.web3.col1.title">📱 Pagar pelo Celular</div>
                                 <div style="background: #fff; padding: 8px; border-radius: 8px; display: inline-block; margin-bottom: 0.6rem;">
                                     <img src="https://api.qrserver.com/v1/create-qr-code/?data=0xa31c31069c43ac1c0075a93c325b0dcd7744356c" alt="QR Code Carteira Oraculo" style="display: block; width: 130px; height: 130px;" />
                                 </div>
-                                <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;">
+                                <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;" data-i18n-html="modal.web3.col1.desc">
                                     Escaneie pelo app da MetaMask, Rainbow ou Coinbase Wallet e envie <strong><span id="web3-modal-price">0.0005</span> USDC</strong> na rede <strong>Base</strong>.
                                 </div>
                             </div>
@@ -2635,16 +2697,16 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                         <!-- Coluna 2: Instalação / Extensão no PC -->
                         <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; display: flex; flex-direction: column; justify-content: space-between;">
                             <div>
-                                <div style="font-weight: 700; color: #fff; margin-bottom: 0.5rem; font-size: 0.9rem;">💻 Extensão no Navegador</div>
-                                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.5;">
+                                <div style="font-weight: 700; color: #fff; margin-bottom: 0.5rem; font-size: 0.9rem;" data-i18n="modal.web3.col2.title">💻 Extensão no Navegador</div>
+                                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.5;" data-i18n="modal.web3.col2.desc">
                                     Instale a MetaMask para autorizar micropagamentos de USDC com apenas 1 clique em qualquer requisição.
                                 </p>
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 8px;">
-                                <a href="https://metamask.io/download/" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="justify-content: center; font-size: 0.85rem; padding: 0.6rem 0.8rem; text-decoration: none;">
+                                <a href="https://metamask.io/download/" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="justify-content: center; font-size: 0.85rem; padding: 0.6rem 0.8rem; text-decoration: none;" data-i18n="modal.web3.col2.btn.install">
                                     🦊 Instalar MetaMask
                                 </a>
-                                <button class="btn btn-outline" onclick="location.reload()" style="justify-content: center; font-size: 0.8rem; padding: 0.5rem;">
+                                <button class="btn btn-outline" onclick="location.reload()" style="justify-content: center; font-size: 0.8rem; padding: 0.5rem;" data-i18n="modal.web3.col2.btn.reload">
                                     🔄 Já instalei, recarregar
                                 </button>
                             </div>
@@ -2654,19 +2716,19 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     <!-- Dados Técnicos da Transferência -->
                     <div style="background: #030712; border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem 1rem; font-size: 0.8rem; font-family: var(--font-mono); margin-bottom: 1.25rem;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                            <span style="color: var(--text-muted);">Rede:</span>
+                            <span style="color: var(--text-muted);" data-i18n="modal.web3.network">Rede:</span>
                             <span style="color: var(--accent); font-weight: 600;">Base Mainnet (Chain ID 8453)</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                            <span style="color: var(--text-muted);">Token:</span>
+                            <span style="color: var(--text-muted);" data-i18n="modal.web3.token">Token:</span>
                             <span style="color: #fff;">USDC</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
-                            <span style="color: var(--text-muted);">Valor da Consulta:</span>
+                            <span style="color: var(--text-muted);" data-i18n="modal.web3.amount">Valor da Consulta:</span>
                             <span style="color: var(--primary); font-weight: 700;"><span id="web3-modal-price-detail">0.0005</span> USDC</span>
                         </div>
                         <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(255, 255, 255, 0.1);">
-                            <div style="color: var(--text-muted); margin-bottom: 4px; font-size: 0.75rem;">Endereço de Destino (Carteira do Oráculo):</div>
+                            <div style="color: var(--text-muted); margin-bottom: 4px; font-size: 0.75rem;" data-i18n="modal.web3.recipient">Endereço de Destino (Carteira do Oráculo):</div>
                             <div style="display: flex; gap: 8px; align-items: center;">
                                 <input type="text" id="web3-wallet-dest-input" readonly value="<?php echo GRID402_WALLET_ADDRESS; ?>" style="flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); color: #fff; padding: 6px 8px; border-radius: 6px; font-size: 0.75rem; font-family: var(--font-mono);" />
                                 <button type="button" class="btn-sm" onclick="copyOracleAddress()" id="btn-copy-oracle" style="font-size: 0.75rem; padding: 6px 10px; white-space: nowrap;">📋 Copiar</button>
@@ -2676,12 +2738,12 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
                     <!-- Inserção rápida de Hash para validação imediata -->
                     <div>
-                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #fff; margin-bottom: 6px;">
+                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #fff; margin-bottom: 6px;" data-i18n="modal.web3.confirm.desc">
                             Já enviou? Cole o hash da transação para desbloquear os dados:
                         </label>
                         <div style="display: flex; gap: 8px;">
                             <input type="text" id="web3-hash-direct-input" class="console-input" style="flex: 1; font-size: 0.8rem;" placeholder="0x... (Hash da transação gerado na Base)" />
-                            <button class="btn btn-primary" onclick="submitModalPaymentHash()" style="font-size: 0.8rem; padding: 0.6rem 1rem; white-space: nowrap;">
+                            <button class="btn btn-primary" onclick="submitModalPaymentHash()" style="font-size: 0.8rem; padding: 0.6rem 1rem; white-space: nowrap;" data-i18n="modal.web3.confirm.btn">
                                 ⚡ Desbloquear Consulta
                             </button>
                         </div>
@@ -3634,6 +3696,24 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 <p>Em observância ao Art. 15 da Lei nº 12.965/2014, os registros de conexão (endereço IP, data e hora) são mantidos por 6 meses sob sigilo.</p>
                 <h3>3. Contato</h3>
                 <p>Canal de comunicação sobre privacidade: <code>contato@grid402.online</code>.</p>
+            `,
+            terms_en: `
+                <h3>1. Purpose & Architecture</h3>
+                <p><strong>Grid402</strong> is an open-data microservices and network utility gateway designed for autonomous systems, AI agents, and developers. Services are provided "AS-IS", without warranties of fitness for a particular purpose.</p>
+                <h3>2. Public Domain & Open Standards</h3>
+                <p>All queries access public domain registries (PTAX exchange rates, market feeds, postal directories, and open internet protocols such as DNS, TLS, and BGP/ASN).</p>
+                <h3>3. x402 Micropayments & Finality</h3>
+                <p>Micropayments are settled in USDC on Base Mainnet (Chain ID 8453) with immediate on-chain finality.</p>
+                <h3>4. Copyright & Open Source Licensing</h3>
+                <p>The Grid402 software, client SDKs (TypeScript, Python), and MCP specifications are licensed under the terms of the <strong>MIT License</strong>. Data sources originate from open public registries, without proprietary claims over public records.</p>
+            `,
+            privacy_en: `
+                <h3>1. Data Protection & Privacy Compliance</h3>
+                <p>Grid402 does not collect, store, or process sensitive Personally Identifiable Information (PII). Our microservices perform technical network diagnostics and public data lookups.</p>
+                <h3>2. Access Logs</h3>
+                <p>In accordance with statutory internet regulations, connection logs (IP address, timestamp) are retained securely for network telemetry and anti-abuse purposes.</p>
+                <h3>3. Contact</h3>
+                <p>Privacy inquiries and support: <code>contato@grid402.online</code>.</p>
             `
         };
 
@@ -3649,15 +3729,16 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             const body = document.getElementById('modal-body-content');
             const termsBtn = document.getElementById('modal-tab-terms-btn');
             const privacyBtn = document.getElementById('modal-tab-privacy-btn');
+            const isEn = (typeof currentLanguage !== 'undefined' && currentLanguage === 'en');
 
             if (tab === 'privacy') {
-                title.textContent = 'Política de Privacidade e LGPD';
-                body.innerHTML = legalContent.privacy;
+                title.textContent = isEn ? 'Privacy Policy' : 'Política de Privacidade e LGPD';
+                body.innerHTML = isEn ? legalContent.privacy_en : legalContent.privacy;
                 termsBtn.classList.remove('active');
                 privacyBtn.classList.add('active');
             } else {
-                title.textContent = 'Termos de Uso';
-                body.innerHTML = legalContent.terms;
+                title.textContent = isEn ? 'Terms of Use' : 'Termos de Uso';
+                body.innerHTML = isEn ? legalContent.terms_en : legalContent.terms;
                 privacyBtn.classList.remove('active');
                 termsBtn.classList.add('active');
             }
@@ -3736,33 +3817,43 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             const descEl = document.getElementById('roi-savings-sub');
             const slider = document.getElementById('roi-slider-input');
 
+            const isEn = (typeof currentLanguage !== 'undefined' && currentLanguage === 'en');
+
             if (slider) {
                 slider.value = count;
             }
             if (displayEl) {
-                displayEl.textContent = count.toLocaleString('pt-BR') + ' / mes';
+                displayEl.textContent = count.toLocaleString(isEn ? 'en-US' : 'pt-BR') + (isEn ? ' / month' : ' / mes');
             }
 
-            // Modelo Tradicional: R$ 500 mensalidade base + R$ 1,00 por consulta media
-            const costTrad = 500 + (count * 1.00);
+            // Modelo Tradicional: R$ 500 (~$95) mensalidade base + R$ 1,00 ($0.19) por consulta media
+            const costTrad = isEn ? (95 + (count * 0.19)) : (500 + (count * 1.00));
 
-            // Grid402: 0.0020 USDC (~R$ 0,0108 por consulta com cambio 5.42)
-            const costGrid = count * (0.0020 * 5.42);
+            // Grid402: 0.0020 USDC por consulta
+            const costGrid = isEn ? (count * 0.0020) : (count * (0.0020 * 5.42));
 
             const savings = Math.max(0, costTrad - costGrid);
             const savingsPct = Math.round((savings / costTrad) * 100);
 
             if (tradEl) {
-                tradEl.textContent = 'R$ ' + costTrad.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                tradEl.textContent = isEn 
+                    ? '$ ' + costTrad.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    : 'R$ ' + costTrad.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             }
             if (gridEl) {
-                gridEl.textContent = 'R$ ' + costGrid.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                gridEl.textContent = isEn
+                    ? '$ ' + costGrid.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    : 'R$ ' + costGrid.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             }
             if (savingsEl) {
-                savingsEl.textContent = 'R$ ' + savings.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                savingsEl.textContent = isEn
+                    ? '$ ' + savings.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    : 'R$ ' + savings.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             }
             if (descEl) {
-                descEl.textContent = 'Economia estimada de ' + savingsPct + '% todos os meses!';
+                descEl.textContent = isEn
+                    ? 'Estimated monthly savings of ' + savingsPct + '%!'
+                    : 'Economia estimada de ' + savingsPct + '% todos os meses!';
             }
         }
 
@@ -3881,5 +3972,6 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             }
         }
     </script>
+    <script src="/assets/js/i18n.js"></script>
 </body>
 </html>
