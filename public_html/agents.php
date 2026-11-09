@@ -56,12 +56,14 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
             padding: 0;
             margin: 0;
             -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
         }
 
         .container {
             max-width: 1040px;
             margin: 0 auto;
             padding: 32px 20px 80px 20px;
+            width: 100%;
         }
 
         header {
@@ -240,14 +242,23 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
             border-color: var(--emerald);
         }
 
+        .table-wrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid var(--border-dim);
+            background: var(--bg-card);
+            margin-bottom: 40px;
+        }
+
         table {
             width: 100%;
+            min-width: 580px;
             border-collapse: collapse;
-            margin-bottom: 40px;
-            background: var(--bg-card);
-            border-radius: 12px;
-            overflow: hidden;
-            border: 1px solid var(--border-dim);
+            background: transparent;
+            border: none;
+            margin-bottom: 0;
         }
 
         th, td {
@@ -255,6 +266,7 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
             text-align: left;
             border-bottom: 1px solid var(--border-dim);
             font-size: 0.9rem;
+            white-space: nowrap;
         }
 
         th {
@@ -353,11 +365,35 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
         }
 
         @media (max-width: 768px) {
-            h1 { font-size: 1.8rem; }
-            header { flex-direction: column; align-items: flex-start; gap: 16px; }
-            nav { flex-wrap: wrap; }
-            table { display: block; overflow-x: auto; }
-            footer { flex-direction: column; align-items: flex-start; }
+            .container { padding: 24px 16px 60px 16px; }
+            h1 { font-size: 1.8rem; line-height: 1.25; }
+            header { flex-direction: column; align-items: flex-start; gap: 16px; margin-bottom: 28px; }
+            nav { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+            nav a { padding: 6px 10px; font-size: 0.85rem; }
+            .features-grid { grid-template-columns: 1fr; gap: 14px; }
+            .hero { margin-bottom: 32px; }
+            .manifest-links { flex-direction: column; }
+            .manifest-btn { width: 100%; justify-content: center; }
+            footer { flex-direction: column; align-items: flex-start; gap: 12px; }
+        }
+
+        @media (max-width: 480px) {
+            .container { padding: 16px 12px 40px 12px; }
+            h1 { font-size: 1.45rem; }
+            .lead { font-size: 0.92rem; }
+            .badge { font-size: 0.72rem; }
+            .card { padding: 16px; }
+            .code-box { padding: 12px; font-size: 0.78rem; }
+            .copy-btn { top: 8px; right: 8px; padding: 4px 8px; font-size: 0.72rem; }
+            .tabs-header { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .tab-btn { font-size: 0.8rem; padding: 6px 10px; }
+            .brand-logo { font-size: 1.15rem; padding: 4px 8px; }
+            .brand-text { font-size: 0.82rem; }
+        }
+
+        @media (max-width: 360px) {
+            h1 { font-size: 1.3rem; }
+            nav a { font-size: 0.78rem; padding: 5px 8px; }
         }
     </style>
 </head>
@@ -474,6 +510,7 @@ curl -X POST "https://grid402.online/api/v1/verify" \
         <h2 class="section-title">Catalogo de Endpoints e Tarifas</h2>
         <p class="section-sub">Valores por chamada em USDC na rede Base Mainnet.</p>
 
+        <div class="table-wrap">
         <table>
             <thead>
                 <tr>
@@ -558,6 +595,7 @@ curl -X POST "https://grid402.online/api/v1/verify" \
                 </tr>
             </tbody>
         </table>
+        </div>
 
         <!-- Manifestos e Arquivos de Descoberta -->
         <h2 class="section-title">Manifestos para Descoberta Automatica</h2>

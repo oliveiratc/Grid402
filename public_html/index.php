@@ -142,12 +142,13 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
-        body { background-color: var(--bg); color: var(--text-main); font-family: var(--font-sans); line-height: 1.6; padding: 2rem 1rem; }
-        .page-wrap { max-width: 820px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2.5rem; }
+        body { background-color: var(--bg); color: var(--text-main); font-family: var(--font-sans); line-height: 1.6; padding: 2rem 1rem; overflow-x: hidden; }
+        .page-wrap { max-width: 820px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2.5rem; width: 100%; }
         header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
-        .nav-links a { color: var(--text-muted); text-decoration: none; margin-left: 1.25rem; font-size: 0.9rem; font-weight: 500; }
+        .nav-links { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+        .nav-links a { color: var(--text-muted); text-decoration: none; font-size: 0.9rem; font-weight: 500; }
         .nav-links a:hover, .nav-links a.active { color: var(--primary); }
-        h1 { font-size: 2rem; font-weight: 800; color: #fff; margin-bottom: 1.25rem; }
+        h1 { font-size: clamp(1.5rem, 5vw, 2rem); font-weight: 800; color: #fff; margin-bottom: 1.25rem; }
         h2 { font-size: 1.25rem; color: #fff; margin: 1.75rem 0 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
         p { color: var(--text-muted); margin-bottom: 1rem; }
         ul { margin: 0 0 1.25rem 1.5rem; color: var(--text-muted); }
@@ -157,6 +158,13 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
         .card-box { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem; }
         footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); font-size: 0.85rem; color: var(--text-muted); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
         .footer-links a { color: var(--text-muted); margin-right: 1rem; }
+        @media (max-width: 600px) {
+            body { padding: 1rem 0.6rem; }
+            .page-wrap { padding: 1.25rem 0.85rem; border-radius: 8px; }
+            header { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+            .nav-links { gap: 0.5rem; }
+            footer { flex-direction: column; align-items: flex-start; }
+        }
     </style>
 </head>
 <body>
@@ -833,6 +841,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             line-height: 1.6;
             padding: 0 1.5rem;
             min-height: 100vh;
+            overflow-x: hidden;
         }
         p {
             text-align: justify;
@@ -842,6 +851,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             max-width: 1100px;
             margin: 0 auto;
             padding: 3rem 0;
+            width: 100%;
         }
         header {
             display: flex;
@@ -1328,8 +1338,16 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             flex-direction: column;
             justify-content: space-between;
         }
+        .roi-table-wrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            width: 100%;
+            margin: 0.5rem 0;
+            border-radius: 8px;
+        }
         .roi-table {
             width: 100%;
+            min-width: 440px;
             border-collapse: collapse;
             font-size: 0.86rem;
         }
@@ -1751,6 +1769,192 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
         .audit-step-meta a:hover {
             text-decoration: underline;
         }
+
+        /* Regras Globais de Responsividade Fluida */
+        @media (max-width: 960px) {
+            header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+                padding-bottom: 1.5rem;
+            }
+            .logo-wrap {
+                justify-content: space-between;
+                width: 100%;
+            }
+            .nav-links {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.65rem 1rem;
+                width: 100%;
+            }
+            .badge-live {
+                align-self: flex-start;
+                font-size: 0.75rem;
+            }
+            .roi-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            .playground-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 0 1rem;
+            }
+            .container {
+                padding: 2rem 0;
+            }
+            .hero {
+                margin: 2.25rem 0;
+            }
+            .hero h1 {
+                font-size: 2.1rem;
+            }
+            .hero p {
+                font-size: 1rem;
+            }
+            .protocol-box {
+                padding: 1.5rem 1.15rem;
+            }
+            .roi-calculator-box {
+                padding: 1.5rem 1.15rem;
+            }
+            .grid-services {
+                grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+                gap: 1rem;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .cta-group {
+                flex-direction: column;
+                width: 100%;
+            }
+            .cta-group .btn {
+                width: 100%;
+                justify-content: center;
+                text-align: center;
+            }
+            .playground-toolbar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.75rem;
+            }
+            .mode-toggle-group {
+                width: 100%;
+            }
+            .mode-toggle-btn {
+                flex: 1 1 auto;
+                text-align: center;
+                padding: 0.4rem 0.5rem;
+                font-size: 0.75rem;
+            }
+            .playground-url-bar {
+                width: 100%;
+                min-width: 0;
+                font-size: 0.75rem;
+                word-break: break-all;
+            }
+            .grid-services {
+                grid-template-columns: 1fr;
+            }
+            .roi-cost-summary {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+            .roi-presets-row {
+                flex-wrap: wrap;
+                gap: 0.4rem;
+            }
+            .roi-preset-btn {
+                flex: 1 1 45%;
+            }
+            footer {
+                flex-direction: column;
+                text-align: center;
+                align-items: center;
+                gap: 1.25rem;
+            }
+            .footer-links {
+                justify-content: center;
+                gap: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 0 0.65rem;
+            }
+            .hero h1 {
+                font-size: 1.65rem;
+                line-height: 1.25;
+            }
+            .hero-tag {
+                font-size: 0.8rem;
+            }
+            .playground-presets {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.45rem;
+            }
+            .preset-btn {
+                padding: 0.5rem 0.6rem;
+                font-size: 0.75rem;
+            }
+            .modal-card {
+                max-height: 90vh;
+                border-radius: 8px;
+            }
+            .modal-header {
+                padding: 1rem;
+            }
+            .modal-body {
+                padding: 1rem;
+                font-size: 0.8rem;
+            }
+            .input-group {
+                flex-direction: column;
+            }
+            .console-input {
+                width: 100%;
+                min-width: 0;
+            }
+            .console-actions {
+                flex-direction: column;
+            }
+            .console-actions .btn-sm {
+                width: 100%;
+                text-align: center;
+            }
+            .card {
+                padding: 1.15rem;
+            }
+            .audit-step-item {
+                padding: 0.65rem 0.75rem;
+                gap: 0.6rem;
+            }
+            .audit-step-meta {
+                font-size: 0.68rem;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .hero h1 {
+                font-size: 1.45rem;
+            }
+            .playground-presets {
+                grid-template-columns: 1fr;
+            }
+            .roi-preset-btn {
+                flex: 1 1 100%;
+            }
+            .nav-links a {
+                font-size: 0.8rem;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1819,42 +2023,44 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                         <div style="font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 0.75rem;">
                             Comparativo Tecnico e Comercial
                         </div>
-                        <table class="roi-table">
-                            <thead>
-                                <tr>
-                                    <th>Criterio</th>
-                                    <th>Biros Tradicionais</th>
-                                    <th>Grid402 (x402)</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td><strong>Consulta CNPJ</strong></td>
-                                    <td class="col-trad">R$ 0,50 a R$ 2,50</td>
-                                    <td class="col-grid">R$ 0,01 (0.0020 USDC)</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Mensalidade Minima</strong></td>
-                                    <td class="col-trad">R$ 500 a R$ 2.000 / mes</td>
-                                    <td class="col-grid">R$ 0,00 (Zero mensalidade)</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Burocracia e Contrato</strong></td>
-                                    <td class="col-trad">Fidelidade 12 meses</td>
-                                    <td class="col-grid">Zero contrato, sem cadastro</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Autenticacao</strong></td>
-                                    <td class="col-trad">API Keys que expiram</td>
-                                    <td class="col-grid">Protocolo x402 nativo</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Garantia Matematica</strong></td>
-                                    <td class="col-trad">Nenhuma (dados crus)</td>
-                                    <td class="col-grid">Assinatura ECDSA secp256k1</td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="roi-table-wrap">
+                            <table class="roi-table">
+                                <thead>
+                                    <tr>
+                                        <th>Criterio</th>
+                                        <th>Biros Tradicionais</th>
+                                        <th>Grid402 (x402)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td><strong>Consulta CNPJ</strong></td>
+                                        <td class="col-trad">R$ 0,50 a R$ 2,50</td>
+                                        <td class="col-grid">R$ 0,01 (0.0020 USDC)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Mensalidade Minima</strong></td>
+                                        <td class="col-trad">R$ 500 a R$ 2.000 / mes</td>
+                                        <td class="col-grid">R$ 0,00 (Zero mensalidade)</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Burocracia e Contrato</strong></td>
+                                        <td class="col-trad">Fidelidade 12 meses</td>
+                                        <td class="col-grid">Zero contrato, sem cadastro</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Autenticacao</strong></td>
+                                        <td class="col-trad">API Keys que expiram</td>
+                                        <td class="col-grid">Protocolo x402 nativo</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Garantia Matematica</strong></td>
+                                        <td class="col-trad">Nenhuma (dados crus)</td>
+                                        <td class="col-grid">Assinatura ECDSA secp256k1</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                     <div style="margin-top: 1rem; font-size: 0.78rem; color: var(--text-muted); line-height: 1.5;">
                         * Valores de mercado baseados em planos de entrada dos principais biros de dados e compliance no Brasil.

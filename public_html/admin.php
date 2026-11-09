@@ -827,11 +827,13 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             font-family: var(--font-sans);
             padding: 0 1.5rem;
             min-height: 100vh;
+            overflow-x: hidden;
         }
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 2.5rem 0 4rem;
+            width: 100%;
         }
         header {
             display: flex;
@@ -1051,15 +1053,21 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
         /* Tabela */
         .table-wrap {
             overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
             border-radius: 8px;
             border: 1px solid var(--border);
             background: #030712;
+            width: 100%;
         }
         table {
             width: 100%;
+            min-width: 720px;
             border-collapse: collapse;
             font-size: 0.82rem;
             text-align: left;
+        }
+        th, td {
+            white-space: nowrap;
         }
         th {
             background: rgba(255,255,255,0.02);
@@ -1134,6 +1142,127 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             cursor: pointer; padding: 0.25rem;
         }
         .modal-close:hover { color: #fff; }
+
+        /* Regras de Responsividade Fluida para o Admin */
+        @media (max-width: 860px) {
+            header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+                padding-bottom: 1.5rem;
+                margin-bottom: 1.75rem;
+            }
+            .logo-wrap {
+                justify-content: space-between;
+                width: 100%;
+            }
+            .user-nav {
+                width: 100%;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            .btn-outline {
+                flex: 1 1 auto;
+                justify-content: center;
+                text-align: center;
+                font-size: 0.75rem;
+                padding: 0.45rem 0.65rem;
+            }
+            .analytics-row {
+                grid-template-columns: 1fr;
+                gap: 1.25rem;
+                margin-bottom: 1.75rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 0 0.85rem;
+            }
+            .container {
+                padding: 1.5rem 0 3rem;
+            }
+            .kpi-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.85rem;
+                margin-bottom: 1.75rem;
+            }
+            .feed-toolbar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.75rem;
+            }
+            .filter-group {
+                width: 100%;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.35rem;
+            }
+            .filter-btn {
+                flex: 1 1 auto;
+                text-align: center;
+                padding: 0.4rem 0.5rem;
+                font-size: 0.72rem;
+            }
+            .search-wrap {
+                width: 100%;
+                min-width: 0;
+                max-width: 100%;
+            }
+            .search-input {
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 0 0.6rem;
+            }
+            .kpi-grid {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+            .kpi-card {
+                padding: 1rem 1.15rem;
+            }
+            .kpi-value {
+                font-size: 1.55rem;
+            }
+            .panel {
+                padding: 1rem;
+            }
+            .bar-row {
+                font-size: 0.75rem;
+            }
+            .bar-label {
+                width: 75px;
+            }
+            .bar-track {
+                margin: 0 0.5rem;
+                height: 6px;
+            }
+            .bar-count {
+                width: 40px;
+            }
+            .modal-card {
+                margin: 0.75rem;
+                max-height: 90vh;
+            }
+            .modal-header {
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .logo-title {
+                font-size: 1.15rem;
+            }
+            .filter-btn {
+                flex: 1 1 100%;
+            }
+        }
     </style>
 </head>
 <body>
