@@ -618,20 +618,24 @@ if (!$isLoggedIn) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="csrf-token" content="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
         <title>Grid402 // Acesso Administrativo</title>
+        <link rel="icon" type="image/x-icon" href="/favicon.ico">
+        <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+        <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
         <style>
             :root {
-                --bg: #090D14;
-                --surface: #111726;
-                --border: #1E293B;
-                --text-main: #F1F5F9;
+                --bg: #060B19;
+                --surface: #0B132B;
+                --border: #1E2C4F;
+                --text-main: #F8FAFC;
                 --text-muted: #94A3B8;
-                --primary: #10B981;
-                --accent: #38BDF8;
+                --primary: #0052FF;
+                --accent: #00F0FF;
                 --danger: #EF4444;
-                --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+                --font-heading: 'Space Grotesk', system-ui, sans-serif;
+                --font-sans: 'Inter', system-ui, sans-serif;
                 --font-mono: 'JetBrains Mono', monospace;
             }
             * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -657,26 +661,26 @@ if (!$isLoggedIn) {
             .brand {
                 display: flex;
                 align-items: center;
-                gap: 0.75rem;
+                gap: 0.85rem;
                 margin-bottom: 2rem;
             }
             .brand-badge {
-                background: linear-gradient(135deg, #10B981, #06B6D4);
-                color: #000;
+                background: linear-gradient(135deg, #00F0FF, #0052FF);
+                color: #FFFFFF;
                 font-family: var(--font-mono);
                 font-weight: 800;
-                font-size: 0.85rem;
+                font-size: 0.8rem;
                 padding: 0.35rem 0.65rem;
                 border-radius: 6px;
             }
-            .brand-name { font-size: 1.35rem; font-weight: 800; }
-            h1 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; }
+            .brand-name { font-family: var(--font-heading); font-size: 1.35rem; font-weight: 700; letter-spacing: -0.5px; }
+            h1 { font-family: var(--font-heading); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: -0.5px; }
             p.sub { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.75rem; }
             .form-group { margin-bottom: 1.25rem; }
             label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; }
             input[type="text"], input[type="password"] {
                 width: 100%;
-                background: #030712;
+                background: #060B19;
                 border: 1px solid var(--border);
                 border-radius: 6px;
                 padding: 0.75rem 1rem;
@@ -688,7 +692,8 @@ if (!$isLoggedIn) {
             .btn {
                 width: 100%;
                 background: var(--primary);
-                color: #000;
+                color: #FFFFFF;
+                font-family: var(--font-heading);
                 font-weight: 700;
                 font-size: 0.95rem;
                 padding: 0.75rem;
@@ -709,7 +714,7 @@ if (!$isLoggedIn) {
                 margin-bottom: 1.5rem;
             }
             .alert-info {
-                background: rgba(56, 189, 248, 0.15);
+                background: rgba(0, 240, 255, 0.12);
                 border: 1px solid var(--accent);
                 color: #BAE6FD;
                 padding: 0.75rem 1rem;
@@ -731,8 +736,11 @@ if (!$isLoggedIn) {
     <body>
         <div class="card">
             <div class="brand">
-                <span class="brand-badge">GRID // 402</span>
-                <span class="brand-name">Painel Admin</span>
+                <img src="/assets/logo-icon-transparent.png" alt="Grid402" width="36" height="36">
+                <div>
+                    <div class="brand-name">Grid<span style="color: var(--accent);">402</span></div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted);">Acesso Administrativo</div>
+                </div>
             </div>
 
             <?php if (!$hasSetup): ?>
@@ -801,23 +809,30 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
     <title>Grid402 // Painel de Telemetria e Faturamento</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #090D14;
-            --surface: #111726;
-            --surface-hover: #162035;
-            --border: #1E293B;
-            --text-main: #F1F5F9;
+            --bg: #060B19;
+            --surface: #0B132B;
+            --surface-hover: #111C38;
+            --border: #1E2C4F;
+            --border-glow: rgba(0, 240, 255, 0.25);
+            --text-main: #F8FAFC;
             --text-muted: #94A3B8;
-            --primary: #10B981;
-            --primary-glow: rgba(16, 185, 129, 0.15);
-            --accent: #38BDF8;
+            --primary: #0052FF;
+            --primary-glow: rgba(0, 82, 255, 0.25);
+            --secondary: #00F0FF;
+            --accent: #00F0FF;
+            --accent-glow: rgba(0, 240, 255, 0.2);
             --warning: #F59E0B;
             --danger: #EF4444;
-            --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+            --font-heading: 'Space Grotesk', system-ui, sans-serif;
+            --font-sans: 'Inter', system-ui, sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -829,6 +844,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             min-height: 100vh;
             overflow-x: hidden;
         }
+        h1, h2, h3, h4 { font-family: var(--font-heading); letter-spacing: -0.5px; }
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -847,23 +863,23 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
         }
         .logo-wrap { display: flex; align-items: center; gap: 0.85rem; }
         .logo-badge {
-            background: linear-gradient(135deg, #10B981, #06B6D4);
-            color: #000;
+            background: linear-gradient(135deg, #00F0FF, #0052FF);
+            color: #FFFFFF;
             font-family: var(--font-mono);
             font-weight: 800;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             padding: 0.35rem 0.65rem;
             border-radius: 6px;
         }
-        .logo-title { font-size: 1.4rem; font-weight: 800; }
+        .logo-title { font-family: var(--font-heading); font-size: 1.4rem; font-weight: 700; letter-spacing: -0.5px; }
         .user-nav { display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; flex-wrap: wrap; }
         .live-indicator {
             display: flex;
             align-items: center;
             gap: 0.45rem;
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            color: var(--primary);
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            color: var(--accent);
             padding: 0.35rem 0.75rem;
             border-radius: 9999px;
             font-family: var(--font-mono);
@@ -874,7 +890,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             width: 8px;
             height: 8px;
             border-radius: 50%;
-            background-color: var(--primary);
+            background-color: var(--accent);
             box-shadow: 0 0 8px var(--primary);
             animation: pulse 2s infinite;
         }
@@ -1269,8 +1285,12 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
     <div class="container">
         <header>
             <div class="logo-wrap">
-                <span class="logo-badge">GRID // 402</span>
-                <span class="logo-title">Monitoramento e Faturamento</span>
+                <a href="/" style="display: flex; align-items: center; gap: 0.75rem; text-decoration: none; color: inherit;">
+                    <img src="/assets/logo-icon-transparent.png" alt="Grid402" width="36" height="36" style="display: block;">
+                    <span class="logo-title">Grid<span style="color: var(--accent);">402</span></span>
+                </a>
+                <span class="logo-badge">ADMIN</span>
+                <span style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500; margin-left: 0.5rem;">Monitoramento e Faturamento</span>
             </div>
             <div class="user-nav">
                 <div class="live-indicator">

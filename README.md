@@ -1,9 +1,14 @@
+<p align="center">
+  <img src="public_html/assets/logo-horizontal-transparent.png" alt="Grid402 Logo" width="380">
+</p>
+
 # Grid402 // Hub de Utilitários de Rede e Dados Públicos Abertos
 
 [![CI](https://github.com/oliveiratc/Grid402/actions/workflows/ci.yml/badge.svg)](https://github.com/oliveiratc/Grid402/actions)
 ![Network](https://img.shields.io/badge/Network-Base_Mainnet_(8453)-0052FF?logo=coinbase)
 ![Payment](https://img.shields.io/badge/Payment-0.0005_a_0.0020_USDC-2775CA?logo=usd-coin)
-![Protocol](https://img.shields.io/badge/Protocol-HTTP_x402-10B981)
+![Protocol](https://img.shields.io/badge/Protocol-HTTP_x402-00F0FF)
+![Brand](https://img.shields.io/badge/Manual_da_Marca-Visual_Identity-0052FF)](MANUAL_DE_MARCA.md)
 ![PHP](https://img.shields.io/badge/PHP-8.1%20%7C%208.2%20%7C%208.3-777BB4?logo=php)
 ![Server](https://img.shields.io/badge/Server-Hostinger_LiteSpeed-blue)
 

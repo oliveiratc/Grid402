@@ -12,7 +12,7 @@
     "url": "https://grid402.online/openapi.json",
     "is_user_authenticated": false
   },
-  "logo_url": "https://grid402.online/badge/summary.svg",
+  "logo_url": "https://grid402.online/assets/logo-icon-transparent.png",
   "contact_email": "contato@grid402.online",
   "legal_info_url": "https://grid402.online/terms"
 }

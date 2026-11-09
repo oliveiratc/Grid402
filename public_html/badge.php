@@ -36,7 +36,7 @@ switch ($targetId) {
         $label = 'USD / BRL';
         $usd = $services['forex']['usd_brl'] ?? 5.50;
         $value = 'R$ ' . number_format((float)$usd, 3, ',', '.');
-        $color = '#10b981';
+        $color = '#0052FF';
         break;
 
     case 'crypto':
@@ -45,7 +45,7 @@ switch ($targetId) {
         $label = 'BTC / USD';
         $btc = $services['crypto']['btc_usd'] ?? 75000.0;
         $value = '$' . number_format((float)$btc, 0, '.', ',');
-        $color = '#10b981';
+        $color = '#0052FF';
         break;
 
     case 'eth':
@@ -53,33 +53,33 @@ switch ($targetId) {
         $label = 'ETH / USD';
         $eth = $services['crypto']['eth_usd'] ?? 3200.0;
         $value = '$' . number_format((float)$eth, 0, '.', ',');
-        $color = '#10b981';
+        $color = '#0052FF';
         break;
 
     case 'dns':
         $label = 'DNS Resolver';
         $value = 'ONLINE';
-        $color = '#10b981';
+        $color = '#0052FF';
         break;
 
     case 'ssl':
         $label = 'Inspetor SSL';
         $value = 'TLS 1.3';
-        $color = '#10b981';
+        $color = '#0052FF';
         break;
 
     case 'asn':
     case 'ip':
         $label = 'BGP / ASN';
         $value = 'ACTIVE';
-        $color = '#10b981';
+        $color = '#0052FF';
         break;
 
     case 'cep':
     case 'ibge':
         $label = 'CEP e IBGE';
         $value = 'ONLINE';
-        $color = '#10b981';
+        $color = '#0052FF';
         break;
 
     case 'system':
@@ -88,7 +88,7 @@ switch ($targetId) {
     default:
         $label = 'Grid402 Hub';
         $value = '6/6 ONLINE';
-        $color = '#10b981';
+        $color = '#0052FF';
         break;
 }
 
@@ -119,11 +119,11 @@ echo <<<SVG
     <rect width="{$totalWidth}" height="20" rx="3" fill="#fff"/>
   </clipPath>
   <g clip-path="url(#g402-clip)">
-    <rect width="{$labelWidth}" height="20" fill="#2d3748"/>
+    <rect width="{$labelWidth}" height="20" fill="#060B19"/>
     <rect x="{$labelWidth}" width="{$valueWidth}" height="20" fill="{$color}"/>
     <rect width="{$totalWidth}" height="20" fill="url(#g402-shine)"/>
   </g>
-  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="11">
+  <g fill="#F8FAFC" text-anchor="middle" font-family="'Space Grotesk',Inter,Verdana,sans-serif" text-rendering="geometricPrecision" font-size="11">
     <text aria-hidden="true" x="{$labelCenter}" y="15" fill="#010101" fill-opacity=".3">{$label}</text>
     <text x="{$labelCenter}" y="14">{$label}</text>
     <text aria-hidden="true" x="{$valueCenter}" y="15" fill="#010101" fill-opacity=".3">{$value}</text>

@@ -24,22 +24,33 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
     <link rel="help" type="text/markdown" href="/llms.txt">
     <link rel="service-meta" type="application/json" href="/.well-known/mcp.json">
     <link rel="service-desc" type="application/vnd.oai.openapi+json" href="/openapi.json">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-base: #090D14;
-            --bg-card: #0F172A;
-            --bg-hover: #1E293B;
-            --border-dim: #1E293B;
-            --border-glow: #10B981;
-            --text-main: #F1F5F9;
+            --bg-base: #060B19;
+            --bg-card: #0B132B;
+            --bg-hover: #111C38;
+            --border-dim: #1E2C4F;
+            --border-glow: #00F0FF;
+            --text-main: #F8FAFC;
             --text-dim: #94A3B8;
-            --emerald: #10B981;
-            --emerald-bg: rgba(16, 185, 129, 0.12);
-            --sky: #38BDF8;
-            --sky-bg: rgba(56, 189, 248, 0.12);
+            --primary: #0052FF;
+            --primary-bg: rgba(0, 82, 255, 0.15);
+            --cyan: #00F0FF;
+            --cyan-bg: rgba(0, 240, 255, 0.12);
+            --emerald: #00F0FF;
+            --emerald-bg: rgba(0, 240, 255, 0.12);
+            --sky: #00F0FF;
+            --sky-bg: rgba(0, 240, 255, 0.12);
             --amber: #F59E0B;
-            --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
-            --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-heading: 'Space Grotesk', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
 
         * {
@@ -57,6 +68,11 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
             margin: 0;
             -webkit-font-smoothing: antialiased;
             overflow-x: hidden;
+        }
+
+        h1, h2, h3, h4 {
+            font-family: var(--font-heading);
+            letter-spacing: -0.5px;
         }
 
         .container {
@@ -401,8 +417,11 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
     <div class="container">
         <header>
             <a href="/" class="brand">
-                <span class="brand-logo">GRID402</span>
-                <span class="brand-text">Brazil Public Data Hub</span>
+                <img src="/assets/logo-icon-transparent.png" alt="Grid402" width="38" height="38" style="display: block;">
+                <div>
+                    <div style="font-family: var(--font-heading); font-weight: 700; font-size: 1.35rem; line-height: 1.2; letter-spacing: -0.5px;">Grid<span style="color: var(--cyan);">402</span></div>
+                    <div class="brand-text">Central de Agentes IA & MCP</div>
+                </div>
             </a>
             <nav>
                 <a href="/">Inicio</a>

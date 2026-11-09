@@ -101,7 +101,7 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
           "@id": "https://grid402.online/#organization",
           "name": "Grid402",
           "url": "https://grid402.online",
-          "logo": "https://grid402.online/badge/summary.svg",
+          "logo": "https://grid402.online/assets/logo.png",
           "email": "contato@grid402.online",
           "telephone": "+55-11-95832-5848",
           "description": "Hub de micro-servicos publicos e oraculo de utilitarios de rede para agentes autonomos de IA sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.",
@@ -126,31 +126,41 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
       ]
     }
     </script>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #090D14;
-            --surface: #111726;
-            --border: #1E293B;
-            --text-main: #F1F5F9;
+            --bg: #060B19;
+            --surface: #0B132B;
+            --surface-hover: #111C38;
+            --border: #1E2C4F;
+            --border-glow: rgba(0, 240, 255, 0.25);
+            --text-main: #F8FAFC;
             --text-muted: #94A3B8;
-            --primary: #10B981;
-            --accent: #38BDF8;
-            --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+            --primary: #0052FF;
+            --primary-glow: rgba(0, 82, 255, 0.25);
+            --secondary: #00F0FF;
+            --accent: #00F0FF;
+            --accent-glow: rgba(0, 240, 255, 0.2);
+            --font-heading: 'Space Grotesk', system-ui, sans-serif;
+            --font-sans: 'Inter', system-ui, sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
         body { background-color: var(--bg); color: var(--text-main); font-family: var(--font-sans); line-height: 1.6; padding: 2rem 1rem; overflow-x: hidden; }
-        .page-wrap { max-width: 820px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2.5rem; width: 100%; }
+        .page-wrap { max-width: 820px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2.5rem; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
         header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
         .nav-links { display: flex; flex-wrap: wrap; gap: 0.75rem; }
-        .nav-links a { color: var(--text-muted); text-decoration: none; font-size: 0.9rem; font-weight: 500; }
-        .nav-links a:hover, .nav-links a.active { color: var(--primary); }
-        h1 { font-size: clamp(1.5rem, 5vw, 2rem); font-weight: 800; color: #fff; margin-bottom: 1.25rem; }
-        h2 { font-size: 1.25rem; color: #fff; margin: 1.75rem 0 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+        .nav-links a { color: var(--text-muted); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: color 0.2s; }
+        .nav-links a:hover, .nav-links a.active { color: var(--accent); }
+        h1, h2, h3 { font-family: var(--font-heading); }
+        h1 { font-size: clamp(1.5rem, 5vw, 2rem); font-weight: 700; color: var(--text-main); margin-bottom: 1.25rem; letter-spacing: -0.5px; }
+        h2 { font-size: 1.25rem; color: var(--text-main); margin: 1.75rem 0 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
         p { color: var(--text-muted); margin-bottom: 1rem; }
         ul { margin: 0 0 1.25rem 1.5rem; color: var(--text-muted); }
         li { margin-bottom: 0.5rem; }
@@ -158,7 +168,8 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
         a:hover { text-decoration: underline; }
         .card-box { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem; }
         footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border); font-size: 0.85rem; color: var(--text-muted); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
-        .footer-links a { color: var(--text-muted); margin-right: 1rem; }
+        .footer-links a { color: var(--text-muted); margin-right: 1rem; transition: color 0.2s; }
+        .footer-links a:hover { color: var(--accent); }
         @media (max-width: 600px) {
             body { padding: 1rem 0.6rem; }
             .page-wrap { padding: 1.25rem 0.85rem; border-radius: 8px; }
@@ -172,7 +183,10 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
     <div class="page-wrap">
         <header>
             <div>
-                <a href="/" style="font-weight: 800; font-size: 1.3rem; color: #fff; text-decoration: none;">Grid402</a>
+                <a href="/" style="display: flex; align-items: center; gap: 0.75rem; text-decoration: none;">
+                    <img src="/assets/logo-icon-transparent.png" alt="Grid402" width="34" height="34" style="border-radius: 6px;">
+                    <span style="font-family: var(--font-heading); font-weight: 700; font-size: 1.35rem; color: var(--text-main); letter-spacing: -0.5px;">Grid<span style="color: var(--accent);">402</span></span>
+                </a>
             </div>
             <nav class="nav-links">
                 <a href="/">Home</a>
@@ -363,7 +377,7 @@ if (!$isHomeRoute && !$isStatusRoute && !$isValidApiAction && !$isInstitutionalR
     http_response_code(404);
     if (str_contains($acceptHeader, 'text/html') && !str_starts_with($userAgent, 'curl/')) {
         header('Content-Type: text/html; charset=utf-8');
-        echo '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>404 - Pagina Nao Encontrada | Grid402</title><style>body{background:#090D14;color:#F1F5F9;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column}h1{font-size:3.5rem;margin:0;color:#10B981}p{color:#94A3B8;font-size:1.1rem}a{color:#38BDF8;text-decoration:none;font-weight:600}</style></head><body><h1>404</h1><p>A pagina ou rota solicitada nao existe no Grid402.</p><p><a href="/">Voltar a pagina inicial</a></p></body></html>';
+        echo '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><link rel="icon" type="image/x-icon" href="/favicon.ico"><title>404 - Pagina Nao Encontrada | Grid402</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet"><style>body{background:#060B19;color:#F8FAFC;font-family:\'Inter\',sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column;text-align:center;padding:1rem}h1{font-family:\'Space Grotesk\',sans-serif;font-size:4rem;margin:0.5rem 0 0.25rem;color:#00F0FF;letter-spacing:-1px}p{color:#94A3B8;font-size:1.1rem;margin:0.5rem 0 1.5rem}a{background:#0052FF;color:#FFF;padding:0.75rem 1.5rem;border-radius:8px;text-decoration:none;font-weight:600;transition:opacity 0.2s}a:hover{opacity:0.9}</style></head><body><img src="/assets/logo-icon-transparent.png" alt="Grid402" width="64" height="64"><h1>404</h1><p>A pagina ou rota solicitada nao existe no Grid402.</p><p><a href="/">Voltar a pagina inicial</a></p></body></html>';
     } else {
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
@@ -823,7 +837,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
           "@id": "https://grid402.online/#organization",
           "name": "Grid402",
           "url": "https://grid402.online",
-          "logo": "https://grid402.online/badge/summary.svg",
+          "logo": "https://grid402.online/assets/logo.png",
           "email": "contato@grid402.online",
           "telephone": "+55-11-95832-5848",
           "description": "Hub de micro-servicos publicos e oraculo de utilitarios de rede para agentes autonomos de IA sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.",
@@ -874,24 +888,30 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
       ]
     }
     </script>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #090D14;
-            --surface: #111726;
-            --surface-hover: #162035;
-            --border: #1E293B;
-            --border-glow: rgba(16, 185, 129, 0.2);
-            --text-main: #F1F5F9;
+            --bg: #060B19;
+            --surface: #0B132B;
+            --surface-hover: #111C38;
+            --border: #1E2C4F;
+            --border-glow: rgba(0, 240, 255, 0.25);
+            --text-main: #F8FAFC;
             --text-muted: #94A3B8;
-            --primary: #10B981;
-            --primary-glow: rgba(16, 185, 129, 0.15);
-            --accent: #38BDF8;
+            --primary: #0052FF;
+            --primary-glow: rgba(0, 82, 255, 0.25);
+            --secondary: #00F0FF;
+            --accent: #00F0FF;
+            --accent-glow: rgba(0, 240, 255, 0.2);
             --warning: #F59E0B;
             --danger: #EF4444;
-            --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+            --font-heading: 'Space Grotesk', system-ui, sans-serif;
+            --font-sans: 'Inter', system-ui, sans-serif;
             --font-mono: 'JetBrains Mono', monospace;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -904,6 +924,10 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             padding: 0 1.5rem;
             min-height: 100vh;
             overflow-x: hidden;
+        }
+        h1, h2, h3, h4 {
+            font-family: var(--font-heading);
+            letter-spacing: -0.5px;
         }
         p {
             text-align: justify;
@@ -938,7 +962,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             transition: color 0.2s;
         }
         .nav-links a:hover {
-            color: var(--primary);
+            color: var(--accent);
         }
         .info-section {
             background-color: var(--surface);
@@ -951,7 +975,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             font-size: 1.5rem;
             font-weight: 700;
             margin-bottom: 1rem;
-            color: #fff;
+            color: var(--text-main);
         }
         .info-section p {
             margin-bottom: 1rem;
@@ -1009,35 +1033,39 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             transition: color 0.2s;
         }
         .footer-links a:hover {
-            color: var(--primary);
+            color: var(--accent);
         }
         .logo-wrap {
             display: flex;
             align-items: center;
             gap: 0.85rem;
+            text-decoration: none;
+            color: inherit;
         }
         .logo-badge {
-            background: linear-gradient(135deg, #10B981, #06B6D4);
-            color: #000;
+            background: linear-gradient(135deg, #00F0FF, #0052FF);
+            color: #FFFFFF;
             font-family: var(--font-mono);
             font-weight: 800;
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             padding: 0.35rem 0.65rem;
             border-radius: 6px;
             letter-spacing: -0.5px;
         }
         .logo-title {
-            font-size: 1.4rem;
-            font-weight: 800;
+            font-family: var(--font-heading);
+            font-size: 1.45rem;
+            font-weight: 700;
             letter-spacing: -0.5px;
+            color: var(--text-main);
         }
         .badge-live {
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            background: var(--primary-glow);
-            color: var(--primary);
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            background: rgba(0, 240, 255, 0.08);
+            color: var(--accent);
+            border: 1px solid rgba(0, 240, 255, 0.3);
             padding: 0.35rem 0.85rem;
             border-radius: 9999px;
             font-size: 0.8rem;
@@ -1046,9 +1074,9 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
         .badge-pulse {
             width: 8px;
             height: 8px;
-            background-color: var(--primary);
+            background-color: var(--accent);
             border-radius: 50%;
-            box-shadow: 0 0 10px var(--primary);
+            box-shadow: 0 0 10px var(--accent);
             animation: pulse 2s infinite;
         }
         @keyframes pulse {
@@ -1070,7 +1098,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
         }
         .hero h1 {
             font-size: 2.6rem;
-            font-weight: 800;
+            font-weight: 700;
             line-height: 1.2;
             letter-spacing: -1px;
             margin-bottom: 1.25rem;
@@ -1105,16 +1133,16 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
         }
         .btn-primary {
             background-color: var(--primary);
-            color: #030712;
-            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+            color: #FFFFFF;
+            box-shadow: 0 0 20px rgba(0, 82, 255, 0.35);
         }
-        .btn-primary:hover { background-color: #059669; }
+        .btn-primary:hover { background-color: #003ECC; }
         .btn-outline {
             background-color: var(--surface);
             color: var(--text-main);
             border: 1px solid var(--border);
         }
-        .btn-outline:hover { background-color: var(--surface-hover); border-color: var(--accent); }
+        .btn-outline:hover { background-color: var(--surface-hover); border-color: var(--accent); color: #fff; }
 
         /* Grid de Serviços */
         .grid-services {
@@ -1271,7 +1299,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             padding: 1.25rem;
             font-family: var(--font-mono);
             font-size: 0.85rem;
-            color: #38BDF8;
+            color: var(--accent);
             overflow-x: auto;
             line-height: 1.5;
             max-height: 380px;
@@ -1351,7 +1379,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             font-weight: 600; cursor: pointer; text-align: center;
         }
         .modal-tab-btn.active {
-            color: var(--primary); border-bottom-color: var(--primary); background: rgba(16, 185, 129, 0.05);
+            color: var(--accent); border-bottom-color: var(--accent); background: rgba(0, 240, 255, 0.06);
         }
         .modal-body {
             padding: 1.5rem;
@@ -1371,8 +1399,8 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
 
         /* Comparador e Calculadora de Economia Tradicional vs Grid402 */
         .roi-calculator-box {
-            background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(3, 7, 18, 0.98));
-            border: 1px solid rgba(16, 185, 129, 0.25);
+            background: linear-gradient(145deg, rgba(11, 19, 43, 0.95), rgba(6, 11, 25, 0.98));
+            border: 1px solid rgba(0, 240, 255, 0.25);
             border-radius: 12px;
             padding: 2rem;
             margin: 2.5rem 0;
@@ -1392,7 +1420,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             }
         }
         .roi-table-card {
-            background: rgba(3, 7, 18, 0.75);
+            background: rgba(6, 11, 25, 0.75);
             border: 1px solid var(--border);
             border-radius: 10px;
             padding: 1.25rem;
@@ -1424,8 +1452,8 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
         }
         .roi-table td {
             padding: 0.75rem;
-            border-bottom: 1px solid rgba(30, 41, 59, 0.6);
-            color: var(--text);
+            border-bottom: 1px solid rgba(30, 44, 79, 0.6);
+            color: var(--text-main);
         }
         .roi-table tr:last-child td {
             border-bottom: none;
@@ -1435,12 +1463,12 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             font-weight: 600;
         }
         .roi-table .col-grid {
-            color: var(--primary);
+            color: var(--accent);
             font-weight: 700;
         }
         .roi-calc-card {
-            background: rgba(16, 185, 129, 0.04);
-            border: 1px solid rgba(16, 185, 129, 0.3);
+            background: rgba(0, 240, 255, 0.04);
+            border: 1px solid rgba(0, 240, 255, 0.3);
             border-radius: 10px;
             padding: 1.5rem;
             display: flex;
@@ -1463,16 +1491,16 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
         }
         .roi-slider-val {
             font-family: var(--font-mono);
-            color: var(--primary);
+            color: var(--accent);
             font-size: 1.15rem;
             font-weight: 700;
         }
         .roi-slider {
             width: 100%;
             height: 6px;
-            background: #1E293B;
+            background: #1E2C4F;
             border-radius: 4px;
-            accent-color: var(--primary);
+            accent-color: var(--accent);
             cursor: pointer;
             outline: none;
         }
@@ -1484,7 +1512,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
         .roi-preset-btn {
             flex: 1;
             padding: 0.35rem 0.5rem;
-            background: rgba(30, 41, 59, 0.5);
+            background: rgba(30, 44, 79, 0.5);
             border: 1px solid var(--border);
             border-radius: 6px;
             color: var(--text-muted);
@@ -1495,8 +1523,8 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
         }
         .roi-preset-btn:hover {
             color: #fff;
-            border-color: var(--primary);
-            background: rgba(16, 185, 129, 0.1);
+            border-color: var(--accent);
+            background: rgba(0, 240, 255, 0.1);
         }
         .roi-cost-summary {
             display: grid;
@@ -1505,7 +1533,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             margin: 1rem 0;
         }
         .roi-cost-item {
-            background: rgba(3, 7, 18, 0.6);
+            background: rgba(6, 11, 25, 0.6);
             border: 1px solid var(--border);
             border-radius: 8px;
             padding: 0.75rem;
@@ -1523,7 +1551,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             font-family: var(--font-mono);
         }
         .roi-savings-badge {
-            background: rgba(16, 185, 129, 0.12);
+            background: rgba(0, 82, 255, 0.12);
             border: 1px solid var(--primary);
             border-radius: 8px;
             padding: 1.1rem;
@@ -1532,7 +1560,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
         .roi-savings-num {
             font-size: 2.1rem;
             font-weight: 800;
-            color: var(--primary);
+            color: var(--accent);
             font-family: var(--font-mono);
             line-height: 1.1;
         }
@@ -1575,10 +1603,10 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             transform: translateY(-1px);
         }
         .preset-btn.active {
-            background: rgba(16, 185, 129, 0.1);
-            border-color: var(--primary);
+            background: rgba(0, 240, 255, 0.1);
+            border-color: var(--accent);
             color: #fff;
-            box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+            box-shadow: 0 0 12px rgba(0, 240, 255, 0.25);
         }
         .preset-btn-name {
             font-weight: 700;
@@ -1630,7 +1658,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
         }
         .mode-toggle-btn.active {
             background: var(--primary);
-            color: #030712;
+            color: #FFFFFF;
             font-weight: 700;
         }
         .playground-url-bar {
@@ -1644,7 +1672,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             min-width: 240px;
         }
         .playground-url-pill {
-            background: rgba(56, 189, 248, 0.1);
+            background: rgba(0, 240, 255, 0.1);
             color: var(--accent);
             padding: 0.25rem 0.6rem;
             border-radius: 4px;
@@ -1661,7 +1689,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             }
         }
         .playground-card {
-            background: #030712;
+            background: #060B19;
             border: 1px solid var(--border);
             border-radius: 10px;
             padding: 1.25rem;
@@ -1678,13 +1706,13 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             align-items: center;
         }
         .json-viewer-pre {
-            background: #020408;
-            border: 1px solid #1E293B;
+            background: #030712;
+            border: 1px solid #1E2C4F;
             border-radius: 8px;
             padding: 1rem;
             font-family: var(--font-mono);
             font-size: 0.8rem;
-            color: #38BDF8;
+            color: #00F0FF;
             overflow-x: auto;
             line-height: 1.45;
             max-height: 380px;
@@ -1706,7 +1734,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             border-color: var(--accent);
         }
         .audit-card {
-            background: rgba(17, 23, 38, 0.85);
+            background: rgba(11, 19, 43, 0.85);
             border: 1px solid var(--border);
             border-radius: 10px;
             padding: 1.25rem;
@@ -1714,8 +1742,8 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             transition: all 0.3s ease;
         }
         .audit-card.valid {
-            border-color: rgba(16, 185, 129, 0.5);
-            box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+            border-color: rgba(0, 240, 255, 0.5);
+            box-shadow: 0 0 20px rgba(0, 240, 255, 0.15);
         }
         .audit-card.invalid {
             border-color: rgba(239, 68, 68, 0.5);
@@ -1742,9 +1770,9 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             gap: 0.4rem;
         }
         .audit-badge.badge-valid {
-            background: rgba(16, 185, 129, 0.15);
-            color: var(--primary);
-            border: 1px solid rgba(16, 185, 129, 0.4);
+            background: rgba(0, 240, 255, 0.15);
+            color: var(--accent);
+            border: 1px solid rgba(0, 240, 255, 0.4);
         }
         .audit-badge.badge-invalid {
             background: rgba(239, 68, 68, 0.15);
@@ -1765,8 +1793,8 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             display: flex;
             gap: 0.85rem;
             align-items: flex-start;
-            background: rgba(3, 7, 18, 0.5);
-            border: 1px solid rgba(30, 41, 59, 0.6);
+            background: rgba(6, 11, 25, 0.5);
+            border: 1px solid rgba(30, 44, 79, 0.6);
             border-radius: 8px;
             padding: 0.75rem 0.9rem;
         }
@@ -1783,9 +1811,9 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             margin-top: 2px;
         }
         .audit-step-icon.icon-valid {
-            background: rgba(16, 185, 129, 0.2);
-            color: var(--primary);
-            border: 1px solid var(--primary);
+            background: rgba(0, 240, 255, 0.2);
+            color: var(--accent);
+            border: 1px solid var(--accent);
         }
         .audit-step-icon.icon-invalid {
             background: rgba(239, 68, 68, 0.2);
@@ -2022,16 +2050,17 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
 <body>
     <div class="container">
         <header>
-            <div class="logo-wrap">
+            <a href="/" class="logo-wrap">
+                <img src="/assets/logo-icon-transparent.png" alt="Grid402" width="38" height="38" style="display: block;">
+                <span class="logo-title">Grid<span style="color: var(--accent);">402</span></span>
                 <span class="logo-badge">x402</span>
-                <span class="logo-title">Grid402</span>
-            </div>
+            </a>
             <nav class="nav-links">
                 <a href="#services">Servicos</a>
-                <a href="#comparador" style="color: var(--primary); font-weight: 600;">Economia 98%</a>
+                <a href="#comparador" style="color: var(--accent); font-weight: 600;">Economia 98%</a>
                 <a href="#playground">Playground</a>
                 <a href="#console">Console</a>
-                <a href="/agents" style="color: var(--primary); font-weight: 600;">Agentes IA</a>
+                <a href="/agents" style="color: var(--accent); font-weight: 600;">Agentes IA</a>
                 <a href="/about">About</a>
                 <a href="/contact">Contact</a>
                 <a href="/terms">Terms</a>
@@ -2073,7 +2102,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
         <!-- Comparativo e Calculadora de Economia: Tradicional vs Grid402 -->
         <section id="comparador" class="roi-calculator-box">
             <div class="playground-header-wrap">
-                <div class="hero-tag" style="margin-bottom: 0.4rem; background: rgba(16, 185, 129, 0.15); color: var(--primary); border: 1px solid rgba(16, 185, 129, 0.3);">Reducao Real de Custos para Startups e Agentes</div>
+                <div class="hero-tag" style="margin-bottom: 0.4rem; background: rgba(0, 240, 255, 0.12); color: var(--accent); border: 1px solid rgba(0, 240, 255, 0.3);">Reducao Real de Custos para Startups e Agentes</div>
                 <h2>Por que pagar R$ 500 por mes se o seu agente pode pagar R$ 0,01 por consulta?</h2>
                 <p>Compare o modelo arcaico dos biros tradicionais (mensalidades obrigatorias, analise de credito e fidelidade de 12 meses) com o modelo aberto M2M do Grid402 liquidado via protocolo x402 na Base.</p>
             </div>
@@ -2352,7 +2381,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                 </div>
 
                 <!-- Card de Destaque da Amostra (Teaser Preview) -->
-                <div id="console-teaser-card" style="display: none; background: rgba(16, 185, 129, 0.05); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 1.25rem; margin-top: 1rem; margin-bottom: 0.5rem;">
+                <div id="console-teaser-card" style="display: none; background: rgba(0, 240, 255, 0.05); border: 1px solid rgba(0, 240, 255, 0.3); border-radius: 10px; padding: 1.25rem; margin-top: 1rem; margin-bottom: 0.5rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 8px;">
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <span style="background: var(--primary); color: #030712; font-weight: 700; font-size: 0.75rem; padding: 2px 8px; border-radius: 4px;">AMOSTRA GRATUITA ENCONTRADA</span>
@@ -2626,7 +2655,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     <div style="background: #030712; border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem 1rem; font-size: 0.8rem; font-family: var(--font-mono); margin-bottom: 1.25rem;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
                             <span style="color: var(--text-muted);">Rede:</span>
-                            <span style="color: #38bdf8; font-weight: 600;">Base Mainnet (Chain ID 8453)</span>
+                            <span style="color: var(--accent); font-weight: 600;">Base Mainnet (Chain ID 8453)</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
                             <span style="color: var(--text-muted);">Token:</span>
