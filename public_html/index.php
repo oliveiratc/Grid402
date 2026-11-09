@@ -104,14 +104,6 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
           "email": "contato@grid402.online",
           "telephone": "+55-11-95832-5848",
           "description": "Hub de micro-servicos publicos e oraculo de utilitarios de rede para agentes autonomos de IA sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.",
-          "address": {
-            "@type": "PostalAddress",
-            "streetAddress": "Avenida Paulista, 1000",
-            "addressLocality": "Sao Paulo",
-            "addressRegion": "SP",
-            "postalCode": "01310-100",
-            "addressCountry": "BR"
-          },
           "priceRange": "$0.0005 - $0.0020",
           "sameAs": [
             "https://github.com/oliveiratc/Grid402",
@@ -218,10 +210,9 @@ if ($pageParam === 'about' || $requestPath === '/about') {
             <li><strong>Protocolo x402:</strong> Implementacao nativa do codigo HTTP 402 Payment Required para Machine-to-Machine (M2M).</li>
             <li><strong>Open Source:</strong> Codigo fonte livre sob Licenca MIT disponivel para auditoria publica.</li>
         </ul>
-        <h2>Informacoes Institucionais e Endereco</h2>
+        <h2>Informacoes Institucionais</h2>
         <div class="card-box">
             <p><strong>Organizacao:</strong> Grid402 Network Intelligence</p>
-            <p><strong>Endereco Fisico:</strong> Avenida Paulista, 1000, Bela Vista, Sao Paulo - SP, CEP 01310-100, Brasil</p>
             <p><strong>Email de Suporte:</strong> <a href="mailto:contato@grid402.online">contato@grid402.online</a></p>
             <p><strong>Central Telefonica:</strong> <a href="tel:+5511958325848">+55 11 95832-5848</a></p>
             <p><strong>Carteira Oraculo:</strong> <a href="https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c" target="_blank" rel="noopener noreferrer">0xa31c31069c43ac1c0075a93c325b0dcd7744356c</a></p>
@@ -236,13 +227,6 @@ if ($pageParam === 'about' || $requestPath === '/about') {
             'network' => 'Base Mainnet',
             'chain_id' => 8453,
             'oracle_wallet' => '0xa31c31069c43ac1c0075a93c325b0dcd7744356c',
-            'address' => [
-                'street' => 'Avenida Paulista, 1000',
-                'city' => 'Sao Paulo',
-                'state' => 'SP',
-                'postal_code' => '01310-100',
-                'country' => 'Brasil'
-            ],
             'license' => 'MIT',
             'sdks' => [
                 'python' => 'https://pypi.org/project/grid402/',
@@ -265,7 +249,6 @@ if ($pageParam === 'contact' || $requestPath === '/contact') {
             <p><strong>Email de Suporte Geral e Integracoes:</strong> <a href="mailto:contato@grid402.online">contato@grid402.online</a></p>
             <p><strong>Encarregado de Dados (DPO / LGPD):</strong> <a href="mailto:contato@grid402.online">contato@grid402.online</a></p>
             <p><strong>Central Telefonica:</strong> <a href="tel:+5511958325848">+55 11 95832-5848</a></p>
-            <p><strong>Endereco Fisico:</strong> Avenida Paulista, 1000, Bela Vista, Sao Paulo - SP, CEP 01310-100, Brasil</p>
         </div>
         <h2>Ecossistema e Codigo Aberto</h2>
         <ul>
@@ -282,13 +265,6 @@ if ($pageParam === 'contact' || $requestPath === '/contact') {
             'support_email' => 'contato@grid402.online',
             'dpo_email' => 'contato@grid402.online',
             'telephone' => '+55-11-95832-5848',
-            'address' => [
-                'street' => 'Avenida Paulista, 1000',
-                'city' => 'Sao Paulo',
-                'state' => 'SP',
-                'postal_code' => '01310-100',
-                'country' => 'Brasil'
-            ],
             'github' => 'https://github.com/oliveiratc/Grid402',
             'website' => 'https://grid402.online'
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -781,14 +757,6 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
           "email": "contato@grid402.online",
           "telephone": "+55-11-95832-5848",
           "description": "Hub de micro-servicos publicos e oraculo de utilitarios de rede para agentes autonomos de IA sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.",
-          "address": {
-            "@type": "PostalAddress",
-            "streetAddress": "Avenida Paulista, 1000",
-            "addressLocality": "Sao Paulo",
-            "addressRegion": "SP",
-            "postalCode": "01310-100",
-            "addressCountry": "BR"
-          },
           "priceRange": "$0.0005 - $0.0020",
           "sameAs": [
             "https://github.com/oliveiratc/Grid402",
