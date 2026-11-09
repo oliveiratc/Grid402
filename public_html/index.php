@@ -1329,6 +1329,171 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
         .modal-body h3 { font-size: 1rem; color: #fff; margin: 1.25rem 0 0.5rem; }
         .modal-body h3:first-child { margin-top: 0; }
 
+        /* Comparador e Calculadora de Economia Tradicional vs Grid402 */
+        .roi-calculator-box {
+            background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(3, 7, 18, 0.98));
+            border: 1px solid rgba(16, 185, 129, 0.25);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2.5rem 0;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+        }
+        .roi-grid {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 2rem;
+            margin-top: 1.5rem;
+            align-items: stretch;
+        }
+        @media (max-width: 900px) {
+            .roi-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+        }
+        .roi-table-card {
+            background: rgba(3, 7, 18, 0.75);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .roi-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.86rem;
+        }
+        .roi-table th {
+            text-align: left;
+            padding: 0.65rem 0.75rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .roi-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid rgba(30, 41, 59, 0.6);
+            color: var(--text);
+        }
+        .roi-table tr:last-child td {
+            border-bottom: none;
+        }
+        .roi-table .col-trad {
+            color: #EF4444;
+            font-weight: 600;
+        }
+        .roi-table .col-grid {
+            color: var(--primary);
+            font-weight: 700;
+        }
+        .roi-calc-card {
+            background: rgba(16, 185, 129, 0.04);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 10px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            text-align: center;
+        }
+        .roi-slider-wrap {
+            margin: 1.25rem 0;
+            text-align: left;
+        }
+        .roi-slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.875rem;
+            color: #fff;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        .roi-slider-val {
+            font-family: var(--font-mono);
+            color: var(--primary);
+            font-size: 1.15rem;
+            font-weight: 700;
+        }
+        .roi-slider {
+            width: 100%;
+            height: 6px;
+            background: #1E293B;
+            border-radius: 4px;
+            accent-color: var(--primary);
+            cursor: pointer;
+            outline: none;
+        }
+        .roi-presets-row {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        .roi-preset-btn {
+            flex: 1;
+            padding: 0.35rem 0.5rem;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .roi-preset-btn:hover {
+            color: #fff;
+            border-color: var(--primary);
+            background: rgba(16, 185, 129, 0.1);
+        }
+        .roi-cost-summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin: 1rem 0;
+        }
+        .roi-cost-item {
+            background: rgba(3, 7, 18, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem;
+        }
+        .roi-cost-item-label {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .roi-cost-item-val {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-top: 0.25rem;
+            font-family: var(--font-mono);
+        }
+        .roi-savings-badge {
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            padding: 1.1rem;
+            margin-top: 0.5rem;
+        }
+        .roi-savings-num {
+            font-size: 2.1rem;
+            font-weight: 800;
+            color: var(--primary);
+            font-family: var(--font-mono);
+            line-height: 1.1;
+        }
+        .roi-savings-sub {
+            font-size: 0.82rem;
+            color: #E2E8F0;
+            margin-top: 0.4rem;
+        }
+
         /* Playground Interativo e Verificador de Oraculo */
         .playground-header-wrap {
             margin-bottom: 1.75rem;
@@ -1629,6 +1794,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             </div>
             <nav class="nav-links">
                 <a href="#services">Servicos</a>
+                <a href="#comparador" style="color: var(--primary); font-weight: 600;">Economia 98%</a>
                 <a href="#playground">Playground</a>
                 <a href="#console">Console</a>
                 <a href="/agents" style="color: var(--primary); font-weight: 600;">Agentes IA</a>
@@ -1669,6 +1835,111 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             </div>
             <?php endforeach; ?>
         </div>
+
+        <!-- Comparativo e Calculadora de Economia: Tradicional vs Grid402 -->
+        <section id="comparador" class="roi-calculator-box">
+            <div class="playground-header-wrap">
+                <div class="hero-tag" style="margin-bottom: 0.4rem; background: rgba(16, 185, 129, 0.15); color: var(--primary); border: 1px solid rgba(16, 185, 129, 0.3);">Reducao Real de Custos para Startups e Agentes</div>
+                <h2>Por que pagar R$ 500 por mes se o seu agente pode pagar R$ 0,01 por consulta?</h2>
+                <p>Compare o modelo arcaico dos biros tradicionais (mensalidades obrigatorias, analise de credito e fidelidade de 12 meses) com o modelo aberto M2M do Grid402 liquidado via protocolo x402 na Base.</p>
+            </div>
+
+            <div class="roi-grid">
+                <!-- Coluna 1: Tabela Comparativa -->
+                <div class="roi-table-card">
+                    <div>
+                        <div style="font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 0.75rem;">
+                            Comparativo Tecnico e Comercial
+                        </div>
+                        <table class="roi-table">
+                            <thead>
+                                <tr>
+                                    <th>Criterio</th>
+                                    <th>Biros Tradicionais</th>
+                                    <th>Grid402 (x402)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>Consulta CNPJ</strong></td>
+                                    <td class="col-trad">R$ 0,50 a R$ 2,50</td>
+                                    <td class="col-grid">R$ 0,01 (0.0020 USDC)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Mensalidade Minima</strong></td>
+                                    <td class="col-trad">R$ 500 a R$ 2.000 / mes</td>
+                                    <td class="col-grid">R$ 0,00 (Zero mensalidade)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Burocracia e Contrato</strong></td>
+                                    <td class="col-trad">Fidelidade 12 meses</td>
+                                    <td class="col-grid">Zero contrato, sem cadastro</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Autenticacao</strong></td>
+                                    <td class="col-trad">API Keys que expiram</td>
+                                    <td class="col-grid">Protocolo x402 nativo</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Garantia Matematica</strong></td>
+                                    <td class="col-trad">Nenhuma (dados crus)</td>
+                                    <td class="col-grid">Assinatura ECDSA secp256k1</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top: 1rem; font-size: 0.78rem; color: var(--text-muted); line-height: 1.5;">
+                        * Valores de mercado baseados em planos de entrada dos principais biros de dados e compliance no Brasil.
+                    </div>
+                </div>
+
+                <!-- Coluna 2: Calculadora Interativa de Economia -->
+                <div class="roi-calc-card">
+                    <div style="font-size: 0.95rem; font-weight: 700; color: #fff;">
+                        Simulador de Economia em CNPJ e Dados
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;">
+                        Ajuste o volume mensal de consultas do seu robo ou sistema:
+                    </div>
+
+                    <div class="roi-slider-wrap">
+                        <div class="roi-slider-label">
+                            <span>Volume Mensal de Consultas:</span>
+                            <span id="roi-vol-display" class="roi-slider-val">1.000 / mes</span>
+                        </div>
+                        <input type="range" id="roi-slider-input" class="roi-slider" min="100" max="20000" step="100" value="1000" oninput="updateRoiCalc(this.value)">
+                        
+                        <div class="roi-presets-row">
+                            <button type="button" class="roi-preset-btn" onclick="setRoiPreset(500)">500/mes</button>
+                            <button type="button" class="roi-preset-btn" onclick="setRoiPreset(1000)">1.000/mes</button>
+                            <button type="button" class="roi-preset-btn" onclick="setRoiPreset(5000)">5.000/mes</button>
+                            <button type="button" class="roi-preset-btn" onclick="setRoiPreset(15000)">15.000/mes</button>
+                        </div>
+                    </div>
+
+                    <div class="roi-cost-summary">
+                        <div class="roi-cost-item">
+                            <div class="roi-cost-item-label">Custo Tradicional</div>
+                            <div id="roi-cost-trad" class="roi-cost-item-val" style="color: #EF4444;">R$ 1.500,00</div>
+                        </div>
+                        <div class="roi-cost-item">
+                            <div class="roi-cost-item-label">Custo no Grid402</div>
+                            <div id="roi-cost-grid" class="roi-cost-item-val" style="color: var(--primary);">R$ 10,80</div>
+                        </div>
+                    </div>
+
+                    <div class="roi-savings-badge">
+                        <div id="roi-savings-val" class="roi-savings-num">R$ 1.489,20</div>
+                        <div id="roi-savings-desc" class="roi-savings-sub">Economia estimada de 99% todos os meses!</div>
+                    </div>
+
+                    <div style="display: flex; gap: 0.6rem; margin-top: 1.25rem;">
+                        <a href="/agents" class="btn-sm btn-primary" style="flex: 1; text-decoration: none; padding: 0.6rem; display: inline-block;">🤖 Integrar Agente IA</a>
+                        <a href="#playground" class="btn-sm btn-outline" style="flex: 1; text-decoration: none; padding: 0.6rem; display: inline-block; border-color: var(--primary); color: var(--primary);" onclick="selectPlaygroundPreset('cnpj')">⚡ Testar CNPJ</a>
+                    </div>
+                </div>
+            </div>
+        </section>
 
         <!-- Playground Interativo e Verificador de Oraculo -->
         <section id="playground" class="protocol-box">
@@ -3135,6 +3406,57 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 closeWeb3Modal();
             }
         });
+
+        // Calculadora de Economia / ROI (Tradicional vs Grid402)
+        function updateRoiCalc(val) {
+            const count = parseInt(val, 10) || 1000;
+            const displayEl = document.getElementById('roi-vol-display');
+            const tradEl = document.getElementById('roi-cost-trad');
+            const gridEl = document.getElementById('roi-cost-grid');
+            const savingsEl = document.getElementById('roi-savings-val');
+            const descEl = document.getElementById('roi-savings-sub');
+            const slider = document.getElementById('roi-slider-input');
+
+            if (slider) {
+                slider.value = count;
+            }
+            if (displayEl) {
+                displayEl.textContent = count.toLocaleString('pt-BR') + ' / mes';
+            }
+
+            // Modelo Tradicional: R$ 500 mensalidade base + R$ 1,00 por consulta media
+            const costTrad = 500 + (count * 1.00);
+
+            // Grid402: 0.0020 USDC (~R$ 0,0108 por consulta com cambio 5.42)
+            const costGrid = count * (0.0020 * 5.42);
+
+            const savings = Math.max(0, costTrad - costGrid);
+            const savingsPct = Math.round((savings / costTrad) * 100);
+
+            if (tradEl) {
+                tradEl.textContent = 'R$ ' + costTrad.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+            if (gridEl) {
+                gridEl.textContent = 'R$ ' + costGrid.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+            if (savingsEl) {
+                savingsEl.textContent = 'R$ ' + savings.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+            if (descEl) {
+                descEl.textContent = 'Economia estimada de ' + savingsPct + '% todos os meses!';
+            }
+        }
+
+        function setRoiPreset(val) {
+            updateRoiCalc(val);
+        }
+
+        // Inicializa a calculadora com 1000 consultas ao carregar
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() { updateRoiCalc(1000); });
+        } else {
+            updateRoiCalc(1000);
+        }
 
         // WebMCP: Model Context Protocol no navegador para agentes de IA
         if (typeof window !== 'undefined') {
