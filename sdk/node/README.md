@@ -8,7 +8,7 @@ Projetada especificamente para agentes autonomos de IA, frameworks como Coinbase
 
 ## Recursos Principais
 
-- **11 Micro-Servicos Integrados:** Indicadores Macroeconomicos (Selic, CDI, IPCA), Calculadora de Dias Uteis Financeiros ANBIMA, Feriados Nacionais e Bancarios ANBIMA, CNPJ da Receita Federal, CEP postal e IBGE, cotacoes Forex e Cripto spot, resolucao DNS, auditoria TLS e SSL, analise ASN e BGP e status do ecossistema.
+- **14 Micro-Servicos Integrados:** Compliance Score 360 e Antifraude, Sanções Administrativas CEIS e CNEP (CGU), Enquadramento no Simples Nacional e MEI, Indicadores Macroeconomicos (Selic, CDI, IPCA), Calculadora de Dias Uteis Financeiros ANBIMA, Feriados Nacionais e Bancarios ANBIMA, CNPJ da Receita Federal, CEP postal e IBGE, cotacoes Forex e Cripto spot, resolucao DNS, auditoria TLS e SSL, analise ASN e BGP e status do ecossistema.
 - **Suporte Hibrido ESM e CJS:** Compativel nativamente com `import` (ES Modules) e `require` (CommonJS).
 - **Modo Sandbox Gratuito:** Teste e homologue localmente sem custos informando `sandbox: true`.
 - **Integracao Nativa com IA:** Inclui `Grid402ActionProvider` com auto-liquidacao na rede Base para agentes autônomos.
@@ -150,6 +150,9 @@ if (verificacao.valid) {
 | `getIndicators(txHash?)` | Indicadores macroeconomicos oficiais (Selic meta e diaria, CDI anual e IPCA) | 0.0005 |
 | `getHolidays(year?, txHash?)` | Calendario oficial de feriados nacionais e bancarios ANBIMA | 0.0005 |
 | `getWorkdays(params?, txHash?)` | Calculadora de dias uteis financeiros e projecao de vencimentos ANBIMA | 0.0005 |
+| `getSanctions(cnpj, txHash?)` | Consulta de sancoes administrativas ativas nos cadastros CEIS e CNEP (CGU) | 0.0010 |
+| `getSimples(cnpj, txHash?)` | Consulta de enquadramento tributario no Simples Nacional e SIMEI | 0.0010 |
+| `getCompliance(cnpj, txHash?)` | Dossiê consolidado de Compliance 360 com score de risco de 0 a 100 | 0.0030 |
 
 ---
 

@@ -22,6 +22,7 @@ require_once __DIR__ . '/services/cnpj.php';
 require_once __DIR__ . '/services/indicators.php';
 require_once __DIR__ . '/services/holidays.php';
 require_once __DIR__ . '/services/workdays.php';
+require_once __DIR__ . '/services/compliance.php';
 require_once __DIR__ . '/services/oracle_signer.php';
 require_once __DIR__ . '/metrics.php';
 
@@ -353,7 +354,7 @@ if ($requestPath === '/agents' || $pageParam === 'agents') {
 $isStatusRoute = ($requestPath === '/status' || $requestPath === '/api/v1/summary' || $requestPath === '/telemetry');
 $isHomeRoute = ($requestPath === '/' || $requestPath === '/index.php');
 $isVerifyRoute = ($requestPath === '/api/v1/verify' || $apiParam === 'verify');
-$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays'];
+$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays', 'sanctions', 'simples', 'compliance'];
 $isValidApiAction = in_array($apiParam, $validApiEndpoints, true);
 $isInstitutionalRoute = in_array($requestPath, ['/about', '/contact', '/terms', '/privacy', '/admin', '/dashboard', '/agents'], true);
 
@@ -383,6 +384,9 @@ if (!$isHomeRoute && !$isStatusRoute && !$isValidApiAction && !$isInstitutionalR
                 '/api/v1/indicators',
                 '/api/v1/holidays',
                 '/api/v1/workdays',
+                '/api/v1/sanctions',
+                '/api/v1/simples',
+                '/api/v1/compliance',
                 '/api/v1/verify',
                 '/about',
                 '/contact',
@@ -515,14 +519,30 @@ if ($isValidApiAction) {
     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment');
     header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Payment-Required, payment-required');
 
-    // 2.2. Verificação prévia defensiva (CNPJ inválido retorna 400 antes de cobrar)
+    // 2.2. Definição de Preço Escalonado por Serviço e Verificação Prévia Defensiva
+    $isCompliance = ($apiParam === 'compliance');
+    $isSanctionsOrSimples = in_array($apiParam, ['sanctions', 'simples'], true);
     $isCnpj = ($apiParam === 'cnpj');
-    $servicePriceDisplay = $isCnpj ? GRID402_PRICE_CNPJ : GRID402_PRICE_DISPLAY;
-    $servicePriceRaw = $isCnpj ? GRID402_USDC_CNPJ_RAW : GRID402_USDC_REQUIRED_RAW;
 
-    if ($isCnpj) {
+    if ($isCompliance) {
+        $servicePriceDisplay = '0.0030';
+        $servicePriceRaw = 3000; // 0.003000 USDC
+    } elseif ($isSanctionsOrSimples) {
+        $servicePriceDisplay = '0.0010';
+        $servicePriceRaw = 1000; // 0.001000 USDC
+    } elseif ($isCnpj) {
+        $servicePriceDisplay = GRID402_PRICE_CNPJ;
+        $servicePriceRaw = GRID402_USDC_CNPJ_RAW;
+    } else {
+        $servicePriceDisplay = GRID402_PRICE_DISPLAY;
+        $servicePriceRaw = GRID402_USDC_REQUIRED_RAW;
+    }
+
+    $isCnpjEndpoint = in_array($apiParam, ['cnpj', 'sanctions', 'simples', 'compliance'], true);
+    if ($isCnpjEndpoint) {
         $cnpjInput = (string) ($_GET['cnpj'] ?? $_GET['code'] ?? '');
-        if ($cnpjInput === '' || !grid402_validate_cnpj_digits($cnpjInput)) {
+        $cnpjInputClean = preg_replace('/\D/', '', $cnpjInput);
+        if ($cnpjInputClean === '' or !grid402_validate_cnpj_digits($cnpjInputClean)) {
             http_response_code(400);
             header('Content-Type: application/json; charset=utf-8');
             echo json_encode([
@@ -580,6 +600,21 @@ if ($isValidApiAction) {
             $lockedFields = $teaser['locked_fields'] ?? [];
             unset($teaser['locked_fields']);
             $previewData = $teaser;
+        } elseif ($apiParam === 'sanctions') {
+            $cnpjInput = (string) ($_GET['cnpj'] ?? $_GET['code'] ?? '00000000000191');
+            $teaser = grid402_teaser_sanctions($cnpjInput);
+            $lockedFields = $teaser['locked_fields'] ?? [];
+            $previewData = $teaser['preview'];
+        } elseif ($apiParam === 'simples') {
+            $cnpjInput = (string) ($_GET['cnpj'] ?? $_GET['code'] ?? '00000000000191');
+            $teaser = grid402_teaser_simples($cnpjInput);
+            $lockedFields = $teaser['locked_fields'] ?? [];
+            $previewData = $teaser['preview'];
+        } elseif ($apiParam === 'compliance') {
+            $cnpjInput = (string) ($_GET['cnpj'] ?? $_GET['code'] ?? '00000000000191');
+            $teaser = grid402_teaser_compliance($cnpjInput);
+            $lockedFields = $teaser['locked_fields'] ?? [];
+            $previewData = $teaser['preview'];
         }
 
         grid402_respond_402($serviceLabel, null, $servicePriceDisplay, $servicePriceRaw, $previewData, $lockedFields);
@@ -693,6 +728,33 @@ if ($isValidApiAction) {
             $result = grid402_service_workdays($_GET);
             if (isset($result['code']) && $result['code'] !== 200) {
                 http_response_code($result['code']);
+            }
+            break;
+        case 'sanctions':
+            $cnpjVal = (string) ($_GET['cnpj'] ?? $_GET['code'] ?? '00000000000191');
+            $result = grid402_service_sanctions($cnpjVal);
+            if (isset($result['code'])) {
+                if ($result['code'] !== 200) {
+                    http_response_code($result['code']);
+                }
+            }
+            break;
+        case 'simples':
+            $cnpjVal = (string) ($_GET['cnpj'] ?? $_GET['code'] ?? '00000000000191');
+            $result = grid402_service_simples($cnpjVal);
+            if (isset($result['code'])) {
+                if ($result['code'] !== 200) {
+                    http_response_code($result['code']);
+                }
+            }
+            break;
+        case 'compliance':
+            $cnpjVal = (string) ($_GET['cnpj'] ?? $_GET['code'] ?? '00000000000191');
+            $result = grid402_service_compliance($cnpjVal);
+            if (isset($result['code'])) {
+                if ($result['code'] !== 200) {
+                    http_response_code($result['code']);
+                }
             }
             break;
         default:
@@ -2277,6 +2339,9 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                     <button type="button" class="btn-sm" onclick="runConsole('indicators')">Indicadores (/api/v1/indicators)</button>
                     <button type="button" class="btn-sm" onclick="runConsole('holidays')">Feriados (/api/v1/holidays)</button>
                     <button type="button" class="btn-sm" onclick="runConsole('workdays')">Dias Úteis (/api/v1/workdays)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('sanctions')">Sanções CGU (/api/v1/sanctions)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('simples')">Simples Nacional (/api/v1/simples)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('compliance')">Score 360 (/api/v1/compliance)</button>
                 </div>
                 <div class="input-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <input type="text" id="tx-input" class="console-input" style="flex: 1; min-width: 260px;" placeholder="Cole o hash de pagamento na Base (0x...) ou use 'demo' para simulação">
@@ -3308,6 +3373,9 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 case 'asn': url = '/api/v1/asn?ip=1.1.1.1'; break;
                 case 'cep': url = '/api/v1/cep?code=01310100'; break;
                 case 'cnpj': url = '/api/v1/cnpj?cnpj=00000000000191'; break;
+                case 'sanctions': url = '/api/v1/sanctions?cnpj=00000000000191'; break;
+                case 'simples': url = '/api/v1/simples?cnpj=00000000000191'; break;
+                case 'compliance': url = '/api/v1/compliance?cnpj=00000000000191'; break;
                 case 'indicators': url = '/api/v1/indicators'; break;
                 case 'holidays': url = '/api/v1/holidays?year=2026'; break;
                 case 'workdays': url = '/api/v1/workdays?start_date=2026-12-23' + String.fromCharCode(38) + 'end_date=2026-12-28'; break;
@@ -3319,6 +3387,9 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     }
                     headers['X-Payment'] = tx;
                     if (currentServiceAction === 'cnpj') url = '/api/v1/cnpj?cnpj=00000000000191';
+                    else if (currentServiceAction === 'sanctions') url = '/api/v1/sanctions?cnpj=00000000000191';
+                    else if (currentServiceAction === 'simples') url = '/api/v1/simples?cnpj=00000000000191';
+                    else if (currentServiceAction === 'compliance') url = '/api/v1/compliance?cnpj=00000000000191';
                     else if (currentServiceAction === 'ssl') url = '/api/v1/ssl?host=base.org';
                     else if (currentServiceAction === 'asn') url = '/api/v1/asn?ip=1.1.1.1';
                     else if (currentServiceAction === 'cep') url = '/api/v1/cep?code=01310100';
@@ -3424,9 +3495,18 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 }
 
                 // 3. Monta a transação ERC-20 transfer(to, amount)
-                const isCnpj = (currentServiceAction === 'cnpj');
-                const amountRaw = isCnpj ? 2000 : 500; // 0.0020 USDC ou 0.0005 USDC
-                const priceUsdc = isCnpj ? '0.0020' : '0.0005';
+                let amountRaw = 500;
+                let priceUsdc = '0.0005';
+                if (currentServiceAction === 'compliance') {
+                    amountRaw = 3000;
+                    priceUsdc = '0.0030';
+                } else if (currentServiceAction === 'sanctions' || currentServiceAction === 'simples') {
+                    amountRaw = 1000;
+                    priceUsdc = '0.0010';
+                } else if (currentServiceAction === 'cnpj') {
+                    amountRaw = 2000;
+                    priceUsdc = '0.0020';
+                }
                 const recipient = '<?php echo GRID402_WALLET_ADDRESS; ?>'.toLowerCase().replace('0x', '');
                 const usdcContract = '<?php echo GRID402_USDC_CONTRACT; ?>';
 
@@ -3525,8 +3605,10 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
         // Modal de Pagamento Web3
         function openWeb3Modal() {
-            const isCnpj = (currentServiceAction === 'cnpj');
-            const price = isCnpj ? '0.0020' : '0.0005';
+            let price = '0.0005';
+            if (currentServiceAction === 'compliance') price = '0.0030';
+            else if (currentServiceAction === 'sanctions' || currentServiceAction === 'simples') price = '0.0010';
+            else if (currentServiceAction === 'cnpj') price = '0.0020';
             const priceEl = document.getElementById('web3-modal-price');
             const priceDetailEl = document.getElementById('web3-modal-price-detail');
             if (priceEl) priceEl.textContent = price;

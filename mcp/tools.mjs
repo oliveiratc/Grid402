@@ -200,6 +200,48 @@ export const MCP_TOOLS_DEFINITIONS = [
     },
   },
   {
+    name: 'grid402_sanctions',
+    description: 'Consulta o Cadastro de Empresas Inidoneas e Suspensas (CEIS) e Cadastro Nacional de Empresas Punidas (CNEP) da CGU para um CNPJ.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cnpj: {
+          type: 'string',
+          description: 'CNPJ da Pessoa Juridica com 14 digitos para checagem de sancoes.',
+        },
+      },
+      required: ['cnpj'],
+    },
+  },
+  {
+    name: 'grid402_simples',
+    description: 'Consulta o enquadramento de um CNPJ no regime tributario do Simples Nacional e se e Microempreendedor Individual (MEI).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cnpj: {
+          type: 'string',
+          description: 'CNPJ da Pessoa Juridica com 14 digitos para checagem tributaria.',
+        },
+      },
+      required: ['cnpj'],
+    },
+  },
+  {
+    name: 'grid402_compliance',
+    description: 'Calcula o Compliance Score 360 consolidado (0 a 100) e status de aprovacao de um CNPJ cruzando Receita Federal, CGU e historico.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cnpj: {
+          type: 'string',
+          description: 'CNPJ da Pessoa Juridica com 14 digitos para score de integridade.',
+        },
+      },
+      required: ['cnpj'],
+    },
+  },
+  {
     name: 'grid402_verify',
     description: 'Valida a integridade matematica da prova criptografica de oraculo (_oracle_proof) secp256k1 em uma resposta do Grid402 (gratuito).',
     inputSchema: {
@@ -267,8 +309,24 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
       path = '/api/v1/workdays';
       if (params.start_date || params.startDate) queryParams.set('start_date', params.start_date || params.startDate);
       if (params.end_date || params.endDate) queryParams.set('end_date', params.end_date || params.endDate);
-      if (params.days !== undefined && params.days !== null) queryParams.set('days', params.days);
+      if (params.days !== undefined) {
+        if (params.days !== null) {
+          queryParams.set('days', params.days);
+        }
+      }
       if (params.date) queryParams.set('date', params.date);
+      break;
+    case 'sanctions':
+      path = '/api/v1/sanctions';
+      if (params.cnpj) queryParams.set('cnpj', params.cnpj);
+      break;
+    case 'simples':
+      path = '/api/v1/simples';
+      if (params.cnpj) queryParams.set('cnpj', params.cnpj);
+      break;
+    case 'compliance':
+      path = '/api/v1/compliance';
+      if (params.cnpj) queryParams.set('cnpj', params.cnpj);
       break;
     case 'verify':
       path = '/api/v1/verify';

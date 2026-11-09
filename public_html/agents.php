@@ -588,6 +588,24 @@ curl -X POST "https://grid402.online/api/v1/verify" \
                     <td>Sim</td>
                 </tr>
                 <tr>
+                    <td><span class="endpoint-name">/api/v1/sanctions</span></td>
+                    <td>Sancoes administrativas e inidoneidade (CEIS/CNEP da CGU)</td>
+                    <td><span class="tag-price">0.0010 USDC</span></td>
+                    <td>Sim</td>
+                </tr>
+                <tr>
+                    <td><span class="endpoint-name">/api/v1/simples</span></td>
+                    <td>Enquadramento tributario no Simples Nacional e MEI</td>
+                    <td><span class="tag-price">0.0010 USDC</span></td>
+                    <td>Sim</td>
+                </tr>
+                <tr>
+                    <td><span class="endpoint-name">/api/v1/compliance</span></td>
+                    <td>Compliance Score 360 consolidado de risco cadastral</td>
+                    <td><span class="tag-price">0.0030 USDC</span></td>
+                    <td>Sim</td>
+                </tr>
+                <tr>
                     <td><span class="endpoint-name">/api/v1/verify</span></td>
                     <td>Validacao matematico-criptografica de oraculo</td>
                     <td><span class="tag-free">Gratuito</span></td>

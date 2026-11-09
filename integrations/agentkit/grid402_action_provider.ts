@@ -176,6 +176,27 @@ export class Grid402ActionProvider {
   }
 
   /**
+   * Consulta de sancoes administrativas CEIS e CNEP (CGU)
+   */
+  async querySanctions(cnpj: string, walletProvider?: any): Promise<any> {
+    return this.executeWithAutoSettlement('/api/v1/sanctions', { cnpj }, walletProvider);
+  }
+
+  /**
+   * Consulta de opcao pelo Simples Nacional e enquadramento MEI
+   */
+  async querySimples(cnpj: string, walletProvider?: any): Promise<any> {
+    return this.executeWithAutoSettlement('/api/v1/simples', { cnpj }, walletProvider);
+  }
+
+  /**
+   * Compliance Score 360 consolidado (Receita Federal, CGU e historico)
+   */
+  async queryCompliance(cnpj: string, walletProvider?: any): Promise<any> {
+    return this.executeWithAutoSettlement('/api/v1/compliance', { cnpj }, walletProvider);
+  }
+
+  /**
    * Validacao de oraculo criptografico secp256k1 (_oracle_proof)
    */
   async verifyProof(payload: any): Promise<any> {
@@ -211,6 +232,9 @@ export class Grid402ActionProvider {
   get_indicators = this.queryIndicators.bind(this);
   get_holidays = this.queryHolidays.bind(this);
   get_workdays = this.queryWorkdays.bind(this);
+  get_sanctions = this.querySanctions.bind(this);
+  get_simples = this.querySimples.bind(this);
+  get_compliance = this.queryCompliance.bind(this);
   verify_proof = this.verifyProof.bind(this);
 }
 

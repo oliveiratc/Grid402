@@ -209,6 +209,18 @@ class Grid402ActionProvider:
             params["days"] = str(days)
         return self._execute_with_settlement("/api/v1/workdays", params, wallet_provider)
 
+    def query_sanctions(self, cnpj: str, wallet_provider: Any = None) -> Dict[str, Any]:
+        """Consulta de sancoes administrativas CEIS e CNEP (CGU)."""
+        return self._execute_with_settlement("/api/v1/sanctions", {"cnpj": cnpj}, wallet_provider)
+
+    def query_simples(self, cnpj: str, wallet_provider: Any = None) -> Dict[str, Any]:
+        """Consulta de opcao pelo Simples Nacional e enquadramento MEI."""
+        return self._execute_with_settlement("/api/v1/simples", {"cnpj": cnpj}, wallet_provider)
+
+    def query_compliance(self, cnpj: str, wallet_provider: Any = None) -> Dict[str, Any]:
+        """Compliance Score 360 consolidado (Receita Federal, CGU e historico)."""
+        return self._execute_with_settlement("/api/v1/compliance", {"cnpj": cnpj}, wallet_provider)
+
     def verify_proof(self, payload: Any) -> Dict[str, Any]:
         """Validacao sem estado de prova criptografica de oraculo (_oracle_proof)."""
         url = f"{self.base_url}/api/v1/verify"
@@ -238,4 +250,7 @@ class Grid402ActionProvider:
     get_indicators = query_indicators
     get_holidays = query_holidays
     get_workdays = query_workdays
+    get_sanctions = query_sanctions
+    get_simples = query_simples
+    get_compliance = query_compliance
     verify_proof_alias = verify_proof

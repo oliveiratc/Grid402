@@ -1,27 +1,34 @@
 # Grid402 Python SDK ⚡
 
-[![PyPI version](https://img.shields.io/badge/pypi-v2.0.0-blue.svg)](https://pypi.org/project/grid402/)
+[![PyPI version](https://img.shields.io/badge/pypi-v2.2.0-blue.svg)](https://pypi.org/project/grid402/)
 [![Base Mainnet](https://img.shields.io/badge/Network-Base%20(8453)-0052FF.svg)](https://base.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Grid402 Status](https://www.grid402.com.br/badge/system.svg)](https://www.grid402.com.br)
 
-SDK oficial em Python (zero dependências externas) para o **Grid402** — Hub de Alta Performance de Utilitários de Rede e Dados Públicos com micropagamentos via protocolo **x402** na rede **Base Mainnet** (US$ 0.0005 USDC por consulta).
+SDK oficial em Python (zero dependências externas) para o **Grid402** — Hub de Alta Performance de Utilitários de Rede, Indicadores Financeiros e Suite de Compliance Antifraude com micropagamentos via protocolo **x402** na rede **Base Mainnet**.
 
-Ideal para robôs autônomos, agentes de IA (LangChain, CrewAI, AutoGen) e esteiras de automação M2M.
+Ideal para robôs autônomos, agentes de IA (Coinbase AgentKit, LangChain, CrewAI, AutoGen) e esteiras de automação M2M.
 
 ---
 
 ## 🚀 Funcionalidades
 
 * **Zero Dependências:** Construído unicamente sobre a biblioteca padrão do Python (`urllib`, `ssl`, `json`).
-* **6 Micro-serviços Técnicos:**
-  1. `forex`: Cotações fiduciárias em tempo real (USD, EUR, GBP para BRL).
-  2. `crypto`: Preços spot de criptoativos (BTC, ETH, SOL, USDC, BASE).
-  3. `dns`: Resolução de registros RFC 1035 (A, AAAA, MX, TXT, NS, CNAME).
-  4. `ssl`: Inspeção TLS na porta 443 (validade, emissor, SANs e dias restantes).
-  5. `asn`: Resolução BGP de sistema autônomo, organização e país.
-  6. `cep`: Consulta de endereço público e código oficial IBGE do município.
-* **Resumo Gratuito:** Rota `/api/v1/summary` aberta para checagem rápida de saúde e discovery.
+* **14 Micro-serviços Técnicos:**
+  1. `compliance`: Score consolidado 360 de risco cadastral e integridade (0 a 100).
+  2. `sanctions`: Consulta de sanções administrativas ativas no CEIS e CNEP (CGU).
+  3. `simples`: Consulta de enquadramento tributário no Simples Nacional e MEI (SIMEI).
+  4. `indicators`: Indicadores macroeconômicos oficiais (Selic meta e diária, CDI e IPCA acumulado).
+  5. `holidays`: Calendário oficial de feriados nacionais e bancários ANBIMA.
+  6. `workdays`: Calculadora financeira de dias úteis e projeção de vencimentos ANBIMA.
+  7. `cnpj`: Dados cadastrais completos de Pessoa Jurídica da Receita Federal.
+  8. `cep`: Consulta de endereço público e código oficial IBGE do município.
+  9. `forex`: Cotações fiduciárias em tempo real (USD, EUR, GBP para BRL).
+  10. `crypto`: Preços spot de criptoativos (BTC, ETH, SOL, USDC, BASE).
+  11. `dns`: Resolução de registros RFC 1035 (A, AAAA, MX, TXT, NS, CNAME).
+  12. `ssl`: Inspeção TLS na porta 443 (validade, emissor, SANs e dias restantes).
+  13. `asn`: Resolução BGP de sistema autônomo, organização e país.
+  14. `summary`: Resumo consolidado gratuito de saúde e catálogo do hub.
+* **Modo Sandbox Gratuito:** Homologação sem custo passando `sandbox=True`.
 * **Protocolo x402 Nativo:** Suporte a cabeçalhos `X-Payment` e tratamento automático de desafios HTTP 402.
 * **Circuit Breaker (`guard`):** Proteção defensiva de tarefas batch contra serviços indisponíveis.
 

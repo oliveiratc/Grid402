@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "grid402"
-version = "2.1.0"
-description = "Official Python client for Grid402 - Public Open Data e Network Utilities Hub (Forex, Crypto, DNS, SSL, ASN, CEP) with Base x402 micropayments."
+version = "2.2.0"
+description = "Official Python client for Grid402 - Public Open Data and Network Utilities Hub (Forex, Crypto, DNS, SSL, ASN, CEP, CNPJ, Indicators, Holidays, Workdays, Compliance, Sanctions, Simples) with Base x402 micropayments."
 readme = "README.md"
 requires-python = ">=3.8"
 license = { text = "MIT" }
@@ -26,6 +26,10 @@ keywords = [
     "ssl",
     "asn",
     "cep",
+    "cnpj",
+    "compliance",
+    "sanctions",
+    "simples-nacional",
     "crewai",
     "langchain"
 ]

@@ -1,6 +1,6 @@
 {
   "name": "grid402-mcp",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "type": "module",
   "description": "Grid402 Official Model Context Protocol (MCP) Server for real-time open data and network utilities with Base x402 settlement",
   "main": "mcp/index.mjs",

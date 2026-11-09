@@ -1320,10 +1320,10 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
         <!-- 2 Columns: Tráfego por Micro-Serviço (11 Serviços) e Códigos de Status -->
         <div class="analytics-row">
             <div class="panel">
-                <div class="panel-title">Volume por Micro-Serviço (11 Nós)</div>
+                <div class="panel-title">Volume por Micro-Serviço (14 Nós)</div>
                 <div id="service-bars-container">
                     <?php
-                    $servicesList = ['workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'summary'];
+                    $servicesList = ['compliance', 'sanctions', 'simples', 'workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'summary'];
                     $serviceCounts = $metrics['service_counts'] ?? [];
                     $maxSvc = max(array_values($serviceCounts) ?: [1]);
                     if ($maxSvc <= 0) $maxSvc = 1;
@@ -1608,7 +1608,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 const serviceBarsEl = document.getElementById('service-bars-container');
                 if (serviceBarsEl) {
                     if (data.service_counts) {
-                        const servicesList = ['workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'summary'];
+                        const servicesList = ['compliance', 'sanctions', 'simples', 'workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'summary'];
                         const sCounts = data.service_counts || {};
                         const maxS = Math.max(...Object.values(sCounts).concat([1]));
                         let sHtml = '';

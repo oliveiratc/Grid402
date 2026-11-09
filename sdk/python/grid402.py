@@ -46,9 +46,10 @@ class Grid402Client:
     sem qualquer garantia de adequação a um propósito comercial específico.
     """
 
-    def __init__(self, base_url: str = DEFAULT_GRID402_URL, timeout: float = 5.0, verify_ssl: Optional[bool] = None):
+    def __init__(self, base_url: str = DEFAULT_GRID402_URL, timeout: float = 5.0, verify_ssl: Optional[bool] = None, sandbox: bool = False):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
+        self.sandbox = sandbox
         if verify_ssl is None:
             # Auto-fallback para preview domains em ambientes sem certificados raiz intermediários
             self.verify_ssl = False if "hostingersite.com" in self.base_url else True
@@ -60,10 +61,13 @@ class Grid402Client:
         url = f"{self.base_url}{endpoint}"
         req_headers = {
             "Accept": "application/json",
-            "User-Agent": "Grid402-Python-SDK/2.0",
+            "User-Agent": "Grid402-Python-SDK/2.2",
         }
         if headers:
             req_headers.update(headers)
+        if self.sandbox:
+            if "X-Payment" not in req_headers:
+                req_headers["X-Payment"] = "demo"
 
         req = urllib.request.Request(url, headers=req_headers, method="GET")
 
@@ -138,6 +142,61 @@ class Grid402Client:
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         q = urllib.parse.urlencode({"cnpj": cnpj})
         return self._request(f"/api/v1/cnpj?{q}", headers=headers)
+
+    def get_indicators(self, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Consulta indicadores macroeconomicos oficiais (Selic meta e diaria, CDI e IPCA acumulado)."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        return self._request("/api/v1/indicators", headers=headers)
+
+    def get_holidays(self, year: Optional[int] = None, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Consulta calendario oficial de feriados nacionais e bancarios ANBIMA."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        q = f"?year={year}" if year else ""
+        return self._request(f"/api/v1/holidays{q}", headers=headers)
+
+    def get_workdays(
+        self,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        days: Optional[int] = None,
+        date: Optional[str] = None,
+        payment_tx_hash: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Calcula dias uteis financeiros, projecao de liquidacao ou checagem de dia util ANBIMA."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        params = {}
+        if start_date:
+            params["start_date"] = start_date
+        if end_date:
+            params["end_date"] = end_date
+        if days is not None:
+            params["days"] = str(days)
+        if date:
+            params["date"] = date
+        qs = urllib.parse.urlencode(params)
+        q = f"?{qs}" if qs else ""
+        return self._request(f"/api/v1/workdays{q}", headers=headers)
+
+    def get_sanctions(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Consulta sancoes administrativas e inidoneidade cadastral nos sistemas CEIS e CNEP (CGU)."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        clean = "".join(ch for ch in str(cnpj or "") if ch.isdigit())
+        q = urllib.parse.urlencode({"cnpj": clean})
+        return self._request(f"/api/v1/sanctions?{q}", headers=headers)
+
+    def get_simples(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Consulta enquadramento tributario no Simples Nacional e MEI (SIMEI) na Receita Federal."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        clean = "".join(ch for ch in str(cnpj or "") if ch.isdigit())
+        q = urllib.parse.urlencode({"cnpj": clean})
+        return self._request(f"/api/v1/simples?{q}", headers=headers)
+
+    def get_compliance(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Dossiê consolidado de Compliance 360 com score de risco cadastral e integridade (0 a 100)."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        clean = "".join(ch for ch in str(cnpj or "") if ch.isdigit())
+        q = urllib.parse.urlencode({"cnpj": clean})
+        return self._request(f"/api/v1/compliance?{q}", headers=headers)
 
     def is_healthy(self, service_name: str = "forex") -> bool:
         """Verifica se um serviço específico ou o hub está operacional."""

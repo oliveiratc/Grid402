@@ -70,6 +70,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'grid402_workdays':
         service = 'workdays';
         break;
+      case 'grid402_sanctions':
+        service = 'sanctions';
+        break;
+      case 'grid402_simples':
+        service = 'simples';
+        break;
+      case 'grid402_compliance':
+        service = 'compliance';
+        break;
       case 'grid402_verify':
         service = 'verify';
         break;

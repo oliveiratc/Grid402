@@ -72,13 +72,15 @@ function verifyOracleProof(response, expectedOracleAddress = null, oraclePublicK
 
   const expectedAddress = (expectedOracleAddress || GRID402_ORACLE_WALLET).toLowerCase();
   const proofAddress = (proof.oracle_address || '').toLowerCase();
-  if (expectedAddress && proofAddress !== expectedAddress) {
-    return {
-      valid: false,
-      error: 'OracleAddressMismatch',
-      expectedAddress,
-      receivedAddress: proofAddress,
-    };
+  if (expectedAddress) {
+    if (proofAddress !== expectedAddress) {
+      return {
+        valid: false,
+        error: 'OracleAddressMismatch',
+        expectedAddress,
+        receivedAddress: proofAddress,
+      };
+    }
   }
 
   const timestamp = Number(proof.timestamp || 0);
@@ -297,11 +299,33 @@ class Grid402Client {
     if (startDate) searchParams.append('start_date', startDate);
     if (endDate) searchParams.append('end_date', endDate);
     if (date) searchParams.append('date', date);
-    if (days !== undefined && days !== null) searchParams.append('days', days);
+    if (days !== undefined) {
+      if (days !== null) {
+        searchParams.append('days', days);
+      }
+    }
 
     const qs = searchParams.toString();
     const query = qs ? `?${qs}` : '';
     return this._request(`/api/v1/workdays${query}`, headers);
+  }
+
+  async getSanctions(cnpj, paymentTxHash = null) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    const clean = String(cnpj || '').replace(/\D/g, '');
+    return this._request(`/api/v1/sanctions?cnpj=${encodeURIComponent(clean)}`, headers);
+  }
+
+  async getSimples(cnpj, paymentTxHash = null) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    const clean = String(cnpj || '').replace(/\D/g, '');
+    return this._request(`/api/v1/simples?cnpj=${encodeURIComponent(clean)}`, headers);
+  }
+
+  async getCompliance(cnpj, paymentTxHash = null) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    const clean = String(cnpj || '').replace(/\D/g, '');
+    return this._request(`/api/v1/compliance?cnpj=${encodeURIComponent(clean)}`, headers);
   }
 
   /**
@@ -479,9 +503,28 @@ class Grid402ActionProvider {
     if (startDate) queryParams.start_date = startDate;
     if (endDate) queryParams.end_date = endDate;
     if (date) queryParams.date = date;
-    if (days !== undefined && days !== null) queryParams.days = days;
+    if (days !== undefined) {
+      if (days !== null) {
+        queryParams.days = days;
+      }
+    }
 
     return this._executeWithSettlement('/api/v1/workdays', queryParams, walletProvider);
+  }
+
+  async querySanctions(cnpj, walletProvider = null) {
+    const clean = String(cnpj || '').replace(/\D/g, '');
+    return this._executeWithSettlement('/api/v1/sanctions', { cnpj: clean }, walletProvider);
+  }
+
+  async querySimples(cnpj, walletProvider = null) {
+    const clean = String(cnpj || '').replace(/\D/g, '');
+    return this._executeWithSettlement('/api/v1/simples', { cnpj: clean }, walletProvider);
+  }
+
+  async queryCompliance(cnpj, walletProvider = null) {
+    const clean = String(cnpj || '').replace(/\D/g, '');
+    return this._executeWithSettlement('/api/v1/compliance', { cnpj: clean }, walletProvider);
   }
 
   get getCnpj() { return this.queryCnpj; }
@@ -494,6 +537,9 @@ class Grid402ActionProvider {
   get getIndicators() { return this.queryIndicators; }
   get getHolidays() { return this.queryHolidays; }
   get getWorkdays() { return this.queryWorkdays; }
+  get getSanctions() { return this.querySanctions; }
+  get getSimples() { return this.querySimples; }
+  get getCompliance() { return this.queryCompliance; }
 }
 
 module.exports = {

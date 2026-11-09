@@ -55,6 +55,9 @@ test('CJS - Grid402Client carregado via require()', () => {
   assert.equal(typeof client.getIndicators, 'function');
   assert.equal(typeof client.getHolidays, 'function');
   assert.equal(typeof client.getWorkdays, 'function');
+  assert.equal(typeof client.getSanctions, 'function');
+  assert.equal(typeof client.getSimples, 'function');
+  assert.equal(typeof client.getCompliance, 'function');
   assert.equal(typeof client.verifyProof, 'function');
 });
 
@@ -67,6 +70,9 @@ test('CJS - Grid402ActionProvider carregado via require()', () => {
   assert.equal(typeof provider.queryIndicators, 'function');
   assert.equal(typeof provider.queryHolidays, 'function');
   assert.equal(typeof provider.queryWorkdays, 'function');
+  assert.equal(typeof provider.querySanctions, 'function');
+  assert.equal(typeof provider.querySimples, 'function');
+  assert.equal(typeof provider.queryCompliance, 'function');
 });
 
 test('CJS - Classes de Erro disponiveis via require()', () => {

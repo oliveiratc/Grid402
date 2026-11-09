@@ -311,3 +311,32 @@ test('Grid402Client - Validacao de prova em modo Sandbox', () => {
   assert.equal(result.valid, true);
   assert.equal(result.sandbox, true);
 });
+
+test('Grid402Client - Metodos de Compliance, Sancoes e Simples Nacional', async () => {
+  const client = new Grid402Client({ sandbox: true });
+
+  const originalFetch = globalThis.fetch;
+  const recordedUrls = [];
+
+  globalThis.fetch = async (url) => {
+    recordedUrls.push(url);
+    return {
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify({ status: 'success', cnpj: '00000000000191' }),
+    };
+  };
+
+  try {
+    await client.getSanctions('00.000.000/0001-91');
+    await client.getSimples('00.000.000/0001-91');
+    await client.getCompliance('00.000.000/0001-91');
+
+    assert.equal(recordedUrls.length, 3);
+    assert(recordedUrls[0].includes('/api/v1/sanctions?cnpj=00000000000191'));
+    assert(recordedUrls[1].includes('/api/v1/simples?cnpj=00000000000191'));
+    assert(recordedUrls[2].includes('/api/v1/compliance?cnpj=00000000000191'));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

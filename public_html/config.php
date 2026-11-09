@@ -312,6 +312,33 @@ function grid402_get_utility_services(): array {
             'category' => 'Financeiro',
             'type' => 'on_demand',
         ],
+        'sanctions' => [
+            'id' => 'sanctions',
+            'name' => 'Sanções e Inidoneidade (CEIS/CNEP)',
+            'description' => 'Consulta cadastros oficiais da CGU (CEIS e CNEP) sobre punições e impedimentos de contratar',
+            'endpoint' => '/api/v1/sanctions',
+            'category' => 'Compliance',
+            'type' => 'on_demand',
+            'price_usdc' => '0.0010',
+        ],
+        'simples' => [
+            'id' => 'simples',
+            'name' => 'Simples Nacional e MEI',
+            'description' => 'Consulta oficial de enquadramento tributário no Simples Nacional e SIMEI na Receita Federal',
+            'endpoint' => '/api/v1/simples',
+            'category' => 'Fiscal',
+            'type' => 'on_demand',
+            'price_usdc' => '0.0010',
+        ],
+        'compliance' => [
+            'id' => 'compliance',
+            'name' => 'Compliance Score 360',
+            'description' => 'Score unificado de risco cadastral (0 a 100) cruzando Receita Federal, CGU e histórico societário',
+            'endpoint' => '/api/v1/compliance',
+            'category' => 'Compliance',
+            'type' => 'on_demand',
+            'price_usdc' => '0.0030',
+        ],
     ];
 }
 

@@ -74,13 +74,15 @@ export function verifyOracleProof(response, expectedOracleAddress = null, oracle
 
   const expectedAddress = (expectedOracleAddress || GRID402_ORACLE_WALLET).toLowerCase();
   const proofAddress = (proof.oracle_address || '').toLowerCase();
-  if (expectedAddress && proofAddress !== expectedAddress) {
-    return {
-      valid: false,
-      error: 'OracleAddressMismatch',
-      expectedAddress,
-      receivedAddress: proofAddress,
-    };
+  if (expectedAddress) {
+    if (proofAddress !== expectedAddress) {
+      return {
+        valid: false,
+        error: 'OracleAddressMismatch',
+        expectedAddress,
+        receivedAddress: proofAddress,
+      };
+    }
   }
 
   const timestamp = Number(proof.timestamp || 0);
@@ -390,11 +392,51 @@ export class Grid402Client {
     if (startDate) searchParams.append('start_date', startDate);
     if (endDate) searchParams.append('end_date', endDate);
     if (date) searchParams.append('date', date);
-    if (days !== undefined && days !== null) searchParams.append('days', days);
+    if (days !== undefined) {
+      if (days !== null) {
+        searchParams.append('days', days);
+      }
+    }
 
     const qs = searchParams.toString();
     const query = qs ? `?${qs}` : '';
     return this._request(`/api/v1/workdays${query}`, headers);
+  }
+
+  /**
+   * Consulta sancoes administrativas nos cadastros CEIS e CNEP (CGU)
+   * @param {string} cnpj
+   * @param {string} [paymentTxHash]
+   * @returns {Promise<Object>}
+   */
+  async getSanctions(cnpj, paymentTxHash = null) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    const clean = String(cnpj || '').replace(/\D/g, '');
+    return this._request(`/api/v1/sanctions?cnpj=${encodeURIComponent(clean)}`, headers);
+  }
+
+  /**
+   * Consulta enquadramento no Simples Nacional e MEI na Receita Federal
+   * @param {string} cnpj
+   * @param {string} [paymentTxHash]
+   * @returns {Promise<Object>}
+   */
+  async getSimples(cnpj, paymentTxHash = null) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    const clean = String(cnpj || '').replace(/\D/g, '');
+    return this._request(`/api/v1/simples?cnpj=${encodeURIComponent(clean)}`, headers);
+  }
+
+  /**
+   * Compliance Score 360 consolidado de risco cadastral e integridade (0 a 100)
+   * @param {string} cnpj
+   * @param {string} [paymentTxHash]
+   * @returns {Promise<Object>}
+   */
+  async getCompliance(cnpj, paymentTxHash = null) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    const clean = String(cnpj || '').replace(/\D/g, '');
+    return this._request(`/api/v1/compliance?cnpj=${encodeURIComponent(clean)}`, headers);
   }
 
   /**
@@ -599,9 +641,28 @@ export class Grid402ActionProvider {
     if (startDate) queryParams.start_date = startDate;
     if (endDate) queryParams.end_date = endDate;
     if (date) queryParams.date = date;
-    if (days !== undefined && days !== null) queryParams.days = days;
+    if (days !== undefined) {
+      if (days !== null) {
+        queryParams.days = days;
+      }
+    }
 
     return this._executeWithSettlement('/api/v1/workdays', queryParams, walletProvider);
+  }
+
+  async querySanctions(cnpj, walletProvider = null) {
+    const clean = String(cnpj || '').replace(/\D/g, '');
+    return this._executeWithSettlement('/api/v1/sanctions', { cnpj: clean }, walletProvider);
+  }
+
+  async querySimples(cnpj, walletProvider = null) {
+    const clean = String(cnpj || '').replace(/\D/g, '');
+    return this._executeWithSettlement('/api/v1/simples', { cnpj: clean }, walletProvider);
+  }
+
+  async queryCompliance(cnpj, walletProvider = null) {
+    const clean = String(cnpj || '').replace(/\D/g, '');
+    return this._executeWithSettlement('/api/v1/compliance', { cnpj: clean }, walletProvider);
   }
 
   // Aliases de conveniencia
@@ -615,4 +676,7 @@ export class Grid402ActionProvider {
   get getIndicators() { return this.queryIndicators; }
   get getHolidays() { return this.queryHolidays; }
   get getWorkdays() { return this.queryWorkdays; }
+  get getSanctions() { return this.querySanctions; }
+  get getSimples() { return this.querySimples; }
+  get getCompliance() { return this.queryCompliance; }
 }

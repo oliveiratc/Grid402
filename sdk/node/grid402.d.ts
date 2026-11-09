@@ -226,6 +226,83 @@ export interface WorkdaysResponse {
     error?: string;
 }
 
+export interface SanctionItem {
+    cadastro?: string;
+    motivo?: string;
+    orgao_sancionador?: string;
+    data_inicio?: string;
+    data_fim?: string | null;
+    abrangencia?: string;
+    processo?: string;
+}
+
+export interface SanctionsResponse {
+    status: string;
+    service: string;
+    cnpj: string;
+    has_sanctions: boolean;
+    total_sanctions: number;
+    sanctions?: SanctionItem[];
+    sources?: string[];
+    risk_level?: string;
+    tariff_usdc: string;
+    cached?: boolean;
+    sandbox?: boolean;
+    error?: string;
+}
+
+export interface SimplesResponse {
+    status: string;
+    service: string;
+    cnpj: string;
+    optante_simples: boolean;
+    data_opcao_simples?: string | null;
+    data_exclusao_simples?: string | null;
+    optante_simei: boolean;
+    data_opcao_simei?: string | null;
+    data_exclusao_simei?: string | null;
+    regime_tributario?: string;
+    situacao_simples?: string;
+    situacao_simei?: string;
+    tariff_usdc: string;
+    cached?: boolean;
+    sandbox?: boolean;
+    error?: string;
+}
+
+export interface ComplianceFactors {
+    cadastral_status?: string;
+    has_sanctions?: boolean;
+    total_sanctions?: number;
+    tax_regime?: string;
+    is_mei?: boolean;
+    has_qsa?: boolean;
+    is_matrix?: boolean;
+}
+
+export interface ComplianceResponse {
+    status: string;
+    service: string;
+    cnpj: string;
+    compliance_score: number;
+    risk_tier: 'BAIXO' | 'MEDIO' | 'ALTO' | 'CRITICO' | string;
+    summary: string;
+    razao_social?: string;
+    nome_fantasia?: string | null;
+    situacao_cadastral?: string;
+    optante_simples?: boolean;
+    optante_simei?: boolean;
+    has_sanctions?: boolean;
+    total_sanctions?: number;
+    sanctions?: SanctionItem[];
+    factors?: ComplianceFactors;
+    checked_sources?: string[];
+    tariff_usdc: string;
+    cached?: boolean;
+    sandbox?: boolean;
+    error?: string;
+}
+
 export interface OracleProof {
     oracle_address: string;
     timestamp: number;
@@ -298,6 +375,9 @@ export declare class Grid402Client {
     getIndicators(paymentTxHash?: string): Promise<IndicatorsResponse>;
     getHolidays(year?: number, paymentTxHash?: string): Promise<HolidaysResponse>;
     getWorkdays(params?: WorkdaysParams, paymentTxHash?: string): Promise<WorkdaysResponse>;
+    getSanctions(cnpj: string, paymentTxHash?: string): Promise<SanctionsResponse>;
+    getSimples(cnpj: string, paymentTxHash?: string): Promise<SimplesResponse>;
+    getCompliance(cnpj: string, paymentTxHash?: string): Promise<ComplianceResponse>;
     verifyProof(response: Record<string, any>, expectedOracleAddress?: string): OracleVerificationResult;
     isHealthy(serviceName?: string): Promise<boolean>;
     guard<T>(serviceName: string, action: () => Promise<T> | T, fallback?: () => Promise<T> | T): Promise<T>;
@@ -329,6 +409,9 @@ export declare class Grid402ActionProvider {
     queryIndicators(walletProvider?: WalletProvider): Promise<IndicatorsResponse>;
     queryHolidays(year?: number, walletProvider?: WalletProvider): Promise<HolidaysResponse>;
     queryWorkdays(params?: WorkdaysParams, walletProvider?: WalletProvider): Promise<WorkdaysResponse>;
+    querySanctions(cnpj: string, walletProvider?: WalletProvider): Promise<SanctionsResponse>;
+    querySimples(cnpj: string, walletProvider?: WalletProvider): Promise<SimplesResponse>;
+    queryCompliance(cnpj: string, walletProvider?: WalletProvider): Promise<ComplianceResponse>;
 
     getCnpj(cnpj: string, walletProvider?: WalletProvider): Promise<CnpjResponse>;
     getCep(code: string, walletProvider?: WalletProvider): Promise<CepResponse>;
@@ -340,6 +423,9 @@ export declare class Grid402ActionProvider {
     getIndicators(walletProvider?: WalletProvider): Promise<IndicatorsResponse>;
     getHolidays(year?: number, walletProvider?: WalletProvider): Promise<HolidaysResponse>;
     getWorkdays(params?: WorkdaysParams, walletProvider?: WalletProvider): Promise<WorkdaysResponse>;
+    getSanctions(cnpj: string, walletProvider?: WalletProvider): Promise<SanctionsResponse>;
+    getSimples(cnpj: string, walletProvider?: WalletProvider): Promise<SimplesResponse>;
+    getCompliance(cnpj: string, walletProvider?: WalletProvider): Promise<ComplianceResponse>;
 }
 
 export declare function verifyOracleProof(

@@ -33,4 +33,37 @@ result = client.guard("forex", batch_work)
 assert executed is True, "batch_work deve ter sido executado"
 print(f"  ✓ Circuit Breaker guard() executou a rotina protegida: '{result}'")
 
+print("[TEST SDK PYTHON] 5. Testando metodos de Compliance, Sancoes e Simples Nacional...")
+from unittest.mock import MagicMock, patch
+import io
+import json
+
+mock_response = io.BytesIO(json.dumps({"status": "success", "cnpj": "00000000000191", "sandbox": True}).encode("utf-8"))
+mock_cm = MagicMock()
+mock_cm.__enter__.return_value = mock_response
+mock_cm.__exit__.return_value = None
+
+with patch("urllib.request.urlopen", return_value=mock_cm) as mock_open:
+    sandbox_client = Grid402Client(sandbox=True, verify_ssl=False)
+
+    sanctions = sandbox_client.get_sanctions("00.000.000/0001-91")
+    assert sanctions["status"] == "success"
+    req = mock_open.call_args[0][0]
+    assert "/api/v1/sanctions?cnpj=00000000000191" in req.full_url
+    assert req.headers.get("X-payment") == "demo" or req.headers.get("X-Payment") == "demo"
+
+    mock_response.seek(0)
+    simples = sandbox_client.get_simples("00.000.000/0001-91")
+    assert simples["status"] == "success"
+    req = mock_open.call_args[0][0]
+    assert "/api/v1/simples?cnpj=00000000000191" in req.full_url
+
+    mock_response.seek(0)
+    compliance = sandbox_client.get_compliance("00.000.000/0001-91")
+    assert compliance["status"] == "success"
+    req = mock_open.call_args[0][0]
+    assert "/api/v1/compliance?cnpj=00000000000191" in req.full_url
+
+print("  ✓ Metodos get_sanctions, get_simples e get_compliance validados com sucesso!")
+
 print("\n✓ Todos os testes do SDK Python passaram com 100% de sucesso!")
