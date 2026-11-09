@@ -2222,8 +2222,8 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             <!-- Barra de Controles e Alternador de Modo -->
             <div class="playground-toolbar">
                 <div class="mode-toggle-group">
-                    <button type="button" class="mode-toggle-btn active" id="btn-mode-sandbox" onclick="setPlaygroundMode('sandbox')">🧪 Sandbox (demo)</button>
-                    <button type="button" class="mode-toggle-btn" id="btn-mode-challenge" onclick="setPlaygroundMode('challenge')">🔒 Desafio x402 (HTTP 402)</button>
+                    <button type="button" class="mode-toggle-btn active" id="btn-mode-challenge" onclick="setPlaygroundMode('challenge')">🔒 Desafio x402 (HTTP 402)</button>
+                    <button type="button" class="mode-toggle-btn" id="btn-mode-sandbox" onclick="setPlaygroundMode('sandbox')">🧪 Sandbox (3 testes/h)</button>
                     <button type="button" class="mode-toggle-btn" id="btn-mode-manual" onclick="setPlaygroundMode('manual')">✍️ Validar JSON Externo</button>
                 </div>
                 <div class="playground-url-bar">
@@ -2895,7 +2895,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
         };
 
         let currentPlaygroundPreset = 'workdays';
-        let currentPlaygroundMode = 'sandbox';
+        let currentPlaygroundMode = 'challenge';
         let lastPlaygroundJson = '';
 
         function initPlayground() {

@@ -105,7 +105,7 @@ function grid402_rpc_get_sepolia_receipt(string $txHash): ?array {
  */
 function grid402_check_sandbox_rate_limit(string $clientIp): array {
     $file = defined('GRID402_FILE_SANDBOX_RATES') ? GRID402_FILE_SANDBOX_RATES : (dirname(__DIR__) . '/private_data/sandbox_rates.json');
-    $maxRequests = defined('GRID402_SANDBOX_RATE_LIMIT') ? GRID402_SANDBOX_RATE_LIMIT : 20;
+    $maxRequests = defined('GRID402_SANDBOX_RATE_LIMIT') ? GRID402_SANDBOX_RATE_LIMIT : 3;
     $windowSeconds = 3600;
     $now = time();
 
