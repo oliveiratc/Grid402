@@ -90,7 +90,7 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
     <link rel="sitemap" type="application/xml" href="/sitemap.xml">
     <link rel="service-meta" type="application/json" href="/.well-known/mcp/server-card.json">
 
-    <!-- Schema.org JSON-LD Completo com Organization, LocalBusiness e Endereco Fisico -->
+    <!-- Schema.org JSON-LD Completo com Organization e Servicos -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
