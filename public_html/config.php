@@ -339,6 +339,15 @@ function grid402_get_utility_services(): array {
             'type' => 'on_demand',
             'price_usdc' => '0.0030',
         ],
+        'verify' => [
+            'id' => 'verify',
+            'name' => 'Verificador Criptográfico',
+            'description' => 'Validação matemática local e instantânea de assinatura ECDSA secp256k1 e prova de oráculo (_oracle_proof)',
+            'endpoint' => '/api/v1/verify',
+            'category' => 'Segurança',
+            'type' => 'on_demand',
+            'price_usdc' => 'Gratuito',
+        ],
     ];
 }
 

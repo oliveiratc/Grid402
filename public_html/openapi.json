@@ -441,6 +441,117 @@
         }
       }
     },
+    "/api/v1/sanctions": {
+      "get": {
+        "summary": "Administrative Sanctions and Debarment (CEIS and CNEP)",
+        "description": "Checks administrative sanctions, debarments, and temporary suspensions in the official CGU registries (CEIS and CNEP) for a Brazilian CNPJ.",
+        "tags": ["Compliance"],
+        "parameters": [
+          {
+            "name": "cnpj",
+            "in": "query",
+            "required": true,
+            "description": "14-digit Brazilian company tax ID (CNPJ)",
+            "schema": {
+              "type": "string",
+              "example": "00000000000191"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sanctions check evaluated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SanctionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or malformed CNPJ"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
+    "/api/v1/simples": {
+      "get": {
+        "summary": "Simples Nacional and MEI Tax Status",
+        "description": "Queries official opt-in and historical enrollment in Simples Nacional and SIMEI (MEI) special tax regimes from Federal Revenue.",
+        "tags": ["Fiscal"],
+        "parameters": [
+          {
+            "name": "cnpj",
+            "in": "query",
+            "required": true,
+            "description": "14-digit Brazilian company tax ID (CNPJ)",
+            "schema": {
+              "type": "string",
+              "example": "00000000000191"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Simples Nacional tax status retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimplesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or malformed CNPJ"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
+    "/api/v1/compliance": {
+      "get": {
+        "summary": "Compliance Score 360 and Entity Risk Assessment",
+        "description": "Evaluates unified cadastral risk, legal sanity, tax regime, and active administrative sanctions for a Brazilian company, generating an integrity score from 0 to 100 with risk tier classification.",
+        "tags": ["Compliance"],
+        "parameters": [
+          {
+            "name": "cnpj",
+            "in": "query",
+            "required": true,
+            "description": "14-digit Brazilian company tax ID (CNPJ)",
+            "schema": {
+              "type": "string",
+              "example": "00000000000191"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Compliance score 360 calculated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComplianceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or malformed CNPJ"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
     "/api/v1/verify": {
       "post": {
         "summary": "Stateless Oracle Proof Verification",
@@ -730,6 +841,48 @@
             }
           },
           "tariff_usdc": { "type": "string", "example": "0.0005" },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
+        }
+      },
+      "SanctionsResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "cnpj": { "type": "string", "example": "00.000.000/0001-91" },
+          "has_sanctions": { "type": "boolean", "example": false },
+          "total_sanctions": { "type": "integer", "example": 0 },
+          "cadastros_consultados": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["CEIS", "CNEP"]
+          },
+          "sanctions": { "type": "array", "items": { "type": "object" } },
+          "tariff_usdc": { "type": "string", "example": "0.0010" },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
+        }
+      },
+      "SimplesResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "cnpj": { "type": "string", "example": "00.000.000/0001-91" },
+          "optante_simples": { "type": "boolean", "example": false },
+          "optante_simei": { "type": "boolean", "example": false },
+          "regime_tributario": { "type": "string", "example": "NAO_OPTANTE" },
+          "tariff_usdc": { "type": "string", "example": "0.0010" },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
+        }
+      },
+      "ComplianceResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "cnpj": { "type": "string", "example": "00.000.000/0001-91" },
+          "score": { "type": "integer", "example": 100 },
+          "status": { "type": "string", "example": "APROVADO" },
+          "flags": { "type": "array", "items": { "type": "string" } },
+          "summary": { "type": "object" },
+          "tariff_usdc": { "type": "string", "example": "0.0030" },
           "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
         }
       },

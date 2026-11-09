@@ -1317,7 +1317,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             </div>
         </div>
 
-        <!-- 2 Columns: Tráfego por Micro-Serviço (11 Serviços) e Códigos de Status -->
+        <!-- 2 Columns: Tráfego por Micro-Serviço (14 Nós) e Códigos de Status -->
         <div class="analytics-row">
             <div class="panel">
                 <div class="panel-title">Volume por Micro-Serviço (14 Nós)</div>
@@ -1604,7 +1604,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                     }
                 }
 
-                // 3. Atualizar Barras de Servicos (11 Micro-Servicos)
+                // 3. Atualizar Barras de Servicos (14 Nós)
                 const serviceBarsEl = document.getElementById('service-bars-container');
                 if (serviceBarsEl) {
                     if (data.service_counts) {

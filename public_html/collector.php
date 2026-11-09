@@ -147,6 +147,40 @@ $servicesSummary = [
         'endpoint' => '/api/v1/holidays',
         'category' => 'Dados Abertos',
     ],
+    'workdays' => [
+        'name' => 'Calculadora de Dias Úteis ANBIMA',
+        'status' => 'UP',
+        'endpoint' => '/api/v1/workdays',
+        'category' => 'Financeiro',
+    ],
+    'sanctions' => [
+        'name' => 'Sanções e Inidoneidade (CEIS/CNEP)',
+        'status' => 'UP',
+        'endpoint' => '/api/v1/sanctions',
+        'category' => 'Compliance',
+        'price_usdc' => '0.0010',
+    ],
+    'simples' => [
+        'name' => 'Simples Nacional e MEI',
+        'status' => 'UP',
+        'endpoint' => '/api/v1/simples',
+        'category' => 'Fiscal',
+        'price_usdc' => '0.0010',
+    ],
+    'compliance' => [
+        'name' => 'Compliance Score 360',
+        'status' => 'UP',
+        'endpoint' => '/api/v1/compliance',
+        'category' => 'Compliance',
+        'price_usdc' => '0.0030',
+    ],
+    'verify' => [
+        'name' => 'Verificador Criptográfico',
+        'status' => 'UP',
+        'endpoint' => '/api/v1/verify',
+        'category' => 'Segurança',
+        'price_usdc' => 'Gratuito',
+    ],
 ];
 
 $totalDurationMs = round((microtime(true) - $startTime) * 1000, 2);

@@ -27,6 +27,9 @@
 - [Economic Indicators API](https://grid402.online/api/v1/indicators): Taxas oficiais Selic (meta e diaria), CDI anual e diario, IPCA 12m e mensal (BCB e IBGE)
 - [National and Banking Holidays API](https://grid402.online/api/v1/holidays?year=2026): Calendario oficial de feriados nacionais e bancarios (ANBIMA e Febraban) com calculo matematico Meeus
 - [ANBIMA Workdays Calculator API](https://grid402.online/api/v1/workdays): Calculadora de dias uteis bancarios ANBIMA com contagem de intervalo e projecao de prazos
+- [Administrative Sanctions API](https://grid402.online/api/v1/sanctions?cnpj=00000000000191): Sancoes administrativas ativas nos cadastros CEIS e CNEP (CGU)
+- [Simples Nacional Tax Status API](https://grid402.online/api/v1/simples?cnpj=00000000000191): Enquadramento tributario no Simples Nacional e MEI (SIMEI)
+- [Compliance Score 360 API](https://grid402.online/api/v1/compliance?cnpj=00000000000191): Dossiê consolidado de compliance e score de risco cadastral (0 a 100)
 
 ## SDKs and Agent Frameworks
 - [Python SDK (PyPI)](https://pypi.org/project/grid402/): Pacote oficial grid402 para Python com suporte a Pydantic e Coinbase AgentKit
@@ -36,7 +39,7 @@
 
 ## Micropayment Protocol Details
 - Rede e Chain ID: Base Mainnet (Chain ID 8453)
-- Tarifa Padrao por Requisicao: 0.0005 USDC (CNPJ: 0.0020 USDC)
+- Tarifa Padrao por Requisicao: 0.0005 USDC (Sancoes e Simples: 0.0010 USDC, CNPJ: 0.0020 USDC, Compliance 360: 0.0030 USDC)
 - [Base Mainnet Scanner](https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c): Carteira oraculo recebedora de micropagamentos (0xa31c31069c43ac1c0075a93c325b0dcd7744356c)
 - [USDC Contract on Base](https://basescan.org/token/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913): Contrato oficial de USDC na rede Base Mainnet (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
 

@@ -105,7 +105,7 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
           "email": "contato@grid402.online",
           "telephone": "+55-11-95832-5848",
           "description": "Hub de micro-servicos publicos e oraculo de utilitarios de rede para agentes autonomos de IA sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.",
-          "priceRange": "$0.0005 - $0.0020",
+          "priceRange": "$0.0005 - $0.0030",
           "sameAs": [
             "https://github.com/oliveiratc/Grid402",
             "https://www.npmjs.com/package/grid402",
@@ -827,7 +827,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
           "email": "contato@grid402.online",
           "telephone": "+55-11-95832-5848",
           "description": "Hub de micro-servicos publicos e oraculo de utilitarios de rede para agentes autonomos de IA sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.",
-          "priceRange": "$0.0005 - $0.0020",
+          "priceRange": "$0.0005 - $0.0030",
           "sameAs": [
             "https://github.com/oliveiratc/Grid402",
             "https://www.npmjs.com/package/grid402",
@@ -2039,14 +2039,14 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             </nav>
             <div class="badge-live">
                 <span class="badge-pulse"></span>
-                <span>Base Mainnet (8453) • 11/11 Servicos Operantes</span>
+                <span>Base Mainnet (8453) • <?php echo count($servicesCatalog); ?>/<?php echo count($servicesCatalog); ?> Servicos Operantes</span>
             </div>
         </header>
 
         <section class="hero">
             <div class="hero-tag">Hub de Micro-Servicos para Robos e Agentes de IA</div>
             <h1>Grid402: Hub de Utilitarios de Rede e Dados Publicos para Agentes de IA</h1>
-            <p>Acesse cotacoes de cambio, cripto, indicadores economicos oficiais (Selic, CDI e IPCA), feriados nacionais e bancarios, DNS, certificados SSL, BGP/ASN, CEP e CNPJ da Receita Federal em milissegundos sem cadastro ou chaves de API. Micropagamentos por chamada em USDC na Base.</p>
+            <p>Acesse cotacoes de cambio, cripto, suite de compliance e antifraude (score 360, sancoes da CGU e Simples Nacional), indicadores economicos oficiais (Selic, CDI e IPCA), feriados bancarios ANBIMA, DNS, certificados SSL, BGP/ASN, CEP e CNPJ da Receita Federal em milissegundos sem cadastro ou chaves de API. Micropagamentos por chamada em USDC na Base.</p>
             <div class="cta-group">
                 <a href="/agents" class="btn btn-primary">🤖 Central de Agentes IA</a>
                 <a href="#playground" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary);">⚡ Testar no Playground</a>
@@ -2182,12 +2182,12 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             <div class="playground-header-wrap">
                 <div class="hero-tag" style="margin-bottom: 0.4rem;">Auditoria Criptografica M2M</div>
                 <h2>Playground Interativo e Verificador de Oraculo</h2>
-                <p>Execute consultas reais nos 11 micro-servicos do Grid402 em modo Sandbox gratuito ou simule o desafio x402. Valide instantaneamente a atestacao criptografica ECDSA secp256k1 (_oracle_proof) com o motor matematico em tempo real.</p>
+                <p>Execute consultas reais nos <?php echo count($servicesCatalog); ?> micro-servicos do Grid402 em modo Sandbox gratuito ou simule o desafio x402. Valide instantaneamente a atestacao criptografica ECDSA secp256k1 (_oracle_proof) com o motor matematico em tempo real.</p>
             </div>
 
-            <!-- 11 Presets de Micro-Servicos -->
+            <!-- Presets de Micro-Servicos -->
             <div class="playground-presets" id="playground-preset-bar">
-                <!-- Preenchido via JavaScript com os 11 micro-servicos -->
+                <!-- Preenchido via JavaScript com todos os micro-servicos -->
             </div>
 
             <!-- Barra de Controles e Alternador de Modo -->
@@ -2735,6 +2735,33 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
         // Grid402: Playground e Verificador de Oraculo
         // ==========================================
         const playgroundPresets = {
+            compliance: {
+                name: 'Compliance 360',
+                icon: '🛡️',
+                endpoint: '/api/v1/compliance',
+                desc: 'Score unificado de risco cadastral e integridade (0 a 100) cruzando Receita Federal e CGU.',
+                params: [
+                    { key: 'cnpj', label: 'Numero do CNPJ', value: '00000000000191' }
+                ]
+            },
+            sanctions: {
+                name: 'Sancoes CGU',
+                icon: '⚖️',
+                endpoint: '/api/v1/sanctions',
+                desc: 'Consulta sancoes administrativas e inidoneidade cadastral nos cadastros CEIS e CNEP.',
+                params: [
+                    { key: 'cnpj', label: 'Numero do CNPJ', value: '00000000000191' }
+                ]
+            },
+            simples: {
+                name: 'Simples Nacional',
+                icon: '📑',
+                endpoint: '/api/v1/simples',
+                desc: 'Consulta oficial de enquadramento tributario no Simples Nacional e regime SIMEI.',
+                params: [
+                    { key: 'cnpj', label: 'Numero do CNPJ', value: '00000000000191' }
+                ]
+            },
             workdays: {
                 name: 'Dias Uteis ANBIMA',
                 icon: '📅',
@@ -2827,6 +2854,13 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 icon: '⚡',
                 endpoint: '/status',
                 desc: 'Telemetria consolidada e status operacional em tempo real dos servicos Grid402.',
+                params: []
+            },
+            verify: {
+                name: 'Verificador Oraculo',
+                icon: '🔐',
+                endpoint: '/api/v1/verify',
+                desc: 'Validacao matematica instantanea de assinatura secp256k1 e prova criptografica.',
                 params: []
             }
         };

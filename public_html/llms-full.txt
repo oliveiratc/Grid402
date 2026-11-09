@@ -159,6 +159,24 @@ Resposta de verificacao:
 - Tarifa: 0.0000 USDC (Gratuito)
 - Descricao: Validacao matematico-criptografica de assinaturas de dados geradas pelo Grid402.
 
+### 13. Sancoes Administrativas e Inidoneidade (CEIS/CNEP)
+- Rota: `GET /api/v1/sanctions?cnpj={cnpj}`
+- Tarifa: 0.0010 USDC
+- Exemplo: `/api/v1/sanctions?cnpj=00000000000191`
+- Descricao: Consulta aos cadastros federais CEIS e CNEP geridos pela CGU para identificacao de sancoes ativas e impedimentos de contratar.
+
+### 14. Enquadramento no Simples Nacional e MEI
+- Rota: `GET /api/v1/simples?cnpj={cnpj}`
+- Tarifa: 0.0010 USDC
+- Exemplo: `/api/v1/simples?cnpj=00000000000191`
+- Descricao: Consulta a situacao de opcao pelo Simples Nacional e enquadramento no SIMEI (Microempreendedor Individual) na Receita Federal.
+
+### 15. Compliance Score 360 Consolidado
+- Rota: `GET /api/v1/compliance?cnpj={cnpj}`
+- Tarifa: 0.0030 USDC
+- Exemplo: `/api/v1/compliance?cnpj=00000000000191`
+- Descricao: Dossiê unificado e calculo de score de risco cadastral e idoneidade (0 a 100) com classificacao de risco (BAIXO, MEDIO, ALTO, CRITICO).
+
 ---
 
 ## 5. Exemplo de Codigo em Python para Agentes

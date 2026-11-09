@@ -1,7 +1,7 @@
 {
   "$schema": "https://modelcontextprotocol.io/schemas/mcp.json",
   "name": "grid402-mcp",
-  "version": "1.4.0",
+  "version": "1.8.0",
   "description": "Servidor MCP oficial do Grid402 para consulta de dados publicos do Brasil sob o protocolo x402 com prova criptografica de oraculo.",
   "homepage": "https://grid402.online",
   "repository": "https://github.com/oliveiratc/Grid402",
@@ -166,6 +166,54 @@
           }
         },
         "required": ["start_date", "end_date"]
+      }
+    },
+    {
+      "name": "grid402_sanctions",
+      "description": "Consulta sancoes administrativas ativas e inidoneidade nos cadastros federais CEIS e CNEP (CGU).",
+      "cost_usdc": "0.0010",
+      "endpoint": "https://grid402.online/api/v1/sanctions",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "cnpj": {
+            "type": "string",
+            "description": "Numero do CNPJ (14 digitos)"
+          }
+        },
+        "required": ["cnpj"]
+      }
+    },
+    {
+      "name": "grid402_simples",
+      "description": "Consulta o enquadramento tributario oficial no Simples Nacional e MEI (SIMEI) na Receita Federal.",
+      "cost_usdc": "0.0010",
+      "endpoint": "https://grid402.online/api/v1/simples",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "cnpj": {
+            "type": "string",
+            "description": "Numero do CNPJ (14 digitos)"
+          }
+        },
+        "required": ["cnpj"]
+      }
+    },
+    {
+      "name": "grid402_compliance",
+      "description": "Dossiê unificado e score de risco e idoneidade cadastral 360 (0 a 100) cruzando Receita Federal e CGU.",
+      "cost_usdc": "0.0030",
+      "endpoint": "https://grid402.online/api/v1/compliance",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "cnpj": {
+            "type": "string",
+            "description": "Numero do CNPJ (14 digitos)"
+          }
+        },
+        "required": ["cnpj"]
       }
     },
     {

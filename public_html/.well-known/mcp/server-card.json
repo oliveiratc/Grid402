@@ -1,8 +1,8 @@
 {
   "$schema": "https://modelcontextprotocol.io/schemas/server-card/v1.json",
   "name": "grid402-mcp",
-  "version": "1.7.0",
-  "description": "Grid402 MCP Server - Hub de micro-servicos publicos e utilitarios de rede (Forex, Cripto, DNS, SSL, ASN, CEP, CNPJ, Indicadores e Feriados) sob o protocolo x402 na Base.",
+  "version": "1.8.0",
+  "description": "Grid402 MCP Server - Hub de micro-servicos publicos e utilitarios de rede (Forex, Cripto, DNS, SSL, ASN, CEP, CNPJ, Indicadores, Feriados, Dias Uteis, Compliance, Sancoes e Simples) sob o protocolo x402 na Base.",
   "homepage": "https://grid402.online",
   "repository": {
     "type": "git",
@@ -69,6 +69,26 @@
     {
       "name": "grid402_holidays",
       "description": "Consulta o calendario oficial de feriados nacionais e dias sem expediente bancario ANBIMA e Febraban."
+    },
+    {
+      "name": "grid402_workdays",
+      "description": "Calcula a contagem de dias uteis bancarios da ANBIMA entre duas datas no Brasil."
+    },
+    {
+      "name": "grid402_sanctions",
+      "description": "Consulta sancoes administrativas ativas e inidoneidade nos cadastros federais CEIS e CNEP (CGU)."
+    },
+    {
+      "name": "grid402_simples",
+      "description": "Consulta o enquadramento tributario oficial no Simples Nacional e MEI (SIMEI) na Receita Federal."
+    },
+    {
+      "name": "grid402_compliance",
+      "description": "Dossiê unificado e score de risco e idoneidade cadastral 360 (0 a 100) cruzando Receita Federal e CGU."
+    },
+    {
+      "name": "grid402_verify",
+      "description": "Valida sem estado a assinatura criptografica secp256k1 de oraculo do Grid402 (gratuito)."
     }
   ]
 }
