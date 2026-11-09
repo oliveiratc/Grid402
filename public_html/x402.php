@@ -542,7 +542,7 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
  * Notificacao em tempo real de micropagamentos x402 no Telegram
  * Disparo nao-bloqueante (timeout de 1s) e tratamento silencioso de erros.
  */
-function grid402_notify_telegram_purchase(string $service, float $priceUsdc, string $txHash): bool {
+function grid402_notify_telegram_purchase(string $service, float $priceUsdc, string $txHash, bool $isTest = false): bool {
     $token = defined('GRID402_TELEGRAM_BOT_TOKEN') ? GRID402_TELEGRAM_BOT_TOKEN : (string) grid402_env('GRID402_TELEGRAM_BOT_TOKEN', '');
     $chatId = defined('GRID402_TELEGRAM_CHAT_ID') ? GRID402_TELEGRAM_CHAT_ID : (string) grid402_env('GRID402_TELEGRAM_CHAT_ID', '');
 
@@ -570,11 +570,15 @@ function grid402_notify_telegram_purchase(string $service, float $priceUsdc, str
     $cleanTx = trim($txHash);
     $txLink = 'https://basescan.org/tx/' . $cleanTx;
 
-    $text = "💰 *Nova Compra no Grid402!*\n\n"
+    $isTestTx = $isTest || preg_match('/^0x(a{64}|0{64}|f{64}|1{64}|demo)$/i', $cleanTx);
+    $titleHeader = $isTestTx ? "🧪 *TESTE DO SISTEMA: Simulação de Compra no Grid402*" : "💰 *Nova Compra no Grid402!*";
+
+    $text = $titleHeader . "\n\n"
           . "📦 *Servico:* " . $displayName . "\n"
           . "💵 *Valor:* " . $displayPrice . "\n"
           . "🌐 *Rede:* Base Mainnet (ChainID 8453)\n"
           . "🕒 *Data:* " . $nowUtc . "\n"
+          . ($isTestTx ? "ℹ️ *Nota:* Disparo originado por teste automatizado.\n" : "")
           . "🔗 *Transacao:* [BaseScan](" . $txLink . ")";
 
     $apiUrl = 'https://api.telegram.org/bot' . $token . '/sendMessage';
@@ -595,8 +599,8 @@ function grid402_notify_telegram_purchase(string $service, float $priceUsdc, str
         CURLOPT_POSTFIELDS => $payloadJson,
         CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 1,
-        CURLOPT_CONNECTTIMEOUT => 1,
+        CURLOPT_TIMEOUT => 3,
+        CURLOPT_CONNECTTIMEOUT => 2,
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
     ]);
