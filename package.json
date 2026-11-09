@@ -1,0 +1,38 @@
+{
+  "name": "grid402-mcp",
+  "version": "1.7.0",
+  "type": "module",
+  "description": "Grid402 Official Model Context Protocol (MCP) Server for real-time open data and network utilities with Base x402 settlement",
+  "main": "mcp/index.mjs",
+  "bin": {
+    "grid402-mcp": "./mcp/index.mjs"
+  },
+  "scripts": {
+    "start": "node mcp/index.mjs",
+    "test": "node mcp/test_mcp.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.1.0",
+    "ethers": "^6.13.0"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "base",
+    "x402",
+    "usdc",
+    "forex",
+    "crypto",
+    "dns",
+    "ssl",
+    "cep",
+    "cnpj"
+  ],
+  "author": "oliveiratc",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oliveiratc/Grid402.git"
+  }
+}
+

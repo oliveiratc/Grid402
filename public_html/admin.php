@@ -1422,9 +1422,17 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             if (visCountEl) visCountEl.textContent = 'Mostrando ' + visibleCount + ' de ' + totalCount;
         }
 
+        // Utilitario de escape seguro contra DOM XSS
+        function safeHtmlText(val) {
+            if (val === null || val === undefined) return '';
+            const span = document.createElement('span');
+            span.textContent = String(val);
+            return span.innerHTML;
+        }
+
         async function fetchLiveStats(isManual = false) {
             try {
-                const res = await fetch('/admin?api=stats');
+                const res = await fetch('/admin?api=stats', { cache: 'no-store' });
                 if (res.status === 401) {
                     window.location.reload();
                     return;
@@ -1433,17 +1441,25 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 if (data.status !== 'success') return;
 
                 // 1. Atualizar KPIs Financeiros e Operacionais
-                document.getElementById('kpi-total-usdc').textContent = 'US$ ' + Number(data.total_revenue_usdc).toFixed(4);
-                document.getElementById('kpi-total-brl').textContent = '≈ R$ ' + Number(data.total_revenue_brl).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
-                document.getElementById('kpi-today-usdc').textContent = 'US$ ' + Number(data.today_revenue_usdc).toFixed(4);
-                document.getElementById('kpi-today-brl').textContent = '≈ R$ ' + Number(data.today_revenue_brl).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + ' hoje';
-                document.getElementById('kpi-total-reqs').textContent = Number(data.total_requests).toLocaleString('pt-BR');
-                document.getElementById('kpi-paid-reqs').textContent = Number(data.total_paid_requests).toLocaleString('pt-BR') + ' consultas pagas liquidadas';
+                const totalUsdcEl = document.getElementById('kpi-total-usdc');
+                const totalBrlEl = document.getElementById('kpi-total-brl');
+                const todayUsdcEl = document.getElementById('kpi-today-usdc');
+                const todayBrlEl = document.getElementById('kpi-today-brl');
+                const totalReqsEl = document.getElementById('kpi-total-reqs');
+                const paidReqsEl = document.getElementById('kpi-paid-reqs');
+                const convEl = document.getElementById('kpi-conversion');
 
-                const reqs402 = Number(data.status_counts['402'] || 0);
+                if (totalUsdcEl) totalUsdcEl.textContent = 'US$ ' + Number(data.total_revenue_usdc || 0).toFixed(4);
+                if (totalBrlEl) totalBrlEl.textContent = '≈ R$ ' + Number(data.total_revenue_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                if (todayUsdcEl) todayUsdcEl.textContent = 'US$ ' + Number(data.today_revenue_usdc || 0).toFixed(4);
+                if (todayBrlEl) todayBrlEl.textContent = '≈ R$ ' + Number(data.today_revenue_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + ' hoje';
+                if (totalReqsEl) totalReqsEl.textContent = Number(data.total_requests || 0).toLocaleString('pt-BR');
+                if (paidReqsEl) paidReqsEl.textContent = Number(data.total_paid_requests || 0).toLocaleString('pt-BR') + ' consultas pagas liquidadas';
+
+                const reqs402 = (data.status_counts ? Number(data.status_counts['402'] || 0) : 0);
                 const paid = Number(data.total_paid_requests || 0);
                 const conv = (reqs402 + paid > 0) ? ((paid / (reqs402 + paid)) * 100).toFixed(1) : 0;
-                document.getElementById('kpi-conversion').textContent = conv + '%';
+                if (convEl) convEl.textContent = conv + '%';
 
                 // 2. Atualizar Card On-Chain (Base Mainnet)
                 if (data.wallet_balances) {
@@ -1459,115 +1475,85 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                     }
                 }
 
-        // Utilitario de escape seguro contra DOM XSS
-        function safeHtmlText(val) {
-            if (val === null || val === undefined) return '';
-            const span = document.createElement('span');
-            span.textContent = String(val);
-            return span.innerHTML;
-        }
-
-        async function updateStats() {
-            try {
-                const response = await fetch('/admin?api=stats', { cache: 'no-store' });
-                if (response.status === 401) {
-                    window.location.reload();
-                    return;
-                }
-                const data = await response.json();
-
-                // 1. Atualizar KPIs de Faturamento e Volume
-                document.getElementById('stat-total-usdc').textContent = '$' + Number(data.total_revenue_usdc || 0).toFixed(4);
-                document.getElementById('stat-total-brl').textContent = 'R$ ' + Number(data.total_revenue_brl || 0).toFixed(2);
-                document.getElementById('stat-total-paid').textContent = data.total_paid_requests || 0;
-                document.getElementById('stat-total-reqs').textContent = data.total_requests || 0;
-                document.getElementById('stat-today-usdc').textContent = '$' + Number(data.today_revenue_usdc || 0).toFixed(4);
-                document.getElementById('stat-today-brl').textContent = 'R$ ' + Number(data.today_revenue_brl || 0).toFixed(2);
-
-                // 2. Atualizar KPI de Carteira On-Chain
-                if (data.wallet_balances) {
-                    const w = data.wallet_balances;
-                    const usdcVal = Number(w.usdc_balance || 0).toFixed(2);
-                    const ethVal = Number(w.eth_balance || 0).toFixed(4);
-                    document.getElementById('stat-wallet-usdc').textContent = '$' + usdcVal;
-                    document.getElementById('stat-wallet-eth').textContent = ethVal + ' ETH';
-
-                    const rpcEl = document.getElementById('stat-wallet-rpc-status');
-                    if (rpcEl) {
-                        rpcEl.textContent = w.rpc_operational ? 'RPC ATIVO' : 'CACHE OFFLINE';
-                        rpcEl.style.color = w.rpc_operational ? 'var(--primary)' : 'var(--warning)';
+                // 3. Atualizar Barras de Servicos (11 Micro-Servicos)
+                const serviceBarsEl = document.getElementById('service-bars-container');
+                if (serviceBarsEl) {
+                    if (data.service_counts) {
+                        const servicesList = ['workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'summary'];
+                        const sCounts = data.service_counts || {};
+                        const maxS = Math.max(...Object.values(sCounts).concat([1]));
+                        let sHtml = '';
+                        servicesList.forEach(s => {
+                            const c = Number(sCounts[s] || 0);
+                            const p = Math.round((c / maxS) * 100);
+                            sHtml += `
+                            <div class="bar-row">
+                                <span class="bar-label">${safeHtmlText(s)}</span>
+                                <div class="bar-track"><div class="bar-fill" style="width: ${p}%;"></div></div>
+                                <span class="bar-count">${c}</span>
+                            </div>`;
+                        });
+                        serviceBarsEl.innerHTML = sHtml;
                     }
                 }
-
-                // 3. Atualizar Barras de Serviços (11 Micro-Serviços)
-                const servicesList = ['workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'summary'];
-                const sCounts = data.service_counts || {};
-                const maxS = Math.max(...Object.values(sCounts).concat([1]));
-                let sHtml = '';
-                servicesList.forEach(s => {
-                    const c = Number(sCounts[s] || 0);
-                    const p = Math.round((c / maxS) * 100);
-                    const cleanSName = safeHtmlText(s);
-                    sHtml += `
-                    <div class="bar-row">
-                        <span class="bar-label">${cleanSName}</span>
-                        <div class="bar-track"><div class="bar-fill" style="width: ${p}%;"></div></div>
-                        <span class="bar-count">${c}</span>
-                    </div>`;
-                });
-                document.getElementById('service-bars-container').innerHTML = sHtml;
 
                 // 4. Atualizar Tabela de Eventos (100 Eventos Sanitizados)
                 const tbody = document.getElementById('recent-events-tbody');
                 const events = data.recent_events || [];
                 cachedEvents = events;
 
-                if (events.length === 0) {
-                    tbody.innerHTML = '<tr id="no-events-row"><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Nenhuma consulta registrada até o momento.</td></tr>';
-                } else {
-                    let rowsHtml = '';
-                    events.forEach(ev => {
-                        const time = safeHtmlText((ev.timestamp || '').substr(11, 8));
-                        const st = Number(ev.status || 200);
-                        const rawType = ev.type || (ev.is_paid ? 'paid' : 'free');
-                        const safeType = safeHtmlText(rawType);
+                if (tbody) {
+                    if (events.length === 0) {
+                        tbody.innerHTML = '<tr id="no-events-row"><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Nenhuma consulta registrada até o momento.</td></tr>';
+                    } else {
+                        let rowsHtml = '';
+                        events.forEach(ev => {
+                            const time = safeHtmlText((ev.timestamp || '').substr(11, 8));
+                            const st = Number(ev.status || 200);
+                            const rawType = ev.type || (ev.is_paid ? 'paid' : 'free');
+                            const safeType = safeHtmlText(rawType);
 
-                        let typeBadge = '<span style="color: var(--text-muted); font-size: 0.75rem;">GRATUITO</span>';
-                        if (rawType === 'paid') {
-                            typeBadge = '<span class="tag-paid">PAGO x402</span>';
-                        } else if (rawType === 'sandbox') {
-                            typeBadge = '<span class="tag-status status-sandbox">SANDBOX (demo)</span>';
-                        } else if (rawType === 'challenge_402') {
-                            typeBadge = '<span class="tag-status status-402">DESAFIO 402</span>';
-                        } else if (rawType === 'blocked_403') {
-                            typeBadge = '<span class="tag-status status-403">BLOQUEADO 403</span>';
-                        }
+                            let typeBadge = '<span style="color: var(--text-muted); font-size: 0.75rem;">GRATUITO</span>';
+                            if (rawType === 'paid') {
+                                typeBadge = '<span class="tag-paid">PAGO x402</span>';
+                            } else if (rawType === 'sandbox') {
+                                typeBadge = '<span class="tag-status status-sandbox">SANDBOX (demo)</span>';
+                            } else if (rawType === 'challenge_402') {
+                                typeBadge = '<span class="tag-status status-402">DESAFIO 402</span>';
+                            } else if (rawType === 'blocked_403') {
+                                typeBadge = '<span class="tag-status status-403">BLOQUEADO 403</span>';
+                            }
 
-                        const val = ev.is_paid ? '$' + safeHtmlText(ev.price_usdc) : '-';
-                        const rawTx = String(ev.tx_hash || '');
-                        const isHexTx = /^0x[a-f0-9]{64}$/i.test(rawTx);
-                        const tx = isHexTx
-                            ? `<a href="https://basescan.org/tx/${encodeURIComponent(rawTx)}" target="_blank" class="tx-link">${safeHtmlText(rawTx.substr(0, 8))}...${safeHtmlText(rawTx.substr(-6))} ↗</a>`
-                            : '<span style="color: var(--text-muted);">-</span>';
+                            const val = ev.is_paid ? '$' + safeHtmlText(ev.price_usdc) : '-';
+                            const rawTx = String(ev.tx_hash || '');
+                            const isHexTx = /^0x[a-f0-9]{64}$/i.test(rawTx);
+                            const tx = isHexTx
+                                ? `<a href="https://basescan.org/tx/${encodeURIComponent(rawTx)}" target="_blank" class="tx-link">${safeHtmlText(rawTx.substr(0, 8))}...${safeHtmlText(rawTx.substr(-6))} ↗</a>`
+                                : '<span style="color: var(--text-muted);">-</span>';
 
-                        const cleanService = safeHtmlText(ev.service || '');
-                        const cleanIp = safeHtmlText(ev.ip_masked || 'xxx.xxx.xxx.xxx');
+                            const cleanService = safeHtmlText(ev.service || '');
+                            const cleanIp = safeHtmlText(ev.ip_masked || 'xxx.xxx.xxx.xxx');
 
-                        rowsHtml += `
-                        <tr class="event-row" data-type="${safeType}">
-                            <td>${time}</td>
-                            <td><strong>${cleanService}</strong></td>
-                            <td><span class="tag-status status-${st}">HTTP ${st}</span></td>
-                            <td>${typeBadge}</td>
-                            <td>${val}</td>
-                            <td>${tx}</td>
-                            <td style="color: var(--text-muted);">${cleanIp}</td>
-                        </tr>`;
-                    });
-                    tbody.innerHTML = rowsHtml;
+                            rowsHtml += `
+                            <tr class="event-row" data-type="${safeType}">
+                                <td>${time}</td>
+                                <td><strong>${cleanService}</strong></td>
+                                <td><span class="tag-status status-${st}">HTTP ${st}</span></td>
+                                <td>${typeBadge}</td>
+                                <td>${val}</td>
+                                <td>${tx}</td>
+                                <td style="color: var(--text-muted);">${cleanIp}</td>
+                            </tr>`;
+                        });
+                        tbody.innerHTML = rowsHtml;
+                    }
                 }
 
-                document.getElementById('last-updated-text').textContent = 'Última atualização: ' + new Date().toLocaleTimeString('pt-BR');
+                const lastUpdEl = document.getElementById('last-updated-text');
+                if (lastUpdEl) {
+                    lastUpdEl.textContent = 'Última atualização: ' + new Date().toLocaleTimeString('pt-BR');
+                }
+
                 applyFeedFilterAndSearch();
             } catch (e) {
                 console.error('Erro ao buscar stats em tempo real:', e);
@@ -1664,6 +1650,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
 
         // Inicializacao dos contadores e polling
         applyFeedFilterAndSearch();
+        fetchLiveStats();
         setInterval(fetchLiveStats, 5000);
     </script>
 </body>
