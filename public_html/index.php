@@ -2147,12 +2147,12 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
         <!-- Grid dos Servicos Publicos -->
         <div id="services" class="grid-services">
             <?php foreach ($servicesCatalog as $svc): ?>
-            <div class="card">
+            <div class="card" data-service-card="<?php echo htmlspecialchars($svc['id']); ?>">
                 <div class="card-header">
-                    <span class="card-title"><?php echo htmlspecialchars($svc['name']); ?></span>
-                    <span class="card-category"><?php echo htmlspecialchars($svc['category']); ?></span>
+                    <span class="card-title" data-i18n="svc.<?php echo $svc['id']; ?>.name"><?php echo htmlspecialchars($svc['name']); ?></span>
+                    <span class="card-category" data-i18n="svc.<?php echo $svc['id']; ?>.category"><?php echo htmlspecialchars($svc['category']); ?></span>
                 </div>
-                <div class="card-desc"><?php echo htmlspecialchars($svc['description']); ?></div>
+                <div class="card-desc" data-i18n="svc.<?php echo $svc['id']; ?>.desc"><?php echo htmlspecialchars($svc['description']); ?></div>
                 <div class="card-route">GET <?php echo htmlspecialchars($svc['endpoint']); ?></div>
             </div>
             <?php endforeach; ?>
@@ -2328,14 +2328,14 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                 <!-- Coluna 2: Retorno JSON e Card de Auditoria -->
                 <div class="playground-card">
                     <div class="playground-card-title">
-                        <span>Retorno da API</span>
+                        <span data-i18n="playground.viewer.title">Retorno da API</span>
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span id="playground-http-status" class="card-category">Pronto</span>
+                            <span id="playground-http-status" class="card-category" data-i18n="playground.status.ready">Pronto</span>
                             <span id="playground-latency-tag" class="card-category" style="display: none;"></span>
                             <button type="button" class="btn-copy-json" id="btn-copy-playground" onclick="copyPlaygroundJson()" data-i18n="playground.btn.copy">Copiar JSON</button>
                         </div>
                     </div>
-                    <pre id="playground-json-viewer" class="json-viewer-pre">// O resultado da consulta ou da auditoria aparecera aqui...</pre>
+                    <pre id="playground-json-viewer" class="json-viewer-pre" data-i18n="playground.viewer.placeholder">// O resultado da consulta ou da auditoria aparecera aqui...</pre>
 
                     <!-- Card de Auditoria em 3 Etapas -->
                     <div id="playground-audit-card" class="audit-card" style="display: none;">
@@ -2353,7 +2353,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                                 <div id="audit-step-1-icon" class="audit-step-icon icon-pending">1</div>
                                 <div class="audit-step-body">
                                     <div class="audit-step-title">
-                                        <span data-i18n="playground.audit.s1.title">1. Canonicidade do Payload & Hash SHA-256</span>
+                                        <span data-i18n="playground.audit.s1.title">1. Canonicidade do Payload e Hash SHA-256</span>
                                         <span id="audit-step-1-status" class="card-category">Aguardando</span>
                                     </div>
                                     <div class="audit-step-desc" data-i18n="playground.audit.s1.desc">
@@ -2416,20 +2416,20 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             <!-- Tab 1: Console Interativo -->
             <form id="tab-console" class="tab-content active" toolname="grid402_console" tooldescription="Console interativo de consulta e teste dos servicos Grid402 sob protocolo x402" onsubmit="event.preventDefault();">
                 <div class="console-actions">
-                    <button type="button" class="btn-sm" onclick="runConsole('summary')">Resumo Gratuito (/status)</button>
-                    <button type="button" class="btn-sm" onclick="runConsole('forex')">Câmbio (/api/v1/forex)</button>
-                    <button type="button" class="btn-sm" onclick="runConsole('crypto')">Cripto (/api/v1/crypto)</button>
-                    <button type="button" class="btn-sm" onclick="runConsole('dns')">DNS (/api/v1/dns)</button>
-                    <button type="button" class="btn-sm" onclick="runConsole('ssl')">SSL (/api/v1/ssl)</button>
-                    <button type="button" class="btn-sm" onclick="runConsole('asn')">ASN (/api/v1/asn)</button>
-                    <button type="button" class="btn-sm" onclick="runConsole('cep')">CEP (/api/v1/cep)</button>
-                    <button type="button" class="btn-sm" onclick="runConsole('cnpj')">CNPJ (/api/v1/cnpj)</button>
-                    <button type="button" class="btn-sm" onclick="runConsole('indicators')">Indicadores (/api/v1/indicators)</button>
-                    <button type="button" class="btn-sm" onclick="runConsole('holidays')">Feriados (/api/v1/holidays)</button>
-                    <button type="button" class="btn-sm" onclick="runConsole('workdays')">Dias Úteis (/api/v1/workdays)</button>
-                    <button type="button" class="btn-sm" onclick="runConsole('sanctions')">Sanções CGU (/api/v1/sanctions)</button>
-                    <button type="button" class="btn-sm" onclick="runConsole('simples')">Simples Nacional (/api/v1/simples)</button>
-                    <button type="button" class="btn-sm" onclick="runConsole('compliance')">Score 360 (/api/v1/compliance)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('summary')" data-i18n="console.act.summary">Resumo Gratuito (/status)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('forex')" data-i18n="console.act.forex">Câmbio (/api/v1/forex)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('crypto')" data-i18n="console.act.crypto">Cripto (/api/v1/crypto)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('dns')" data-i18n="console.act.dns">DNS (/api/v1/dns)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('ssl')" data-i18n="console.act.ssl">SSL (/api/v1/ssl)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('asn')" data-i18n="console.act.asn">ASN (/api/v1/asn)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('cep')" data-i18n="console.act.cep">CEP (/api/v1/cep)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('cnpj')" data-i18n="console.act.cnpj">CNPJ (/api/v1/cnpj)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('indicators')" data-i18n="console.act.indicators">Indicadores (/api/v1/indicators)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('holidays')" data-i18n="console.act.holidays">Feriados (/api/v1/holidays)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('workdays')" data-i18n="console.act.workdays">Dias Úteis (/api/v1/workdays)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('sanctions')" data-i18n="console.act.sanctions">Sanções CGU (/api/v1/sanctions)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('simples')" data-i18n="console.act.simples">Simples Nacional (/api/v1/simples)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('compliance')" data-i18n="console.act.compliance">Score 360 (/api/v1/compliance)</button>
                 </div>
                 <div class="input-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <input type="text" id="tx-input" class="console-input" style="flex: 1; min-width: 260px;" placeholder="Cole o hash de pagamento na Base (0x...) ou use 'demo' para simulação" data-i18n-placeholder="console.input.placeholder">
@@ -2470,34 +2470,34 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                     </div>
                 </div>
                 <div class="response-header">
-                    <span id="console-status-text">Selecione uma das ações acima para testar o retorno da API.</span>
+                    <span id="console-status-text" data-i18n="console.status.idle">Selecione uma das ações acima para testar o retorno da API.</span>
                     <span id="console-latency-badge" style="display:none;" class="card-category"></span>
                 </div>
-                <pre id="console-output" class="code-block">// Resposta da API aparecerá aqui...</pre>
+                <pre id="console-output" class="code-block" data-i18n="console.output.placeholder">// Resposta da API aparecerá aqui...</pre>
             </form>
 
             <!-- Tab Smithery MCP -->
             <div id="tab-smithery" class="tab-content">
                 <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem;">
                     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 0.75rem;">
-                        <span style="font-weight: 700; color: #fff; font-size: 1.05rem;">📦 Instalação em 1 Clique via Smithery.ai</span>
+                        <span style="font-weight: 700; color: #fff; font-size: 1.05rem;" data-i18n="console.smithery.title">📦 Instalação em 1 Clique via Smithery.ai</span>
                         <span class="card-category">Claude Desktop • Cursor • MCP Stdout</span>
                     </div>
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.5;">
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.5;" data-i18n="console.smithery.desc">
                         O Grid402 está catalogado no registro global da Smithery.ai. Você pode registrar instantaneamente o servidor de ferramentas no seu Claude Desktop ou Cursor sem precisar editar arquivos de configuração manualmente.
                     </p>
                     
                     <div style="margin-bottom: 1rem;">
-                        <div style="font-size: 0.8rem; color: var(--accent); margin-bottom: 0.35rem; font-weight: 600;">Comando de Instalação no Claude Desktop:</div>
+                        <div style="font-size: 0.8rem; color: var(--accent); margin-bottom: 0.35rem; font-weight: 600;" data-i18n="console.smithery.cmd_claude">Comando de Instalação no Claude Desktop:</div>
                         <pre class="code-block" style="margin-bottom: 0.75rem;">npx -y @smithery/cli install grid402-mcp --client claude</pre>
                     </div>
 
                     <div style="margin-bottom: 1rem;">
-                        <div style="font-size: 0.8rem; color: var(--accent); margin-bottom: 0.35rem; font-weight: 600;">Comando de Instalação no Cursor:</div>
+                        <div style="font-size: 0.8rem; color: var(--accent); margin-bottom: 0.35rem; font-weight: 600;" data-i18n="console.smithery.cmd_cursor">Comando de Instalação no Cursor:</div>
                         <pre class="code-block" style="margin-bottom: 0.75rem;">npx -y @smithery/cli install grid402-mcp --client cursor</pre>
                     </div>
 
-                    <div style="background: rgba(0, 0, 0, 0.3); border-radius: 6px; padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--text-muted);">
+                    <div style="background: rgba(0, 0, 0, 0.3); border-radius: 6px; padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--text-muted);" data-i18n-html="console.smithery.params">
                         <strong style="color: #fff;">💡 Parâmetros Suportados no smithery.yaml:</strong>
                         <ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;">
                             <li><code>sandbox: true</code> — Ativa o Modo Sandbox gratuito (20 consultas por hora por IP) para testes sem necessidade de carteira.</li>
@@ -2511,15 +2511,15 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             <div id="tab-agentkit" class="tab-content">
                 <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1.25rem;">
                     <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 0.75rem;">
-                        <span style="font-weight: 700; color: #fff; font-size: 1.05rem;">🪙 Integração Nativa Coinbase AgentKit (CDP)</span>
+                        <span style="font-weight: 700; color: #fff; font-size: 1.05rem;" data-i18n="console.agentkit.title">🪙 Integração Nativa Coinbase AgentKit (CDP)</span>
                         <span class="card-category">M2M Auto-Settlement • LangChain • CrewAI</span>
                     </div>
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.5;">
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.5;" data-i18n="console.agentkit.desc">
                         Permita que agentes de IA com carteiras CDP na Base consultem dados públicos e utilitários de rede pagando tarifas x402 de forma 100% autônoma, sem interrupção humana. O provedor de ações intercepta o desafio 402, transfere o USDC e reenvia a requisição de forma transparente.
                     </p>
 
                     <div style="margin-bottom: 1rem;">
-                        <div style="font-size: 0.8rem; color: var(--accent); margin-bottom: 0.35rem; font-weight: 600;">Exemplo em TypeScript (@coinbase/agentkit):</div>
+                        <div style="font-size: 0.8rem; color: var(--accent); margin-bottom: 0.35rem; font-weight: 600;" data-i18n="console.agentkit.example_ts">Exemplo em TypeScript (@coinbase/agentkit):</div>
                         <pre class="code-block" style="margin-bottom: 0.75rem;">import { AgentKit, CdpWalletProvider } from "@coinbase/agentkit";
 import { Grid402ActionProvider } from "./integrations/agentkit/grid402_action_provider";
 
@@ -2534,7 +2534,7 @@ const agentKit = await AgentKit.from({
                     </div>
 
                     <div style="margin-bottom: 1rem;">
-                        <div style="font-size: 0.8rem; color: var(--accent); margin-bottom: 0.35rem; font-weight: 600;">Exemplo em Python (cdp-agentkit-core):</div>
+                        <div style="font-size: 0.8rem; color: var(--accent); margin-bottom: 0.35rem; font-weight: 600;" data-i18n="console.agentkit.example_py">Exemplo em Python (cdp-agentkit-core):</div>
                         <pre class="code-block" style="margin-bottom: 0.75rem;">from cdp_agentkit_core.actions import CdpActionProvider
 from integrations.agentkit.grid402_action_provider import Grid402ActionProvider
 
@@ -2542,7 +2542,7 @@ from integrations.agentkit.grid402_action_provider import Grid402ActionProvider
 grid402_actions = Grid402ActionProvider(sandbox=False)</pre>
                     </div>
 
-                    <div style="background: rgba(0, 0, 0, 0.3); border-radius: 6px; padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--text-muted);">
+                    <div style="background: rgba(0, 0, 0, 0.3); border-radius: 6px; padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--text-muted);" data-i18n-html="console.agentkit.docs">
                         <strong style="color: #fff;">📂 Documentação Completa e Código-Fonte:</strong>
                         <p style="margin: 0.4rem 0 0 0;">Consulte o diretório <code>integrations/agentkit/</code> no repositório para implementações prontas com LangChain, CrewAI e guias de configuração.</p>
                     </div>
@@ -2754,47 +2754,47 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
         <!-- Secao Sobre o Projeto -->
         <section id="about" class="info-section">
-            <h2>Sobre o Grid402</h2>
-            <p>O <strong>Grid402</strong> e uma infraestrutura pública de oraculo de dados e utilitarios tecnicos de rede desenhada especificamente para a Internet dos Agentes (Agentic Web) e sistemas autônomos Machine-to-Machine (M2M).</p>
-            <p>Tradicionalmente, consultar dados oficiais de empresas, enderecamento postal ou status de infraestrutura exige cadastro previo, cartoes de credito internacionais, aprovacao de tokens e chaves estaticas de API com risco de vazamento. O Grid402 elimina toda a friccao burocratica adotando o padrao nativo da web <strong>HTTP 402 Payment Required</strong> com liquidacao instantanea de micropagamentos em USDC na rede Base Mainnet.</p>
-            <p>Todo o ecossistema opera de maneira estritamente Zero-DB e Stateless, processando apenas informacoes de dominio publico com transparencia computacional, codigo aberto sob Licenca MIT e total conformidade com a legislacao brasileira (LGPD e Marco Civil da Internet).</p>
+            <h2 data-i18n="about.title">Sobre o Grid402</h2>
+            <p data-i18n-html="about.p1">O <strong>Grid402</strong> e uma infraestrutura pública de oraculo de dados e utilitarios tecnicos de rede desenhada especificamente para a Internet dos Agentes (Agentic Web) e sistemas autônomos Machine-to-Machine (M2M).</p>
+            <p data-i18n-html="about.p2">Tradicionalmente, consultar dados oficiais de empresas, enderecamento postal ou status de infraestrutura exige cadastro previo, cartoes de credito internacionais, aprovacao de tokens e chaves estaticas de API com risco de vazamento. O Grid402 elimina toda a friccao burocratica adotando o padrao nativo da web <strong>HTTP 402 Payment Required</strong> com liquidacao instantanea de micropagamentos em USDC na rede Base Mainnet.</p>
+            <p data-i18n-html="about.p3">Todo o ecossistema opera de maneira estritamente Zero-DB e Stateless, processando apenas informacoes de dominio publico com transparencia computacional, codigo aberto sob Licenca MIT e total conformidade com a legislacao brasileira (LGPD e Marco Civil da Internet).</p>
         </section>
 
         <!-- Secao de Contato e Canais Oficiais -->
         <section id="contact" class="info-section">
-            <h2>Contato e Canais Oficiais</h2>
-            <p>Disponibilizamos canais diretos de suporte tecnico, integracao para desenvolvedores de IA e governanca de dados:</p>
+            <h2 data-i18n="contact.title">Contato e Canais Oficiais</h2>
+            <p data-i18n="contact.subtitle">Disponibilizamos canais diretos de suporte tecnico, integracao para desenvolvedores de IA e governanca de dados:</p>
             <div class="contact-grid">
                 <div class="contact-card">
-                    <strong>Suporte Tecnico e Geral</strong>
+                    <strong data-i18n="contact.support">Suporte Tecnico e Geral</strong>
                     <a href="mailto:contato@grid402.online">contato@grid402.online</a>
                 </div>
                 <div class="contact-card">
-                    <strong>Encarregado de Dados (DPO)</strong>
+                    <strong data-i18n="contact.dpo">Encarregado de Dados (DPO)</strong>
                     <a href="mailto:contato@grid402.online">contato@grid402.online</a>
                 </div>
                 <div class="contact-card">
-                    <strong>Central Telefonica</strong>
+                    <strong data-i18n="contact.phone">Central Telefonica</strong>
                     <a href="tel:+5511958325848">+55 11 95832-5848</a>
                 </div>
                 <div class="contact-card">
-                    <strong>Codigo Fonte no GitHub</strong>
+                    <strong data-i18n="contact.github">Codigo Fonte no GitHub</strong>
                     <a href="https://github.com/oliveiratc/Grid402" target="_blank" rel="noopener noreferrer">github.com/oliveiratc/Grid402</a>
                 </div>
                 <div class="contact-card">
-                    <strong>Pacote npm (Node.js)</strong>
+                    <strong data-i18n="contact.npm">Pacote npm (Node.js)</strong>
                     <a href="https://www.npmjs.com/package/grid402" target="_blank" rel="noopener noreferrer">npmjs.com/package/grid402</a>
                 </div>
                 <div class="contact-card">
-                    <strong>Pacote PyPI (Python)</strong>
+                    <strong data-i18n="contact.pypi">Pacote PyPI (Python)</strong>
                     <a href="https://pypi.org/project/grid402/" target="_blank" rel="noopener noreferrer">pypi.org/project/grid402</a>
                 </div>
                 <div class="contact-card">
-                    <strong>Servidor MCP no npm</strong>
+                    <strong data-i18n="contact.mcp">Servidor MCP no npm</strong>
                     <a href="https://www.npmjs.com/package/grid402-mcp" target="_blank" rel="noopener noreferrer">npmjs.com/package/grid402-mcp</a>
                 </div>
                 <div class="contact-card">
-                    <strong>Carteira Oraculo na Base</strong>
+                    <strong data-i18n="contact.oracle">Carteira Oraculo na Base</strong>
                     <a href="https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c" target="_blank" rel="noopener noreferrer">0xa31c...356c</a>
                 </div>
             </div>
@@ -2803,11 +2803,11 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
         <!-- Rodapé Semântico -->
         <footer>
             <div class="footer-links">
-                <a href="/agents" style="color: var(--primary); font-weight: 600;">Agentes IA</a>
-                <a href="/about">About</a>
-                <a href="/contact">Contact</a>
-                <a href="/terms" target="_blank">Terms of Service</a>
-                <a href="/privacy" target="_blank">Privacy Policy</a>
+                <a href="/agents" style="color: var(--primary); font-weight: 600;" data-i18n="nav.agents">Agentes IA</a>
+                <a href="/about" data-i18n="nav.about">About</a>
+                <a href="/contact" data-i18n="nav.contact">Contact</a>
+                <a href="/terms" target="_blank" data-i18n="nav.terms">Terms of Service</a>
+                <a href="/privacy" target="_blank" data-i18n="nav.privacy">Privacy Policy</a>
                 <a href="/llms.txt" target="_blank">llms.txt</a>
                 <a href="/.well-known/mcp.json" target="_blank">MCP Manifest</a>
                 <a href="/openapi.json" target="_blank">OpenAPI 3.1</a>
@@ -2815,7 +2815,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 <a href="mailto:contato@grid402.online">contato@grid402.online</a>
                 <a href="tel:+5511958325848">+55 11 95832-5848</a>
             </div>
-            <div>
+            <div data-i18n="footer.contributors">
                 Copyright (c) 2026 Grid402 Contributors. Distribuido sob os termos da Licenca MIT.
             </div>
         </footer>
@@ -2998,24 +2998,30 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             const activeBtn = document.getElementById('preset-btn-' + key);
             if (activeBtn) activeBtn.classList.add('active');
 
+            const currentPresetData = (typeof currentLanguage !== 'undefined' && currentLanguage === 'en' && typeof playgroundPresets_en !== 'undefined')
+                ? (playgroundPresets_en[key] || p)
+                : p;
+
             const badgeEl = document.getElementById('playground-service-badge');
             if (badgeEl) badgeEl.textContent = key;
 
             const descEl = document.getElementById('playground-service-desc');
-            if (descEl) descEl.textContent = p.desc;
+            if (descEl) descEl.textContent = currentPresetData.desc;
 
             const inputsEl = document.getElementById('playground-params-inputs');
             if (inputsEl) {
                 inputsEl.innerHTML = '';
-                if (p.params.length === 0) {
+                if (currentPresetData.params.length === 0) {
                     const noParams = document.createElement('div');
                     noParams.style.fontSize = '0.8rem';
                     noParams.style.color = 'var(--text-muted)';
                     noParams.style.fontStyle = 'italic';
-                    noParams.textContent = 'Este servico nao requer parametros obrigatorios na consulta basica.';
+                    noParams.textContent = (typeof currentLanguage !== 'undefined' && currentLanguage === 'en')
+                        ? 'This service does not require mandatory parameters in the basic query.'
+                        : 'Este servico nao requer parametros obrigatorios na consulta basica.';
                     inputsEl.appendChild(noParams);
                 } else {
-                    p.params.forEach(param => {
+                    currentPresetData.params.forEach(param => {
                         const wrap = document.createElement('div');
                         const lbl = document.createElement('label');
                         lbl.style.display = 'block';
@@ -3698,17 +3704,17 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 <p>Canal de comunicação sobre privacidade: <code>contato@grid402.online</code>.</p>
             `,
             terms_en: `
-                <h3>1. Purpose & Architecture</h3>
+                <h3>1. Purpose and Architecture</h3>
                 <p><strong>Grid402</strong> is an open-data microservices and network utility gateway designed for autonomous systems, AI agents, and developers. Services are provided "AS-IS", without warranties of fitness for a particular purpose.</p>
-                <h3>2. Public Domain & Open Standards</h3>
+                <h3>2. Public Domain and Open Standards</h3>
                 <p>All queries access public domain registries (PTAX exchange rates, market feeds, postal directories, and open internet protocols such as DNS, TLS, and BGP/ASN).</p>
-                <h3>3. x402 Micropayments & Finality</h3>
+                <h3>3. x402 Micropayments and Finality</h3>
                 <p>Micropayments are settled in USDC on Base Mainnet (Chain ID 8453) with immediate on-chain finality.</p>
-                <h3>4. Copyright & Open Source Licensing</h3>
+                <h3>4. Copyright and Open Source Licensing</h3>
                 <p>The Grid402 software, client SDKs (TypeScript, Python), and MCP specifications are licensed under the terms of the <strong>MIT License</strong>. Data sources originate from open public registries, without proprietary claims over public records.</p>
             `,
             privacy_en: `
-                <h3>1. Data Protection & Privacy Compliance</h3>
+                <h3>1. Data Protection and Privacy Compliance</h3>
                 <p>Grid402 does not collect, store, or process sensitive Personally Identifiable Information (PII). Our microservices perform technical network diagnostics and public data lookups.</p>
                 <h3>2. Access Logs</h3>
                 <p>In accordance with statutory internet regulations, connection logs (IP address, timestamp) are retained securely for network telemetry and anti-abuse purposes.</p>
