@@ -131,6 +131,11 @@ const GRID402_I18N = {
         'playground.audit.oracle.recovered': 'Chave Recuperada On-Chain:',
         'playground.btn.copy': 'Copiar JSON',
         'playground.viewer.placeholder': '// Clique em "Executar Consulta" ou selecione um micro-serviço acima para auditar...',
+        'playground.unlock.badge': '🔒 DADOS COMPLETOS PROTEGIDOS (HTTP 402)',
+        'playground.unlock.desc': 'A amostra gratuita acima foi validada. Desbloqueie agora os campos ocultos e a prova criptográfica ECDSA (_oracle_proof):',
+        'playground.unlock.cta_web3': '⚡ Desbloquear com Carteira Web3 (1 Clique)',
+        'playground.unlock.cta_qr': '📱 QR Code / Celular',
+        'playground.unlock.cta_sandbox': '🧪 Ver Amostra Completa (Sandbox)',
 
         // Console
         'console.title': 'Console de Teste e Especificações de Integração',
@@ -375,6 +380,11 @@ const GRID402_I18N = {
         'playground.audit.oracle.recovered': 'Recovered On-Chain Key:',
         'playground.btn.copy': 'Copy JSON',
         'playground.viewer.placeholder': '// Click "Run Query" or select a microservice above to audit...',
+        'playground.unlock.badge': '🔒 FULL DATA PROTECTED (HTTP 402)',
+        'playground.unlock.desc': 'The free sample above is verified. Unlock the hidden fields and ECDSA cryptographic proof (_oracle_proof) now:',
+        'playground.unlock.cta_web3': '⚡ Unlock with Web3 Wallet (1-Click)',
+        'playground.unlock.cta_qr': '📱 Mobile QR Code',
+        'playground.unlock.cta_sandbox': '🧪 View Full Sample (Sandbox)',
 
         // Console
         'console.title': 'Testing Console and Integration Specs',

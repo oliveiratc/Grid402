@@ -1860,6 +1860,91 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             text-decoration: underline;
         }
 
+        /* Card de Conversão Instantânea x402 (Unlock & Blur) */
+        .playground-unlock-card {
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.08) 0%, rgba(11, 19, 43, 0.92) 100%);
+            border: 1px solid rgba(0, 240, 255, 0.45);
+            box-shadow: 0 8px 30px rgba(0, 240, 255, 0.12);
+            border-radius: 10px;
+            padding: 1.15rem;
+            margin-bottom: 1rem;
+            animation: fadeInUnlock 0.25s ease-out;
+        }
+        @keyframes fadeInUnlock {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .unlock-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .unlock-badge-lock {
+            background: rgba(0, 240, 255, 0.18);
+            color: var(--accent);
+            border: 1px solid rgba(0, 240, 255, 0.5);
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 0.2rem 0.6rem;
+            border-radius: 999px;
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .unlock-price-pill {
+            background: var(--primary);
+            color: #030712;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            font-weight: 800;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+        }
+        .locked-fields-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+            gap: 0.5rem;
+            margin: 0.75rem 0 1rem 0;
+        }
+        .locked-field-item {
+            background: rgba(2, 4, 8, 0.65);
+            border: 1px dashed rgba(148, 163, 184, 0.35);
+            border-radius: 6px;
+            padding: 0.45rem 0.65rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            position: relative;
+            overflow: hidden;
+        }
+        .locked-field-key {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: #cbd5e1;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .locked-field-blur {
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--accent);
+            filter: blur(4.5px);
+            user-select: none;
+            pointer-events: none;
+            opacity: 0.85;
+        }
+        .unlock-cta-group {
+            display: flex;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
         /* Regras Globais de Responsividade Fluida */
         @media (max-width: 960px) {
             header {
@@ -2335,6 +2420,30 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                             <button type="button" class="btn-copy-json" id="btn-copy-playground" onclick="copyPlaygroundJson()" data-i18n="playground.btn.copy">Copiar JSON</button>
                         </div>
                     </div>
+
+                    <!-- Card de Conversão Instantânea x402 (Unlock & Blur) -->
+                    <div id="playground-unlock-card" class="playground-unlock-card" style="display: none;">
+                        <div class="unlock-card-header">
+                            <span class="unlock-badge-lock" data-i18n="playground.unlock.badge">🔒 DADOS COMPLETOS PROTEGIDOS (HTTP 402)</span>
+                            <span id="playground-unlock-price" class="unlock-price-pill">0.0005 USDC • Base</span>
+                        </div>
+                        <p style="font-size: 0.84rem; color: #e2e8f0; margin-bottom: 0.5rem; line-height: 1.45;" data-i18n="playground.unlock.desc">
+                            A amostra gratuita acima foi validada. Desbloqueie agora os campos ocultos e a prova criptográfica ECDSA (<code>_oracle_proof</code>):
+                        </p>
+                        <div id="playground-locked-fields-grid" class="locked-fields-grid"></div>
+                        <div class="unlock-cta-group">
+                            <button type="button" id="btn-playground-web3-pay" class="btn-sm btn-primary" onclick="payPlaygroundWithWeb3()" style="padding: 0.55rem 1.1rem; font-size: 0.85rem; font-weight: 700;" data-i18n="playground.unlock.cta_web3">
+                                ⚡ Desbloquear com Carteira Web3 (1 Clique)
+                            </button>
+                            <button type="button" class="btn-sm btn-outline" onclick="openPlaygroundWeb3Modal()" style="padding: 0.55rem 0.95rem; font-size: 0.82rem;" data-i18n="playground.unlock.cta_qr">
+                                📱 QR Code / Celular
+                            </button>
+                            <button type="button" class="btn-sm btn-outline" onclick="unlockPlaygroundViaSandbox()" style="padding: 0.55rem 0.95rem; font-size: 0.82rem; border-color: rgba(0, 240, 255, 0.35); color: var(--accent);" data-i18n="playground.unlock.cta_sandbox">
+                                🧪 Ver Amostra Completa (Sandbox)
+                            </button>
+                        </div>
+                    </div>
+
                     <pre id="playground-json-viewer" class="json-viewer-pre" data-i18n="playground.viewer.placeholder">// O resultado da consulta ou da auditoria aparecera aqui...</pre>
 
                     <!-- Card de Auditoria em 3 Etapas -->
@@ -3116,7 +3225,9 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             const latencyTag = document.getElementById('playground-latency-tag');
             const viewer = document.getElementById('playground-json-viewer');
             const runBtn = document.getElementById('btn-run-query');
+            const unlockCard = document.getElementById('playground-unlock-card');
 
+            if (unlockCard) unlockCard.style.display = 'none';
             if (statusBadge) statusBadge.textContent = 'Enviando...';
             if (latencyTag) latencyTag.style.display = 'none';
             if (viewer) viewer.textContent = '// Aguardando resposta do hub Grid402...';
@@ -3147,8 +3258,13 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     } else {
                         renderNonProofState('Sem bloco _oracle_proof na resposta.');
                     }
-                } else if (response.status === 402) {
-                    if (statusBadge) statusBadge.textContent = 'HTTP 402 Payment Required';
+                } else if (response.status === 402 || response.status === 429) {
+                    if (statusBadge) {
+                        statusBadge.textContent = response.status === 429
+                            ? 'HTTP 429 Quota Sandbox Excedida'
+                            : 'HTTP 402 Payment Required';
+                    }
+                    renderPlaygroundUnlockCard(data);
                     render402ChallengeCard(data);
                 } else {
                     if (statusBadge) statusBadge.textContent = 'HTTP ' + response.status;
@@ -3290,6 +3406,171 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     if (s3Icon) { s3Icon.className = 'audit-step-icon icon-invalid'; s3Icon.textContent = '✕'; }
                     if (s3Status) { s3Status.textContent = 'Rejeitado'; s3Status.style.color = 'var(--danger)'; }
                     if (s3Meta) s3Meta.style.display = 'none';
+                }
+            }
+        }
+
+        function renderPlaygroundUnlockCard(data) {
+            const unlockCard = document.getElementById('playground-unlock-card');
+            if (!unlockCard) return;
+
+            const priceEl = document.getElementById('playground-unlock-price');
+            const gridEl = document.getElementById('playground-locked-fields-grid');
+            const price = (data && data.price_usdc) ? data.price_usdc : '0.0005';
+
+            if (priceEl) {
+                priceEl.textContent = price + ' USDC • Base';
+            }
+
+            if (gridEl) {
+                gridEl.innerHTML = '';
+                const fields = (data && Array.isArray(data.locked_fields) && data.locked_fields.length > 0)
+                    ? data.locked_fields
+                    : ['full_payload', '_oracle_proof', 'signature_ecdsa', 'timestamp_iso'];
+
+                const sampleMasks = ['████████.██', '0x9f8c...4a1e', 'ATIVO / REGULAR', 'R$ 1.450.000,00', '2026-11-10T20:00Z', 'VERIFICADO'];
+                fields.slice(0, 6).forEach((fieldKey, idx) => {
+                    const item = document.createElement('div');
+                    item.className = 'locked-field-item';
+
+                    const keySpan = document.createElement('div');
+                    keySpan.className = 'locked-field-key';
+                    keySpan.textContent = '🔒 ' + fieldKey;
+
+                    const blurSpan = document.createElement('div');
+                    blurSpan.className = 'locked-field-blur';
+                    blurSpan.textContent = sampleMasks[idx % sampleMasks.length];
+
+                    item.appendChild(keySpan);
+                    item.appendChild(blurSpan);
+                    gridEl.appendChild(item);
+                });
+            }
+
+            unlockCard.style.display = 'block';
+        }
+
+        function openPlaygroundWeb3Modal() {
+            currentServiceAction = currentPlaygroundPreset;
+            openWeb3Modal();
+        }
+
+        function unlockPlaygroundViaSandbox() {
+            setPlaygroundMode('sandbox');
+            runPlaygroundQuery();
+        }
+
+        async function payPlaygroundWithWeb3() {
+            const btn = document.getElementById('btn-playground-web3-pay');
+            const statusBadge = document.getElementById('playground-http-status');
+            const viewer = document.getElementById('playground-json-viewer');
+
+            if (!window.ethereum) {
+                openPlaygroundWeb3Modal();
+                return;
+            }
+
+            const origText = btn ? btn.textContent : '⚡ Desbloquear com Carteira Web3 (1 Clique)';
+            try {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = 'Conectando carteira...';
+                }
+
+                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                if (!accounts || accounts.length === 0) {
+                    throw new Error('Nenhuma conta conectada.');
+                }
+                const userAddress = accounts[0];
+
+                if (btn) btn.textContent = 'Mudando para rede Base...';
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: '0x2105' }],
+                    });
+                } catch (switchError) {
+                    if (switchError.code === 4902) {
+                        await window.ethereum.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: '0x2105',
+                                chainName: 'Base Mainnet',
+                                nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                                rpcUrls: ['https://mainnet.base.org'],
+                                blockExplorerUrls: ['https://basescan.org'],
+                            }],
+                        });
+                    } else {
+                        throw switchError;
+                    }
+                }
+
+                let amountRaw = 500;
+                let priceUsdc = '0.0005';
+                if (currentPlaygroundPreset === 'compliance') {
+                    amountRaw = 3000;
+                    priceUsdc = '0.0030';
+                } else if (currentPlaygroundPreset === 'sanctions' || currentPlaygroundPreset === 'simples') {
+                    amountRaw = 1000;
+                    priceUsdc = '0.0010';
+                } else if (currentPlaygroundPreset === 'cnpj') {
+                    amountRaw = 2000;
+                    priceUsdc = '0.0020';
+                }
+
+                const recipient = '<?php echo GRID402_WALLET_ADDRESS; ?>'.toLowerCase().replace('0x', '');
+                const usdcContract = '<?php echo GRID402_USDC_CONTRACT; ?>';
+                const recipientPadded = recipient.padStart(64, '0');
+                const amountHex = amountRaw.toString(16).padStart(64, '0');
+                const txData = '0xa9059cbb' + recipientPadded + amountHex;
+
+                if (btn) btn.textContent = 'Assine ' + priceUsdc + ' USDC na carteira...';
+                const txHash = await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: userAddress,
+                        to: usdcContract,
+                        data: txData,
+                    }],
+                });
+
+                if (statusBadge) statusBadge.textContent = 'Aguardando Bloco Base...';
+                if (viewer) viewer.textContent = '// Transacao enviada na Base Mainnet!\n// TxHash: ' + txHash + '\n// Aguardando 3.5s para confirmacao e liberacao da prova criptografica...';
+                if (btn) btn.textContent = 'Validando recibo on-chain...';
+
+                await new Promise(r => setTimeout(r, 3500));
+
+                const url = buildPlaygroundUrl();
+                const res = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Payment': txHash
+                    }
+                });
+                const unlockedData = await res.json();
+                lastPlaygroundJson = JSON.stringify(unlockedData, null, 2);
+                if (viewer) viewer.textContent = lastPlaygroundJson;
+
+                const unlockCard = document.getElementById('playground-unlock-card');
+                if (unlockCard && res.status === 200) {
+                    unlockCard.style.display = 'none';
+                }
+
+                if (res.status === 200) {
+                    if (statusBadge) statusBadge.textContent = 'HTTP 200 OK (PAGO)';
+                    if (unlockedData && unlockedData._oracle_proof) {
+                        auditOracleProof(unlockedData);
+                    }
+                } else {
+                    if (statusBadge) statusBadge.textContent = 'HTTP ' + res.status;
+                }
+            } catch (err) {
+                if (statusBadge) statusBadge.textContent = 'Pagamento Cancelado';
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = origText;
                 }
             }
         }
@@ -3483,7 +3764,9 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
         let currentServiceAction = 'summary';
 
         async function runConsole(action) {
-            currentServiceAction = action;
+            if (action !== 'paid') {
+                currentServiceAction = action;
+            }
             const out = document.getElementById('console-output');
             const statusText = document.getElementById('console-status-text');
             const badge = document.getElementById('console-latency-badge');
@@ -3540,35 +3823,44 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 const duration = Math.round(performance.now() - t0);
                 const json = await res.json();
 
-                statusText.textContent = `HTTP ${res.status} ${res.status === 200 ? 'OK' : (res.status === 402 ? 'Payment Required (Desafio x402)' : 'Error')}`;
+                statusText.textContent = `HTTP ${res.status} ${res.status === 200 ? 'OK' : (res.status === 402 ? 'Payment Required (Desafio x402)' : (res.status === 429 ? 'Sandbox Limit Exceeded' : 'Error'))}`;
                 badge.style.display = 'inline-block';
                 badge.textContent = `${duration} ms`;
 
-                if (res.status === 402 && json.preview && teaserCard) {
+                if ((res.status === 402 || res.status === 429) && teaserCard) {
                     teaserCard.style.display = 'block';
                     const teaserTitle = document.getElementById('teaser-title');
                     const teaserPrice = document.getElementById('teaser-badge-price');
                     const teaserContent = document.getElementById('teaser-content');
                     const teaserLocked = document.getElementById('teaser-locked-fields');
 
-                    teaserTitle.textContent = (action === 'cnpj') ? 'Dados Cadastrais da Empresa (Prévia)' : (action === 'indicators' ? 'Indicadores Econômicos Oficiais (Prévia)' : (action === 'holidays' ? 'Próximo Feriado Nacional (Prévia)' : 'Localidade Postal (Prévia)'));
+                    teaserTitle.textContent = (currentServiceAction === 'cnpj') ? 'Dados Cadastrais da Empresa (Prévia)' : (currentServiceAction === 'indicators' ? 'Indicadores Econômicos Oficiais (Prévia)' : (currentServiceAction === 'holidays' ? 'Próximo Feriado Nacional (Prévia)' : 'Amostra Preliminar Verificada (HTTP 402)'));
                     teaserPrice.textContent = `${json.price_usdc || '0.0005'} USDC na Base`;
 
                     let html = '';
-                    for (const [key, val] of Object.entries(json.preview)) {
-                        const label = key.replace(/_/g, ' ').toUpperCase();
-                        html += `<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px;">
-                            <span style="display: block; font-size: 0.7rem; color: var(--text-muted);">${label}</span>
-                            <span style="font-weight: 600; color: #fff;">${val || 'N/A'}</span>
-                        </div>`;
+                    if (json.preview && typeof json.preview === 'object') {
+                        for (const [key, val] of Object.entries(json.preview)) {
+                            const label = key.replace(/_/g, ' ').toUpperCase();
+                            html += `<div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px;">
+                                <span style="display: block; font-size: 0.7rem; color: var(--text-muted);">${label}</span>
+                                <span style="font-weight: 600; color: #fff;">${val || 'N/A'}</span>
+                            </div>`;
+                        }
                     }
                     teaserContent.innerHTML = html;
 
-                    if (json.locked_fields && Array.isArray(json.locked_fields)) {
-                        teaserLocked.textContent = json.locked_fields.join(', ');
-                    } else {
-                        teaserLocked.textContent = 'Dados completos desbloqueados mediante liquidação.';
-                    }
+                    const lockedList = (json.locked_fields && Array.isArray(json.locked_fields) && json.locked_fields.length > 0)
+                        ? json.locked_fields
+                        : ['payload_completo', '_oracle_proof', 'signature_ecdsa', 'timestamp_iso'];
+
+                    const blurMasks = ['████████.██', '0x8a3f...9c1d', 'REGULAR / ATIVO', 'R$ 1.850.000'];
+                    teaserLocked.innerHTML = `<div class="locked-fields-grid" style="margin-top: 8px; margin-bottom: 0;">` +
+                        lockedList.slice(0, 4).map((f, i) => `
+                            <div class="locked-field-item">
+                                <span class="locked-field-key">🔒 ${f}</span>
+                                <span class="locked-field-blur">${blurMasks[i % blurMasks.length]}</span>
+                            </div>
+                        `).join('') + `</div>`;
                 } else if (teaserCard) {
                     teaserCard.style.display = 'none';
                 }
