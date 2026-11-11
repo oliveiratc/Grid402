@@ -302,6 +302,12 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
     $txHash = strtolower(trim($txHash));
     $clientIp = $clientIp ?? (string)($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
 
+    // 0. Verificacao instantanea de Passe de Sessao Pre-pago (pass_g402_...)
+    if (str_starts_with($txHash, 'pass_g402_')) {
+        require_once __DIR__ . '/services/pass.php';
+        return grid402_consume_session_pass($txHash, $requiredRawUnits ?? GRID402_USDC_REQUIRED_RAW);
+    }
+
     // 1. Verificacao de Modo Sandbox simulado via cabecalho ('demo' ou 'sandbox')
     if ($txHash === 'demo' || $txHash === 'sandbox') {
         $rate = grid402_check_sandbox_rate_limit($clientIp);
@@ -425,10 +431,11 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
 
         // Dados = Quantidade em hexadecimal
         $dataHex = (string)($log['data'] ?? '0x0');
-        $rawAmount = hexdec(substr($dataHex, 2));
+        $rawAmount = (int) hexdec(substr($dataHex, 2));
 
         if ($rawAmount >= $requiredAmount) {
             $validTransferFound = true;
+            $matchedRawAmount = $rawAmount;
             break;
         }
     }
@@ -446,6 +453,7 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
     return [
         'valid' => true,
         'sandbox' => false,
+        'raw_amount' => $matchedRawAmount ?? $requiredAmount,
         'reason' => 'Pagamento x402 validado com sucesso na Base Mainnet.',
         'code' => 200,
     ];

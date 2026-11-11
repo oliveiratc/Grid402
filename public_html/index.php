@@ -23,6 +23,11 @@ require_once __DIR__ . '/services/indicators.php';
 require_once __DIR__ . '/services/holidays.php';
 require_once __DIR__ . '/services/workdays.php';
 require_once __DIR__ . '/services/compliance.php';
+require_once __DIR__ . '/services/lei.php';
+require_once __DIR__ . '/services/ofac.php';
+require_once __DIR__ . '/services/notarize.php';
+require_once __DIR__ . '/services/global_markets.php';
+require_once __DIR__ . '/services/pass.php';
 require_once __DIR__ . '/services/oracle_signer.php';
 require_once __DIR__ . '/metrics.php';
 
@@ -368,7 +373,7 @@ if ($requestPath === '/agents' || $pageParam === 'agents') {
 $isStatusRoute = ($requestPath === '/status' || $requestPath === '/api/v1/summary' || $requestPath === '/telemetry');
 $isHomeRoute = ($requestPath === '/' || $requestPath === '/index.php');
 $isVerifyRoute = ($requestPath === '/api/v1/verify' || $apiParam === 'verify');
-$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays', 'sanctions', 'simples', 'compliance'];
+$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays', 'sanctions', 'simples', 'compliance', 'lei', 'ofac', 'notarize', 'global-markets', 'pass'];
 $isValidApiAction = in_array($apiParam, $validApiEndpoints, true);
 $isInstitutionalRoute = in_array($requestPath, ['/about', '/contact', '/terms', '/privacy', '/admin', '/dashboard', '/agents'], true);
 
@@ -401,6 +406,11 @@ if (!$isHomeRoute && !$isStatusRoute && !$isValidApiAction && !$isInstitutionalR
                 '/api/v1/sanctions',
                 '/api/v1/simples',
                 '/api/v1/compliance',
+                '/api/v1/lei',
+                '/api/v1/ofac',
+                '/api/v1/notarize',
+                '/api/v1/global-markets',
+                '/api/v1/pass',
                 '/api/v1/verify',
                 '/about',
                 '/contact',
@@ -533,18 +543,32 @@ if ($isValidApiAction) {
     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment');
     header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Payment-Required, payment-required');
 
+    // 2.1. Consulta gratuita de saldo de Session Pass se passado ?status=pass_... ou ?token=pass_...
+    if ($apiParam === 'pass' && (!empty($_GET['status']) || !empty($_GET['token']))) {
+        $tokenQuery = (string) ($_GET['status'] ?? $_GET['token']);
+        $passInfo = grid402_get_session_pass_status($tokenQuery);
+        http_response_code($passInfo['code'] ?? 200);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($passInfo, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     // 2.2. Definição de Preço Escalonado por Serviço e Verificação Prévia Defensiva
+    $isPass = ($apiParam === 'pass');
     $isCompliance = ($apiParam === 'compliance');
     $isSanctionsOrSimples = in_array($apiParam, ['sanctions', 'simples'], true);
-    $isCnpj = ($apiParam === 'cnpj');
+    $isCorporateTier = in_array($apiParam, ['cnpj', 'lei', 'ofac'], true);
 
-    if ($isCompliance) {
+    if ($isPass) {
+        $servicePriceDisplay = '0.0500';
+        $servicePriceRaw = 5000; // Minimo de 0.0050 USDC (10 creditos) e recomendado 0.0500 USDC (100 creditos)
+    } elseif ($isCompliance) {
         $servicePriceDisplay = '0.0030';
         $servicePriceRaw = 3000; // 0.003000 USDC
     } elseif ($isSanctionsOrSimples) {
         $servicePriceDisplay = '0.0010';
         $servicePriceRaw = 1000; // 0.001000 USDC
-    } elseif ($isCnpj) {
+    } elseif ($isCorporateTier) {
         $servicePriceDisplay = GRID402_PRICE_CNPJ;
         $servicePriceRaw = GRID402_USDC_CNPJ_RAW;
     } else {
@@ -629,6 +653,39 @@ if ($isValidApiAction) {
             $teaser = grid402_teaser_compliance($cnpjInput);
             $lockedFields = $teaser['locked_fields'] ?? [];
             $previewData = $teaser['preview'];
+        } elseif ($apiParam === 'lei') {
+            $leiInput = (string) ($_GET['lei'] ?? '');
+            $qInput = (string) ($_GET['q'] ?? '');
+            $previewData = grid402_preview_lei($leiInput, $qInput);
+            $lockedFields = ['entity.legal_name', 'entity.legal_address', 'entity.registration_authority', 'entity.local_registration_id', '_oracle_proof'];
+        } elseif ($apiParam === 'ofac') {
+            $addrInput = (string) ($_GET['address'] ?? $_GET['target'] ?? '');
+            $nameInput = (string) ($_GET['name'] ?? '');
+            if ($addrInput !== '' && !preg_match('/^0x[a-fA-F0-9]{40}$/', trim($addrInput)) && $nameInput === '') {
+                $nameInput = $addrInput;
+                $addrInput = '';
+            }
+            $previewData = grid402_preview_ofac($addrInput, $nameInput);
+            $lockedFields = ['sanctioned', 'risk_level', 'compliance_decision', 'matched_lists', 'onchain_profile', '_oracle_proof'];
+        } elseif ($apiParam === 'notarize') {
+            $dataInput = (string) ($_GET['data'] ?? $_GET['content'] ?? '');
+            $hashInput = (string) ($_GET['hash'] ?? '');
+            $previewData = grid402_preview_notarize($dataInput, $hashInput);
+            $lockedFields = ['certificate_id', 'notarized_at_utc', 'unix_epoch', 'oracle_authority', '_oracle_proof'];
+        } elseif ($apiParam === 'global-markets') {
+            $mktInput = (string) ($_GET['market'] ?? 'US');
+            $dtInput = (string) ($_GET['date'] ?? '');
+            $baseInput = (string) ($_GET['base'] ?? 'USD');
+            $previewData = grid402_preview_global_markets($mktInput, $dtInput, $baseInput);
+            $lockedFields = ['holiday_name', 'next_business_day', 'fx_reference.rates', 'market_holidays_calendar', '_oracle_proof'];
+        } elseif ($apiParam === 'pass') {
+            $previewData = [
+                'product' => 'x402 Prepaid Session Pass (High-Frequency M2M)',
+                'tier_100_credits' => '0.0500 USDC = 100 API calls (<15ms latency)',
+                'tier_1000_credits' => '0.5000 USDC = 1,000 API calls (<15ms latency)',
+                'validity' => '30 days (Stateless HMAC + Atomic Ledger)',
+            ];
+            $lockedFields = ['pass_token', 'credits_total', 'credits_remaining', 'expires_at', '_oracle_proof'];
         }
 
         grid402_respond_402($serviceLabel, null, $servicePriceDisplay, $servicePriceRaw, $previewData, $lockedFields);
@@ -679,6 +736,10 @@ if ($isValidApiAction) {
         header('X-Payment-Mode: production');
         header('X-Payment-Amount: ' . $servicePriceDisplay . ' USDC');
         header('X-Payment-Network: Base (ChainID 8453)');
+    }
+    if (!empty($validation['session_pass'])) {
+        header('X-Pass-Credits-Debited: ' . ($validation['credits_debited'] ?? 1));
+        header('X-Pass-Credits-Remaining: ' . ($validation['credits_remaining'] ?? 0));
     }
     header('Cache-Control: private, no-cache');
 
@@ -770,6 +831,51 @@ if ($isValidApiAction) {
                     http_response_code($result['code']);
                 }
             }
+            break;
+        case 'lei':
+            $leiVal = (string) ($_GET['lei'] ?? '');
+            $qVal = (string) ($_GET['q'] ?? '');
+            $result = grid402_service_lei($leiVal, $qVal);
+            if (isset($result['code']) && $result['code'] !== 200) {
+                http_response_code($result['code']);
+            }
+            break;
+        case 'ofac':
+            $addrVal = (string) ($_GET['address'] ?? $_GET['target'] ?? '');
+            $nameVal = (string) ($_GET['name'] ?? '');
+            if ($addrVal !== '' && !preg_match('/^0x[a-fA-F0-9]{40}$/', trim($addrVal)) && $nameVal === '') {
+                $nameVal = $addrVal;
+                $addrVal = '';
+            }
+            $result = grid402_service_ofac($addrVal, $nameVal);
+            if (isset($result['code']) && $result['code'] !== 200) {
+                http_response_code($result['code']);
+            }
+            break;
+        case 'notarize':
+            $dataVal = (string) ($_GET['data'] ?? $_GET['content'] ?? '');
+            $hashVal = (string) ($_GET['hash'] ?? '');
+            if ($_SERVER['REQUEST_METHOD'] === 'POST' && $dataVal === '' && $hashVal === '') {
+                $bodyRaw = (string) file_get_contents('php://input');
+                $dataVal = substr($bodyRaw, 0, 8192);
+            }
+            $result = grid402_service_notarize($dataVal, $hashVal);
+            if (isset($result['code']) && $result['code'] !== 200) {
+                http_response_code($result['code']);
+            }
+            break;
+        case 'global-markets':
+            $mktVal = (string) ($_GET['market'] ?? 'US');
+            $dtVal = (string) ($_GET['date'] ?? '');
+            $baseVal = (string) ($_GET['base'] ?? 'USD');
+            $result = grid402_service_global_markets($mktVal, $dtVal, $baseVal);
+            if (isset($result['code']) && $result['code'] !== 200) {
+                http_response_code($result['code']);
+            }
+            break;
+        case 'pass':
+            $rawUnitsPaid = (int) ($validation['raw_amount'] ?? 50000);
+            $result = grid402_issue_session_pass($paymentProof, $rawUnitsPaid, $isSandbox);
             break;
         default:
             $result = [
@@ -2542,6 +2648,11 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                     <button type="button" class="btn-sm" onclick="runConsole('sanctions')" data-i18n="console.act.sanctions">Sanções CGU (/api/v1/sanctions)</button>
                     <button type="button" class="btn-sm" onclick="runConsole('simples')" data-i18n="console.act.simples">Simples Nacional (/api/v1/simples)</button>
                     <button type="button" class="btn-sm" onclick="runConsole('compliance')" data-i18n="console.act.compliance">Score 360 (/api/v1/compliance)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('lei')" data-i18n="console.act.lei" style="border-color: rgba(0, 240, 255, 0.4);">🌍 LEI Global (/api/v1/lei)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('ofac')" data-i18n="console.act.ofac" style="border-color: rgba(0, 240, 255, 0.4);">🛡️ OFAC e AML (/api/v1/ofac)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('notarize')" data-i18n="console.act.notarize" style="border-color: rgba(0, 240, 255, 0.4);">⏱️ Notarizar (/api/v1/notarize)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('global-markets')" data-i18n="console.act.global-markets" style="border-color: rgba(0, 240, 255, 0.4);">🌐 Bolsas e ECB (/api/v1/global-markets)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('pass')" data-i18n="console.act.pass" style="border-color: rgba(16, 185, 129, 0.5);">⚡ Session Pass (/api/v1/pass)</button>
                 </div>
                 <div class="input-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <input type="text" id="tx-input" class="console-input" style="flex: 1; min-width: 260px;" placeholder="Cole o hash de pagamento na Base (0x...) ou use 'demo' para simulação" data-i18n-placeholder="console.input.placeholder">
@@ -2942,6 +3053,53 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
         // Grid402: Playground e Verificador de Oraculo
         // ==========================================
         const playgroundPresets = {
+            lei: {
+                name: 'GLEIF LEI Global',
+                icon: '🌍',
+                endpoint: '/api/v1/lei',
+                desc: 'Identidade corporativa mundial ISO 17442 via base CC0 da GLEIF (Apple, Microsoft, Coinbase etc.).',
+                params: [
+                    { key: 'lei', label: 'Codigo LEI (20 chars) ou vazio', value: '5493006MHB84DD0ZWV18' },
+                    { key: 'q', label: 'Ou Busca por Nome Corporativo', value: '' }
+                ]
+            },
+            ofac: {
+                name: 'OFAC e AML Web3',
+                icon: '🚨',
+                endpoint: '/api/v1/ofac',
+                desc: 'Sancoes internacionais OFAC SDN e ONU combinadas com telemetria on-chain na Base Mainnet.',
+                params: [
+                    { key: 'address', label: 'Carteira EVM (0x...)', value: '0xa31c31069c43ac1c0075a93c325b0dcd7744356c' },
+                    { key: 'name', label: 'Ou Nome de Entidade', value: '' }
+                ]
+            },
+            notarize: {
+                name: 'Notarizar Hash M2M',
+                icon: '📜',
+                endpoint: '/api/v1/notarize',
+                desc: 'Carimbo de tempo criptografico UTC e certificado ECDSA secp256k1 para decisoes de agentes.',
+                params: [
+                    { key: 'data', label: 'Dado ou Contrato para Notarizar', value: 'agent-autonomous-contract-2026-v1' }
+                ]
+            },
+            'global-markets': {
+                name: 'Mercados Globais e BCE',
+                icon: '🏦',
+                endpoint: '/api/v1/global-markets',
+                desc: 'Calendario financeiro mundial (NYSE/Fed, BCE/TARGET2, LSE, B3) e cambio de 30+ moedas.',
+                params: [
+                    { key: 'market', label: 'Mercado (US, EU, UK, BR)', value: 'US' },
+                    { key: 'date', label: 'Data (YYYY-MM-DD)', value: '2026-07-03' },
+                    { key: 'base', label: 'Moeda Base FX', value: 'USD' }
+                ]
+            },
+            pass: {
+                name: 'Session Pass (100 reqs)',
+                icon: '⚡',
+                endpoint: '/api/v1/pass',
+                desc: 'Emissao de passe pre-pago assinado para chamadas M2M em <15ms sem aguardar bloco.',
+                params: []
+            },
             compliance: {
                 name: 'Compliance 360',
                 icon: '🛡️',
@@ -3546,13 +3704,16 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
                 let amountRaw = 500;
                 let priceUsdc = '0.0005';
-                if (currentPlaygroundPreset === 'compliance') {
+                if (currentPlaygroundPreset === 'pass') {
+                    amountRaw = 50000;
+                    priceUsdc = '0.0500';
+                } else if (currentPlaygroundPreset === 'compliance') {
                     amountRaw = 3000;
                     priceUsdc = '0.0030';
                 } else if (currentPlaygroundPreset === 'sanctions' || currentPlaygroundPreset === 'simples') {
                     amountRaw = 1000;
                     priceUsdc = '0.0010';
-                } else if (currentPlaygroundPreset === 'cnpj') {
+                } else if (currentPlaygroundPreset === 'cnpj' || currentPlaygroundPreset === 'lei' || currentPlaygroundPreset === 'ofac') {
                     amountRaw = 2000;
                     priceUsdc = '0.0020';
                 }
@@ -3852,6 +4013,11 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 case 'indicators': url = '/api/v1/indicators'; break;
                 case 'holidays': url = '/api/v1/holidays?year=2026'; break;
                 case 'workdays': url = '/api/v1/workdays?start_date=2026-12-23' + String.fromCharCode(38) + 'end_date=2026-12-28'; break;
+                case 'lei': url = '/api/v1/lei?lei=5493006MHB84DD0ZWV18'; break;
+                case 'ofac': url = '/api/v1/ofac?target=0x8589427373d6d84e98730d7795d8f6f8731fda16'; break;
+                case 'notarize': url = '/api/v1/notarize?content=Grid402-M2M-Contract-v1'; break;
+                case 'global-markets': url = '/api/v1/global-markets?market=US' + String.fromCharCode(38) + 'base=USD'; break;
+                case 'pass': url = '/api/v1/pass'; break;
                 case 'paid':
                     const tx = document.getElementById('tx-input').value.trim();
                     if (!tx) {
@@ -3863,6 +4029,11 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     else if (currentServiceAction === 'sanctions') url = '/api/v1/sanctions?cnpj=00000000000191';
                     else if (currentServiceAction === 'simples') url = '/api/v1/simples?cnpj=00000000000191';
                     else if (currentServiceAction === 'compliance') url = '/api/v1/compliance?cnpj=00000000000191';
+                    else if (currentServiceAction === 'lei') url = '/api/v1/lei?lei=5493006MHB84DD0ZWV18';
+                    else if (currentServiceAction === 'ofac') url = '/api/v1/ofac?target=0x8589427373d6d84e98730d7795d8f6f8731fda16';
+                    else if (currentServiceAction === 'notarize') url = '/api/v1/notarize?content=Grid402-M2M-Contract-v1';
+                    else if (currentServiceAction === 'global-markets') url = '/api/v1/global-markets?market=US' + String.fromCharCode(38) + 'base=USD';
+                    else if (currentServiceAction === 'pass') url = '/api/v1/pass';
                     else if (currentServiceAction === 'ssl') url = '/api/v1/ssl?host=base.org';
                     else if (currentServiceAction === 'asn') url = '/api/v1/asn?ip=1.1.1.1';
                     else if (currentServiceAction === 'cep') url = '/api/v1/cep?code=01310100';
@@ -3992,13 +4163,16 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 // 3. Monta a transação ERC-20 transfer(to, amount)
                 let amountRaw = 500;
                 let priceUsdc = '0.0005';
-                if (currentServiceAction === 'compliance') {
+                if (currentServiceAction === 'pass') {
+                    amountRaw = 50000;
+                    priceUsdc = '0.0500';
+                } else if (currentServiceAction === 'compliance') {
                     amountRaw = 3000;
                     priceUsdc = '0.0030';
                 } else if (currentServiceAction === 'sanctions' || currentServiceAction === 'simples') {
                     amountRaw = 1000;
                     priceUsdc = '0.0010';
-                } else if (currentServiceAction === 'cnpj') {
+                } else if (currentServiceAction === 'cnpj' || currentServiceAction === 'lei' || currentServiceAction === 'ofac') {
                     amountRaw = 2000;
                     priceUsdc = '0.0020';
                 }
@@ -4163,9 +4337,10 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
         // Modal de Pagamento Web3
         function openWeb3Modal() {
             let price = '0.0005';
-            if (currentServiceAction === 'compliance') price = '0.0030';
+            if (currentServiceAction === 'pass') price = '0.0500';
+            else if (currentServiceAction === 'compliance') price = '0.0030';
             else if (currentServiceAction === 'sanctions' || currentServiceAction === 'simples') price = '0.0010';
-            else if (currentServiceAction === 'cnpj') price = '0.0020';
+            else if (currentServiceAction === 'cnpj' || currentServiceAction === 'lei' || currentServiceAction === 'ofac') price = '0.0020';
             const priceEl = document.getElementById('web3-modal-price');
             const priceDetailEl = document.getElementById('web3-modal-price-detail');
             if (priceEl) priceEl.textContent = price;

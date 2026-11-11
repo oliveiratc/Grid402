@@ -71,6 +71,21 @@ const GRID402_I18N = {
         'svc.verify.name': 'Verificador Criptográfico',
         'svc.verify.category': 'Segurança',
         'svc.verify.desc': 'Validação matemática local e instantânea de assinatura ECDSA secp256k1 e prova de oráculo (_oracle_proof)',
+        'svc.lei.name': 'Identidade Corporativa Global (LEI)',
+        'svc.lei.category': 'Global (CC0)',
+        'svc.lei.desc': 'Consulta oficial de empresas em 200+ jurisdições via GLEIF LEI (ISO 17442, licença CC0 1.0 Universal)',
+        'svc.ofac.name': 'Sanções Globais (OFAC/ONU) e AML Web3',
+        'svc.ofac.category': 'Global Compliance',
+        'svc.ofac.desc': 'Screening em listas OFAC SDN (US Treasury) e ONU + inspeção on-chain de carteiras EVM na Base Mainnet',
+        'svc.notarize.name': 'Carimbo do Tempo e Notarização M2M',
+        'svc.notarize.category': 'Criptografia',
+        'svc.notarize.desc': 'Emite certificado de existência e timestamp UTC assinado com ECDSA secp256k1 para contratos, logs e outputs de agentes',
+        'svc.global-markets.name': 'Bolsas Mundiais e 30+ Moedas (ECB)',
+        'svc.global-markets.category': 'Mercado Global',
+        'svc.global-markets.desc': 'Calendário de liquidação de bolsas (US NYSE/Fed, EU TARGET2, UK LSE, BR B3) + 30+ moedas oficiais do Banco Central Europeu',
+        'svc.pass.name': 'x402 Prepaid Session Pass',
+        'svc.pass.category': 'Alta Frequência',
+        'svc.pass.desc': 'Compre 100 a 1.000 créditos pré-pagos em 1 transação USDC na Base e execute chamadas em <15ms sem aguardar blocos',
 
         // ROI Comparador
         'roi.tag': 'Redução Real de Custos para Startups e Agentes',
@@ -162,6 +177,11 @@ const GRID402_I18N = {
         'console.act.sanctions': 'Sanções CGU (/api/v1/sanctions)',
         'console.act.simples': 'Simples Nacional (/api/v1/simples)',
         'console.act.compliance': 'Score 360 (/api/v1/compliance)',
+        'console.act.lei': '🌍 LEI Global (/api/v1/lei)',
+        'console.act.ofac': '🛡️ OFAC e AML (/api/v1/ofac)',
+        'console.act.notarize': '⏱️ Notarizar (/api/v1/notarize)',
+        'console.act.global-markets': '🌐 Bolsas e ECB (/api/v1/global-markets)',
+        'console.act.pass': '⚡ Session Pass (/api/v1/pass)',
         'console.btn.send_payment': 'Enviar com X-Payment',
         'console.btn.web3_pay': '⚡ Pagar com Carteira Web3 (1 Clique)',
         'console.btn.smart_wallet': '🔑 Passkey / Biometria (Smart Wallet)',
@@ -323,6 +343,21 @@ const GRID402_I18N = {
         'svc.verify.name': 'Cryptographic Verifier',
         'svc.verify.category': 'Security',
         'svc.verify.desc': 'Instant client-side verification of secp256k1 ECDSA digital signature and oracle proof',
+        'svc.lei.name': 'Global Corporate Identity (GLEIF LEI)',
+        'svc.lei.category': 'Global (CC0)',
+        'svc.lei.desc': 'Official legal entity lookup across 200+ jurisdictions via GLEIF LEI (ISO 17442, CC0 1.0 Universal license)',
+        'svc.ofac.name': 'Global Sanctions (OFAC/UN) and Web3 AML',
+        'svc.ofac.category': 'Global Compliance',
+        'svc.ofac.desc': 'US Treasury OFAC SDN and UN Consolidated screening + live Base Mainnet EVM wallet AML inspection',
+        'svc.notarize.name': 'M2M Timestamp and Notarization',
+        'svc.notarize.category': 'Cryptography',
+        'svc.notarize.desc': 'Issues a proof-of-existence and UTC timestamp certificate signed with secp256k1 ECDSA for agent logs and contracts',
+        'svc.global-markets.name': 'World Markets and 30+ FX (ECB)',
+        'svc.global-markets.category': 'Global Market',
+        'svc.global-markets.desc': 'Global exchange settlement calendar (US NYSE/Fed, EU TARGET2, UK LSE, BR B3) + 30+ official ECB reference currencies',
+        'svc.pass.name': 'x402 Prepaid Session Pass',
+        'svc.pass.category': 'High Frequency',
+        'svc.pass.desc': 'Purchase 100 to 1,000 prepaid credits in 1 USDC transaction on Base and execute sub-15ms calls with zero block wait',
 
         // ROI Comparator
         'roi.tag': 'Real Cost Reduction for Startups and Autonomous Agents',
@@ -414,6 +449,11 @@ const GRID402_I18N = {
         'console.act.sanctions': 'Sanctions (/api/v1/sanctions)',
         'console.act.simples': 'Simples (/api/v1/simples)',
         'console.act.compliance': 'Score 360 (/api/v1/compliance)',
+        'console.act.lei': '🌍 Global LEI (/api/v1/lei)',
+        'console.act.ofac': '🛡️ OFAC and AML (/api/v1/ofac)',
+        'console.act.notarize': '⏱️ Notarize (/api/v1/notarize)',
+        'console.act.global-markets': '🌐 Markets and ECB (/api/v1/global-markets)',
+        'console.act.pass': '⚡ Session Pass (/api/v1/pass)',
         'console.btn.send_payment': 'Send with X-Payment',
         'console.btn.web3_pay': '⚡ Pay with Web3 Wallet (1-Click)',
         'console.btn.smart_wallet': '🔑 Passkey / Biometrics (Smart Wallet)',
@@ -513,6 +553,42 @@ const GRID402_I18N = {
 
 // Dicionario dos Presets do Playground em Ingles
 const playgroundPresets_en = {
+    lei: {
+        name: 'Global LEI (GLEIF)',
+        desc: 'Global Corporate Identity (ISO 17442) in 200+ jurisdictions via GLEIF (CC0 1.0 Public Domain).',
+        params: [
+            { key: 'lei', label: 'LEI Code (20 chars) or Company Name', value: '5493006MHB84DD0ZWV18' }
+        ]
+    },
+    ofac: {
+        name: 'OFAC and Web3 AML',
+        desc: 'Global Sanctions (OFAC SDN / UN) + live Base Mainnet EVM wallet AML inspection.',
+        params: [
+            { key: 'target', label: '0x EVM Wallet, LEI, or Entity Name', value: '0x8589427373d6d84e98730d7795d8f6f8731fda16' }
+        ]
+    },
+    notarize: {
+        name: 'M2M Notarization',
+        desc: 'Proof-of-Existence and UTC Timestamp signed with ECDSA secp256k1 for agent logs and contracts.',
+        params: [
+            { key: 'content', label: 'Text or SHA-256 Hash to Notarize', value: 'Grid402-M2M-Autonomous-Contract-v1' }
+        ]
+    },
+    'global-markets': {
+        name: 'World Markets and ECB',
+        desc: 'Global Exchange Settlement Calendar (US NYSE/Fed, EU TARGET2, UK LSE, BR B3) + 30+ ECB FX rates.',
+        params: [
+            { key: 'market', label: 'Market (US, EU, UK, BR)', value: 'US' },
+            { key: 'base', label: 'Base Currency (USD, EUR, GBP, BRL)', value: 'USD' }
+        ]
+    },
+    pass: {
+        name: 'x402 Session Pass',
+        desc: 'Prepaid M2M credit pass (100 to 1,000 calls) for sub-15ms execution with zero block wait.',
+        params: [
+            { key: 'status', label: 'Check Existing Pass (optional)', value: '' }
+        ]
+    },
     compliance: {
         name: 'Compliance 360',
         desc: 'Unified risk and entity integrity score (0 to 100) cross-checking Federal Revenue and CGU.',

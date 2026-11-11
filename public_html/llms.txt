@@ -29,7 +29,12 @@
 - [ANBIMA Workdays Calculator API](https://grid402.online/api/v1/workdays): Calculadora de dias uteis bancarios ANBIMA com contagem de intervalo e projecao de prazos
 - [Administrative Sanctions API](https://grid402.online/api/v1/sanctions?cnpj=00000000000191): Sancoes administrativas ativas nos cadastros CEIS e CNEP (CGU)
 - [Simples Nacional Tax Status API](https://grid402.online/api/v1/simples?cnpj=00000000000191): Enquadramento tributario no Simples Nacional e MEI (SIMEI)
-- [Compliance Score 360 API](https://grid402.online/api/v1/compliance?cnpj=00000000000191): Dossiê consolidado de compliance e score de risco cadastral (0 a 100)
+- [Compliance Score 360 API](https://grid402.online/api/v1/compliance?cnpj=00000000000191): Dossie consolidado de compliance e score de risco cadastral (0 a 100)
+- [Global LEI Corporate Registry API](https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18): Identidade corporativa global ISO 17442 em 200+ jurisdicoes via GLEIF (Licenca CC0 1.0 Dominio Publico)
+- [Global Sanctions (OFAC/UN) & Web3 AML API](https://grid402.online/api/v1/ofac?target=0x8589427373d6d84e98730d7795d8f6f8731fda16): Screening global em listas OFAC SDN (US Treasury) e ONU + inspecao AML on-chain de carteiras EVM na Base Mainnet
+- [M2M Cryptographic Timestamp & Notarization API](https://grid402.online/api/v1/notarize?content=Grid402-M2M-Contract-v1): Certificado criptografico de existencia e carimbo do tempo UTC assinado com ECDSA secp256k1 para contratos e logs de agentes
+- [World Markets Calendar & 30+ ECB FX Rates API](https://grid402.online/api/v1/global-markets?market=US&base=USD): Calendario de liquidacao de bolsas mundiais (US NYSE/Fed, EU TARGET2, UK LSE, BR B3) + 30+ moedas oficiais do Banco Central Europeu (ECB)
+- [x402 Prepaid Session Pass API](https://grid402.online/api/v1/pass): Emissao de passe pre-pago M2M (0.0500 USDC = 100 creditos, 0.5000 USDC = 1.000 creditos) para execucao em <15ms sem espera de bloco (`X-Payment: pass_g402_...`)
 
 ## SDKs and Agent Frameworks
 - [Python SDK (PyPI)](https://pypi.org/project/grid402/): Pacote oficial grid402 para Python com suporte a Pydantic e Coinbase AgentKit
@@ -39,7 +44,8 @@
 
 ## Micropayment Protocol Details
 - Rede e Chain ID: Base Mainnet (Chain ID 8453)
-- Tarifa Padrao por Requisicao: 0.0005 USDC (Sancoes e Simples: 0.0010 USDC, CNPJ: 0.0020 USDC, Compliance 360: 0.0030 USDC)
+- Tarifa Padrao por Requisicao: 0.0005 USDC (Sancoes e Simples: 0.0010 USDC, CNPJ, LEI e OFAC: 0.0020 USDC, Compliance 360: 0.0030 USDC)
+- Session Pass de Alta Frequencia: Envie 0.0500 USDC (100 creditos) ou 0.5000 USDC (1.000 creditos) em `GET /api/v1/pass` com `X-Payment: 0x<tx_hash>` e reutilize o token `pass_g402_...` em qualquer endpoint com zero latencia on-chain.
 - [Base Mainnet Scanner](https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c): Carteira oraculo recebedora de micropagamentos (0xa31c31069c43ac1c0075a93c325b0dcd7744356c)
 - [USDC Contract on Base](https://basescan.org/token/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913): Contrato oficial de USDC na rede Base Mainnet (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
 

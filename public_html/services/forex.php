@@ -49,6 +49,8 @@ function grid402_service_forex(bool $forceRefresh = false): array {
             foreach (['USDBRL' => 'USD', 'EURBRL' => 'EUR', 'GBPBRL' => 'GBP'] as $pairKey => $code) {
                 if (isset($json[$pairKey])) {
                     $item = $json[$pairKey];
+                    $quoteEpoch = isset($item['timestamp']) && is_numeric($item['timestamp']) ? (int)$item['timestamp'] : time();
+                    $quoteTimeIso = gmdate('Y-m-d\TH:i:s\Z', $quoteEpoch);
                     $rates[$code] = [
                         'code' => $code,
                         'name' => (string) ($item['name'] ?? $code),
@@ -57,7 +59,8 @@ function grid402_service_forex(bool $forceRefresh = false): array {
                         'high' => (float) ($item['high'] ?? 0),
                         'low' => (float) ($item['low'] ?? 0),
                         'pctChange' => (float) ($item['pctChange'] ?? 0),
-                        'timestamp' => $isoNow,
+                        'quote_timestamp' => $quoteTimeIso,
+                        'timestamp' => $quoteTimeIso,
                     ];
                 }
             }
@@ -73,9 +76,9 @@ function grid402_service_forex(bool $forceRefresh = false): array {
             }
         }
         $rates = [
-            'USD' => ['code' => 'USD', 'name' => 'Dólar Comercial', 'bid' => 5.4210, 'ask' => 5.4230, 'pctChange' => 0.0, 'timestamp' => $isoNow],
-            'EUR' => ['code' => 'EUR', 'name' => 'Euro', 'bid' => 5.8920, 'ask' => 5.8950, 'pctChange' => 0.0, 'timestamp' => $isoNow],
-            'GBP' => ['code' => 'GBP', 'name' => 'Libra Esterlina', 'bid' => 7.0250, 'ask' => 7.0310, 'pctChange' => 0.0, 'timestamp' => $isoNow],
+            'USD' => ['code' => 'USD', 'name' => 'Dólar Comercial', 'bid' => 5.4210, 'ask' => 5.4230, 'pctChange' => 0.0, 'quote_timestamp' => $isoNow, 'timestamp' => $isoNow],
+            'EUR' => ['code' => 'EUR', 'name' => 'Euro', 'bid' => 5.8920, 'ask' => 5.8950, 'pctChange' => 0.0, 'quote_timestamp' => $isoNow, 'timestamp' => $isoNow],
+            'GBP' => ['code' => 'GBP', 'name' => 'Libra Esterlina', 'bid' => 7.0250, 'ask' => 7.0310, 'pctChange' => 0.0, 'quote_timestamp' => $isoNow, 'timestamp' => $isoNow],
         ];
     }
 
@@ -84,6 +87,7 @@ function grid402_service_forex(bool $forceRefresh = false): array {
         'status' => 'UP',
         'base' => 'BRL',
         'timestamp' => $isoNow,
+        'response_timestamp' => $isoNow,
         'ttl_seconds' => $cacheTtl,
         'rates' => $rates,
         'source' => 'Banco Central / Dados Abertos',

@@ -227,6 +227,10 @@ define('GRID402_FILE_SANDBOX_RATES', GRID402_PRIVATE_DIR . '/sandbox_rates.json'
 define('GRID402_FILE_INDICATORS', GRID402_PRIVATE_DIR . '/indicators_cache.json');
 define('GRID402_FILE_HOLIDAYS', GRID402_PRIVATE_DIR . '/holidays_cache.json');
 define('GRID402_FILE_WORKDAYS', GRID402_PRIVATE_DIR . '/workdays_cache.json');
+define('GRID402_FILE_LEI', GRID402_PRIVATE_DIR . '/lei_cache.json');
+define('GRID402_FILE_OFAC', GRID402_PRIVATE_DIR . '/ofac_cache.json');
+define('GRID402_FILE_GLOBAL_MARKETS', GRID402_PRIVATE_DIR . '/global_markets_cache.json');
+define('GRID402_FILE_PASSES', GRID402_PRIVATE_DIR . '/session_passes.json');
 
 // 5. Catálogo Oficial dos 6 Micro-Serviços Core de Dados Públicos e Rede
 function grid402_get_utility_services(): array {
@@ -338,6 +342,51 @@ function grid402_get_utility_services(): array {
             'category' => 'Compliance',
             'type' => 'on_demand',
             'price_usdc' => '0.0030',
+        ],
+        'lei' => [
+            'id' => 'lei',
+            'name' => 'Identidade Corporativa Mundial (GLEIF LEI)',
+            'description' => 'Registro global ISO 17442 de empresas internacionais (jurisdição, status ativo, autoridade legal e endereço) via base CC0 da GLEIF',
+            'endpoint' => '/api/v1/lei',
+            'category' => 'Global Corp',
+            'type' => 'on_demand',
+            'price_usdc' => '0.0020',
+        ],
+        'ofac' => [
+            'id' => 'ofac',
+            'name' => 'Sanções Globais OFAC e AML Web3',
+            'description' => 'Verificação internacional contra listas de sanções OFAC SDN e ONU combinada com telemetria on-chain de carteiras EVM na Base',
+            'endpoint' => '/api/v1/ofac',
+            'category' => 'Global AML',
+            'type' => 'on_demand',
+            'price_usdc' => '0.0020',
+        ],
+        'notarize' => [
+            'id' => 'notarize',
+            'name' => 'Notarização e Carimbo de Tempo M2M',
+            'description' => 'Certificado criptográfico de existência no tempo (SHA-256 + ECDSA secp256k1) para auditar decisões e contratos de agentes autônomos',
+            'endpoint' => '/api/v1/notarize',
+            'category' => 'Segurança',
+            'type' => 'on_demand',
+            'price_usdc' => '0.0005',
+        ],
+        'global-markets' => [
+            'id' => 'global-markets',
+            'name' => 'Calendário Mundial e Câmbio BCE (G10)',
+            'description' => 'Expediente bancário e feriados oficiais (NYSE/Fed, BCE/TARGET2, LSE, B3) e cotações de 30+ moedas do Banco Central Europeu',
+            'endpoint' => '/api/v1/global-markets',
+            'category' => 'Global FX',
+            'type' => 'cached',
+            'price_usdc' => '0.0005',
+        ],
+        'pass' => [
+            'id' => 'pass',
+            'name' => 'x402 Prepaid Session Pass (Alta Frequência)',
+            'description' => 'Emissão de passe de sessão pré-pago assinado (100 a 1.000 créditos) para chamadas M2M instantâneas (<15ms) sem aguardar bloco',
+            'endpoint' => '/api/v1/pass',
+            'category' => 'M2M Turbo',
+            'type' => 'on_demand',
+            'price_usdc' => '0.0500',
         ],
         'verify' => [
             'id' => 'verify',

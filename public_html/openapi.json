@@ -1,9 +1,9 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Grid402 // Public Data e Network Utilities Hub",
-    "version": "2.5.0",
-    "description": "High-performance autonomous M2M public data and network utilities oracle designed for AI agents, crawlers, and automation pipelines. Settled via the x402 protocol with Base Mainnet USDC micropayments (US$ 0.0005 standard, US$ 0.0020 corporate CNPJ).",
+    "title": "Grid402 // Global M2M Open Data & Network Utilities Hub",
+    "version": "3.0.0",
+    "description": "High-performance autonomous M2M public data, global compliance (GLEIF LEI, OFAC SDN, Web3 AML), cryptographic notarization, world markets (ECB), and network utilities oracle designed for AI agents, crawlers, and automation pipelines. Settled via the x402 protocol with Base Mainnet USDC micropayments or Prepaid Session Passes (<15ms).",
     "contact": {
       "name": "Grid402 Support",
       "url": "https://grid402.online",
@@ -44,6 +44,11 @@
     { "name": "Indicators", "description": "Official Brazilian economic indicators (Selic, CDI, and IPCA)" },
     { "name": "Holidays", "description": "National holidays and banking calendar (ANBIMA and Febraban)" },
     { "name": "Verification", "description": "Stateless cryptographic oracle proof verification" },
+    { "name": "Global-LEI", "description": "Global Corporate Identity (ISO 17442) across 200+ jurisdictions via GLEIF (CC0 1.0 Public Domain)" },
+    { "name": "Global-OFAC-AML", "description": "Global Sanctions (OFAC SDN / UN) and Base Mainnet EVM wallet AML inspection" },
+    { "name": "Notarization", "description": "M2M Cryptographic Timestamp and Proof-of-Existence signed with ECDSA secp256k1" },
+    { "name": "Global-Markets", "description": "World Exchange Settlement Calendar (US, EU, UK, BR) and 30+ ECB FX Reference Rates" },
+    { "name": "Session-Pass", "description": "x402 Prepaid Session Pass for high-frequency sub-15ms M2M calls" },
     { "name": "Legal", "description": "Terms of Service and LGPD privacy policy" }
   ],
   "paths": {
@@ -549,6 +554,117 @@
           "402": {
             "$ref": "#/components/responses/PaymentRequired"
           }
+        }
+      }
+    },
+    "/api/v1/lei": {
+      "get": {
+        "summary": "Global Corporate Identity via GLEIF LEI (CC0 1.0 Public Domain)",
+        "description": "Queries the official Global Legal Entity Identifier Foundation (GLEIF) registry across 200+ jurisdictions. Price: 0.0020 USDC (4 Session Pass credits).",
+        "tags": ["Global-LEI"],
+        "parameters": [
+          {
+            "name": "lei",
+            "in": "query",
+            "required": true,
+            "description": "20-character ISO 17442 LEI code or legal entity name",
+            "schema": { "type": "string", "example": "5493006MHB84DD0ZWV18" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Verified LEI corporate identity record with ECDSA oracle proof" },
+          "402": { "$ref": "#/components/responses/PaymentRequired" }
+        }
+      }
+    },
+    "/api/v1/ofac": {
+      "get": {
+        "summary": "Global Sanctions (OFAC SDN / UN) & Web3 AML Wallet Inspector",
+        "description": "Cross-checks 0x EVM wallets, LEI codes, or entity names against US Treasury OFAC SDN and UN Consolidated Lists, plus live Base Mainnet wallet telemetry. Price: 0.0020 USDC (4 Session Pass credits).",
+        "tags": ["Global-OFAC-AML"],
+        "parameters": [
+          {
+            "name": "target",
+            "in": "query",
+            "required": true,
+            "description": "0x EVM wallet address, LEI code, or entity name",
+            "schema": { "type": "string", "example": "0x8589427373d6d84e98730d7795d8f6f8731fda16" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Sanctions screening and Base Mainnet AML risk report" },
+          "402": { "$ref": "#/components/responses/PaymentRequired" }
+        }
+      }
+    },
+    "/api/v1/notarize": {
+      "get": {
+        "summary": "M2M Cryptographic Timestamp & Proof-of-Existence",
+        "description": "Generates a deterministic SHA-256 hash and issues a UTC timestamp certificate signed with the Grid402 Oracle secp256k1 private key. Price: 0.0005 USDC (1 Session Pass credit).",
+        "tags": ["Notarization"],
+        "parameters": [
+          {
+            "name": "content",
+            "in": "query",
+            "required": true,
+            "description": "Arbitrary string or 64-char SHA-256 hex digest to notarize",
+            "schema": { "type": "string", "example": "Grid402-M2M-Contract-v1" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Signed timestamp and notarization certificate" },
+          "402": { "$ref": "#/components/responses/PaymentRequired" }
+        }
+      }
+    },
+    "/api/v1/global-markets": {
+      "get": {
+        "summary": "World Financial Calendar (US/EU/UK/BR) & 30+ ECB FX Reference Rates",
+        "description": "Returns exchange settlement holiday status for US (NYSE/Fed), EU (TARGET2), UK (LSE), or BR (B3/ANBIMA) plus 30+ official European Central Bank reference rates. Price: 0.0005 USDC (1 Session Pass credit).",
+        "tags": ["Global-Markets"],
+        "parameters": [
+          {
+            "name": "market",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "default": "US", "enum": ["US", "EU", "UK", "BR"] }
+          },
+          {
+            "name": "base",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "default": "USD" }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "example": "2026-07-03" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Global market settlement calendar and 30+ ECB FX rates" },
+          "402": { "$ref": "#/components/responses/PaymentRequired" }
+        }
+      }
+    },
+    "/api/v1/pass": {
+      "get": {
+        "summary": "x402 Prepaid Session Pass Issuance & Free Balance Check",
+        "description": "Issues a signed pass_g402_<id>_<hmac> token when paid via X-Payment (0.0500 USDC = 100 credits, 0.5000 USDC = 1,000 credits), or checks remaining credits for free via ?status=pass_g402_...",
+        "tags": ["Session-Pass"],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Optional pass_g402_... token to inspect remaining credits for free",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Issued session pass or active balance status" },
+          "402": { "$ref": "#/components/responses/PaymentRequired" }
         }
       }
     },

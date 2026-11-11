@@ -181,6 +181,41 @@ $servicesSummary = [
         'category' => 'Segurança',
         'price_usdc' => 'Gratuito',
     ],
+    'lei' => [
+        'name' => 'Identidade Corporativa Global (LEI)',
+        'status' => 'UP',
+        'endpoint' => '/api/v1/lei',
+        'category' => 'Global (CC0)',
+        'price_usdc' => '0.0020',
+    ],
+    'ofac' => [
+        'name' => 'Sanções Globais (OFAC/ONU) e AML Web3',
+        'status' => 'UP',
+        'endpoint' => '/api/v1/ofac',
+        'category' => 'Global Compliance',
+        'price_usdc' => '0.0020',
+    ],
+    'notarize' => [
+        'name' => 'Carimbo do Tempo e Notarização M2M',
+        'status' => 'UP',
+        'endpoint' => '/api/v1/notarize',
+        'category' => 'Criptografia',
+        'price_usdc' => '0.0005',
+    ],
+    'global-markets' => [
+        'name' => 'Bolsas Mundiais e 30+ Moedas (ECB)',
+        'status' => 'UP',
+        'endpoint' => '/api/v1/global-markets',
+        'category' => 'Mercado Global',
+        'price_usdc' => '0.0005',
+    ],
+    'pass' => [
+        'name' => 'x402 Prepaid Session Pass',
+        'status' => 'UP',
+        'endpoint' => '/api/v1/pass',
+        'category' => 'Alta Frequência',
+        'price_usdc' => '0.0500',
+    ],
 ];
 
 $totalDurationMs = round((microtime(true) - $startTime) * 1000, 2);
@@ -190,7 +225,7 @@ $summaryPayload = [
     'hub' => 'Grid402',
     'network' => 'Base',
     'chain_id' => GRID402_CHAIN_ID,
-    'version' => '2.3.0',
+    'version' => '3.0.0',
     'status' => 'OPERATIONAL',
     'timestamp' => $isoTimestamp,
     'execution_time_ms' => $totalDurationMs,
