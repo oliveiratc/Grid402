@@ -2646,6 +2646,33 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                 </div>
             </div>
 
+            <!-- Ativação Manual por Hash / Pagamento Direto de Qualquer Carteira -->
+            <div id="manual-topup-box" style="background: rgba(15, 23, 42, 0.7); border: 1px dashed rgba(0, 240, 255, 0.35); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-size: 1.25rem;">📱</span>
+                        <strong style="color: #fff; font-size: 1rem;">Pagamento Direto ou Mobile (Qualquer Carteira)</strong>
+                    </div>
+                    <span style="font-size: 0.8rem; background: rgba(0, 82, 255, 0.2); color: #00F0FF; padding: 2px 10px; border-radius: 20px; border: 1px solid rgba(0, 240, 255, 0.3);">Sem Extensão Necessária</span>
+                </div>
+                <p style="color: #94a3b8; font-size: 0.88rem; margin-bottom: 1rem; line-height: 1.5;">
+                    Se você está no celular ou usa <strong>Binance, Coinbase App, Phantom ou MetaMask Mobile</strong>, basta transferir <strong>2, 5 ou 20 USDC</strong> na rede <strong>Base</strong> para a Oracle da Grid402 e colar o hash da transação abaixo:
+                </p>
+
+                <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                    <div style="font-size: 0.82rem; color: #8FA2B9;">
+                        Endereço da Oracle (Rede Base):<br>
+                        <code id="oracle-wallet-addr" style="color: #00F0FF; font-weight: 700; word-break: break-all;">0xa31c31069c43ac1c0075a93c325b0dcd7744356c</code>
+                    </div>
+                    <button class="btn-sm btn-outline" onclick="copyOracleAddress()" id="btn-copy-oracle" style="border-color: rgba(0,240,255,0.4); color: #00F0FF; white-space: nowrap;">📋 Copiar Endereço</button>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <input type="text" id="manual-pass-tx-input" placeholder="Cole o Hash da Transação na Base (0x...)" style="flex: 1; min-width: 260px; background: #000; border: 1px solid rgba(0, 240, 255, 0.4); border-radius: 6px; padding: 0.65rem 1rem; color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 0.88rem;">
+                    <button class="btn btn-primary" id="btn-manual-activate" onclick="activateManualPass()" style="background: linear-gradient(135deg, #0052FF 0%, #00F0FF 100%); font-weight: 700; white-space: nowrap; padding: 0.65rem 1.25rem;">⚡ Validar e Ativar Passe</button>
+                </div>
+            </div>
+
             <!-- Alternativa Manual / Smart Wallet Passkey -->
             <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; flex-wrap: wrap; padding-top: 1rem; border-top: 1px solid var(--border);">
                 <button class="btn-sm btn-outline" style="border-color: rgba(255,255,255,0.2); color: #fff;" onclick="startWeb3TopupWithSmartWallet(5, 'pro')" id="btn-topup-passkey">🔑 Pagar via Passkey / Biometria (Coinbase Smart Wallet)</button>
@@ -3836,19 +3863,10 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             if (coinbaseSmartWalletProvider) {
                 return coinbaseSmartWalletProvider;
             }
-            const mod = await import('https://esm.sh/@coinbase/wallet-sdk@4');
-            const createFn = mod.createCoinbaseWalletSDK || (mod.default && mod.default.createCoinbaseWalletSDK);
-            if (!createFn) {
-                throw new Error('Falha ao carregar o SDK da Coinbase Smart Wallet.');
+            if (typeof window !== 'undefined' && window.ethereum) {
+                return window.ethereum;
             }
-            const sdk = createFn({
-                appName: 'Grid402 M2M Oracle Hub',
-                appLogoUrl: 'https://grid402.online/favicon.svg',
-                appChainIds: [8453],
-                preference: { options: 'smartWalletOnly' }
-            });
-            coinbaseSmartWalletProvider = sdk.getProvider ? sdk.getProvider() : sdk.evm.getProvider();
-            return coinbaseSmartWalletProvider;
+            throw new Error('Nenhuma carteira Web3 detectada. Instale uma extensão como MetaMask ou Coinbase Wallet.');
         }
 
         async function payPlaygroundWithWeb3(customProvider = null, customBtnId = null) {
@@ -4495,10 +4513,12 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
             let provider = customProvider || window.ethereum;
             if (!provider) {
-                if (statusTitle) statusTitle.textContent = 'Carteira Web3 não encontrada';
+                if (statusTitle) statusTitle.textContent = 'Carteira Web3 não detectada';
                 if (statusMsg) {
-                    statusMsg.innerHTML = 'Nenhuma extensão de carteira (MetaMask, Coinbase Wallet, Rainbow) detectada.<br><button class="btn-sm btn-primary" style="margin-top: 8px;" onclick="startWeb3TopupWithSmartWallet(' + amountUsdc + ', \'' + tierName + '\')">🔑 Usar Coinbase Smart Wallet com Passkey / Biometria</button>';
+                    statusMsg.innerHTML = 'Nenhuma extensão de carteira (MetaMask, Coinbase Wallet, Rabby) detectada neste navegador.<br><span style="color: #00F0FF; font-weight: 600;">Sem problemas!</span> Você pode transferir USDC diretamente pelo seu app (ou exchange) e ativar o passe colando o Hash na caixa logo abaixo.';
                 }
+                const manualBox = document.getElementById('manual-topup-box');
+                if (manualBox) manualBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
             }
 
@@ -4609,17 +4629,90 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             try {
                 if (btn) {
                     btn.disabled = true;
-                    btn.textContent = 'Iniciando Smart Wallet...';
+                    btn.textContent = 'Conectando...';
                 }
                 const smartProvider = await getCoinbaseSmartWalletProvider();
                 await startWeb3Topup(amountUsdc, tierName, smartProvider);
             } catch (err) {
-                alert('Erro ao carregar Coinbase Smart Wallet: ' + (err.message || err));
+                const statusBox = document.getElementById('topup-status-box');
+                const statusTitle = document.getElementById('topup-status-title');
+                const statusMsg = document.getElementById('topup-status-msg');
+                if (statusBox) statusBox.style.display = 'block';
+                if (statusTitle) statusTitle.textContent = 'Carteira Web3 não encontrada';
+                if (statusMsg) {
+                    statusMsg.innerHTML = 'Para 1 clique no navegador, ative uma extensão Web3 (MetaMask, Coinbase Wallet ou Rabby).<br><span style="color:#00F0FF; font-weight:600;">Ou pague agora pelo app:</span> envie os USDC para o endereço da Oracle abaixo e cole o Hash!';
+                }
+                const manualBox = document.getElementById('manual-topup-box');
+                if (manualBox) manualBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
             } finally {
                 if (btn) {
                     btn.disabled = false;
                     btn.textContent = orig;
                 }
+            }
+        }
+
+        function copyOracleAddress() {
+            const addr = '0xa31c31069c43ac1c0075a93c325b0dcd7744356c';
+            navigator.clipboard.writeText(addr).then(() => {
+                const btn = document.getElementById('btn-copy-oracle');
+                if (btn) {
+                    const orig = btn.textContent;
+                    btn.textContent = '✅ Endereço Copiado!';
+                    setTimeout(() => { btn.textContent = orig; }, 2500);
+                }
+            });
+        }
+
+        async function activateManualPass() {
+            const input = document.getElementById('manual-pass-tx-input');
+            const tx = input ? input.value.trim() : '';
+            const statusBox = document.getElementById('topup-status-box');
+            const statusTitle = document.getElementById('topup-status-title');
+            const statusMsg = document.getElementById('topup-status-msg');
+            const successCard = document.getElementById('topup-success-card');
+            const btn = document.getElementById('btn-manual-activate');
+
+            if (!tx || !/^0x[a-fA-F0-9]{64}$/.test(tx)) {
+                alert('Por favor, informe um hash de transação válido na rede Base (ex: 0x... com 64 caracteres hexadecimais).');
+                return;
+            }
+
+            if (statusBox) statusBox.style.display = 'block';
+            if (successCard) successCard.style.display = 'none';
+            if (statusTitle) statusTitle.textContent = 'Validando transação na Base...';
+            if (statusMsg) statusMsg.textContent = 'Consultando recibo on-chain e confirmando saldo de USDC emitido...';
+            if (btn) { btn.disabled = true; btn.textContent = 'Validando...'; }
+
+            try {
+                const resp = await fetch('/api/v1/pass?tx=' + encodeURIComponent(tx));
+                const passData = await resp.json();
+
+                if (passData && (passData.status === 'ACTIVE' || passData.pass_token)) {
+                    if (statusBox) statusBox.style.display = 'none';
+                    if (successCard) successCard.style.display = 'block';
+
+                    document.getElementById('topup-result-token').textContent = passData.pass_token;
+                    document.getElementById('topup-result-credits').textContent = Number(passData.credits_total || 0).toLocaleString();
+                    document.getElementById('topup-result-tier').textContent = (passData.tier || 'PRO').toUpperCase();
+                    document.getElementById('topup-result-expires').textContent = passData.expires_at || '30 dias';
+
+                    const exampleCurl = 'curl "https://grid402.online/api/v1/forex" -H "X-Payment: ' + passData.pass_token + '"';
+                    document.getElementById('topup-example-curl').textContent = exampleCurl;
+
+                    try {
+                        localStorage.setItem('grid402_last_pass_token', passData.pass_token);
+                    } catch (e) {}
+
+                    successCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    throw new Error(passData.message || passData.error || 'Transação não encontrada ou ainda não propagada no RPC da Base. Aguarde alguns segundos e tente novamente.');
+                }
+            } catch (err) {
+                if (statusTitle) statusTitle.textContent = 'Falha ao ativar passe';
+                if (statusMsg) statusMsg.textContent = 'Erro: ' + (err.message || err);
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = '⚡ Validar e Ativar Passe'; }
             }
         }
 
