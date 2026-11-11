@@ -1802,5 +1802,8 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
         fetchLiveStats();
         setInterval(fetchLiveStats, 5000);
     </script>
+    <footer style="max-width: 1280px; margin: 2.5rem auto 1.5rem; padding: 1.25rem 1.5rem 0; border-top: 1px solid rgba(255,255,255,0.08); text-align: center; font-size: 0.78rem; color: #64748B;">
+        © <?php echo date('Y'); ?> Grid402 Network Intelligence. Todos os direitos reservados • Software e Arquitetura Protegidos (Lei nº 9.609/1998 e Lei nº 9.610/1998).
+    </footer>
 </body>
 </html>

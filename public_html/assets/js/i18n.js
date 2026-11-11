@@ -254,7 +254,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'about.title': 'Sobre o Grid402',
         'about.p1': 'O <strong>Grid402</strong> é uma infraestrutura pública de oráculo de dados e utilitários técnicos de rede desenhada especificamente para a Internet dos Agentes (Agentic Web) e sistemas autônomos Machine-to-Machine (M2M).',
         'about.p2': 'Tradicionalmente, consultar dados oficiais de empresas, endereçamento postal ou status de infraestrutura exige cadastro prévio, cartões de crédito internacionais, aprovação de tokens e chaves estáticas de API com risco de vazamento. O Grid402 elimina toda a fricção burocrática adotando o padrão nativo da web <strong>HTTP 402 Payment Required</strong> com liquidação instantânea de micropagamentos em USDC na rede Base Mainnet.',
-        'about.p3': 'Todo o ecossistema opera de maneira estritamente Zero-DB e Stateless, processando apenas informações de domínio público com transparência computacional, código aberto sob Licença MIT e total conformidade com a legislação brasileira (LGPD e Marco Civil da Internet).',
+        'about.p3': 'Todo o ecossistema opera de maneira estritamente Zero-DB e Stateless, processando apenas informações de domínio público com transparência computacional, propriedade intelectual e arquitetura protegidas por direitos autorais reservados (Leis nº 9.609/1998 e nº 9.610/1998) e total conformidade com a legislação nacional e internacional (LGPD, GDPR e Marco Civil da Internet).',
 
         // Secao Contato
         'contact.title': 'Contato e Canais Oficiais',
@@ -270,13 +270,13 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
 
         // Footer e Modais
         'footer.hub': 'Grid402 // Open Data e Utility Hub • Base Mainnet',
-        'footer.copyright': '© {year} Grid402. Todos os direitos reservados. Licenciado sob Licença MIT.',
+        'footer.copyright': '© {year} Grid402 Network Intelligence. Todos os direitos reservados.',
         'footer.fee': 'Taxa: US$ {price} / consulta',
-        'footer.ip.title': 'Direitos Autorais e Propriedade Intelectual:',
-        'footer.ip.desc': 'O software, arquitetura do servidor MCP e documentações são de titularidade do Grid402 e disponibilizados sob a Licença MIT. Os dados técnicos retornados provêm de registros públicos governamentais abertos, protocolos livres da internet (DNS, BGP/ASN, TLS/SSL) e fontes de domínio público, mantendo-se livres de qualquer exclusividade proprietária conforme a legislação vigente.',
+        'footer.ip.title': 'Direitos Autorais e Propriedade Intelectual Reservados:',
+        'footer.ip.desc': '© 2026 Grid402 Network Intelligence. Todos os direitos reservados (Lei nº 9.609/1998 e Lei nº 9.610/1998). O software da plataforma, motor de liquidação HTTP 402, arquitetura de Session Pass, marca, design e documentações são de propriedade exclusiva do Grid402, sendo vedada a reprodução ou redistribuição não autorizada. Os dados técnicos consultados provêm de registros públicos governamentais abertos, licenças CC0 e protocolos livres da internet (DNS, BGP/ASN, TLS/SSL), sobre os quais não reivindicamos exclusividade proprietária.',
         'footer.disclaimer.title': 'Isenção de Responsabilidade e Dados Públicos:',
-        'footer.disclaimer.desc': 'O Grid402 é um hub utilitário de acesso a dados de domínio público e protocolos abertos de rede fornecido "NO ESTADO EM QUE SE ENCONTRA" (AS-IS). Não tratamos dados pessoais sensíveis (PII) e operamos em estrita observância à Lei Geral de Proteção de Dados (Lei nº 13.709/2018) e ao Marco Civil da Internet (Lei nº 12.965/2014).',
-        'footer.contributors': 'Copyright (c) 2026 Grid402 Contributors. Distribuído sob os termos da Licença MIT.',
+        'footer.disclaimer.desc': 'O Grid402 é um hub utilitário de acesso a dados de domínio público e protocolos abertos de rede fornecido "NO ESTADO EM QUE SE ENCONTRA" (AS-IS). Não tratamos dados pessoais sensíveis (PII) e operamos em estrita observância à Lei Geral de Proteção de Dados (Lei nº 13.709/2018), ao GDPR (UE 2016/679) e ao Marco Civil da Internet (Lei nº 12.965/2014).',
+        'footer.contributors': '© 2026 Grid402 Network Intelligence. Todos os direitos reservados. Protegido pela Lei nº 9.609/1998 e Lei nº 9.610/1998.',
 
         // Modal Legal
         'modal.terms.title': 'Termos de Uso',
@@ -343,7 +343,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'agents.manifests.sub': 'Padrões abertos para que modelos de linguagem e agentes mapeiem o Grid402.',
 
         // Paginas Institucionais (/about, /contact, /terms, /privacy)
-        'inst.footer.copy': 'Copyright (c) 2026 Grid402. Licença MIT.',
+        'inst.footer.copy': '© 2026 Grid402 Network Intelligence. Todos os direitos reservados.',
         'inst.about.body': `
             <p>O <strong>Grid402</strong> é uma infraestrutura global de micro-serviços públicos e oráculo de utilitários de rede desenhada especificamente para sistemas autônomos, robôs e agentes de IA sob o padrão HTTP 402 com liquidação em USDC na rede Base Mainnet.</p>
             <h2>Propósito e Arquitetura Global</h2>
@@ -392,8 +392,8 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
             </ul>
             <h2>3. Micropagamentos x402 e Session Passes</h2>
             <p>Pagamentos efetuados via protocolo HTTP 402 e emissões de Session Pass liquidados em USDC na Base Mainnet (EVM 8453) remuneram exclusivamente a infraestrutura computacional, normalização e assinatura criptográfica ECDSA secp256k1 do Oráculo, sendo definitivos e irreversíveis on-chain.</p>
-            <h2>4. Propriedade Intelectual e Licença MIT</h2>
-            <p>O software Grid402, SDKs (Python, Node.js, AgentKit) e servidor MCP são disponibilizados sob a <strong>Licença MIT</strong>. Não reivindicamos titularidade exclusiva sobre fatos ou bases públicas governamentais.</p>
+            <h2>4. Direitos Autorais e Propriedade Intelectual Reservados</h2>
+            <p>© 2026 <strong>Grid402 Network Intelligence</strong>. <strong>Todos os direitos reservados.</strong> O software da plataforma Grid402, motor de liquidação x402, arquitetura de Session Pass, design visual, marca e documentações são de propriedade exclusiva do Grid402, protegidos pela <strong>Lei do Software (Lei nº 9.609/1998)</strong>, <strong>Lei de Direitos Autorais (Lei nº 9.610/1998)</strong> e tratados internacionais (Convenção de Berna). É vedada a reprodução, redistribuição ou engenharia reversa da plataforma sem autorização expressa. Os dados técnicos retornados pelas APIs provêm de registros públicos abertos e fatos de domínio público, sobre os quais não reivindicamos exclusividade proprietária.</p>
         `,
         'inst.privacy.body': `
             <p>Diretrizes de privacidade, proteção de dados e conformidade regulatória nacional e internacional (LGPD, GDPR e CCPA) do hub Grid402.</p>
@@ -659,7 +659,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'about.title': 'About Grid402',
         'about.p1': '<strong>Grid402</strong> is an open-data oracle infrastructure and technical network utility gateway designed specifically for the Agentic Web and Machine-to-Machine (M2M) autonomous systems.',
         'about.p2': 'Traditionally, fetching official entity records, postal geocoding, or infrastructure status requires advance account signup, international credit cards, token approval, and static API keys prone to leaks. Grid402 removes all bureaucratic friction by adopting the native web standard <strong>HTTP 402 Payment Required</strong> with instant micropayment settlement in USDC on Base Mainnet.',
-        'about.p3': 'The entire ecosystem operates strictly Zero-DB and Stateless, processing only public domain information with computational transparency, open source code under the MIT License, and full regulatory compliance (LGPD and Brazilian Civil Rights Framework for the Internet).',
+        'about.p3': 'The entire ecosystem operates strictly Zero-DB and Stateless, processing only public domain information with computational transparency, proprietary software and architecture protected by copyright (All Rights Reserved — Laws 9.609/1998 & 9.610/1998), and full regulatory compliance (LGPD, GDPR, CCPA, and Brazilian Civil Rights Framework for the Internet).',
 
         // Contact Section
         'contact.title': 'Contact and Official Channels',
@@ -675,13 +675,13 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
 
         // Footer and Modals
         'footer.hub': 'Grid402 // Open Data and Utility Hub • Base Mainnet',
-        'footer.copyright': '© {year} Grid402. All rights reserved. Released under the MIT License.',
+        'footer.copyright': '© {year} Grid402 Network Intelligence. All rights reserved.',
         'footer.fee': 'Rate: US$ {price} / query',
-        'footer.ip.title': 'Copyright and Intellectual Property:',
-        'footer.ip.desc': 'The Grid402 software, MCP server architecture, and documentation are proprietary to Grid402 and licensed under the MIT License. Returned technical data originates from open public records, internet standards (DNS, BGP/ASN, TLS/SSL), and public domain sources, free of proprietary exclusivity in accordance with applicable laws.',
+        'footer.ip.title': 'Copyright and All Rights Reserved:',
+        'footer.ip.desc': '© 2026 Grid402 Network Intelligence. All rights reserved (Protected by Copyright & Software Laws 9.609/1998, 9.610/1998 & Berne Convention). The Grid402 platform software, HTTP 402 settlement engine, Session Pass architecture, brand, design, and documentation are the exclusive property of Grid402; unauthorized reproduction or redistribution is prohibited. Returned technical data originates from open public records, CC0 registries, and internet standards (DNS, BGP/ASN, TLS/SSL), free of proprietary exclusivity.',
         'footer.disclaimer.title': 'Disclaimer and Open Public Data:',
-        'footer.disclaimer.desc': 'Grid402 is an open utility gateway providing access to public domain data and standard network protocols provided "AS IS". We do not process sensitive personally identifiable information (PII) and operate in compliance with data protection laws.',
-        'footer.contributors': 'Copyright (c) 2026 Grid402 Contributors. Distributed under the terms of the MIT License.',
+        'footer.disclaimer.desc': 'Grid402 is an open utility gateway providing access to public domain data and standard network protocols provided "AS IS". We do not process sensitive personally identifiable information (PII) and operate in compliance with international data protection laws (GDPR, LGPD, and CCPA).',
+        'footer.contributors': '© 2026 Grid402 Network Intelligence. All rights reserved. Protected by Copyright Laws 9.609/1998 & 9.610/1998.',
 
         // Legal Modal
         'modal.terms.title': 'Terms of Use',
@@ -748,7 +748,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'agents.manifests.sub': 'Open standards for LLMs, crawlers, and autonomous agents to map Grid402 capabilities.',
 
         // Institutional Pages (/about, /contact, /terms, /privacy)
-        'inst.footer.copy': 'Copyright (c) 2026 Grid402. MIT License.',
+        'inst.footer.copy': '© 2026 Grid402 Network Intelligence. All rights reserved.',
         'inst.about.body': `
             <p><strong>Grid402</strong> is a global open-data microservices and network utility oracle designed specifically for autonomous systems, bots, and AI agents under the HTTP 402 standard with instant USDC settlement on Base Mainnet.</p>
             <h2>Global Purpose and Architecture</h2>
@@ -797,8 +797,8 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
             </ul>
             <h2>3. x402 Micropayments and Session Passes</h2>
             <p>Micropayments settled via HTTP 402 and Prepaid Session Passes issued on Base Mainnet (EVM 8453) compensate strictly for computational normalization and ECDSA secp256k1 cryptographic attestation, and are final and non-refundable on-chain.</p>
-            <h2>4. Open Source Software (MIT License)</h2>
-            <p>The Grid402 software, client SDKs (Python, Node.js, AgentKit), and MCP server are distributed under the <strong>MIT License</strong>. We claim no proprietary ownership over government registries or public facts.</p>
+            <h2>4. Copyright and All Rights Reserved (Intellectual Property)</h2>
+            <p>© 2026 <strong>Grid402 Network Intelligence</strong>. <strong>All rights reserved.</strong> The Grid402 platform software, HTTP 402 settlement engine, Session Pass architecture, visual design, brand, and documentation are the exclusive intellectual property of Grid402, protected by the <strong>Software Protection Act (Law 9.609/1998)</strong>, <strong>Copyright Act (Law 9.610/1998)</strong>, and international treaties (Berne Convention). Unauthorized reproduction, redistribution, or reverse engineering of the platform is strictly prohibited. We claim no proprietary exclusivity over government registries or public-domain facts returned by the APIs.</p>
         `,
         'inst.privacy.body': `
             <p>Privacy, data protection, and international regulatory compliance guidelines (GDPR, LGPD, and CCPA/CPRA) for the Grid402 hub.</p>

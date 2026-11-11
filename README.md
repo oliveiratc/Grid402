@@ -149,5 +149,6 @@ node mcp/test_mcp.mjs
 
 ---
 
-## 📄 Licença
-Distribuído sob licença comercial e M2M aberta. Consulte [llms.txt](public_html/llms.txt) para termos de serviço.
+## 📄 Direitos Autorais e Propriedade Intelectual
+© 2026 **Grid402 Network Intelligence**. **Todos os direitos reservados / All rights reserved.**
+O software da plataforma Grid402, motor de liquidação HTTP 402, arquitetura de Session Pass, design visual e marca são protegidos pela Lei de Software (Lei nº 9.609/1998), Lei de Direitos Autorais (Lei nº 9.610/1998) e Convenção de Berna. Os dados consultados nos endpoints provêm de fontes públicas abertas e registros em domínio público (CC0, LAI, 17 U.S.C. § 105). Consulte [LICENSE](LICENSE) e [llms.txt](public_html/llms.txt) para os termos completos.

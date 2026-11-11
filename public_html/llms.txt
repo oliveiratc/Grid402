@@ -13,7 +13,7 @@
 - [Status e Saude do Hub](https://grid402.online/status): Verificacao de disponibilidade e resumo operacional dos servicos
 - [Sobre a Organizacao](https://grid402.online/about): Missao, arquitetura Zero-DB e endereco institucional
 - [Canais de Contato](https://grid402.online/contact): Suporte tecnico, encarregado de dados DPO e telefonia
-- [Termos de Servico](https://grid402.online/terms): Condicoes de uso, licenca MIT e termos M2M
+- [Termos de Servico](https://grid402.online/terms): Condicoes de uso, direitos autorais reservados (Lei 9.609/98 e 9.610/98) e termos M2M
 - [Politica de Privacidade](https://grid402.online/privacy): Diretrizes de privacidade, conformidade LGPD e retencao de logs
 
 ## Public Micro-Services APIs
@@ -63,3 +63,4 @@
   - `Mercados Globais, Cambio e Cripto (/api/v1/global-markets, /api/v1/forex, /api/v1/crypto)`: Diretiva Europeia de Dados Abertos (**EU Directive 2019/1024 - ECB Reference Rates**), Decreto nº 8.777/2016 (BCB) e fatos economicos de mercado livres de copyright (**17 U.S.C. § 102(b)** e **Lei nº 9.610/1998 Art. 8º, I**).
   - `Registros Corporativos, Fiscais e Calendarios (/api/v1/cnpj, /api/v1/sanctions, /api/v1/simples, /api/v1/compliance, /api/v1/indicators, /api/v1/holidays, /api/v1/workdays, /api/v1/cep)`: Lei de Acesso a Informacao (**Lei nº 12.527/2011 - LAI**), Politica Nacional de Dados Abertos (**Decreto nº 8.777/2016**), Lei Anticorrupcao (Lei nº 12.846/2013) e algoritmos matematicos de calendario (Lei nº 9.610/1998 Art. 8º, II e IV).
   - `Protocolos de Rede (/api/v1/dns, /api/v1/ssl, /api/v1/asn, /api/v1/notarize)`: Padroes abertos IETF (RFC 1035, RFC 5280, RFC 4271 e RFC 8785).
+- **Propriedade Intelectual e Direitos Reservados da Plataforma:** © 2026 Grid402 Network Intelligence. Todos os direitos reservados (Lei nº 9.609/1998, Lei nº 9.610/1998 e Convencao de Berna). O software da plataforma, motor de liquidacao HTTP 402, arquitetura de Session Pass, marca e interface sao de propriedade exclusiva do Grid402. Os dados tecnicos retornados pertencem ao dominio publico / fontes governamentais abertas.

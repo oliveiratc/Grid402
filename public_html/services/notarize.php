@@ -61,7 +61,7 @@ function grid402_service_notarize(string $rawData = '', string $providedHash = '
             'signature_scheme' => 'ECDSA secp256k1 + SHA-256 (RFC 8785 Canonical JSON)',
             'verification_endpoint' => GRID402_CANONICAL_DOMAIN . '/api/v1/verify',
         ],
-        'legal_license' => 'Public Cryptographic Attestation (MIT / RFC 8785 / Zero-Retention)',
+        'legal_license' => 'Public Cryptographic Attestation (RFC 8785 Canonical JSON / Zero-Retention — Platform Copyright (c) Grid402 All Rights Reserved)',
         'timestamp' => $isoUtc,
     ];
 }

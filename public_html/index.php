@@ -77,6 +77,7 @@ header('X-Agent-Protocol: x402; network=base; chain_id=8453');
 header('X-Micropayment-Pricing: 0.0005 USDC; token=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913');
 header('X-Data-Protection-Policy: Zero-PII; Corporate-Entities-Only; LGPD-Art1-Compliant; GDPR-Recital14-Compliant; CCPA-Compliant');
 header('X-Open-Data-Licenses: CC0-1.0, US-Public-Domain-17USC105, BR-LAI-12527, EU-Open-Data-2019-1024, IETF-Public-Standards');
+header('X-Copyright: Copyright (c) ' . date('Y') . ' Grid402 Network Intelligence. All rights reserved. Proprietary Software & Architecture (Law 9.609/1998 & Law 9.610/1998).');
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
 header('Referrer-Policy: strict-origin-when-cross-origin');
@@ -232,10 +233,10 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
                 <a href="/llms.txt">llms.txt</a>
                 <a href="mailto:contato@grid402.online">contato@grid402.online</a>
             </div>
-            <div data-i18n="inst.footer.copy">Copyright (c) <?php echo date('Y'); ?> Grid402. Licença MIT.</div>
+            <div data-i18n="inst.footer.copy">© <?php echo date('Y'); ?> Grid402 Network Intelligence. Todos os direitos reservados.</div>
         </footer>
     </div>
-    <script src="/assets/js/i18n.js?v=3.0.4"></script>
+    <script src="/assets/js/i18n.js?v=3.0.5"></script>
 </body>
 </html>
     <?php
@@ -271,7 +272,8 @@ if ($pageParam === 'about' || $requestPath === '/about') {
             'network' => 'Base Mainnet',
             'chain_id' => 8453,
             'oracle_wallet' => '0xa31c31069c43ac1c0075a93c325b0dcd7744356c',
-            'license' => 'MIT',
+            'copyright' => 'Copyright (c) ' . date('Y') . ' Grid402 Network Intelligence. Todos os direitos reservados / All rights reserved.',
+            'license' => 'Proprietary Software & Brand (All Rights Reserved — Lei nº 9.609/1998 & Lei nº 9.610/1998). Returned data remains Public Domain / Open Government Data.',
             'sdks' => [
                 'python' => 'https://pypi.org/project/grid402/',
                 'node' => 'https://www.npmjs.com/package/grid402',
@@ -333,15 +335,17 @@ if ($pageParam === 'terms' || $requestPath === '/terms') {
         </ul>
         <h2>3. Micropagamentos x402 e Session Passes</h2>
         <p>Pagamentos efetuados via protocolo HTTP 402 e emissões de Session Pass liquidados em USDC na Base Mainnet (EVM 8453) remuneram exclusivamente a infraestrutura computacional, normalização e assinatura criptográfica ECDSA secp256k1 do Oráculo, sendo definitivos e irreversíveis on-chain.</p>
-        <h2>4. Propriedade Intelectual e Licença MIT</h2>
-        <p>O software Grid402, SDKs (Python, Node.js, AgentKit) e servidor MCP são disponibilizados sob a <strong>Licença MIT</strong>. Não reivindicamos titularidade exclusiva sobre fatos ou bases públicas governamentais.</p></div>';
-        grid402_render_page_html('Terms of Service - Grid402', 'Termos de serviço, base legal de dados abertos (CC0, LAI, 17 U.S.C. 105) e licenciamento MIT do Grid402.', '/terms', 'Terms of Service', $termsBody);
+        <h2>4. Direitos Autorais e Propriedade Intelectual Reservada</h2>
+        <p>© ' . date('Y') . ' <strong>Grid402 Network Intelligence</strong>. <strong>Todos os direitos reservados.</strong> O software da plataforma Grid402, motor de liquidação x402, arquitetura de Session Pass, design visual, marca e documentações são de propriedade exclusiva do Grid402, protegidos pela <strong>Lei do Software (Lei nº 9.609/1998)</strong>, <strong>Lei de Direitos Autorais (Lei nº 9.610/1998)</strong> e tratados internacionais (Convenção de Berna). É vedada a reprodução, redistribuição ou engenharia reversa da plataforma sem autorização expressa. Os dados técnicos retornados pelas APIs provêm de registros públicos abertos e fatos de domínio público, sobre os quais não reivindicamos exclusividade proprietária.</p></div>';
+        grid402_render_page_html('Terms of Service - Grid402', 'Termos de serviço, direitos autorais reservados (Leis 9.609/98 e 9.610/98) e base legal de dados públicos abertos (CC0, LAI, 17 U.S.C. 105) do Grid402.', '/terms', 'Terms of Service', $termsBody);
     } else {
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
-            'document' => 'Terms of Service & Open Data Legal Framework',
-            'version' => '3.0.4',
+            'document' => 'Terms of Service, Intellectual Property & Open Data Legal Framework',
+            'version' => '3.0.5',
             'hub' => 'Grid402',
+            'copyright' => 'Copyright (c) ' . date('Y') . ' Grid402 Network Intelligence. Todos os direitos reservados / All rights reserved.',
+            'intellectual_property' => 'Software, marca, interface e arquitetura proprietarios com todos os direitos reservados (Lei nº 9.609/1998, Lei nº 9.610/1998 e Convencao de Berna).',
             'disclaimer_as_is' => 'O Grid402 e um hub informativo de utilitarios publicos de rede fornecido NO ESTADO EM QUE SE ENCONTRA (AS-IS), sem garantias de adequacao a fins comerciais especificos.',
             'open_data_legal_basis' => [
                 'gleif_lei' => 'CC0 1.0 Universal (Public Domain Dedication - ISO 17442)',
@@ -352,7 +356,7 @@ if ($pageParam === 'terms' || $requestPath === '/terms') {
                 'network_protocols' => 'IETF RFC 1035 (DNS), RFC 5280 (X.509 TLS), RFC 4271 (BGP/ASN), RFC 8785 (JCS Canonical JSON)',
             ],
             'settlement' => 'Micropagamentos via x402 e Session Passes liquidados na Base Mainnet (EVM 8453) remuneram o processamento computacional e atestacao ECDSA, sendo definitivos e irreversiveis.',
-            'software_license' => 'MIT License',
+            'software_license' => 'Proprietary — All Rights Reserved (Grid402 Network Intelligence)',
             'contact' => 'contato@grid402.online',
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         exit;
@@ -1031,7 +1035,11 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             "price": "0.0005",
             "priceCurrency": "USD"
           },
-          "license": "https://opensource.org/licenses/MIT",
+          "copyrightHolder": {
+            "@id": "https://grid402.online/#organization"
+          },
+          "copyrightYear": <?php echo date('Y'); ?>,
+          "license": "https://grid402.online/terms",
           "author": {
             "@id": "https://grid402.online/#organization"
           }
@@ -2898,7 +2906,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             <div>
                 <div data-i18n="footer.hub">Grid402 // Open Data e Utility Hub • Base Mainnet</div>
                 <div style="margin-top: 4px; font-size: 0.78rem; color: #64748B;" id="footer-copyright-text">
-                    © <?php echo date('Y'); ?> Grid402. Todos os direitos reservados. Licenciado sob Licença MIT.
+                    © <?php echo date('Y'); ?> Grid402 Network Intelligence. Todos os direitos reservados.
                 </div>
             </div>
             <div>
@@ -2911,7 +2919,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 <span id="footer-fee-text">Taxa: US$ <?php echo GRID402_PRICE_DISPLAY; ?> / consulta</span>
             </div>
             <div class="footer-legal">
-                <p><strong data-i18n="footer.ip.title">Direitos Autorais e Propriedade Intelectual:</strong> <span data-i18n="footer.ip.desc">© <?php echo date('Y'); ?> Grid402. O software, arquitetura do servidor MCP e documentações são de titularidade do Grid402 e disponibilizados sob a Licença MIT. Os dados técnicos retornados provêm de registros públicos governamentais abertos, protocolos livres da internet (DNS, BGP/ASN, TLS/SSL) e fontes de domínio público, mantendo-se livres de qualquer exclusividade proprietária conforme a legislação vigente.</span></p>
+                <p><strong data-i18n="footer.ip.title">Direitos Autorais e Propriedade Intelectual Reservados:</strong> <span data-i18n="footer.ip.desc">© <?php echo date('Y'); ?> Grid402 Network Intelligence. Todos os direitos reservados (Lei nº 9.609/1998 e Lei nº 9.610/1998). O software da plataforma, motor de liquidação HTTP 402, arquitetura de Session Pass, marca, design e documentações são de propriedade exclusiva do Grid402, sendo vedada a reprodução ou redistribuição não autorizada. Os dados técnicos consultados provêm de registros públicos governamentais abertos, licenças CC0 e protocolos livres da internet (DNS, BGP/ASN, TLS/SSL), sobre os quais não reivindicamos exclusividade proprietária.</span></p>
                 <p style="margin-top: 0.5rem;"><strong data-i18n="footer.disclaimer.title">Isenção de Responsabilidade e Dados Públicos:</strong> <span data-i18n="footer.disclaimer.desc">O Grid402 é um hub utilitário de acesso a dados de domínio público e protocolos abertos de rede fornecido 'NO ESTADO EM QUE SE ENCONTRA' (AS-IS). Não tratamos dados pessoais sensíveis (PII) e operamos em estrita observância à Lei Geral de Proteção de Dados (Lei nº 13.709/2018) e ao Marco Civil da Internet (Lei nº 12.965/2014).</span></p>
             </div>
         </footer>
@@ -3029,7 +3037,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             <h2 data-i18n="about.title">Sobre o Grid402</h2>
             <p data-i18n-html="about.p1">O <strong>Grid402</strong> e uma infraestrutura pública de oraculo de dados e utilitarios tecnicos de rede desenhada especificamente para a Internet dos Agentes (Agentic Web) e sistemas autônomos Machine-to-Machine (M2M).</p>
             <p data-i18n-html="about.p2">Tradicionalmente, consultar dados oficiais de empresas, enderecamento postal ou status de infraestrutura exige cadastro previo, cartoes de credito internacionais, aprovacao de tokens e chaves estaticas de API com risco de vazamento. O Grid402 elimina toda a friccao burocratica adotando o padrao nativo da web <strong>HTTP 402 Payment Required</strong> com liquidacao instantanea de micropagamentos em USDC na rede Base Mainnet.</p>
-            <p data-i18n-html="about.p3">Todo o ecossistema opera de maneira estritamente Zero-DB e Stateless, processando apenas informacoes de dominio publico com transparencia computacional, codigo aberto sob Licenca MIT e total conformidade com a legislacao brasileira (LGPD e Marco Civil da Internet).</p>
+            <p data-i18n-html="about.p3">Todo o ecossistema opera de maneira estritamente Zero-DB e Stateless, processando apenas informacoes de dominio publico com transparencia computacional, propriedade intelectual e arquitetura protegidas por direitos autorais reservados (Leis nº 9.609/1998 e nº 9.610/1998) e total conformidade com a legislacao nacional e internacional (LGPD, GDPR e Marco Civil da Internet).</p>
         </section>
 
         <!-- Secao de Contato e Canais Oficiais -->
@@ -3088,7 +3096,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 <a href="tel:+5511958325848">+55 11 95832-5848</a>
             </div>
             <div data-i18n="footer.contributors">
-                Copyright (c) 2026 Grid402 Contributors. Distribuido sob os termos da Licenca MIT.
+                © <?php echo date('Y'); ?> Grid402 Network Intelligence. Todos os direitos reservados. Protegido pela Lei nº 9.609/1998 e Lei nº 9.610/1998.
             </div>
         </footer>
     </div>
@@ -4336,8 +4344,8 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 <p>Todas as 19 APIs operam estritamente sobre fontes públicas abertas e fatos não passíveis de reserva proprietária: <strong>GLEIF LEI</strong> (CC0 1.0 Universal), <strong>OFAC SDN / ONU</strong> (Domínio Público 17 U.S.C. § 105), <strong>BCE / BCB / IBGE</strong> (Diretiva UE 2019/1024, Lei nº 12.527/2011 - LAI e Decreto nº 8.777/2016), <strong>Fatos Econômicos e Algoritmos de Calendário</strong> (Lei nº 9.610/1998 Art. 8º, I, II e IV) e <strong>Protocolos IETF</strong> (DNS, TLS, BGP/ASN, RFC 8785).</p>
                 <h3>3. Pagamentos x402 e Session Passes</h3>
                 <p>Os micropagamentos e passes pré-pagos em USDC na Base Mainnet (8453) remuneram exclusivamente o processamento computacional e a assinatura criptográfica ECDSA do Oráculo, sendo definitivos e irreversíveis.</p>
-                <h3>4. Software Aberto (Licença MIT)</h3>
-                <p>O código-fonte do Grid402, SDKs e servidor MCP são licenciados sob a <strong>Licença MIT</strong>.</p>
+                <h3>4. Direitos Autorais e Propriedade Intelectual Reservados</h3>
+                <p>© 2026 <strong>Grid402 Network Intelligence</strong>. <strong>Todos os direitos reservados.</strong> O software da plataforma, motor de liquidação HTTP 402, arquitetura de Session Pass, design visual e marca são protegidos pela Lei do Software (Lei nº 9.609/1998), Lei de Direitos Autorais (Lei nº 9.610/1998) e Convenção de Berna, sendo proibida a reprodução ou redistribuição sem autorização expressa.</p>
             `,
             privacy: `
                 <h3>1. Arquitetura Zero-PII (LGPD Art. 1º e GDPR Recital 14)</h3>
@@ -4354,8 +4362,8 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 <p>All 19 endpoints process strictly public-domain and open-licensed records: <strong>GLEIF LEI</strong> (CC0 1.0 Universal), <strong>US Treasury OFAC SDN / UN</strong> (Public Domain under 17 U.S.C. § 105), <strong>ECB / Central Bank Indicators</strong> (EU Open Data Directive 2019/1024 & Brazilian Open Data Decree 8.777/2016), <strong>Market Facts & Statutory Calendars</strong> (17 U.S.C. § 102(b) & Law 9.610/1998 Art. 8), and <strong>IETF Standards</strong> (DNS, TLS, BGP/ASN, RFC 8785).</p>
                 <h3>3. x402 Micropayments and Session Passes</h3>
                 <p>USDC micropayments and Session Passes settled on Base Mainnet (Chain ID 8453) compensate strictly for computational processing and ECDSA cryptographic attestation, with immediate on-chain finality.</p>
-                <h3>4. Open Source Software (MIT License)</h3>
-                <p>Grid402 software, client SDKs, and MCP specifications are licensed under the <strong>MIT License</strong>.</p>
+                <h3>4. Copyright and All Rights Reserved</h3>
+                <p>© 2026 <strong>Grid402 Network Intelligence</strong>. <strong>All rights reserved.</strong> The Grid402 platform software, HTTP 402 settlement engine, Session Pass architecture, visual design, and brand are proprietary and protected by copyright and intellectual property laws (Brazilian Laws 9.609/1998 & 9.610/1998 and Berne Convention). Unauthorized reproduction or redistribution of the platform is strictly prohibited.</p>
             `,
             privacy_en: `
                 <h3>1. Zero-PII Architecture (GDPR Recital 14 & LGPD Art. 1)</h3>
@@ -4623,6 +4631,6 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             }
         }
     </script>
-    <script src="/assets/js/i18n.js?v=3.0.4"></script>
+    <script src="/assets/js/i18n.js?v=3.0.5"></script>
 </body>
 </html>

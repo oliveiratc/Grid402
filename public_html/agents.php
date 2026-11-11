@@ -712,8 +712,13 @@ curl -X POST "https://grid402.online/api/v1/verify" \
         </div>
 
         <footer>
-            <div data-i18n="footer.hub">Grid402 // Open Data e Utility Hub • Base Mainnet</div>
-            <div style="display:flex; gap:16px;">
+            <div>
+                <div data-i18n="footer.hub">Grid402 // Open Data e Utility Hub • Base Mainnet</div>
+                <div style="margin-top: 4px; font-size: 0.78rem; color: #64748B;" data-i18n="footer.contributors">
+                    © <?php echo date('Y'); ?> Grid402 Network Intelligence. Todos os direitos reservados. Protegido pela Lei nº 9.609/1998 e Lei nº 9.610/1998.
+                </div>
+            </div>
+            <div style="display:flex; gap:16px; align-items:center;">
                 <a href="/terms" data-i18n="nav.terms">Termos</a>
                 <a href="/privacy" data-i18n="nav.privacy">Privacidade</a>
                 <a href="/about" data-i18n="nav.about">Sobre</a>
@@ -741,7 +746,7 @@ curl -X POST "https://grid402.online/api/v1/verify" \
             });
         }
     </script>
-    <script src="/assets/js/i18n.js?v=3.0.4"></script>
+    <script src="/assets/js/i18n.js?v=3.0.5"></script>
 </body>
 </html>
 
