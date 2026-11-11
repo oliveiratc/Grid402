@@ -507,12 +507,12 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
         </div>
 
         <!-- 2. Framework ElizaOS Oficial -->
-        <h2 class="section-title">2. Plugin Oficial para ElizaOS (@grid402/plugin-elizaos)</h2>
+        <h2 class="section-title">2. Plugin Oficial para ElizaOS (grid402-plugin-elizaos)</h2>
         <p class="section-sub">Permita que agentes de IA autonomos no ElizaOS consultem cambio, cripto spot, mercados mundiais e sancoes OFAC/AML.</p>
 
         <div class="code-box">
             <button class="copy-btn" onclick="copySnippet('code-eliza', this)">Copiar TypeScript</button>
-            <pre id="code-eliza">import { grid402Plugin } from "@grid402/plugin-elizaos";
+            <pre id="code-eliza">import { grid402Plugin } from "grid402-plugin-elizaos";
 
 export const defaultCharacter = {
   name: "GridMarketAgent",

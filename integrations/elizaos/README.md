@@ -1,4 +1,4 @@
-# @grid402/plugin-elizaos // Official ElizaOS Plugin for Grid402
+# grid402-plugin-elizaos // Official ElizaOS Plugin for Grid402
 
 Official [ElizaOS](https://github.com/elizaos/eliza) plugin for **Grid402**: the autonomous open data and network utility hub on **Base Mainnet (8453)** powered by the HTTP x402 micropayment protocol.
 
@@ -22,7 +22,7 @@ Equip your AI agents with real-time financial market tickers, global corporate i
 ## 📦 Installation
 
 ```bash
-npm install @grid402/plugin-elizaos
+npm install grid402-plugin-elizaos
 ```
 
 Or install locally in your Eliza project:
@@ -38,7 +38,7 @@ pnpm add ./integrations/elizaos
 Add `grid402Plugin` to your character JSON or TypeScript configuration:
 
 ```typescript
-import { grid402Plugin } from "@grid402/plugin-elizaos";
+import { grid402Plugin } from "grid402-plugin-elizaos";
 
 export const myAgentCharacter = {
   name: "DeFiMarketAnalyst",

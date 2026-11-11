@@ -74,12 +74,12 @@ const agentKit = await AgentKit.from({
 
 Exemplos detalhados em TypeScript e Python disponíveis em [`integrations/agentkit/README.md`](integrations/agentkit/README.md).
 
-### 3. Plugin Oficial para ElizaOS (`@grid402/plugin-elizaos`)
+### 3. Plugin Oficial para ElizaOS (`grid402-plugin-elizaos`)
 
 Para agentes autônomos no framework [ElizaOS](https://github.com/elizaos/eliza):
 
 ```typescript
-import { grid402Plugin } from "@grid402/plugin-elizaos";
+import { grid402Plugin } from "grid402-plugin-elizaos";
 
 export const character = {
   name: "CryptoComplianceAgent",

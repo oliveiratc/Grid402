@@ -1,5 +1,5 @@
 {
-  "name": "@grid402/plugin-elizaos",
+  "name": "grid402-plugin-elizaos",
   "version": "1.0.0",
   "type": "module",
   "description": "Grid402 Official ElizaOS Plugin for Real-Time Open Data, Forex, Crypto & Compliance Intelligence on Base",
