@@ -77,6 +77,7 @@ function grid402_service_dns(string $domain): array {
         'timestamp' => gmdate('Y-m-d\TH:i:s\Z'),
         'total_records' => is_array($rawRecords) ? count($rawRecords) : 0,
         'records' => $records,
+        'legal_license' => 'Open Internet Protocol Telemetry (IETF RFC 1035 — Public DNS Resolution)',
     ];
 }
 

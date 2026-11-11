@@ -62,7 +62,8 @@ function grid402_service_cep(string $code): array {
                 'ibge' => (string) ($data['ibge'] ?? ''),
                 'ddd' => (string) ($data['ddd'] ?? ''),
                 'timestamp' => gmdate('Y-m-d\TH:i:s\Z'),
-                'source' => 'Base Pública Aberta Nacional',
+                'source' => 'Base Pública Aberta Nacional e Diretório Municipal IBGE',
+                'legal_license' => 'Dados Públicos Abertos de Endereçamento e Geocodificação IBGE (Sem vinculação a moradores ou pessoas físicas — Zero PII)',
             ];
 
             @file_put_contents($cacheFile, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX);

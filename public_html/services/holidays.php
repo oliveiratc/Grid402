@@ -132,6 +132,7 @@ function grid402_service_holidays(?int $year = null, bool $forceRefresh = false)
         'total_holidays' => count($holidaysList),
         'holidays' => $holidaysList,
         'source' => 'Calendario Nacional e ANBIMA / Febraban',
+        'legal_license' => 'Domínio Público / Legislação Federal (Leis nº 662/1949, nº 6.802/1980, nº 14.759/2023 e Lei nº 9.610/1998 Art. 8º, IV)',
         'cached' => false
     ];
 

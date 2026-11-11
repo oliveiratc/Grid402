@@ -70,11 +70,17 @@ if ($paymentProof === '') {
     }
 }
 
-// Cabeçalhos Globais de IA, Protocolo e Descoberta
+// Cabeçalhos Globais de IA, Protocolo, Segurança e Conformidade de Dados
 header('Vary: Accept, User-Agent');
-header('Link: </openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json", </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp/server-card.json>; rel="service-meta"; type="application/json", </sitemap.xml>; rel="sitemap"; type="application/xml"');
+header('Link: </openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json", </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp/server-card.json>; rel="service-meta"; type="application/json", </sitemap.xml>; rel="sitemap"; type="application/xml", </terms>; rel="terms-of-service"; type="text/html", </privacy>; rel="privacy-policy"; type="text/html"');
 header('X-Agent-Protocol: x402; network=base; chain_id=8453');
 header('X-Micropayment-Pricing: 0.0005 USDC; token=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913');
+header('X-Data-Protection-Policy: Zero-PII; Corporate-Entities-Only; LGPD-Art1-Compliant; GDPR-Recital14-Compliant; CCPA-Compliant');
+header('X-Open-Data-Licenses: CC0-1.0, US-Public-Domain-17USC105, BR-LAI-12527, EU-Open-Data-2019-1024, IETF-Public-Standards');
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: SAMEORIGIN');
+header('Referrer-Policy: strict-origin-when-cross-origin');
+header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
 header('Content-Signal: search=yes, ai-train=no');
 
 /**
@@ -160,9 +166,12 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
         body { background-color: var(--bg); color: var(--text-main); font-family: var(--font-sans); line-height: 1.6; padding: 2rem 1rem; overflow-x: hidden; }
         .page-wrap { max-width: 820px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2.5rem; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
         header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
-        .nav-links { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+        .nav-links { display: flex; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
         .nav-links a { color: var(--text-muted); text-decoration: none; font-size: 0.9rem; font-weight: 500; transition: color 0.2s; }
         .nav-links a:hover, .nav-links a.active { color: var(--accent); }
+        .lang-switch { display: inline-flex; align-items: center; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 999px; padding: 2px; margin-left: 0.5rem; }
+        .lang-btn { background: transparent; border: none; color: var(--text-muted); font-family: var(--font-mono); font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 999px; cursor: pointer; transition: all 0.2s; }
+        .lang-btn.active { background: var(--accent); color: #030712; }
         h1, h2, h3 { font-family: var(--font-heading); }
         h1 { font-size: clamp(1.5rem, 5vw, 2rem); font-weight: 700; color: var(--text-main); margin-bottom: 1.25rem; letter-spacing: -0.5px; }
         h2 { font-size: 1.25rem; color: var(--text-main); margin: 1.75rem 0 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
@@ -195,31 +204,38 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
             </div>
             <nav class="nav-links">
                 <a href="/">Home</a>
-                <a href="/agents" <?php echo $canonicalPath === '/agents' ? 'class="active"' : ''; ?>>Agentes IA</a>
-                <a href="/about" <?php echo $canonicalPath === '/about' ? 'class="active"' : ''; ?>>About</a>
-                <a href="/contact" <?php echo $canonicalPath === '/contact' ? 'class="active"' : ''; ?>>Contact</a>
-                <a href="/terms" <?php echo $canonicalPath === '/terms' ? 'class="active"' : ''; ?>>Terms</a>
-                <a href="/privacy" <?php echo $canonicalPath === '/privacy' ? 'class="active"' : ''; ?>>Privacy</a>
+                <a href="/agents" <?php echo $canonicalPath === '/agents' ? 'class="active"' : ''; ?> data-i18n="nav.agents">Agentes IA</a>
+                <a href="/about" <?php echo $canonicalPath === '/about' ? 'class="active"' : ''; ?> data-i18n="nav.about">Sobre</a>
+                <a href="/contact" <?php echo $canonicalPath === '/contact' ? 'class="active"' : ''; ?> data-i18n="nav.contact">Contato</a>
+                <a href="/terms" <?php echo $canonicalPath === '/terms' ? 'class="active"' : ''; ?> data-i18n="nav.terms">Termos</a>
+                <a href="/privacy" <?php echo $canonicalPath === '/privacy' ? 'class="active"' : ''; ?> data-i18n="nav.privacy">Privacidade</a>
+                <div class="lang-switch" role="group" aria-label="Language selector">
+                    <button type="button" id="lang-btn-pt" class="lang-btn active" onclick="setLanguage('pt')">PT</button>
+                    <button type="button" id="lang-btn-en" class="lang-btn" onclick="setLanguage('en')">EN</button>
+                </div>
             </nav>
         </header>
 
-        <h1><?php echo htmlspecialchars($h1); ?></h1>
-        <?php echo $bodyContent; ?>
+        <div id="inst-page-content">
+            <h1><?php echo htmlspecialchars($h1); ?></h1>
+            <?php echo $bodyContent; ?>
+        </div>
 
         <footer>
             <div class="footer-links">
                 <a href="/">Home</a>
-                <a href="/agents">Agentes IA</a>
-                <a href="/about">About</a>
-                <a href="/contact">Contact</a>
-                <a href="/terms">Terms</a>
-                <a href="/privacy">Privacy</a>
+                <a href="/agents" data-i18n="nav.agents">Agentes IA</a>
+                <a href="/about" data-i18n="nav.about">Sobre</a>
+                <a href="/contact" data-i18n="nav.contact">Contato</a>
+                <a href="/terms" data-i18n="nav.terms">Termos</a>
+                <a href="/privacy" data-i18n="nav.privacy">Privacidade</a>
                 <a href="/llms.txt">llms.txt</a>
                 <a href="mailto:contato@grid402.online">contato@grid402.online</a>
             </div>
-            <div>Copyright (c) <?php echo date('Y'); ?> Grid402. Licenca MIT.</div>
+            <div data-i18n="inst.footer.copy">Copyright (c) <?php echo date('Y'); ?> Grid402. Licença MIT.</div>
         </footer>
     </div>
+    <script src="/assets/js/i18n.js?v=3.0.4"></script>
 </body>
 </html>
     <?php
@@ -229,23 +245,23 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
 // 1. Rotas Institucionais e Jurídicas
 if ($pageParam === 'about' || $requestPath === '/about') {
     if (!$isJsonExplicit && !isset($_GET['format'])) {
-        $aboutBody = '
-        <p>O <strong>Grid402</strong> e um hub de micro-servicos publicos e oraculo de utilitarios de rede desenhado especificamente para sistemas autonomos, robos e agentes de IA sob o padrao HTTP 402 com liquidacao em USDC na rede Base Mainnet.</p>
-        <h2>Proposito e Arquitetura</h2>
-        <p>O projeto elimina chaves estaticas de API e burocracia de cadastros cadastrais para agentes de software. Toda requisicao tecnica a dados oficiais (Receita Federal, CEP, Banco Central, DNS, SSL e BGP) pode ser liquidada diretamente on-chain com micropagamentos por chamada.</p>
+        $aboutBody = '<div data-i18n-html="inst.about.body">
+        <p>O <strong>Grid402</strong> é uma infraestrutura global de micro-serviços públicos e oráculo de utilitários de rede desenhada especificamente para sistemas autônomos, robôs e agentes de IA sob o padrão HTTP 402 com liquidação em USDC na rede Base Mainnet.</p>
+        <h2>Propósito e Arquitetura Global</h2>
+        <p>O projeto elimina chaves estáticas de API e burocracia de cadastros para agentes de software no mundo inteiro. Toda requisição técnica a dados oficiais (GLEIF LEI mundial, OFAC SDN, BCE 30+ moedas, notarização criptográfica ECDSA, Receita Federal, CEP, Banco Central, DNS, SSL e BGP) pode ser liquidada diretamente on-chain ou via Session Pass pré-pago em menos de 15ms.</p>
         <ul>
-            <li><strong>Zero-DB e Stateless:</strong> Sem persistencia de bancos de dados relacionais; operacao 100% em memoria e cache transiente.</li>
-            <li><strong>Protocolo x402:</strong> Implementacao nativa do codigo HTTP 402 Payment Required para Machine-to-Machine (M2M).</li>
-            <li><strong>Open Source:</strong> Codigo fonte livre sob Licenca MIT disponivel para auditoria publica.</li>
+            <li><strong>Zero-DB e Stateless:</strong> Sem persistência de bancos de dados relacionais; operação 100% em memória e cache atômico.</li>
+            <li><strong>Protocolo x402 + Session Pass:</strong> Implementação nativa do código HTTP 402 Payment Required para Machine-to-Machine (M2M) e passes de alta frequência.</li>
+            <li><strong>Domínio Público e CC0:</strong> Uso estrito de fontes públicas abertas e licenças CC0 sem dados pessoais sensíveis (Zero PII).</li>
         </ul>
-        <h2>Informacoes Institucionais</h2>
+        <h2>Informações Institucionais</h2>
         <div class="card-box">
-            <p><strong>Organizacao:</strong> Grid402 Network Intelligence</p>
+            <p><strong>Organização:</strong> Grid402 Network Intelligence</p>
             <p><strong>Email de Suporte:</strong> <a href="mailto:contato@grid402.online">contato@grid402.online</a></p>
-            <p><strong>Central Telefonica:</strong> <a href="tel:+5511958325848">+55 11 95832-5848</a></p>
-            <p><strong>Carteira Oraculo:</strong> <a href="https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c" target="_blank" rel="noopener noreferrer">0xa31c31069c43ac1c0075a93c325b0dcd7744356c</a></p>
-        </div>';
-        grid402_render_page_html('About Grid402 - Hub de Utilitarios de Rede e Dados Publicos', 'Saiba mais sobre a infraestrutura e os servicos publicos de rede do Grid402 para agentes de IA e desenvolvedores.', '/about', 'About Grid402', $aboutBody);
+            <p><strong>Central Telefônica:</strong> <a href="tel:+5511958325848">+55 11 95832-5848</a></p>
+            <p><strong>Carteira Oráculo (Base):</strong> <a href="https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c" target="_blank" rel="noopener noreferrer">0xa31c31069c43ac1c0075a93c325b0dcd7744356c</a></p>
+        </div></div>';
+        grid402_render_page_html('About Grid402 - Global M2M Open Data & Network Utilities Hub', 'Saiba mais sobre a infraestrutura global e os 19 serviços públicos do Grid402 para agentes de IA e desenvolvedores.', '/about', 'About Grid402', $aboutBody);
     } else {
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
@@ -270,22 +286,22 @@ if ($pageParam === 'about' || $requestPath === '/about') {
 
 if ($pageParam === 'contact' || $requestPath === '/contact') {
     if (!$isJsonExplicit && !isset($_GET['format'])) {
-        $contactBody = '
-        <p>Disponibilizamos canais diretos e estruturados para suporte tecnico, parcerias para integradores de IA e contato com o Encarregado de Tratamento de Dados Pessoais (DPO):</p>
+        $contactBody = '<div data-i18n-html="inst.contact.body">
+        <p>Disponibilizamos canais diretos e estruturados para suporte técnico, parcerias para integradores de IA e contato com o Encarregado de Tratamento de Dados Pessoais (DPO):</p>
         <h2>Canais Oficiais de Atendimento</h2>
         <div class="card-box">
-            <p><strong>Email de Suporte Geral e Integracoes:</strong> <a href="mailto:contato@grid402.online">contato@grid402.online</a></p>
-            <p><strong>Encarregado de Dados (DPO / LGPD):</strong> <a href="mailto:contato@grid402.online">contato@grid402.online</a></p>
-            <p><strong>Central Telefonica:</strong> <a href="tel:+5511958325848">+55 11 95832-5848</a></p>
+            <p><strong>Email de Suporte Geral e Integrações:</strong> <a href="mailto:contato@grid402.online">contato@grid402.online</a></p>
+            <p><strong>Encarregado de Dados (DPO / LGPD / GDPR):</strong> <a href="mailto:contato@grid402.online">contato@grid402.online</a></p>
+            <p><strong>Central Telefônica:</strong> <a href="tel:+5511958325848">+55 11 95832-5848</a></p>
         </div>
-        <h2>Ecossistema e Codigo Aberto</h2>
+        <h2>Ecossistema e Código Aberto</h2>
         <ul>
             <li><strong>GitHub Oficial:</strong> <a href="https://github.com/oliveiratc/Grid402" target="_blank" rel="noopener noreferrer">github.com/oliveiratc/Grid402</a></li>
             <li><strong>Pacote Node.js (npm):</strong> <a href="https://www.npmjs.com/package/grid402" target="_blank" rel="noopener noreferrer">npmjs.com/package/grid402</a></li>
             <li><strong>Pacote Python (PyPI):</strong> <a href="https://pypi.org/project/grid402/" target="_blank" rel="noopener noreferrer">pypi.org/project/grid402</a></li>
             <li><strong>Servidor MCP (Model Context Protocol):</strong> <a href="https://www.npmjs.com/package/grid402-mcp" target="_blank" rel="noopener noreferrer">npmjs.com/package/grid402-mcp</a></li>
-        </ul>';
-        grid402_render_page_html('Contact Grid402 - Canais Oficiais e Suporte', 'Entre em contato com o Grid402: canais oficiais de suporte tecnico, encarregado de dados (DPO) e repositorios.', '/contact', 'Contact Grid402', $contactBody);
+        </ul></div>';
+        grid402_render_page_html('Contact Grid402 - Official Channels & Support', 'Entre em contato com o Grid402: canais oficiais de suporte técnico, encarregado de dados (DPO) e repositórios.', '/contact', 'Contact Grid402', $contactBody);
     } else {
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
@@ -302,26 +318,41 @@ if ($pageParam === 'contact' || $requestPath === '/contact') {
 
 if ($pageParam === 'terms' || $requestPath === '/terms') {
     if (!$isJsonExplicit && !isset($_GET['format'])) {
-        $termsBody = '
-        <p>Termos de servico do hub de micro-servicos e utilitarios de rede Grid402.</p>
+        $termsBody = '<div data-i18n-html="inst.terms.body">
+        <p>Termos de serviço, licenciamento de dados públicos e conformidade regulatória internacional do hub global de micro-serviços e utilitários M2M Grid402.</p>
         <h2>1. Fornecimento no Estado em que se Encontra (AS-IS)</h2>
-        <p>O Grid402 e fornecido estritamente no estado em que se encontra, sem garantias de adequacao a finalidades comerciais exclusivas.</p>
-        <h2>2. Natureza dos Dados Publicos</h2>
-        <p>As consultas utilizam informacoes de dominio publico e registros abertos (Receita Federal, Banco Central, Registros Postais, DNS, TLS e BGP/ASN).</p>
-        <h2>3. Micropagamentos Irreversiveis</h2>
-        <p>Pagamentos efetuados via protocolo HTTP 402 liquidados na Base Mainnet (EVM 8453) sao irreversiveis e definitivos.</p>
-        <h2>4. Licenciamento</h2>
-        <p>O software e as bibliotecas clientes sao disponibilizados sob os termos da <strong>Licenca MIT</strong>.</p>';
-        grid402_render_page_html('Terms of Service - Grid402', 'Termos de servico, condicoes de uso M2M e licenciamento MIT do Grid402.', '/terms', 'Terms of Service', $termsBody);
+        <p>O Grid402 é uma infraestrutura técnica de oráculo M2M fornecida estritamente "NO ESTADO EM QUE SE ENCONTRA" (AS-IS), sem garantias de adequação a finalidades comerciais exclusivas, aconselhamento jurídico ou decisões de crédito.</p>
+        <h2>2. Base Legal de Dados Públicos, Domínio Público e Licenças Abertas</h2>
+        <p>Todas as 19 rotas do Grid402 processam exclusivamente informações de domínio público, fatos econômicos e registros governamentais abertos, livres de restrições proprietárias:</p>
+        <ul>
+            <li><strong>Global LEI (/api/v1/lei):</strong> Global Legal Entity Identifier Foundation (GLEIF) sob licença <strong>CC0 1.0 Universal (Public Domain Dedication)</strong>, padrão ISO 17442.</li>
+            <li><strong>Sanções Internacionais (/api/v1/ofac):</strong> US Treasury OFAC SDN (domínio público federal sob <strong>17 U.S.C. § 105</strong>) e listas consolidadas públicas do Conselho de Segurança da ONU.</li>
+            <li><strong>Mercados Globais e Câmbio (/api/v1/global-markets, /api/v1/forex, /api/v1/crypto):</strong> Taxas de referência do Banco Central Europeu (<strong>EU Open Data Directive 2019/1024</strong>), Banco Central do Brasil (Decreto nº 8.777/2016) e fatos econômicos de mercado não passíveis de copyright (<strong>Lei nº 9.610/1998 Art. 8º, I</strong> e <strong>17 U.S.C. § 102(b)</strong>).</li>
+            <li><strong>Dados Corporativos e Feriados Nacionais (/api/v1/cnpj, /api/v1/sanctions, /api/v1/simples, /api/v1/compliance, /api/v1/indicators, /api/v1/holidays, /api/v1/workdays, /api/v1/cep):</strong> Lei de Acesso à Informação (<strong>Lei nº 12.527/2011 - LAI</strong>), Política de Dados Abertos (<strong>Decreto nº 8.777/2016</strong>), Lei Anticorrupção (Lei nº 12.846/2013) e algoritmos matemáticos de calendário civil (Lei nº 9.610/1998 Art. 8º, II e IV).</li>
+            <li><strong>Telemetria de Rede e Notarização (/api/v1/dns, /api/v1/ssl, /api/v1/asn, /api/v1/notarize):</strong> Protocolos abertos da Internet (IETF RFC 1035, RFC 5280, RFC 4271 e RFC 8785).</li>
+        </ul>
+        <h2>3. Micropagamentos x402 e Session Passes</h2>
+        <p>Pagamentos efetuados via protocolo HTTP 402 e emissões de Session Pass liquidados em USDC na Base Mainnet (EVM 8453) remuneram exclusivamente a infraestrutura computacional, normalização e assinatura criptográfica ECDSA secp256k1 do Oráculo, sendo definitivos e irreversíveis on-chain.</p>
+        <h2>4. Propriedade Intelectual e Licença MIT</h2>
+        <p>O software Grid402, SDKs (Python, Node.js, AgentKit) e servidor MCP são disponibilizados sob a <strong>Licença MIT</strong>. Não reivindicamos titularidade exclusiva sobre fatos ou bases públicas governamentais.</p></div>';
+        grid402_render_page_html('Terms of Service - Grid402', 'Termos de serviço, base legal de dados abertos (CC0, LAI, 17 U.S.C. 105) e licenciamento MIT do Grid402.', '/terms', 'Terms of Service', $termsBody);
     } else {
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
-            'document' => 'Terms of Service',
-            'version' => '2.0.0',
+            'document' => 'Terms of Service & Open Data Legal Framework',
+            'version' => '3.0.4',
             'hub' => 'Grid402',
-            'disclaimer_as_is' => 'O Grid402 e um hub informativo de utilitarios publicos de rede fornecido NO ESTADO EM QUE SE ENCONTRA (AS-IS), sem garantias de precisao infalivel ou adequacao a fins comerciais especificos.',
-            'data_scope' => 'O servico processa estritamente dados de dominio publico e protocolos abertos de rede (DNS, SSL, BGP, Cambio PTAX, Criptoativos e CEP nacional).',
-            'settlement' => 'Micropagamentos via x402 liquidados na Base Mainnet (EVM 8453) sao definitivos e irreversiveis.',
+            'disclaimer_as_is' => 'O Grid402 e um hub informativo de utilitarios publicos de rede fornecido NO ESTADO EM QUE SE ENCONTRA (AS-IS), sem garantias de adequacao a fins comerciais especificos.',
+            'open_data_legal_basis' => [
+                'gleif_lei' => 'CC0 1.0 Universal (Public Domain Dedication - ISO 17442)',
+                'us_ofac_sdn' => '17 U.S.C. § 105 (US Government Works in the Public Domain) & UN Security Council Open Lists',
+                'eu_ecb_fx' => 'EU Open Data Directive (Directive (EU) 2019/1024) & ECB Statistical Data Reuse Policy',
+                'br_public_records' => 'Lei nº 12.527/2011 (Lei de Acesso a Informacao - LAI), Decreto nº 8.777/2016 (Politica de Dados Abertos) e Lei nº 12.846/2013 (CEIS/CNEP)',
+                'market_and_calendar_facts' => 'Lei nº 9.610/1998 Art. 8º, I, II e IV (Fatos economicos, algoritmos matematicos de calendario e textos legais) e 17 U.S.C. § 102(b)',
+                'network_protocols' => 'IETF RFC 1035 (DNS), RFC 5280 (X.509 TLS), RFC 4271 (BGP/ASN), RFC 8785 (JCS Canonical JSON)',
+            ],
+            'settlement' => 'Micropagamentos via x402 e Session Passes liquidados na Base Mainnet (EVM 8453) remuneram o processamento computacional e atestacao ECDSA, sendo definitivos e irreversiveis.',
+            'software_license' => 'MIT License',
             'contact' => 'contato@grid402.online',
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         exit;
@@ -330,27 +361,41 @@ if ($pageParam === 'terms' || $requestPath === '/terms') {
 
 if ($pageParam === 'privacy' || $requestPath === '/privacy') {
     if (!$isJsonExplicit && !isset($_GET['format'])) {
-        $privacyBody = '
-        <p>Diretrizes de privacidade, conformidade e governanca do hub Grid402.</p>
-        <h2>1. Conformidade com a LGPD (Lei nº 13.709/2018)</h2>
-        <p>O Grid402 opera estritamente com dados de dominio publico e nao coleta, armazena ou comercializa dados pessoais sensiveis ou PII de cidadaos.</p>
-        <h2>2. Marco Civil da Internet (Lei nº 12.965/2014)</h2>
-        <p>Registros de conexao (IP, data e hora) sao mantidos em conformidade estrita com o Artigo 15 da legislacao brasileira por 6 meses para cumprimento legal.</p>
-        <h2>3. Encarregado de Dados (DPO)</h2>
-        <p>Para qualquer solicitacao de conformidade, entre em contato via <a href="mailto:contato@grid402.online">contato@grid402.online</a>.</p>';
-        grid402_render_page_html('Privacy Policy - Grid402', 'Diretrizes de privacidade, conformidade LGPD e seguranca da informacao do Grid402.', '/privacy', 'Privacy Policy', $privacyBody);
+        $privacyBody = '<div data-i18n-html="inst.privacy.body">
+        <p>Diretrizes de privacidade, proteção de dados e conformidade regulatória nacional e internacional (LGPD, GDPR e CCPA) do hub Grid402.</p>
+        <h2>1. Arquitetura Zero-PII e Exclusão de Dados de Pessoas Físicas (LGPD Art. 1º / GDPR Recital 14)</h2>
+        <p>O Grid402 opera estritamente com dados de <strong>Pessoas Jurídicas</strong>, indicadores macroeconômicos e telemetria de rede. Em conformidade com o <strong>Art. 1º da LGPD (Lei nº 13.709/2018)</strong> e o <strong>Considerando 14 (Recital 14) do GDPR Europeu (Regulamento UE 2016/679)</strong>, registros de pessoas jurídicas não constituem dados pessoais de pessoas naturais. Em consultas de CNPJ, o Grid402 <strong>filtra e descarta na origem</strong> o Quadro de Sócios e Administradores (QSA), nomes de sócios, CPFs, telefones pessoais e e-mails privados.</p>
+        <h2>2. Minimização, Pseudonimização e Zero-Retention (/api/v1/notarize)</h2>
+        <ul>
+            <li><strong>Mascaramento e HMAC de IP:</strong> Endereços IP em métricas operacionais são truncados de forma irreversível (ex: <code>189.40.xxx.xxx</code>) e chaves de controle de taxa de Sandbox utilizam hash criptográfico <code>HMAC-SHA256</code> (pseudonimização conforme Art. 13 da LGPD e Art. 25 do GDPR).</li>
+            <li><strong>Notarização Zero-Retention:</strong> No endpoint <code>/api/v1/notarize</code>, o conteúdo enviado é processado exclusivamente em memória RAM volátil para cálculo do digest <code>SHA-256</code> e descartado imediatamente, sem gravação ou exibição de texto bruto.</li>
+        </ul>
+        <h2>3. Guarda Legal de Registros e Prevenção a Fraudes</h2>
+        <p>Registros técnicos estritos de conexão são mantidos sob sigilo pelo prazo legal em cumprimento ao <strong>Art. 15 do Marco Civil da Internet (Lei nº 12.965/2014)</strong>, e hashes públicos de transações na Base Mainnet (<code>X-Payment</code>) são retidos em cache temporário de 7 dias exclusivamente para prevenção de ataques de repetição (Replay Attack), com base no legítimo interesse e segurança cibernética (Art. 7º, IX da LGPD e Art. 6(1)(f) do GDPR).</p>
+        <h2>4. Direitos do Titular e Encarregado de Dados (DPO)</h2>
+        <p>O Grid402 não utiliza cookies de rastreamento publicitário e não vende ou compartilha informações pessoais (CCPA/CPRA). Para qualquer solicitação de conformidade, auditoria ou exercício de direitos perante o Encarregado de Dados (DPO), contate <a href="mailto:contato@grid402.online">contato@grid402.online</a>.</p></div>';
+        grid402_render_page_html('Privacy Policy - Grid402', 'Diretrizes de privacidade, arquitetura Zero-PII e conformidade LGPD, GDPR e CCPA do Grid402.', '/privacy', 'Privacy Policy', $privacyBody);
     } else {
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
-            'document' => 'Privacy Policy (LGPD / Marco Civil)',
-            'version' => '2.0.0',
+            'document' => 'Privacy Policy & Global Data Protection Compliance',
+            'version' => '3.0.4',
             'hub' => 'Grid402',
-            'compliance' => ['LGPD (Lei nº 13.709/2018)', 'Marco Civil da Internet (Lei nº 12.965/2014)'],
-            'data_collected' => [
-                'connection_logs' => 'Endereco IP, data e hora da conexao mantidos sob sigilo por 6 meses estritamente para cumprimento do Art. 15 da Lei nº 12.965/2014.',
-                'onchain_hashes' => 'Hash da transacao Base informado no cabecalho X-Payment mantido em cache temporario por 7 dias para prevencao de replay attack (Art. 7º, IX da LGPD - Legitimo Interesse).',
+            'regulatory_frameworks' => [
+                'BR_LGPD' => 'Lei Geral de Proteção de Dados (Lei nº 13.709/2018 - Art. 1º, Art. 6º, III e Art. 7º, IX)',
+                'BR_MCI' => 'Marco Civil da Internet (Lei nº 12.965/2014 - Art. 15)',
+                'EU_GDPR' => 'General Data Protection Regulation (Regulation (EU) 2016/679 - Recital 14, Art. 5(1)(c), Art. 6(1)(f) & Art. 25)',
+                'US_CCPA_CPRA' => 'California Consumer Privacy Act (Zero sale/sharing of personal information, Zero tracking cookies)',
             ],
-            'infrastructure_scope' => 'Zero coleta de dados pessoais sensiveis ou PII de cidadaos.',
+            'zero_pii_safeguards' => [
+                'corporate_cnpj_filtering' => 'Strict stripping of QSA (shareholders/directors names), CPFs, personal phones, and private emails at ingestion.',
+                'ip_anonymization' => 'Irreversible IPv4/IPv6 subnet masking in telemetry (xxx.xxx) and HMAC-SHA256 pseudonymization in rate limiters.',
+                'notarize_zero_retention' => 'In-memory SHA-256 hashing only; raw input payloads are never stored on disk or echoed in certificates.',
+            ],
+            'data_retention' => [
+                'connection_logs' => 'Retained confidentially for 6 months strictly as mandated by Art. 15 of Brazilian Law 12.965/2014.',
+                'onchain_tx_hashes' => 'Public Base Mainnet transaction hashes cached for 7 days strictly for anti-replay protection.',
+            ],
             'contact_dpo' => 'contato@grid402.online',
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         exit;
@@ -2778,7 +2823,7 @@ grid402_actions = Grid402ActionProvider(sandbox=False)</pre>
 
             <!-- Tab 2: Python -->
             <div id="tab-python" class="tab-content">
-                <div class="code-block">from grid402 import Grid402Client
+                <div class="code-block" data-i18n="console.python.code">from grid402 import Grid402Client
 
 client = Grid402Client()
 
@@ -2800,7 +2845,7 @@ print("Registros A:", dns_records["records"]["A"])
 
             <!-- Tab 3: Node.js -->
             <div id="tab-node" class="tab-content">
-                <div class="code-block">import { Grid402Client } from 'grid402';
+                <div class="code-block" data-i18n="console.node.code">import { Grid402Client } from 'grid402';
 
 const client = new Grid402Client();
 
@@ -2818,7 +2863,7 @@ console.log('Expira em dias:', ssl.certificate.days_remaining);
 
             <!-- Tab 4: cURL -->
             <div id="tab-curl" class="tab-content">
-                <div class="code-block"># 1. Resumo gratuito
+                <div class="code-block" data-i18n="console.curl.code"># 1. Resumo gratuito
 curl -i https://www.grid402.online/status
 
 # 2. Desafio HTTP 402 com Amostra Cadastral
@@ -2840,7 +2885,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 </p>
                 <div style="background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.25rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
                     <div>
-                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; font-weight: 600;">Exemplo de Badge em Tempo Real:</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem; text-transform: uppercase; font-weight: 600;" data-i18n="console.badges.label">Exemplo de Badge em Tempo Real:</div>
                         <img id="badge-preview-img" src="/badge/system.svg" alt="Badge Preview" style="height: 22px; display: block;" onerror="this.src='/badge.php?target=system'">
                     </div>
                     <button class="btn-sm" onclick="copyBadgeMarkdown()" data-i18n="console.badges.btn.copy">📋 Copiar Markdown</button>
@@ -3340,16 +3385,17 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             const colTitle = document.getElementById('playground-col-title');
             const runBtn = document.getElementById('btn-run-query');
 
+            const isEn = (typeof currentLanguage !== 'undefined' && currentLanguage === 'en');
             if (mode === 'manual') {
                 if (presetControls) presetControls.style.display = 'none';
                 if (manualControls) manualControls.style.display = 'flex';
-                if (colTitle) colTitle.textContent = 'Auditoria Manual de JSON';
-                if (runBtn) runBtn.textContent = '🔍 Auditar JSON';
+                if (colTitle) colTitle.textContent = isEn ? 'Manual JSON Audit' : 'Auditoria Manual de JSON';
+                if (runBtn) runBtn.textContent = isEn ? '🔍 Audit JSON' : '🔍 Auditar JSON';
             } else {
                 if (presetControls) presetControls.style.display = 'block';
                 if (manualControls) manualControls.style.display = 'none';
-                if (colTitle) colTitle.textContent = 'Configuracao da Consulta';
-                if (runBtn) runBtn.textContent = '⚡ Executar Consulta';
+                if (colTitle) colTitle.textContent = isEn ? 'Query Configuration' : 'Configuração da Consulta';
+                if (runBtn) runBtn.textContent = isEn ? '⚡ Run Query' : '⚡ Executar Consulta';
             }
 
             updatePlaygroundUrlDisplay();
@@ -3392,10 +3438,11 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             const runBtn = document.getElementById('btn-run-query');
             const unlockCard = document.getElementById('playground-unlock-card');
 
+            const isEn = (typeof currentLanguage !== 'undefined' && currentLanguage === 'en');
             if (unlockCard) unlockCard.style.display = 'none';
-            if (statusBadge) statusBadge.textContent = 'Enviando...';
+            if (statusBadge) statusBadge.textContent = isEn ? 'Sending...' : 'Enviando...';
             if (latencyTag) latencyTag.style.display = 'none';
-            if (viewer) viewer.textContent = '// Aguardando resposta do hub Grid402...';
+            if (viewer) viewer.textContent = isEn ? '// Awaiting response from Grid402 hub...' : '// Aguardando resposta do hub Grid402...';
             if (runBtn) runBtn.disabled = true;
 
             const headers = { 'Accept': 'application/json' };
@@ -3421,24 +3468,24 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     if (data && data._oracle_proof) {
                         auditOracleProof(data);
                     } else {
-                        renderNonProofState('Sem bloco _oracle_proof na resposta.');
+                        renderNonProofState(isEn ? 'No _oracle_proof block in response.' : 'Sem bloco _oracle_proof na resposta.');
                     }
                 } else if (response.status === 402 || response.status === 429) {
                     if (statusBadge) {
                         statusBadge.textContent = response.status === 429
-                            ? 'HTTP 429 Quota Sandbox Excedida'
+                            ? (isEn ? 'HTTP 429 Sandbox Quota Exceeded' : 'HTTP 429 Quota Sandbox Excedida')
                             : 'HTTP 402 Payment Required';
                     }
                     renderPlaygroundUnlockCard(data);
                     render402ChallengeCard(data);
                 } else {
                     if (statusBadge) statusBadge.textContent = 'HTTP ' + response.status;
-                    renderNonProofState('Resposta com codigo de erro ' + response.status);
+                    renderNonProofState((isEn ? 'Response returned error code ' : 'Resposta com codigo de erro ') + response.status);
                 }
             } catch (err) {
-                if (statusBadge) statusBadge.textContent = 'Erro de Conexao';
-                if (viewer) viewer.textContent = '// Erro ao conectar ao Grid402: ' + (err.message || err);
-                renderNonProofState('Nao foi possivel completar a requisicao.');
+                if (statusBadge) statusBadge.textContent = isEn ? 'Connection Error' : 'Erro de Conexao';
+                if (viewer) viewer.textContent = (isEn ? '// Error connecting to Grid402: ' : '// Erro ao conectar ao Grid402: ') + (err.message || err);
+                renderNonProofState(isEn ? 'Could not complete request.' : 'Nao foi possivel completar a requisicao.');
             } finally {
                 if (runBtn) runBtn.disabled = false;
             }
@@ -3448,11 +3495,12 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             const card = document.getElementById('playground-audit-card');
             if (!card) return;
             card.style.display = 'block';
+            const isEn = (typeof currentLanguage !== 'undefined' && currentLanguage === 'en');
 
             const overallBadge = document.getElementById('audit-overall-badge');
             if (overallBadge) {
                 overallBadge.className = 'audit-badge badge-pending';
-                overallBadge.textContent = 'ANALISANDO PROVA...';
+                overallBadge.textContent = isEn ? 'ANALYZING PROOF...' : 'ANALISANDO PROVA...';
             }
 
             const startVerify = performance.now();
@@ -3466,7 +3514,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 const result = await res.json();
                 renderAuditSteps(result, clientLatencyMs);
             } catch (err) {
-                renderAuditFailure('Erro ao validar no motor de verificacao: ' + err.message);
+                renderAuditFailure((isEn ? 'Verification engine error: ' : 'Erro ao validar no motor de verificacao: ') + err.message);
             }
         }
 
@@ -3474,6 +3522,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             const card = document.getElementById('playground-audit-card');
             const overallBadge = document.getElementById('audit-overall-badge');
             const engineBadge = document.getElementById('audit-engine-badge');
+            const isEn = (typeof currentLanguage !== 'undefined' && currentLanguage === 'en');
 
             const s1Icon = document.getElementById('audit-step-1-icon');
             const s1Status = document.getElementById('audit-step-1-status');
@@ -3499,33 +3548,35 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 }
                 if (overallBadge) {
                     overallBadge.className = 'audit-badge badge-valid';
-                    overallBadge.textContent = '✓ PROVA MATEMATICA AUTENTICA';
+                    overallBadge.textContent = isEn ? '✓ AUTHENTIC MATHEMATICAL PROOF' : '✓ PROVA MATEMATICA AUTENTICA';
                 }
 
                 // Etapa 1
                 if (s1Icon) { s1Icon.className = 'audit-step-icon icon-valid'; s1Icon.textContent = '✓'; }
-                if (s1Status) { s1Status.textContent = 'Integro (SHA-256)'; s1Status.style.color = 'var(--primary)'; }
+                if (s1Status) { s1Status.textContent = isEn ? 'Intact (SHA-256)' : 'Integro (SHA-256)'; s1Status.style.color = 'var(--primary)'; }
                 if (s1Meta) {
                     s1Meta.style.display = 'block';
-                    const h = (result.payload_hash || (payload && payload._oracle_proof && payload._oracle_proof.data_hash) || 'Conferido com sucesso');
+                    const h = (result.payload_hash || (result.data_hash) || (isEn ? 'Verified successfully' : 'Conferido com sucesso'));
                     s1Meta.textContent = 'Payload Hash: ' + h;
                 }
 
                 // Etapa 2
                 if (s2Icon) { s2Icon.className = 'audit-step-icon icon-valid'; s2Icon.textContent = '✓'; }
-                if (s2Status) { s2Status.textContent = 'Oficial (Base Mainnet)'; s2Status.style.color = 'var(--primary)'; }
+                if (s2Status) { s2Status.textContent = isEn ? 'Official (Base Mainnet)' : 'Oficial (Base Mainnet)'; s2Status.style.color = 'var(--primary)'; }
                 if (s2Meta) {
                     s2Meta.style.display = 'block';
                     const addr = result.oracle_address || '0xa31c31069c43ac1c0075a93c325b0dcd7744356c';
-                    s2Meta.innerHTML = 'Carteira: <a href="https://basescan.org/address/' + addr + '" target="_blank" rel="noopener noreferrer">' + addr + '</a> (BaseScan)';
+                    s2Meta.innerHTML = (isEn ? 'Wallet: ' : 'Carteira: ') + '<a href="https://basescan.org/address/' + addr + '" target="_blank" rel="noopener noreferrer">' + addr + '</a> (BaseScan)';
                 }
 
                 // Etapa 3
                 if (s3Icon) { s3Icon.className = 'audit-step-icon icon-valid'; s3Icon.textContent = '✓'; }
-                if (s3Status) { s3Status.textContent = 'Valida (ECDSA secp256k1)'; s3Status.style.color = 'var(--primary)'; }
+                if (s3Status) { s3Status.textContent = isEn ? 'Valid (ECDSA secp256k1)' : 'Valida (ECDSA secp256k1)'; s3Status.style.color = 'var(--primary)'; }
                 if (s3Meta) {
                     s3Meta.style.display = 'block';
-                    s3Meta.textContent = 'Algoritmo: ECDSA_SHA256_SECP256K1 | Verificacao concluida em ' + verifyTime + ' ms sem banco de dados.';
+                    s3Meta.textContent = isEn
+                        ? 'Algorithm: ECDSA_SHA256_SECP256K1 | Stateless verification in ' + verifyTime + ' ms.'
+                        : 'Algoritmo: ECDSA_SHA256_SECP256K1 | Verificacao concluida em ' + verifyTime + ' ms sem banco de dados.';
                 }
             } else {
                 if (card) {
@@ -3534,7 +3585,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 }
                 if (overallBadge) {
                     overallBadge.className = 'audit-badge badge-invalid';
-                    overallBadge.textContent = '✕ PROVA INVALIDA OU ADULTERADA';
+                    overallBadge.textContent = isEn ? '✕ INVALID OR TAMPERED PROOF' : '✕ PROVA INVALIDA OU ADULTERADA';
                 }
 
                 const errCode = (result && result.error) ? result.error : 'InvalidSignature';
@@ -3542,34 +3593,36 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 if (errCode === 'DataHashMismatch') {
                     // Etapa 1 falhou
                     if (s1Icon) { s1Icon.className = 'audit-step-icon icon-invalid'; s1Icon.textContent = '✕'; }
-                    if (s1Status) { s1Status.textContent = 'Hash Divergente'; s1Status.style.color = 'var(--danger)'; }
+                    if (s1Status) { s1Status.textContent = isEn ? 'Hash Mismatch' : 'Hash Divergente'; s1Status.style.color = 'var(--danger)'; }
                     if (s1Meta) {
                         s1Meta.style.display = 'block';
-                        s1Meta.innerHTML = '<span style="color:var(--danger);">Alerta de Adulteracao:</span> Os dados foram modificados apos a assinatura.<br>Esperado: ' + (result.expected_hash || 'N/A') + '<br>Recebido: ' + (result.received_hash || 'N/A');
+                        s1Meta.innerHTML = isEn
+                            ? '<span style="color:var(--danger);">Tampering Alert:</span> Payload was modified after signing.<br>Expected: ' + (result.expected_hash || 'N/A') + '<br>Received: ' + (result.received_hash || 'N/A')
+                            : '<span style="color:var(--danger);">Alerta de Adulteracao:</span> Os dados foram modificados apos a assinatura.<br>Esperado: ' + (result.expected_hash || 'N/A') + '<br>Recebido: ' + (result.received_hash || 'N/A');
                     }
 
                     if (s2Icon) { s2Icon.className = 'audit-step-icon icon-pending'; s2Icon.textContent = '2'; }
-                    if (s2Status) { s2Status.textContent = 'Interrompido'; s2Status.style.color = 'var(--text-muted)'; }
+                    if (s2Status) { s2Status.textContent = isEn ? 'Halted' : 'Interrompido'; s2Status.style.color = 'var(--text-muted)'; }
                     if (s2Meta) s2Meta.style.display = 'none';
 
                     if (s3Icon) { s3Icon.className = 'audit-step-icon icon-pending'; s3Icon.textContent = '3'; }
-                    if (s3Status) { s3Status.textContent = 'Interrompido'; s3Status.style.color = 'var(--text-muted)'; }
+                    if (s3Status) { s3Status.textContent = isEn ? 'Halted' : 'Interrompido'; s3Status.style.color = 'var(--text-muted)'; }
                     if (s3Meta) s3Meta.style.display = 'none';
                 } else {
                     // Outro erro
                     if (s1Icon) { s1Icon.className = 'audit-step-icon icon-invalid'; s1Icon.textContent = '✕'; }
-                    if (s1Status) { s1Status.textContent = 'Falha'; s1Status.style.color = 'var(--danger)'; }
+                    if (s1Status) { s1Status.textContent = isEn ? 'Failed' : 'Falha'; s1Status.style.color = 'var(--danger)'; }
                     if (s1Meta) {
                         s1Meta.style.display = 'block';
-                        s1Meta.textContent = (result && result.message) ? result.message : 'Assinatura nao reconhecida.';
+                        s1Meta.textContent = (result && result.message) ? result.message : (isEn ? 'Unrecognized signature.' : 'Assinatura nao reconhecida.');
                     }
 
                     if (s2Icon) { s2Icon.className = 'audit-step-icon icon-invalid'; s2Icon.textContent = '✕'; }
-                    if (s2Status) { s2Status.textContent = 'Rejeitado'; s2Status.style.color = 'var(--danger)'; }
+                    if (s2Status) { s2Status.textContent = isEn ? 'Rejected' : 'Rejeitado'; s2Status.style.color = 'var(--danger)'; }
                     if (s2Meta) s2Meta.style.display = 'none';
 
                     if (s3Icon) { s3Icon.className = 'audit-step-icon icon-invalid'; s3Icon.textContent = '✕'; }
-                    if (s3Status) { s3Status.textContent = 'Rejeitado'; s3Status.style.color = 'var(--danger)'; }
+                    if (s3Status) { s3Status.textContent = isEn ? 'Rejected' : 'Rejeitado'; s3Status.style.color = 'var(--danger)'; }
                     if (s3Meta) s3Meta.style.display = 'none';
                 }
             }
@@ -3800,16 +3853,17 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             if (!card) return;
             card.style.display = 'block';
             card.classList.remove('valid', 'invalid');
+            const isEn = (typeof currentLanguage !== 'undefined' && currentLanguage === 'en');
 
             const overallBadge = document.getElementById('audit-overall-badge');
             if (overallBadge) {
                 overallBadge.className = 'audit-badge badge-pending';
-                overallBadge.textContent = '🔒 DESAFIO x402 RECEBIDO';
+                overallBadge.textContent = isEn ? '🔒 x402 CHALLENGE RECEIVED' : '🔒 DESAFIO x402 RECEBIDO';
             }
 
             const engineBadge = document.getElementById('audit-engine-badge');
             if (engineBadge) {
-                engineBadge.textContent = 'Protocolo x402 • Base Mainnet';
+                engineBadge.textContent = isEn ? 'x402 Protocol • Base Mainnet' : 'Protocolo x402 • Base Mainnet';
             }
 
             const s1Icon = document.getElementById('audit-step-1-icon');
@@ -3825,26 +3879,30 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             const s3Meta = document.getElementById('audit-step-3-meta');
 
             if (s1Icon) { s1Icon.className = 'audit-step-icon icon-pending'; s1Icon.textContent = '1'; }
-            if (s1Status) { s1Status.textContent = 'Amostra Previa (Teaser)'; s1Status.style.color = 'var(--accent)'; }
+            if (s1Status) { s1Status.textContent = isEn ? 'Free Sample (Teaser)' : 'Amostra Previa (Teaser)'; s1Status.style.color = 'var(--accent)'; }
             if (s1Meta) {
                 s1Meta.style.display = 'block';
-                s1Meta.textContent = 'A resposta 402 inclui dados preliminares gratuitos para o agente inspecionar a qualidade antes da compra.';
+                s1Meta.textContent = isEn
+                    ? 'The HTTP 402 response includes free preliminary data so the agent can inspect quality before purchasing.'
+                    : 'A resposta 402 inclui dados preliminares gratuitos para o agente inspecionar a qualidade antes da compra.';
             }
 
             if (s2Icon) { s2Icon.className = 'audit-step-icon icon-pending'; s2Icon.textContent = '2'; }
-            if (s2Status) { s2Status.textContent = 'Destinatario e Preco'; s2Status.style.color = 'var(--accent)'; }
+            if (s2Status) { s2Status.textContent = isEn ? 'Recipient and Price' : 'Destinatario e Preco'; s2Status.style.color = 'var(--accent)'; }
             if (s2Meta) {
                 s2Meta.style.display = 'block';
                 const price = (data && data.price_usdc) ? data.price_usdc : '0.0005';
                 const dest = (data && data.payment_address) ? data.payment_address : '0xa31c31069c43ac1c0075a93c325b0dcd7744356c';
-                s2Meta.innerHTML = 'Preco: ' + price + ' USDC | Destino: <a href="https://basescan.org/address/' + dest + '" target="_blank" rel="noopener noreferrer">' + dest + '</a>';
+                s2Meta.innerHTML = (isEn ? 'Price: ' : 'Preco: ') + price + ' USDC | ' + (isEn ? 'Recipient: ' : 'Destino: ') + '<a href="https://basescan.org/address/' + dest + '" target="_blank" rel="noopener noreferrer">' + dest + '</a>';
             }
 
             if (s3Icon) { s3Icon.className = 'audit-step-icon icon-pending'; s3Icon.textContent = '3'; }
-            if (s3Status) { s3Status.textContent = 'Prova Emitida Apos Pagamento'; s3Status.style.color = 'var(--accent)'; }
+            if (s3Status) { s3Status.textContent = isEn ? 'Proof Issued After Payment' : 'Prova Emitida Apos Pagamento'; s3Status.style.color = 'var(--accent)'; }
             if (s3Meta) {
                 s3Meta.style.display = 'block';
-                s3Meta.textContent = 'Ao enviar o comprovante X-Payment (ou no modo Sandbox demo), a atestacao criptografica e gerada automaticamente no HTTP 200.';
+                s3Meta.textContent = isEn
+                    ? 'Upon sending X-Payment (or using Sandbox demo mode), the cryptographic attestation is automatically generated on HTTP 200.'
+                    : 'Ao enviar o comprovante X-Payment (ou no modo Sandbox demo), a atestacao criptografica e gerada automaticamente no HTTP 200.';
             }
         }
 
@@ -3853,11 +3911,12 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             if (!card) return;
             card.style.display = 'block';
             card.classList.remove('valid', 'invalid');
+            const isEn = (typeof currentLanguage !== 'undefined' && currentLanguage === 'en');
 
             const overallBadge = document.getElementById('audit-overall-badge');
             if (overallBadge) {
                 overallBadge.className = 'audit-badge badge-pending';
-                overallBadge.textContent = 'SEM PROVA CRIPTOGRAFICA';
+                overallBadge.textContent = isEn ? 'NO CRYPTOGRAPHIC PROOF' : 'SEM PROVA CRIPTOGRAFICA';
             }
 
             const s1Meta = document.getElementById('audit-step-1-meta');
@@ -3873,11 +3932,12 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             card.style.display = 'block';
             card.classList.remove('valid');
             card.classList.add('invalid');
+            const isEn = (typeof currentLanguage !== 'undefined' && currentLanguage === 'en');
 
             const overallBadge = document.getElementById('audit-overall-badge');
             if (overallBadge) {
                 overallBadge.className = 'audit-badge badge-invalid';
-                overallBadge.textContent = '✕ ERRO NA AUDITORIA';
+                overallBadge.textContent = isEn ? '✕ AUDIT ERROR' : '✕ ERRO NA AUDITORIA';
             }
 
             const s1Meta = document.getElementById('audit-step-1-meta');
@@ -3993,7 +4053,8 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             const teaserCard = document.getElementById('console-teaser-card');
             if (teaserCard) teaserCard.style.display = 'none';
 
-            out.textContent = 'Carregando requisição...';
+            const isEn = (typeof currentLanguage !== 'undefined' && currentLanguage === 'en');
+            out.textContent = isEn ? 'Loading request...' : 'Carregando requisição...';
             badge.style.display = 'none';
 
             let url = '/status';
@@ -4021,7 +4082,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 case 'paid':
                     const tx = document.getElementById('tx-input').value.trim();
                     if (!tx) {
-                        out.textContent = 'Por favor, insira o hash da transação na Base no campo acima.';
+                        out.textContent = isEn ? 'Please paste the Base transaction hash or pass_g402_... token above.' : 'Por favor, insira o hash da transação na Base no campo acima.';
                         return;
                     }
                     headers['X-Payment'] = tx;
@@ -4053,7 +4114,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 const duration = Math.round(performance.now() - t0);
                 const json = await res.json();
 
-                statusText.textContent = `HTTP ${res.status} ${res.status === 200 ? 'OK' : (res.status === 402 ? 'Payment Required (Desafio x402)' : (res.status === 429 ? 'Sandbox Limit Exceeded' : 'Error'))}`;
+                statusText.textContent = `HTTP ${res.status} ${res.status === 200 ? 'OK' : (res.status === 402 ? (isEn ? 'Payment Required (x402 Challenge)' : 'Payment Required (Desafio x402)') : (res.status === 429 ? 'Sandbox Limit Exceeded' : 'Error'))}`;
                 badge.style.display = 'inline-block';
                 badge.textContent = `${duration} ms`;
 
@@ -4064,8 +4125,10 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     const teaserContent = document.getElementById('teaser-content');
                     const teaserLocked = document.getElementById('teaser-locked-fields');
 
-                    teaserTitle.textContent = (currentServiceAction === 'cnpj') ? 'Dados Cadastrais da Empresa (Prévia)' : (currentServiceAction === 'indicators' ? 'Indicadores Econômicos Oficiais (Prévia)' : (currentServiceAction === 'holidays' ? 'Próximo Feriado Nacional (Prévia)' : 'Amostra Preliminar Verificada (HTTP 402)'));
-                    teaserPrice.textContent = `${json.price_usdc || '0.0005'} USDC na Base`;
+                    teaserTitle.textContent = isEn
+                        ? 'Verified Preliminary Sample (HTTP 402)'
+                        : ((currentServiceAction === 'cnpj') ? 'Dados Cadastrais da Empresa (Prévia)' : (currentServiceAction === 'indicators' ? 'Indicadores Econômicos Oficiais (Prévia)' : (currentServiceAction === 'holidays' ? 'Próximo Feriado Nacional (Prévia)' : 'Amostra Preliminar Verificada (HTTP 402)')));
+                    teaserPrice.textContent = `${json.price_usdc || '0.0005'} USDC • Base`;
 
                     let html = '';
                     if (json.preview && typeof json.preview === 'object') {
@@ -4267,40 +4330,40 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
         // Modal Legal
         const legalContent = {
             terms: `
-                <h3>1. Objeto e Natureza do Hub</h3>
-                <p>O <strong>Grid402</strong> é um hub de micro-serviços públicos e utilitários técnicos de rede para sistemas autônomos e desenvolvedores. O serviço é fornecido 'NO ESTADO EM QUE SE ENCONTRA' (AS-IS), sem garantias de adequação a propósitos comerciais específicos.</p>
-                <h3>2. Dados Públicos e Domínio Aberto</h3>
-                <p>Todas as consultas utilizam estritamente dados de domínio público (cotações cambiais PTAX, tickers de mercado, base pública de CEP nacional e protocolos abertos de rede como DNS, TLS e BGP/ASN).</p>
-                <h3>3. Pagamentos x402 e Irreversibilidade</h3>
-                <p>Os micropagamentos são liquidados em USDC na Base Mainnet (8453) de forma definitiva e irreversível.</p>
-                <h3>4. Direitos Autorais e Licenciamento</h3>
-                <p>O software Grid402, suas bibliotecas de integração (TypeScript, Python, PHP) e especificações de ferramentas MCP são licenciados sob os termos da <strong>Licença MIT</strong>. As bases de dados consultadas pertencem ao domínio público ou a registros oficiais abertos (Receita Federal, Banco Central do Brasil, ICANN, Registro.br), inexistindo apropriação ou reserva proprietária sobre fatos e registros públicos.</p>
+                <h3>1. Objeto e Fornecimento AS-IS</h3>
+                <p>O <strong>Grid402</strong> é uma infraestrutura global de micro-serviços de dados públicos e utilitários M2M para agentes autônomos e desenvolvedores, fornecida "NO ESTADO EM QUE SE ENCONTRA" (AS-IS).</p>
+                <h3>2. Direito de Uso de Informações Públicas e Licenças Abertas</h3>
+                <p>Todas as 19 APIs operam estritamente sobre fontes públicas abertas e fatos não passíveis de reserva proprietária: <strong>GLEIF LEI</strong> (CC0 1.0 Universal), <strong>OFAC SDN / ONU</strong> (Domínio Público 17 U.S.C. § 105), <strong>BCE / BCB / IBGE</strong> (Diretiva UE 2019/1024, Lei nº 12.527/2011 - LAI e Decreto nº 8.777/2016), <strong>Fatos Econômicos e Algoritmos de Calendário</strong> (Lei nº 9.610/1998 Art. 8º, I, II e IV) e <strong>Protocolos IETF</strong> (DNS, TLS, BGP/ASN, RFC 8785).</p>
+                <h3>3. Pagamentos x402 e Session Passes</h3>
+                <p>Os micropagamentos e passes pré-pagos em USDC na Base Mainnet (8453) remuneram exclusivamente o processamento computacional e a assinatura criptográfica ECDSA do Oráculo, sendo definitivos e irreversíveis.</p>
+                <h3>4. Software Aberto (Licença MIT)</h3>
+                <p>O código-fonte do Grid402, SDKs e servidor MCP são licenciados sob a <strong>Licença MIT</strong>.</p>
             `,
             privacy: `
-                <h3>1. Conformidade com a LGPD (Lei nº 13.709/2018)</h3>
-                <p>O Grid402 não coleta, armazena ou trata dados pessoais identificáveis (PII) de cidadãos. As ferramentas realizam operações técnicas de rede e dados públicos abertos.</p>
-                <h3>2. Guarda de Registros (Marco Civil da Internet)</h3>
-                <p>Em observância ao Art. 15 da Lei nº 12.965/2014, os registros de conexão (endereço IP, data e hora) são mantidos por 6 meses sob sigilo.</p>
-                <h3>3. Contato</h3>
-                <p>Canal de comunicação sobre privacidade: <code>contato@grid402.online</code>.</p>
+                <h3>1. Arquitetura Zero-PII (LGPD Art. 1º e GDPR Recital 14)</h3>
+                <p>O Grid402 processa exclusivamente dados de <strong>Pessoas Jurídicas</strong> e protocolos técnicos. Nas rotas de CNPJ e Compliance, o sistema descarta na origem qualquer dado pessoal de sócios (sem QSA, sem CPF e sem contatos pessoais).</p>
+                <h3>2. Minimização, HMAC de IP e Zero-Retention</h3>
+                <p>Endereços IP em métricas são truncados (<code>xxx.xxx</code>), o rate-limit de Sandbox utiliza pseudonimização <code>HMAC-SHA256</code> (Art. 13 LGPD / Art. 25 GDPR) e a rota <code>/api/v1/notarize</code> calcula apenas o hash <code>SHA-256</code> em RAM sem reter ou exibir o conteúdo bruto.</p>
+                <h3>3. Guarda Legal e Encarregado (DPO)</h3>
+                <p>Registros técnicos de conexão observam o Art. 15 do Marco Civil da Internet (Lei nº 12.965/2014). Contato direto com o DPO (LGPD/GDPR/CCPA): <code>contato@grid402.online</code>.</p>
             `,
             terms_en: `
-                <h3>1. Purpose and Architecture</h3>
-                <p><strong>Grid402</strong> is an open-data microservices and network utility gateway designed for autonomous systems, AI agents, and developers. Services are provided "AS-IS", without warranties of fitness for a particular purpose.</p>
-                <h3>2. Public Domain and Open Standards</h3>
-                <p>All queries access public domain registries (PTAX exchange rates, market feeds, postal directories, and open internet protocols such as DNS, TLS, and BGP/ASN).</p>
-                <h3>3. x402 Micropayments and Finality</h3>
-                <p>Micropayments are settled in USDC on Base Mainnet (Chain ID 8453) with immediate on-chain finality.</p>
-                <h3>4. Copyright and Open Source Licensing</h3>
-                <p>The Grid402 software, client SDKs (TypeScript, Python), and MCP specifications are licensed under the terms of the <strong>MIT License</strong>. Data sources originate from open public registries, without proprietary claims over public records.</p>
+                <h3>1. Purpose and "AS-IS" Provision</h3>
+                <p><strong>Grid402</strong> is a global open-data microservices and M2M network utility gateway for autonomous AI agents and developers, provided strictly "AS-IS".</p>
+                <h3>2. Open Data Legal Basis and Public Domain Rights</h3>
+                <p>All 19 endpoints process strictly public-domain and open-licensed records: <strong>GLEIF LEI</strong> (CC0 1.0 Universal), <strong>US Treasury OFAC SDN / UN</strong> (Public Domain under 17 U.S.C. § 105), <strong>ECB / Central Bank Indicators</strong> (EU Open Data Directive 2019/1024 & Brazilian Open Data Decree 8.777/2016), <strong>Market Facts & Statutory Calendars</strong> (17 U.S.C. § 102(b) & Law 9.610/1998 Art. 8), and <strong>IETF Standards</strong> (DNS, TLS, BGP/ASN, RFC 8785).</p>
+                <h3>3. x402 Micropayments and Session Passes</h3>
+                <p>USDC micropayments and Session Passes settled on Base Mainnet (Chain ID 8453) compensate strictly for computational processing and ECDSA cryptographic attestation, with immediate on-chain finality.</p>
+                <h3>4. Open Source Software (MIT License)</h3>
+                <p>Grid402 software, client SDKs, and MCP specifications are licensed under the <strong>MIT License</strong>.</p>
             `,
             privacy_en: `
-                <h3>1. Data Protection and Privacy Compliance</h3>
-                <p>Grid402 does not collect, store, or process sensitive Personally Identifiable Information (PII). Our microservices perform technical network diagnostics and public data lookups.</p>
-                <h3>2. Access Logs</h3>
-                <p>In accordance with statutory internet regulations, connection logs (IP address, timestamp) are retained securely for network telemetry and anti-abuse purposes.</p>
-                <h3>3. Contact</h3>
-                <p>Privacy inquiries and support: <code>contato@grid402.online</code>.</p>
+                <h3>1. Zero-PII Architecture (GDPR Recital 14 & LGPD Art. 1)</h3>
+                <p>Grid402 processes exclusively <strong>Legal Entity (corporate)</strong> records and network telemetry. Corporate lookup endpoints strictly strip shareholder/director personal data (no QSA, no individual tax IDs, no personal contacts).</p>
+                <h3>2. Data Minimization, IP HMAC, and Zero-Retention</h3>
+                <p>IP addresses in telemetry are irreversibly masked (<code>xxx.xxx</code>), Sandbox rate limiting uses <code>HMAC-SHA256</code> pseudonymization (GDPR Art. 25), and <code>/api/v1/notarize</code> computes <code>SHA-256</code> digests in volatile RAM without storing or echoing raw content.</p>
+                <h3>3. Statutory Logs and DPO Contact</h3>
+                <p>Zero advertising cookies or personal data sales (CCPA/CPRA). Data Protection Officer (DPO) contact: <code>contato@grid402.online</code>.</p>
             `
         };
 
@@ -4560,6 +4623,6 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             }
         }
     </script>
-    <script src="/assets/js/i18n.js"></script>
+    <script src="/assets/js/i18n.js?v=3.0.4"></script>
 </body>
 </html>

@@ -60,6 +60,8 @@ function grid402_service_asn(?string $ip = null): array {
         'city' => $data['city'] ?? 'São Paulo',
         'timezone' => $data['timezone'] ?? 'America/Sao_Paulo',
         'reverse_dns' => ($ptr !== $ip) ? $ptr : null,
+        'legal_license' => 'Open Internet Routing Telemetry (IETF RFC 4271 BGP / Public RIR WHOIS Allocation)',
+        'data_protection_compliance' => 'Network-level ASN/CIDR routing metadata only — Zero individual subscriber identification',
         'timestamp' => gmdate('Y-m-d\TH:i:s\Z'),
     ];
 }

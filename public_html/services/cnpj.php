@@ -189,7 +189,9 @@ function grid402_service_cnpj(string $cnpj, bool $bypassCache = false): array {
         'cached' => false,
         'cache_age_seconds' => 0,
         'timestamp' => gmdate('Y-m-d\TH:i:s\Z'),
-        'source' => 'Dados Públicos Oficiais da Receita Federal',
+        'source' => 'Dados Públicos Oficiais da Receita Federal (Secretaria da Receita Federal do Brasil)',
+        'legal_license' => 'Domínio Público / Dados Abertos Governamentais (Lei nº 12.527/2011 - LAI e Decreto nº 8.777/2016)',
+        'data_protection_compliance' => 'LGPD Art. 1º e GDPR Recital 14 (Exclusivo para Pessoa Jurídica — Zero PII / Sem QSA ou CPF)',
     ];
 
     // Gravação atômica em cache local
@@ -253,15 +255,14 @@ function grid402_get_cnpj_preview(string $cnpj): array {
             'situacao_cadastral' => $full['situacao_cadastral'] ?? 'ATIVA',
         ],
         'locked_fields' => [
-            'qsa_socios_administradores',
             'capital_social',
             'natureza_juridica',
             'data_abertura',
-            'cnae_fiscal_principal',
+            'cnae_fiscal',
+            'cnae_fiscal_descricao',
             'cnaes_secundarios',
-            'telefones',
-            'email',
-            'endereco_completo',
+            'endereco',
+            '_oracle_proof',
         ],
     ];
 }

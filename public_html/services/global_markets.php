@@ -297,6 +297,7 @@ function grid402_service_global_markets(string $market = 'US', string $dateStr =
             'rates' => $fxData['rates'],
         ],
         'market_holidays_calendar' => $holidays,
+        'legal_license' => 'Public Domain Statutory Holiday Rules & European Central Bank (ECB) Open Data Policy',
         'timestamp' => $isoNow,
         'response_timestamp' => $isoNow,
         'source' => 'ECB Reference Rates + Deterministic Exchange Calendar (Public Domain)',

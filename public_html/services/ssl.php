@@ -117,6 +117,7 @@ function grid402_service_ssl(string $host): array {
             'sans' => $sans,
             'serial_number' => $certInfo['serialNumberHex'] ?? ($certInfo['serialNumber'] ?? ''),
         ],
+        'legal_license' => 'Open Internet Protocol Telemetry (IETF RFC 5280 / RFC 8446 — Public TLS X.509 Handshake)',
     ];
 }
 

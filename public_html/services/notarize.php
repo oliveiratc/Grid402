@@ -43,13 +43,15 @@ function grid402_service_notarize(string $rawData = '', string $providedHash = '
     $isoUtc = gmdate('Y-m-d\TH:i:s\Z', $nowEpoch);
     $certId = 'G402-CERT-' . strtoupper(substr(hash('sha256', $inputSha256 . ':' . $nowEpoch . ':' . GRID402_WALLET_ADDRESS), 0, 16));
 
+    // Zero-Retention e Privacidade por Padrao (LGPD/GDPR): nunca exibir ou armazenar texto bruto no certificado, apenas SHA-256 e tamanho em bytes
     return [
         'service' => 'notarize',
         'status' => 'NOTARIZED',
         'certificate_id' => $certId,
         'input_mode' => $inputMode,
         'input_sha256' => $inputSha256,
-        'input_preview' => ($rawData !== '') ? substr($rawData, 0, 80) : null,
+        'input_byte_length' => ($rawData !== '') ? strlen($rawData) : 32,
+        'zero_retention_policy' => 'STRICT_STATELESS_HASH_ONLY (Raw content is hashed in RAM and immediately discarded — Zero PII stored)',
         'notarized_at_utc' => $isoUtc,
         'unix_epoch' => $nowEpoch,
         'oracle_authority' => [
@@ -59,6 +61,7 @@ function grid402_service_notarize(string $rawData = '', string $providedHash = '
             'signature_scheme' => 'ECDSA secp256k1 + SHA-256 (RFC 8785 Canonical JSON)',
             'verification_endpoint' => GRID402_CANONICAL_DOMAIN . '/api/v1/verify',
         ],
+        'legal_license' => 'Public Cryptographic Attestation (MIT / RFC 8785 / Zero-Retention)',
         'timestamp' => $isoUtc,
     ];
 }

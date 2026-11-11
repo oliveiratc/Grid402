@@ -130,6 +130,8 @@ function grid402_service_sanctions(string $cnpj, bool $bypassCache = false): arr
         'sanctions' => $sanctions,
         'checked_at' => gmdate('Y-m-d\TH:i:s\Z'),
         'fonte_oficial' => 'Controladoria-Geral da União (CGU)',
+        'legal_license' => 'Dados Abertos Governamentais (Lei nº 12.527/2011 - LAI e Lei nº 12.846/2013)',
+        'data_protection_compliance' => 'LGPD Art. 1º e GDPR Recital 14 (Exclusivo para Pessoa Jurídica — Zero PII)',
         'cached' => false,
     ];
 
@@ -219,6 +221,8 @@ function grid402_service_simples(string $cnpj, bool $bypassCache = false): array
         'situacao_atual' => $situacaoAtual,
         'checked_at' => gmdate('Y-m-d\TH:i:s\Z'),
         'fonte_oficial' => 'Receita Federal do Brasil (Simples Nacional)',
+        'legal_license' => 'Dados Abertos Governamentais (Lei Complementar nº 123/2006 e Lei nº 12.527/2011 - LAI)',
+        'data_protection_compliance' => 'LGPD Art. 1º e GDPR Recital 14 (Exclusivo para Pessoa Jurídica — Zero PII)',
         'cached' => false,
     ];
 
@@ -337,6 +341,8 @@ function grid402_service_compliance(string $cnpj, bool $bypassCache = false): ar
             'uf' => $cnpjData['endereco']['uf'] ?? ($cnpjData['uf'] ?? 'SP')
         ],
         'checked_at' => gmdate('Y-m-d\TH:i:s\Z'),
+        'legal_license' => 'Dados Abertos Governamentais (Lei nº 12.527/2011 - LAI e Decreto nº 8.777/2016)',
+        'data_protection_compliance' => 'LGPD Art. 1º e GDPR Recital 14 (Exclusivo para Pessoa Jurídica — Zero PII / Sem QSA ou CPF)',
         'cached' => $isCached,
     ];
 }

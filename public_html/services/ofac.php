@@ -210,7 +210,9 @@ function grid402_service_ofac(string $address = '', string $entityName = ''): ar
             'UN Security Council Consolidated Sanctions List',
         ],
         'onchain_profile' => $onchainProfile,
-        'source' => 'US Treasury OFAC Public Domain + Base Mainnet RPC',
+        'source' => 'US Treasury OFAC Public Domain + UN Security Council + Base Mainnet RPC',
+        'legal_license' => 'Public Domain (17 U.S.C. § 105 - US Government Works) & UN Open Data',
+        'data_protection_compliance' => 'Zero PII Storage (Stateless screening of public sanctions lists & public blockchain state)',
     ];
 }
 

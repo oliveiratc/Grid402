@@ -89,6 +89,7 @@ function grid402_service_indicators(bool $forceRefresh = false): array {
             'ipca_reference_month' => $refMonth,
         ],
         'source' => 'Banco Central do Brasil e IBGE',
+        'legal_license' => 'Dados Abertos Governamentais (Lei nº 12.527/2011 - LAI e Decreto nº 8.777/2016)',
         'cached' => false,
     ];
 

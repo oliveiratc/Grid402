@@ -98,6 +98,7 @@ function grid402_service_crypto(bool $forceRefresh = false): array {
         'timestamp' => $isoNow,
         'ttl_seconds' => $cacheTtl,
         'tickers' => $tickers,
+        'legal_license' => 'Public Market Ticker Facts (17 U.S.C. § 102(b) / Lei nº 9.610/1998 Art. 8º, I — Non-Copyrightable Market Facts)',
     ];
 
     @file_put_contents($cacheFile, json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE), LOCK_EX);

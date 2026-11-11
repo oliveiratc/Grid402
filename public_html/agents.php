@@ -119,6 +119,7 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
             display: flex;
             align-items: center;
             gap: 16px;
+            flex-wrap: wrap;
         }
 
         nav a {
@@ -130,6 +131,33 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
 
         nav a:hover, nav a.active {
             color: var(--emerald);
+        }
+
+        .lang-switch {
+            display: inline-flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-dim);
+            border-radius: 999px;
+            padding: 2px;
+        }
+
+        .lang-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .lang-btn.active {
+            background: var(--cyan);
+            color: #030712;
         }
 
         .hero {
@@ -420,47 +448,51 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
                 <img src="/assets/logo-icon-transparent.png" alt="Grid402" width="38" height="38" style="display: block;">
                 <div>
                     <div style="font-family: var(--font-heading); font-weight: 700; font-size: 1.35rem; line-height: 1.2; letter-spacing: -0.5px;">Grid<span style="color: var(--cyan);">402</span></div>
-                    <div class="brand-text">Central de Agentes IA & MCP</div>
+                    <div class="brand-text" data-i18n="agents.brand.sub">Central Global de Agentes IA e MCP</div>
                 </div>
             </a>
             <nav>
-                <a href="/">Inicio</a>
-                <a href="/agents" class="active">Agentes de IA</a>
+                <a href="/" data-i18n="agents.nav.home">Início</a>
+                <a href="/agents" class="active" data-i18n="nav.agents">Agentes IA</a>
                 <a href="/llms.txt">llms.txt</a>
                 <a href="/openapi.json">OpenAPI</a>
                 <a href="/admin">Admin</a>
+                <div class="lang-switch" role="group" aria-label="Language selector">
+                    <button type="button" id="lang-btn-pt" class="lang-btn active" onclick="setLanguage('pt')">PT</button>
+                    <button type="button" id="lang-btn-en" class="lang-btn" onclick="setLanguage('en')">EN</button>
+                </div>
             </nav>
         </header>
 
         <section class="hero">
-            <div class="badge">x402 Autonomic Agent Hub</div>
-            <h1>Infraestrutura de Dados do Brasil para Agentes de IA</h1>
-            <p class="lead">
-                O Grid402 permite que agentes autonomos de IA (Claude, Cursor, LangChain, CrewAI e Coinbase AgentKit) consultem dados publicos brasileiros sob demanda via <strong>HTTP 402</strong>, liquidando micropagamentos em USDC na rede Base com <strong>prova criptografica de integridade</strong>.
+            <div class="badge" data-i18n="agents.hero.badge">x402 Global Autonomous Agent Hub • 19 Services</div>
+            <h1 data-i18n="agents.hero.title">Infraestrutura Global de Dados e Utilitários M2M para Agentes de IA</h1>
+            <p class="lead" data-i18n-html="agents.hero.lead">
+                O Grid402 permite que agentes autônomos de IA (Claude, Cursor, LangChain, CrewAI e Coinbase AgentKit) consultem 19 endpoints globais e brasileiros de domínio público via <strong>HTTP 402</strong> ou <strong>Session Pass pré-pago (&lt;15ms)</strong>, liquidando micropagamentos em USDC na rede Base com <strong>prova criptográfica ECDSA</strong>.
             </p>
         </section>
 
         <div class="features-grid">
             <div class="card">
-                <h2>Zero Cadastro Humano</h2>
-                <p>Nao requer chaves estaticas de API, cartao de credito ou login. Agentes de IA contratam servicos diretamente via carteira Web3 on-chain.</p>
+                <h2 data-i18n="agents.f1.title">Zero Cadastro Humano</h2>
+                <p data-i18n="agents.f1.desc">Não requer chaves estáticas de API, cartão de crédito ou login. Agentes de IA contratam serviços diretamente via carteira Web3 on-chain ou Passkey.</p>
             </div>
             <div class="card">
-                <h2>Oraculo Criptografico</h2>
-                <p>Cada resposta inclui assinatura digital ECDSA secp256k1 deterministica (chave _oracle_proof), verificavel sem estado em menos de 1 ms.</p>
+                <h2 data-i18n="agents.f2.title">Oráculo Criptográfico</h2>
+                <p data-i18n="agents.f2.desc">Cada resposta inclui assinatura digital ECDSA secp256k1 determinística (chave _oracle_proof), verificável sem estado em menos de 1 ms.</p>
             </div>
             <div class="card">
-                <h2>Latencia Ultrabaixa</h2>
-                <p>Arquitetura Zero-DB em PHP nativo e cache atomico com respostas em menos de 20 ms, otimizadas para processamento em larga escala.</p>
+                <h2 data-i18n="agents.f3.title">x402 Session Pass (&lt;15ms)</h2>
+                <p data-i18n="agents.f3.desc">Compre 100 a 1.000 créditos em uma única transação USDC na Base e execute chamadas M2M de alta frequência em menos de 15ms sem aguardar blocos.</p>
             </div>
         </div>
 
         <!-- 1. Model Context Protocol (MCP) -->
-        <h2 class="section-title">1. Integracao com Model Context Protocol (MCP)</h2>
-        <p class="section-sub">Adicione todas as ferramentas de dados brasileiros ao Claude Desktop ou Cursor com 1 clique.</p>
+        <h2 class="section-title" data-i18n="agents.s1.title">1. Integração com Model Context Protocol (MCP)</h2>
+        <p class="section-sub" data-i18n="agents.s1.sub">Adicione todas as 19 ferramentas globais e brasileiras ao Claude Desktop ou Cursor com 1 clique.</p>
 
         <div class="code-box">
-            <button class="copy-btn" onclick="copySnippet('code-mcp', this)">Copiar JSON</button>
+            <button class="copy-btn" onclick="copySnippet('code-mcp', this)" data-i18n="playground.btn.copy">Copiar JSON</button>
             <pre id="code-mcp">{
   "mcpServers": {
     "grid402": {
@@ -475,184 +507,217 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
         </div>
 
         <!-- 2. Python Agent Snippet -->
-        <h2 class="section-title">2. Codigo Python para Agentes Autonomos</h2>
-        <p class="section-sub">Consumo direto tratando o codigo de status 402 com requests ou bibliotecas padrao.</p>
+        <h2 class="section-title" data-i18n="agents.s2.title">2. Código Python para Agentes Autônomos</h2>
+        <p class="section-sub" data-i18n="agents.s2.sub">Consumo direto tratando o desafio HTTP 402 ou usando Session Pass (`pass_g402_...`).</p>
 
         <div class="code-box">
-            <button class="copy-btn" onclick="copySnippet('code-py', this)">Copiar Python</button>
+            <button class="copy-btn" onclick="copySnippet('code-py', this)">Copy Python</button>
             <pre id="code-py">import requests
 
 BASE_URL = "https://grid402.online"
 
-def consultar_dados(endpoint, payment_tx=None):
-    headers = {}
-    if payment_tx:
-        headers["X-Payment"] = payment_tx
+def query_oracle(endpoint, payment_proof=None):
+    headers = {"Accept": "application/json"}
+    if payment_proof:
+        # Accepts Base TxHash (0x...), Session Pass (pass_g402_...), or "demo"
+        headers["X-Payment"] = payment_proof
         
     res = requests.get(f"{BASE_URL}{endpoint}", headers=headers)
     
-    # 402: Servico tarifado via x402
     if res.status_code == 402:
-        payment = res.json().get("payment_details", {})
-        print(f"[402] Efetue transferencia de {payment.get('amount')} USDC na Base")
-        print(f"      Destinatario: {payment.get('recipient')}")
-        return res.json()
+        body = res.json()
+        print(f"[402 Challenge] Price: {body.get('price_usdc')} USDC on Base")
+        print(f"[Free Preview]  {body.get('preview')}")
+        return body
         
     data = res.json()
-    print("[200] Sucesso! Prova de oraculo presente:", "_oracle_proof" in data)
+    print("[200 OK] Oracle Proof Verified:", "_oracle_proof" in data)
     return data
 
-# Exemplo de chamada:
-consultar_dados("/api/v1/cnpj?cnpj=00000000000191")</pre>
+# Example: Global Corporate Identity (GLEIF LEI) or OFAC AML
+query_oracle("/api/v1/lei?lei=5493006MHB84DD0ZWV18", payment_proof="demo")</pre>
         </div>
 
         <!-- 3. Terminal cURL -->
-        <h2 class="section-title">3. Teste Rapido no Terminal (cURL)</h2>
-        <p class="section-sub">Inspecione os cabecalhos de pagamento x402 diretamente do seu terminal.</p>
+        <h2 class="section-title" data-i18n="agents.s3.title">3. Teste Rápido no Terminal (cURL)</h2>
+        <p class="section-sub" data-i18n="agents.s3.sub">Inspecione desafios x402, emita um Session Pass ou valide provas criptográficas diretamente no terminal.</p>
 
         <div class="code-box">
-            <button class="copy-btn" onclick="copySnippet('code-curl', this)">Copiar cURL</button>
-            <pre id="code-curl"># 1. Obter desafio de pagamento HTTP 402
-curl -i "https://grid402.online/api/v1/indicators"
+            <button class="copy-btn" onclick="copySnippet('code-curl', this)">Copy cURL</button>
+            <pre id="code-curl"># 1. Inspect HTTP 402 Challenge + Free Teaser Preview
+curl -i "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18"
 
-# 2. Requisicao com comprovante on-chain na Base
-curl -H "X-Payment: 0xSEU_TRANSACTION_HASH_ON_BASE" \
-  "https://grid402.online/api/v1/indicators"
+# 2. Issue a Prepaid Session Pass (100 credits = 0.0500 USDC or "demo" in Sandbox)
+curl -H "X-Payment: demo" "https://grid402.online/api/v1/pass"
 
-# 3. Validar prova criptografica de oraculo (sem custo)
+# 3. Execute <15ms calls using your Session Pass or Base TxHash
+curl -H "X-Payment: pass_g402_YOUR_TOKEN" \
+  "https://grid402.online/api/v1/global-markets?market=US&base=USD"
+
+# 4. Stateless ECDSA Oracle Proof verification (Free, <1ms)
 curl -X POST "https://grid402.online/api/v1/verify" \
   -H "Content-Type: application/json" \
   -d '{"full_response_with_proof": {...}}'</pre>
         </div>
 
         <!-- Tabela de Endpoints -->
-        <h2 class="section-title">Catalogo de Endpoints e Tarifas</h2>
-        <p class="section-sub">Valores por chamada em USDC na rede Base Mainnet.</p>
+        <h2 class="section-title" data-i18n="agents.table.title">Catálogo dos 19 Endpoints Globais e Tarifas</h2>
+        <p class="section-sub" data-i18n="agents.table.sub">Valores por chamada em USDC na rede Base Mainnet ou em créditos de Session Pass.</p>
 
         <div class="table-wrap">
         <table>
             <thead>
                 <tr>
                     <th>Endpoint</th>
-                    <th>Servico / Fonte</th>
-                    <th>Tarifa (USDC)</th>
-                    <th>Prova Oraculo</th>
+                    <th data-i18n="agents.th.service">Serviço / Fonte Pública</th>
+                    <th data-i18n="agents.th.price">Tarifa (USDC / Pass)</th>
+                    <th data-i18n="agents.th.proof">Prova ECDSA</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td><span class="endpoint-name">/api/v1/summary</span></td>
-                    <td>Status e saude dos microservicos</td>
-                    <td><span class="tag-free">Gratuito</span></td>
-                    <td>Nao</td>
+                    <td><span class="endpoint-name">/api/v1/pass</span></td>
+                    <td data-i18n="svc.pass.desc">x402 Prepaid Session Pass (100 a 1.000 créditos para chamadas em &lt;15ms)</td>
+                    <td><span class="tag-price">0.0500 USDC (100 cr)</span></td>
+                    <td>Sim / Yes</td>
+                </tr>
+                <tr>
+                    <td><span class="endpoint-name">/api/v1/lei</span></td>
+                    <td data-i18n="svc.lei.desc">Identidade Corporativa Global em 200+ países via GLEIF LEI (ISO 17442, CC0)</td>
+                    <td><span class="tag-price">0.0020 USDC (4 cr)</span></td>
+                    <td>Sim / Yes</td>
+                </tr>
+                <tr>
+                    <td><span class="endpoint-name">/api/v1/ofac</span></td>
+                    <td data-i18n="svc.ofac.desc">Sanções Internacionais (OFAC SDN / ONU) + Inspetor AML Web3 na Base</td>
+                    <td><span class="tag-price">0.0020 USDC (4 cr)</span></td>
+                    <td>Sim / Yes</td>
+                </tr>
+                <tr>
+                    <td><span class="endpoint-name">/api/v1/notarize</span></td>
+                    <td data-i18n="svc.notarize.desc">Carimbo do Tempo UTC e Notarização Criptográfica M2M (SHA-256 + ECDSA)</td>
+                    <td><span class="tag-price">0.0005 USDC (1 cr)</span></td>
+                    <td>Sim / Yes</td>
+                </tr>
+                <tr>
+                    <td><span class="endpoint-name">/api/v1/global-markets</span></td>
+                    <td data-i18n="svc.global-markets.desc">Calendário de Bolsas Mundiais (US, EU, UK, BR) + 30+ Moedas do BCE</td>
+                    <td><span class="tag-price">0.0005 USDC (1 cr)</span></td>
+                    <td>Sim / Yes</td>
                 </tr>
                 <tr>
                     <td><span class="endpoint-name">/api/v1/forex</span></td>
-                    <td>Cambio PTAX Oficial (USD, EUR, GBP para BRL)</td>
-                    <td><span class="tag-price">0.0005 USDC</span></td>
-                    <td>Sim</td>
+                    <td data-i18n="svc.forex.desc">Câmbio PTAX Oficial (USD, EUR, GBP para BRL) com timestamps explícitos</td>
+                    <td><span class="tag-price">0.0005 USDC (1 cr)</span></td>
+                    <td>Sim / Yes</td>
                 </tr>
                 <tr>
                     <td><span class="endpoint-name">/api/v1/crypto</span></td>
-                    <td>Precos spot (BTC, ETH, SOL, USDC, BASE)</td>
-                    <td><span class="tag-price">0.0005 USDC</span></td>
-                    <td>Sim</td>
+                    <td data-i18n="svc.crypto.desc">Preços spot (BTC, ETH, SOL, USDC, BASE) em USD e BRL</td>
+                    <td><span class="tag-price">0.0005 USDC (1 cr)</span></td>
+                    <td>Sim / Yes</td>
                 </tr>
                 <tr>
                     <td><span class="endpoint-name">/api/v1/dns</span></td>
-                    <td>Resolucao autoritativa de registros DNS</td>
-                    <td><span class="tag-price">0.0005 USDC</span></td>
-                    <td>Sim</td>
+                    <td data-i18n="svc.dns.desc">Resolução autoritativa de registros DNS (A, AAAA, MX, TXT, NS, CNAME)</td>
+                    <td><span class="tag-price">0.0005 USDC (1 cr)</span></td>
+                    <td>Sim / Yes</td>
                 </tr>
                 <tr>
                     <td><span class="endpoint-name">/api/v1/ssl</span></td>
-                    <td>Auditoria de certificados TLS e SSL</td>
-                    <td><span class="tag-price">0.0005 USDC</span></td>
-                    <td>Sim</td>
+                    <td data-i18n="svc.ssl.desc">Auditoria de certificados TLS e cadeia X.509 na porta 443</td>
+                    <td><span class="tag-price">0.0005 USDC (1 cr)</span></td>
+                    <td>Sim / Yes</td>
                 </tr>
                 <tr>
                     <td><span class="endpoint-name">/api/v1/asn</span></td>
-                    <td>Roteamento BGP e informacoes ASN de IPs</td>
-                    <td><span class="tag-price">0.0005 USDC</span></td>
-                    <td>Sim</td>
+                    <td data-i18n="svc.asn.desc">Roteamento BGP, número ASN, bloco CIDR e país de IPs</td>
+                    <td><span class="tag-price">0.0005 USDC (1 cr)</span></td>
+                    <td>Sim / Yes</td>
                 </tr>
                 <tr>
                     <td><span class="endpoint-name">/api/v1/cep</span></td>
-                    <td>Endereco postal brasileiro e codigo IBGE</td>
-                    <td><span class="tag-price">0.0005 USDC</span></td>
-                    <td>Sim</td>
+                    <td data-i18n="svc.cep.desc">Endereço postal brasileiro e código IBGE oficial</td>
+                    <td><span class="tag-price">0.0005 USDC (1 cr)</span></td>
+                    <td>Sim / Yes</td>
                 </tr>
                 <tr>
                     <td><span class="endpoint-name">/api/v1/cnpj</span></td>
-                    <td>Dados oficiais de PJ na Receita Federal</td>
-                    <td><span class="tag-price">0.0020 USDC</span></td>
-                    <td>Sim</td>
+                    <td data-i18n="svc.cnpj.desc">Dados oficiais de Pessoa Jurídica na Receita Federal</td>
+                    <td><span class="tag-price">0.0020 USDC (4 cr)</span></td>
+                    <td>Sim / Yes</td>
                 </tr>
                 <tr>
                     <td><span class="endpoint-name">/api/v1/indicators</span></td>
-                    <td>Taxas Selic, CDI e indices de inflacao IPCA</td>
-                    <td><span class="tag-price">0.0005 USDC</span></td>
-                    <td>Sim</td>
+                    <td data-i18n="svc.indicators.desc">Taxas Selic, CDI e índices de inflação IPCA (BCB e IBGE)</td>
+                    <td><span class="tag-price">0.0005 USDC (1 cr)</span></td>
+                    <td>Sim / Yes</td>
                 </tr>
                 <tr>
                     <td><span class="endpoint-name">/api/v1/holidays</span></td>
-                    <td>Calendario de feriados bancarios ANBIMA</td>
-                    <td><span class="tag-price">0.0005 USDC</span></td>
-                    <td>Sim</td>
+                    <td data-i18n="svc.holidays.desc">Calendário de feriados bancários ANBIMA e Febraban</td>
+                    <td><span class="tag-price">0.0005 USDC (1 cr)</span></td>
+                    <td>Sim / Yes</td>
                 </tr>
                 <tr>
                     <td><span class="endpoint-name">/api/v1/workdays</span></td>
-                    <td>Calculadora de dias uteis financeiros</td>
-                    <td><span class="tag-price">0.0005 USDC</span></td>
-                    <td>Sim</td>
+                    <td data-i18n="svc.workdays.desc">Calculadora de dias úteis bancários ANBIMA e projeção D+N</td>
+                    <td><span class="tag-price">0.0005 USDC (1 cr)</span></td>
+                    <td>Sim / Yes</td>
                 </tr>
                 <tr>
                     <td><span class="endpoint-name">/api/v1/sanctions</span></td>
-                    <td>Sancoes administrativas e inidoneidade (CEIS/CNEP da CGU)</td>
-                    <td><span class="tag-price">0.0010 USDC</span></td>
-                    <td>Sim</td>
+                    <td data-i18n="svc.sanctions.desc">Sanções administrativas e inidoneidade (CEIS/CNEP da CGU)</td>
+                    <td><span class="tag-price">0.0010 USDC (2 cr)</span></td>
+                    <td>Sim / Yes</td>
                 </tr>
                 <tr>
                     <td><span class="endpoint-name">/api/v1/simples</span></td>
-                    <td>Enquadramento tributario no Simples Nacional e MEI</td>
-                    <td><span class="tag-price">0.0010 USDC</span></td>
-                    <td>Sim</td>
+                    <td data-i18n="svc.simples.desc">Enquadramento tributário no Simples Nacional e MEI</td>
+                    <td><span class="tag-price">0.0010 USDC (2 cr)</span></td>
+                    <td>Sim / Yes</td>
                 </tr>
                 <tr>
                     <td><span class="endpoint-name">/api/v1/compliance</span></td>
-                    <td>Compliance Score 360 consolidado de risco cadastral</td>
-                    <td><span class="tag-price">0.0030 USDC</span></td>
-                    <td>Sim</td>
+                    <td data-i18n="svc.compliance.desc">Compliance Score 360 consolidado de risco cadastral (0 a 100)</td>
+                    <td><span class="tag-price">0.0030 USDC (6 cr)</span></td>
+                    <td>Sim / Yes</td>
                 </tr>
                 <tr>
                     <td><span class="endpoint-name">/api/v1/verify</span></td>
-                    <td>Validacao matematico-criptografica de oraculo</td>
-                    <td><span class="tag-free">Gratuito</span></td>
-                    <td>Nativa</td>
+                    <td data-i18n="svc.verify.desc">Validação matemático-criptográfica de oráculo (&lt;1ms)</td>
+                    <td><span class="tag-free">Gratuito / Free</span></td>
+                    <td>Nativa / Native</td>
+                </tr>
+                <tr>
+                    <td><span class="endpoint-name">/status</span></td>
+                    <td data-i18n="console.act.summary">Status e saúde operacional dos 19 micro-serviços</td>
+                    <td><span class="tag-free">Gratuito / Free</span></td>
+                    <td>-</td>
                 </tr>
             </tbody>
         </table>
         </div>
 
         <!-- Manifestos e Arquivos de Descoberta -->
-        <h2 class="section-title">Manifestos para Descoberta Automatica</h2>
-        <p class="section-sub">Padroes abertos para que modelos de linguagem e agentes mapeiem o Grid402.</p>
+        <h2 class="section-title" data-i18n="agents.manifests.title">Manifestos para Descoberta Automática</h2>
+        <p class="section-sub" data-i18n="agents.manifests.sub">Padrões abertos para que modelos de linguagem e agentes mapeiem o Grid402.</p>
 
         <div class="manifest-links">
-            <a href="/llms.txt" class="manifest-btn">llms.txt (Contexto Sintetico)</a>
-            <a href="/llms-full.txt" class="manifest-btn">llms-full.txt (Contexto Detalhado)</a>
-            <a href="/.well-known/mcp.json" class="manifest-btn">.well-known/mcp.json (Tools MCP)</a>
-            <a href="/.well-known/ai-plugin.json" class="manifest-btn">ai-plugin.json (Plugin IA)</a>
+            <a href="/llms.txt" class="manifest-btn">llms.txt (LLM Summary)</a>
+            <a href="/llms-full.txt" class="manifest-btn">llms-full.txt (Full Context)</a>
+            <a href="/.well-known/mcp.json" class="manifest-btn">.well-known/mcp.json (MCP Tools)</a>
+            <a href="/.well-known/ai-plugin.json" class="manifest-btn">ai-plugin.json (AI Plugin)</a>
             <a href="/openapi.json" class="manifest-btn">openapi.json (OpenAPI 3.1)</a>
         </div>
 
         <footer>
-            <div>Grid402 // Infraestrutura de Dados Abertos e Oraculo x402</div>
+            <div data-i18n="footer.hub">Grid402 // Open Data e Utility Hub • Base Mainnet</div>
             <div style="display:flex; gap:16px;">
-                <a href="/terms">Termos</a>
-                <a href="/privacy">Privacidade</a>
-                <a href="/about">Sobre</a>
-                <a href="/contact">Contato</a>
+                <a href="/terms" data-i18n="nav.terms">Termos</a>
+                <a href="/privacy" data-i18n="nav.privacy">Privacidade</a>
+                <a href="/about" data-i18n="nav.about">Sobre</a>
+                <a href="/contact" data-i18n="nav.contact">Contato</a>
                 <a href="https://github.com/oliveiratc/Grid402" target="_blank" rel="noopener noreferrer">GitHub</a>
             </div>
         </footer>
@@ -665,17 +730,18 @@ curl -X POST "https://grid402.online/api/v1/verify" \
             const text = el.innerText || el.textContent;
             navigator.clipboard.writeText(text).then(function() {
                 const originalText = btn.innerText;
-                btn.innerText = "Copiado!";
+                btn.innerText = (typeof currentLanguage !== 'undefined' && currentLanguage === 'en') ? "Copied!" : "Copiado!";
                 btn.classList.add("copied");
                 setTimeout(function() {
                     btn.innerText = originalText;
                     btn.classList.remove("copied");
                 }, 2000);
             }).catch(function(err) {
-                console.error("Erro ao copiar snippet:", err);
+                console.error("Error copying snippet:", err);
             });
         }
     </script>
+    <script src="/assets/js/i18n.js?v=3.0.4"></script>
 </body>
 </html>
 

@@ -124,13 +124,17 @@ function grid402_check_sandbox_rate_limit(string $clientIp): array {
 
     // Limpeza de IPs expirados (mais de 1 hora)
     $cleanRates = [];
-    foreach ($rates as $ip => $data) {
+    foreach ($rates as $ipKey => $data) {
         if (isset($data['first_request']) && ($now - $data['first_request']) < $windowSeconds) {
-            $cleanRates[$ip] = $data;
+            $cleanRates[$ipKey] = $data;
         }
     }
 
-    $ipData = $cleanRates[$clientIp] ?? [
+    // Pseudonimizacao criptografica do IP via HMAC-SHA256 (LGPD Art. 6º, III e GDPR Art. 5(1)(c))
+    $ipSecret = defined('GRID402_CRON_SECRET') ? GRID402_CRON_SECRET : 'grid402_ip_salt';
+    $ipHashKey = 'ip_' . substr(hash_hmac('sha256', trim($clientIp), $ipSecret), 0, 24);
+
+    $ipData = $cleanRates[$ipHashKey] ?? [
         'count' => 0,
         'first_request' => $now,
         'last_request' => $now,
@@ -149,7 +153,7 @@ function grid402_check_sandbox_rate_limit(string $clientIp): array {
 
     $ipData['count']++;
     $ipData['last_request'] = $now;
-    $cleanRates[$clientIp] = $ipData;
+    $cleanRates[$ipHashKey] = $ipData;
 
     if (function_exists('grid402_atomic_write')) {
         grid402_atomic_write($file, $cleanRates);

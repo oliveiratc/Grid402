@@ -19,9 +19,9 @@ const GRID402_I18N = {
         'badge.live': 'Base Mainnet (8453) • {count}/{total} Serviços Operantes',
 
         // Hero
-        'hero.tag': 'Hub de Micro-Serviços para Robôs e Agentes de IA',
-        'hero.title': 'Grid402: Hub de Utilitários de Rede e Dados Públicos para Agentes de IA',
-        'hero.desc': 'Acesse cotações de câmbio, cripto, suíte de compliance e antifraude (score 360, sanções da CGU e Simples Nacional), indicadores econômicos oficiais (Selic, CDI e IPCA), feriados bancários ANBIMA, DNS, certificados SSL, BGP/ASN, CEP e CNPJ da Receita Federal em milissegundos sem cadastro ou chaves de API. Micropagamentos por chamada em USDC na Base.',
+        'hero.tag': 'Hub Global de Micro-Serviços e Oráculo M2M para Agentes de IA',
+        'hero.title': 'Grid402: Infraestrutura Global de Dados Públicos e Utilitários M2M para Agentes de IA',
+        'hero.desc': 'Acesse 19 endpoints globais e brasileiros: identidade corporativa mundial (GLEIF LEI em 200+ países), sanções OFAC SDN + AML Web3 na Base, notarização criptográfica ECDSA, bolsas mundiais e 30+ moedas do BCE, câmbio, cripto, compliance 360, Selic/CDI/IPCA, feriados ANBIMA, DNS, SSL, BGP/ASN, CEP e CNPJ em milissegundos sem cadastro ou API keys. Liquidação via x402 ou Session Pass pré-pago (<15ms).',
         'hero.btn.agents': '🤖 Central de Agentes IA',
         'hero.btn.playground': '⚡ Testar no Playground',
         'hero.btn.console': 'Console e SDKs',
@@ -209,7 +209,46 @@ const GRID402_I18N = {
         'console.agentkit.docs': '<strong style="color: #fff;">📂 Documentação Completa e Código-Fonte:</strong><p style="margin: 0.4rem 0 0 0;">Consulte o diretório <code>integrations/agentkit/</code> no repositório para implementações prontas com LangChain, CrewAI e guias de configuração.</p>',
 
         'console.badges.intro': 'Badges em SVG dinâmicos para embeddar no README do seu repositório no GitHub:',
+        'console.badges.label': 'Exemplo de Badge em Tempo Real:',
         'console.badges.btn.copy': '📋 Copiar Código Markdown',
+        'console.python.code': `from grid402 import Grid402Client
+
+client = Grid402Client()
+
+# 1. Resumo gratuito do hub (19 serviços globais e regionais)
+summary = client.get_summary()
+print("Serviços operantes:", summary["status"])
+
+# 2. Identidade Corporativa Global (GLEIF LEI - 200+ países)
+lei_info = client.get("/api/v1/lei?lei=5493006MHB84DD0ZWV18", payment="demo")
+
+# 3. Modo Sandbox ("X-Payment: demo") ou Session Pass ("X-Payment: pass_g402_...")`,
+        'console.node.code': `import { Grid402Client } from 'grid402';
+
+const client = new Grid402Client();
+
+// 1. Consulta gratuita
+const summary = await client.getSummary();
+console.log('Status do hub:', summary.status);
+
+// 2. Inspetor SSL ou Sanções OFAC / AML Web3
+const ssl = await client.getSsl('base.org');
+console.log('Expira em dias:', ssl.certificate.days_remaining);
+
+// 3. Modo Sandbox ('X-Payment': 'demo') ou Session Pass ('X-Payment': 'pass_g402_...')`,
+        'console.curl.code': `# 1. Resumo gratuito dos 19 micro-serviços
+curl -i https://grid402.online/status
+
+# 2. Desafio HTTP 402 com Amostra Preliminar Gratuita (GLEIF LEI ou CNPJ)
+curl -i "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18"
+
+# 3. Requisição liquidada na Base Mainnet (TxHash) ou Session Pass (<15ms)
+curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
+  -H "X-Payment: pass_g402_SEU_TOKEN_OU_TX_HASH"
+
+# 4. Modo Sandbox gratuito para testes e CI/CD
+curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
+  -H "X-Payment: demo"`,
 
         // Secao Sobre
         'about.title': 'Sobre o Grid402',
@@ -275,7 +314,101 @@ const GRID402_I18N = {
         'msg.unlocking': 'Desbloqueando dados...',
         'msg.wallet_req': 'Solicitando aprovação na carteira para transferência de {price} USDC na Base para o oráculo...\nCarteira destino: 0x{recipient}',
         'msg.tx_fail': 'Falha na transação Web3: {error}',
-        'msg.op_canceled': 'Operação cancelada ou falhou'
+        'msg.op_canceled': 'Operação cancelada ou falhou',
+
+        // Pagina /agents
+        'agents.brand.sub': 'Central Global de Agentes IA e MCP',
+        'agents.nav.home': 'Início',
+        'agents.hero.badge': 'x402 Global Autonomous Agent Hub • 19 Serviços',
+        'agents.hero.title': 'Infraestrutura Global de Dados e Utilitários M2M para Agentes de IA',
+        'agents.hero.lead': 'O Grid402 permite que agentes autônomos de IA (Claude, Cursor, LangChain, CrewAI e Coinbase AgentKit) consultem 19 endpoints globais e brasileiros de domínio público via <strong>HTTP 402</strong> ou <strong>Session Pass pré-pago (&lt;15ms)</strong>, liquidando micropagamentos em USDC na rede Base com <strong>prova criptográfica ECDSA</strong>.',
+        'agents.f1.title': 'Zero Cadastro Humano',
+        'agents.f1.desc': 'Não requer chaves estáticas de API, cartão de crédito ou login. Agentes de IA contratam serviços diretamente via carteira Web3 on-chain ou Passkey.',
+        'agents.f2.title': 'Oráculo Criptográfico',
+        'agents.f2.desc': 'Cada resposta inclui assinatura digital ECDSA secp256k1 determinística (chave _oracle_proof), verificável sem estado em menos de 1 ms.',
+        'agents.f3.title': 'x402 Session Pass (<15ms)',
+        'agents.f3.desc': 'Compre 100 a 1.000 créditos em uma única transação USDC na Base e execute chamadas M2M de alta frequência em menos de 15ms sem aguardar blocos.',
+        'agents.s1.title': '1. Integração com Model Context Protocol (MCP)',
+        'agents.s1.sub': 'Adicione todas as 19 ferramentas globais e brasileiras ao Claude Desktop ou Cursor com 1 clique.',
+        'agents.s2.title': '2. Código Python para Agentes Autônomos',
+        'agents.s2.sub': 'Consumo direto tratando o desafio HTTP 402 ou usando Session Pass (pass_g402_...).',
+        'agents.s3.title': '3. Teste Rápido no Terminal (cURL)',
+        'agents.s3.sub': 'Inspecione desafios x402, emita um Session Pass ou valide provas criptográficas diretamente no terminal.',
+        'agents.table.title': 'Catálogo dos 19 Endpoints Globais e Tarifas',
+        'agents.table.sub': 'Valores por chamada em USDC na rede Base Mainnet ou em créditos de Session Pass.',
+        'agents.th.service': 'Serviço / Fonte Pública',
+        'agents.th.price': 'Tarifa (USDC / Pass)',
+        'agents.th.proof': 'Prova ECDSA',
+        'agents.manifests.title': 'Manifestos para Descoberta Automática',
+        'agents.manifests.sub': 'Padrões abertos para que modelos de linguagem e agentes mapeiem o Grid402.',
+
+        // Paginas Institucionais (/about, /contact, /terms, /privacy)
+        'inst.footer.copy': 'Copyright (c) 2026 Grid402. Licença MIT.',
+        'inst.about.body': `
+            <p>O <strong>Grid402</strong> é uma infraestrutura global de micro-serviços públicos e oráculo de utilitários de rede desenhada especificamente para sistemas autônomos, robôs e agentes de IA sob o padrão HTTP 402 com liquidação em USDC na rede Base Mainnet.</p>
+            <h2>Propósito e Arquitetura Global</h2>
+            <p>O projeto elimina chaves estáticas de API e burocracia de cadastros para agentes de software no mundo inteiro. Toda requisição técnica a dados oficiais (GLEIF LEI mundial, OFAC SDN, BCE 30+ moedas, notarização criptográfica ECDSA, Receita Federal, CEP, Banco Central, DNS, SSL e BGP) pode ser liquidada diretamente on-chain ou via Session Pass pré-pago em menos de 15ms.</p>
+            <ul>
+                <li><strong>Zero-DB e Stateless:</strong> Sem persistência de bancos de dados relacionais; operação 100% em memória e cache atômico.</li>
+                <li><strong>Protocolo x402 + Session Pass:</strong> Implementação nativa do código HTTP 402 Payment Required para Machine-to-Machine (M2M) e passes de alta frequência.</li>
+                <li><strong>Domínio Público e CC0:</strong> Uso estrito de fontes públicas abertas e licenças CC0 sem dados pessoais sensíveis (Zero PII).</li>
+            </ul>
+            <h2>Informações Institucionais</h2>
+            <div class="card-box">
+                <p><strong>Organização:</strong> Grid402 Network Intelligence</p>
+                <p><strong>Email de Suporte:</strong> <a href="mailto:contato@grid402.online">contato@grid402.online</a></p>
+                <p><strong>Central Telefônica:</strong> <a href="tel:+5511958325848">+55 11 95832-5848</a></p>
+                <p><strong>Carteira Oráculo (Base):</strong> <a href="https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c" target="_blank" rel="noopener noreferrer">0xa31c31069c43ac1c0075a93c325b0dcd7744356c</a></p>
+            </div>
+        `,
+        'inst.contact.body': `
+            <p>Disponibilizamos canais diretos e estruturados para suporte técnico, parcerias para integradores de IA e contato com o Encarregado de Tratamento de Dados Pessoais (DPO):</p>
+            <h2>Canais Oficiais de Atendimento</h2>
+            <div class="card-box">
+                <p><strong>Email de Suporte Geral e Integrações:</strong> <a href="mailto:contato@grid402.online">contato@grid402.online</a></p>
+                <p><strong>Encarregado de Dados (DPO / LGPD / GDPR):</strong> <a href="mailto:contato@grid402.online">contato@grid402.online</a></p>
+                <p><strong>Central Telefônica:</strong> <a href="tel:+5511958325848">+55 11 95832-5848</a></p>
+            </div>
+            <h2>Ecossistema e Código Aberto</h2>
+            <ul>
+                <li><strong>GitHub Oficial:</strong> <a href="https://github.com/oliveiratc/Grid402" target="_blank" rel="noopener noreferrer">github.com/oliveiratc/Grid402</a></li>
+                <li><strong>Pacote Node.js (npm):</strong> <a href="https://www.npmjs.com/package/grid402" target="_blank" rel="noopener noreferrer">npmjs.com/package/grid402</a></li>
+                <li><strong>Pacote Python (PyPI):</strong> <a href="https://pypi.org/project/grid402/" target="_blank" rel="noopener noreferrer">pypi.org/project/grid402</a></li>
+                <li><strong>Servidor MCP (Model Context Protocol):</strong> <a href="https://www.npmjs.com/package/grid402-mcp" target="_blank" rel="noopener noreferrer">npmjs.com/package/grid402-mcp</a></li>
+            </ul>
+        `,
+        'inst.terms.body': `
+            <p>Termos de serviço, licenciamento de dados públicos e conformidade regulatória internacional do hub global de micro-serviços e utilitários M2M Grid402.</p>
+            <h2>1. Fornecimento no Estado em que se Encontra (AS-IS)</h2>
+            <p>O Grid402 é uma infraestrutura técnica de oráculo M2M fornecida estritamente "NO ESTADO EM QUE SE ENCONTRA" (AS-IS), sem garantias de adequação a finalidades comerciais exclusivas, aconselhamento jurídico ou decisões de crédito.</p>
+            <h2>2. Base Legal de Dados Públicos, Domínio Público e Licenças Abertas</h2>
+            <p>Todas as 19 rotas do Grid402 processam exclusivamente informações de domínio público, fatos econômicos e registros governamentais abertos, livres de restrições proprietárias:</p>
+            <ul>
+                <li><strong>Global LEI (/api/v1/lei):</strong> Global Legal Entity Identifier Foundation (GLEIF) sob licença <strong>CC0 1.0 Universal (Public Domain Dedication)</strong>, padrão ISO 17442.</li>
+                <li><strong>Sanções Internacionais (/api/v1/ofac):</strong> US Treasury OFAC SDN (domínio público federal sob <strong>17 U.S.C. § 105</strong>) e listas consolidadas públicas do Conselho de Segurança da ONU.</li>
+                <li><strong>Mercados Globais e Câmbio (/api/v1/global-markets, /api/v1/forex, /api/v1/crypto):</strong> Taxas de referência do Banco Central Europeu (<strong>EU Open Data Directive 2019/1024</strong>), Banco Central do Brasil (Decreto nº 8.777/2016) e fatos econômicos de mercado não passíveis de copyright (<strong>Lei nº 9.610/1998 Art. 8º, I</strong> e <strong>17 U.S.C. § 102(b)</strong>).</li>
+                <li><strong>Dados Corporativos e Feriados Nacionais (/api/v1/cnpj, /api/v1/sanctions, /api/v1/simples, /api/v1/compliance, /api/v1/indicators, /api/v1/holidays, /api/v1/workdays, /api/v1/cep):</strong> Lei de Acesso à Informação (<strong>Lei nº 12.527/2011 - LAI</strong>), Política de Dados Abertos (<strong>Decreto nº 8.777/2016</strong>), Lei Anticorrupção (Lei nº 12.846/2013) e algoritmos matemáticos de calendário civil (Lei nº 9.610/1998 Art. 8º, II e IV).</li>
+                <li><strong>Telemetria de Rede e Notarização (/api/v1/dns, /api/v1/ssl, /api/v1/asn, /api/v1/notarize):</strong> Protocolos abertos da Internet (IETF RFC 1035, RFC 5280, RFC 4271 e RFC 8785).</li>
+            </ul>
+            <h2>3. Micropagamentos x402 e Session Passes</h2>
+            <p>Pagamentos efetuados via protocolo HTTP 402 e emissões de Session Pass liquidados em USDC na Base Mainnet (EVM 8453) remuneram exclusivamente a infraestrutura computacional, normalização e assinatura criptográfica ECDSA secp256k1 do Oráculo, sendo definitivos e irreversíveis on-chain.</p>
+            <h2>4. Propriedade Intelectual e Licença MIT</h2>
+            <p>O software Grid402, SDKs (Python, Node.js, AgentKit) e servidor MCP são disponibilizados sob a <strong>Licença MIT</strong>. Não reivindicamos titularidade exclusiva sobre fatos ou bases públicas governamentais.</p>
+        `,
+        'inst.privacy.body': `
+            <p>Diretrizes de privacidade, proteção de dados e conformidade regulatória nacional e internacional (LGPD, GDPR e CCPA) do hub Grid402.</p>
+            <h2>1. Arquitetura Zero-PII e Exclusão de Dados de Pessoas Físicas (LGPD Art. 1º / GDPR Recital 14)</h2>
+            <p>O Grid402 opera estritamente com dados de <strong>Pessoas Jurídicas</strong>, indicadores macroeconômicos e telemetria de rede. Em conformidade com o <strong>Art. 1º da LGPD (Lei nº 13.709/2018)</strong> e o <strong>Considerando 14 (Recital 14) do GDPR Europeu (Regulamento UE 2016/679)</strong>, registros de pessoas jurídicas não constituem dados pessoais de pessoas naturais. Em consultas de CNPJ, o Grid402 <strong>filtra e descarta na origem</strong> o Quadro de Sócios e Administradores (QSA), nomes de sócios, CPFs, telefones pessoais e e-mails privados.</p>
+            <h2>2. Minimização, Pseudonimização e Zero-Retention (/api/v1/notarize)</h2>
+            <ul>
+                <li><strong>Mascaramento e HMAC de IP:</strong> Endereços IP em métricas operacionais são truncados de forma irreversível (ex: <code>189.40.xxx.xxx</code>) e chaves de controle de taxa de Sandbox utilizam hash criptográfico <code>HMAC-SHA256</code> (pseudonimização conforme Art. 13 da LGPD e Art. 25 do GDPR).</li>
+                <li><strong>Notarização Zero-Retention:</strong> No endpoint <code>/api/v1/notarize</code>, o conteúdo enviado é processado exclusivamente em memória RAM volátil para cálculo do digest <code>SHA-256</code> e descartado imediatamente, sem gravação ou exibição de texto bruto.</li>
+            </ul>
+            <h2>3. Guarda Legal de Registros e Prevenção a Fraudes</h2>
+            <p>Registros técnicos estritos de conexão são mantidos sob sigilo pelo prazo legal em cumprimento ao <strong>Art. 15 do Marco Civil da Internet (Lei nº 12.965/2014)</strong>, e hashes públicos de transações na Base Mainnet (<code>X-Payment</code>) são retidos em cache temporário de 7 dias exclusivamente para prevenção de ataques de repetição (Replay Attack), com base no legítimo interesse e segurança cibernética (Art. 7º, IX da LGPD e Art. 6(1)(f) do GDPR).</p>
+            <h2>4. Direitos do Titular e Encarregado de Dados (DPO)</h2>
+            <p>O Grid402 não utiliza cookies de rastreamento publicitário e não vende ou compartilha informações pessoais (CCPA/CPRA). Para qualquer solicitação de conformidade, auditoria ou exercício de direitos perante o Encarregado de Dados (DPO), contate <a href="mailto:contato@grid402.online">contato@grid402.online</a>.</p>
+        `
     },
     en: {
         // Navigation and Header
@@ -291,9 +424,9 @@ const GRID402_I18N = {
         'badge.live': 'Base Mainnet (8453) • {count}/{total} Services Operational',
 
         // Hero
-        'hero.tag': 'Microservices Hub for Autonomous Bots and AI Agents',
-        'hero.title': 'Grid402: Open Data and Network Utilities Hub for AI Agents',
-        'hero.desc': 'Access live FX rates, crypto spot, compliance and anti-fraud suite (Risk 360 score, sanctions, Simples Nacional), official economic indicators (Selic, CDI, IPCA), ANBIMA banking holidays, DNS records, SSL certificates, BGP/ASN lookup, Brazilian postal codes (CEP), and Federal Revenue CNPJ registry in milliseconds with zero signup or API keys. Pay-per-call micropayments in USDC on Base.',
+        'hero.tag': 'Global Microservices and M2M Oracle Hub for Autonomous AI Agents',
+        'hero.title': 'Grid402: Global Open-Data and Network Utilities Infrastructure for AI Agents',
+        'hero.desc': 'Access 19 global and regional endpoints: worldwide corporate identity (GLEIF LEI across 200+ countries), US Treasury OFAC SDN sanctions + Base Web3 AML, ECDSA timestamp notarization, world exchange calendars and 30+ ECB currencies, live FX, crypto spot, Compliance 360, DNS, SSL, BGP/ASN, CEP, and CNPJ in milliseconds with zero signup or API keys. Settled via x402 on Base or Prepaid Session Pass (<15ms).',
         'hero.btn.agents': '🤖 AI Agents Hub',
         'hero.btn.playground': '⚡ Test in Playground',
         'hero.btn.console': 'Console and SDKs',
@@ -481,7 +614,46 @@ const GRID402_I18N = {
         'console.agentkit.docs': '<strong style="color: #fff;">📂 Complete Documentation and Source Code:</strong><p style="margin: 0.4rem 0 0 0;">Inspect the <code>integrations/agentkit/</code> directory in the repository for drop-in LangChain, CrewAI, and setup guides.</p>',
 
         'console.badges.intro': 'Dynamic SVG badges ready to embed into your GitHub repository README:',
+        'console.badges.label': 'Live Badge Preview:',
         'console.badges.btn.copy': '📋 Copy Markdown Code',
+        'console.python.code': `from grid402 import Grid402Client
+
+client = Grid402Client()
+
+# 1. Free hub status summary (19 global and regional services)
+summary = client.get_summary()
+print("Operational status:", summary["status"])
+
+# 2. Global Corporate Identity (GLEIF LEI across 200+ countries)
+lei_info = client.get("/api/v1/lei?lei=5493006MHB84DD0ZWV18", payment="demo")
+
+# 3. Free Sandbox ("X-Payment: demo") or Prepaid Session Pass ("X-Payment: pass_g402_...")`,
+        'console.node.code': `import { Grid402Client } from 'grid402';
+
+const client = new Grid402Client();
+
+// 1. Free status summary
+const summary = await client.getSummary();
+console.log('Hub status:', summary.status);
+
+// 2. SSL Inspector or Global OFAC / Web3 AML
+const ssl = await client.getSsl('base.org');
+console.log('Days remaining:', ssl.certificate.days_remaining);
+
+// 3. Free Sandbox ('X-Payment': 'demo') or Prepaid Session Pass ('X-Payment': 'pass_g402_...')`,
+        'console.curl.code': `# 1. Free status summary of all 19 microservices
+curl -i https://grid402.online/status
+
+# 2. HTTP 402 Challenge with Free Teaser Sample (GLEIF LEI or OFAC)
+curl -i "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18"
+
+# 3. Settled request on Base Mainnet (TxHash) or Prepaid Session Pass (<15ms)
+curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
+  -H "X-Payment: pass_g402_YOUR_TOKEN_OR_BASE_TX_HASH"
+
+# 4. Free Sandbox mode for local testing and CI/CD
+curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
+  -H "X-Payment: demo"`,
 
         // About Section
         'about.title': 'About Grid402',
@@ -547,7 +719,101 @@ const GRID402_I18N = {
         'msg.unlocking': 'Unlocking data...',
         'msg.wallet_req': 'Requesting wallet approval for {price} USDC transfer on Base to oracle...\nRecipient: 0x{recipient}',
         'msg.tx_fail': 'Web3 Transaction Failed: {error}',
-        'msg.op_canceled': 'Operation cancelled or failed'
+        'msg.op_canceled': 'Operation cancelled or failed',
+
+        // /agents Page
+        'agents.brand.sub': 'Global AI Agents and MCP Hub',
+        'agents.nav.home': 'Home',
+        'agents.hero.badge': 'x402 Global Autonomous Agent Hub • 19 Services',
+        'agents.hero.title': 'Global Open-Data and M2M Utility Infrastructure for AI Agents',
+        'agents.hero.lead': 'Grid402 enables autonomous AI agents (Claude, Cursor, LangChain, CrewAI, and Coinbase AgentKit) to query 19 global and regional public-domain endpoints via <strong>HTTP 402</strong> or <strong>Prepaid Session Pass (&lt;15ms)</strong>, settling USDC micropayments on Base with <strong>ECDSA cryptographic proofs</strong>.',
+        'agents.f1.title': 'Zero Human Signup',
+        'agents.f1.desc': 'No static API keys, credit cards, or accounts required. AI agents purchase oracle data autonomously via on-chain Web3 wallets or Passkeys.',
+        'agents.f2.title': 'Cryptographic Oracle',
+        'agents.f2.desc': 'Every response carries a deterministic secp256k1 ECDSA digital signature (_oracle_proof), verifiable statelessly in under 1 ms.',
+        'agents.f3.title': 'x402 Session Pass (<15ms)',
+        'agents.f3.desc': 'Purchase 100 to 1,000 prepaid credits in a single Base USDC transaction and execute high-frequency M2M calls in under 15ms with zero block wait.',
+        'agents.s1.title': '1. Model Context Protocol (MCP) Integration',
+        'agents.s1.sub': 'Add all 19 global and regional oracle tools to Claude Desktop or Cursor in 1 click.',
+        'agents.s2.title': '2. Python Code for Autonomous Agents',
+        'agents.s2.sub': 'Direct consumption handling HTTP 402 challenges or using a Prepaid Session Pass (pass_g402_...).',
+        'agents.s3.title': '3. Quick Terminal Test (cURL)',
+        'agents.s3.sub': 'Inspect x402 challenges, issue a Session Pass, or verify cryptographic oracle proofs directly from your terminal.',
+        'agents.table.title': 'Global 19-Endpoint Catalog and Pricing',
+        'agents.table.sub': 'Pay-per-call rates in USDC on Base Mainnet or Prepaid Session Pass credits.',
+        'agents.th.service': 'Service / Open-Data Source',
+        'agents.th.price': 'Rate (USDC / Pass)',
+        'agents.th.proof': 'ECDSA Proof',
+        'agents.manifests.title': 'Autonomous Discovery Manifests',
+        'agents.manifests.sub': 'Open standards for LLMs, crawlers, and autonomous agents to map Grid402 capabilities.',
+
+        // Institutional Pages (/about, /contact, /terms, /privacy)
+        'inst.footer.copy': 'Copyright (c) 2026 Grid402. MIT License.',
+        'inst.about.body': `
+            <p><strong>Grid402</strong> is a global open-data microservices and network utility oracle designed specifically for autonomous systems, bots, and AI agents under the HTTP 402 standard with instant USDC settlement on Base Mainnet.</p>
+            <h2>Global Purpose and Architecture</h2>
+            <p>Grid402 eliminates static API keys and bureaucratic signups for software agents worldwide. Every technical query to official registries (worldwide GLEIF LEI, US Treasury OFAC SDN, 30+ ECB currencies, ECDSA cryptographic notarization, corporate registries, DNS, SSL, and BGP) can be settled directly on-chain or via a Prepaid Session Pass in under 15ms.</p>
+            <ul>
+                <li><strong>Zero-DB and Stateless:</strong> No relational database lock-in; 100% in-memory and atomic file cache operation.</li>
+                <li><strong>x402 Protocol + Session Pass:</strong> Native HTTP 402 Payment Required implementation for Machine-to-Machine (M2M) and high-frequency prepaid passes.</li>
+                <li><strong>Public Domain and CC0:</strong> Strict reliance on open public registries and CC0 licenses with zero sensitive personal data (Zero PII).</li>
+            </ul>
+            <h2>Institutional Information</h2>
+            <div class="card-box">
+                <p><strong>Organization:</strong> Grid402 Network Intelligence</p>
+                <p><strong>Support Email:</strong> <a href="mailto:contato@grid402.online">contato@grid402.online</a></p>
+                <p><strong>Phone Hotline:</strong> <a href="tel:+5511958325848">+55 11 95832-5848</a></p>
+                <p><strong>Oracle Wallet (Base):</strong> <a href="https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c" target="_blank" rel="noopener noreferrer">0xa31c31069c43ac1c0075a93c325b0dcd7744356c</a></p>
+            </div>
+        `,
+        'inst.contact.body': `
+            <p>We provide direct, structured channels for technical support, AI integrator partnerships, and Data Protection Officer (DPO) inquiries:</p>
+            <h2>Official Support Channels</h2>
+            <div class="card-box">
+                <p><strong>General Support and Integrations:</strong> <a href="mailto:contato@grid402.online">contato@grid402.online</a></p>
+                <p><strong>Data Protection Officer (DPO / GDPR / LGPD):</strong> <a href="mailto:contato@grid402.online">contato@grid402.online</a></p>
+                <p><strong>Phone Hotline:</strong> <a href="tel:+5511958325848">+55 11 95832-5848</a></p>
+            </div>
+            <h2>Open Source Ecosystem</h2>
+            <ul>
+                <li><strong>Official GitHub:</strong> <a href="https://github.com/oliveiratc/Grid402" target="_blank" rel="noopener noreferrer">github.com/oliveiratc/Grid402</a></li>
+                <li><strong>Node.js Package (npm):</strong> <a href="https://www.npmjs.com/package/grid402" target="_blank" rel="noopener noreferrer">npmjs.com/package/grid402</a></li>
+                <li><strong>Python Package (PyPI):</strong> <a href="https://pypi.org/project/grid402/" target="_blank" rel="noopener noreferrer">pypi.org/project/grid402</a></li>
+                <li><strong>MCP Server (Model Context Protocol):</strong> <a href="https://www.npmjs.com/package/grid402-mcp" target="_blank" rel="noopener noreferrer">npmjs.com/package/grid402-mcp</a></li>
+            </ul>
+        `,
+        'inst.terms.body': `
+            <p>Terms of Service, Open Data Legal Basis, and International Regulatory Compliance for the Grid402 global M2M microservices hub.</p>
+            <h2>1. Provided "AS-IS"</h2>
+            <p>Grid402 is a technical M2M oracle infrastructure provided strictly "AS-IS", without warranties of fitness for a particular commercial purpose, legal counsel, or credit underwriting.</p>
+            <h2>2. Public Domain Legal Basis and Open Data Licenses</h2>
+            <p>All 19 Grid402 endpoints process exclusively public-domain records, non-copyrightable facts, and open government registries:</p>
+            <ul>
+                <li><strong>Global LEI (/api/v1/lei):</strong> Global Legal Entity Identifier Foundation (GLEIF) under <strong>CC0 1.0 Universal (Public Domain Dedication)</strong>, ISO 17442 standard.</li>
+                <li><strong>Global Sanctions (/api/v1/ofac):</strong> US Treasury OFAC SDN (US Federal Public Domain under <strong>17 U.S.C. § 105</strong>) and United Nations Security Council Consolidated Lists.</li>
+                <li><strong>World Markets and FX (/api/v1/global-markets, /api/v1/forex, /api/v1/crypto):</strong> European Central Bank reference rates (<strong>EU Open Data Directive 2019/1024</strong>), Central Bank of Brazil (Decree 8.777/2016), and non-copyrightable market facts (<strong>17 U.S.C. § 102(b)</strong> and <strong>Brazilian Law 9.610/1998 Art. 8, I</strong>).</li>
+                <li><strong>Corporate & Statutory Calendars (/api/v1/cnpj, /api/v1/sanctions, /api/v1/simples, /api/v1/compliance, /api/v1/indicators, /api/v1/holidays, /api/v1/workdays, /api/v1/cep):</strong> Brazilian Access to Information Act (<strong>Law 12.527/2011 - LAI</strong>), Open Data Policy (<strong>Decree 8.777/2016</strong>), Anti-Corruption Act (Law 12.846/2013), and mathematical calendar algorithms (Law 9.610/1998 Art. 8, II & IV).</li>
+                <li><strong>Network Telemetry & Notarization (/api/v1/dns, /api/v1/ssl, /api/v1/asn, /api/v1/notarize):</strong> Open Internet Engineering Task Force standards (IETF RFC 1035, RFC 5280, RFC 4271, and RFC 8785).</li>
+            </ul>
+            <h2>3. x402 Micropayments and Session Passes</h2>
+            <p>Micropayments settled via HTTP 402 and Prepaid Session Passes issued on Base Mainnet (EVM 8453) compensate strictly for computational normalization and ECDSA secp256k1 cryptographic attestation, and are final and non-refundable on-chain.</p>
+            <h2>4. Open Source Software (MIT License)</h2>
+            <p>The Grid402 software, client SDKs (Python, Node.js, AgentKit), and MCP server are distributed under the <strong>MIT License</strong>. We claim no proprietary ownership over government registries or public facts.</p>
+        `,
+        'inst.privacy.body': `
+            <p>Privacy, data protection, and international regulatory compliance guidelines (GDPR, LGPD, and CCPA/CPRA) for the Grid402 hub.</p>
+            <h2>1. Zero-PII Architecture and Corporate-Only Scope (GDPR Recital 14 / LGPD Art. 1)</h2>
+            <p>Grid402 operates strictly on <strong>Legal Entity (corporate)</strong> records, macroeconomic indicators, and network telemetry. Pursuant to <strong>Recital 14 of the EU GDPR (Regulation (EU) 2016/679)</strong> and <strong>Article 1 of the Brazilian LGPD (Law 13.709/2018)</strong>, data concerning legal persons does not constitute personal data of natural persons. Across corporate lookup endpoints (<code>/api/v1/cnpj</code>, <code>/api/v1/compliance</code>), Grid402 <strong>strictly strips and discards at ingestion</strong> shareholder/director lists (QSA), individual tax IDs (CPFs), personal phone numbers, and private emails.</p>
+            <h2>2. Data Minimization, IP Pseudonymization, and Zero-Retention (/api/v1/notarize)</h2>
+            <ul>
+                <li><strong>IP Masking & HMAC Pseudonymization:</strong> IP addresses in operational telemetry are irreversibly truncated (e.g., <code>189.40.xxx.xxx</code>) and Sandbox rate-limiter keys use salted <code>HMAC-SHA256</code> cryptographic hashes (compliant with GDPR Art. 25 & LGPD Art. 13).</li>
+                <li><strong>Zero-Retention Notarization:</strong> In <code>/api/v1/notarize</code>, submitted payloads are processed exclusively in volatile RAM to compute the <code>SHA-256</code> digest and immediately discarded, with zero disk retention or raw text echoing.</li>
+            </ul>
+            <h2>3. Statutory Logs and Anti-Fraud Security</h2>
+            <p>Minimal technical connection logs are kept confidentially as required by <strong>Art. 15 of the Brazilian Civil Rights Framework for the Internet (Law 12.965/2014)</strong>, and public Base Mainnet transaction hashes (<code>X-Payment</code>) are cached for 7 days strictly for anti-replay security (GDPR Art. 6(1)(f) & LGPD Art. 7, IX).</p>
+            <h2>4. Data Subject Rights & Data Protection Officer (DPO)</h2>
+            <p>Grid402 uses zero advertising/tracking cookies and never sells or shares personal information (CCPA/CPRA). For any privacy, compliance, or DPO inquiry, contact <a href="mailto:contato@grid402.online">contato@grid402.online</a>.</p>
+        `
     }
 };
 
@@ -794,6 +1060,55 @@ function setLanguage(lang) {
     if (typeof updateRoiCalc === 'function') {
         const slider = document.getElementById('roi-slider-input');
         if (slider) updateRoiCalc(slider.value);
+    }
+
+    // Atualiza botoes de preset da calculadora ROI
+    const roiPresetBtns = document.querySelectorAll('.roi-presets-row .roi-preset-btn');
+    if (roiPresetBtns && roiPresetBtns.length === 4) {
+        const vals = [500, 1000, 5000, 15000];
+        roiPresetBtns.forEach((b, idx) => {
+            const v = vals[idx];
+            b.textContent = (lang === 'en')
+                ? v.toLocaleString('en-US') + '/mo'
+                : v.toLocaleString('pt-BR') + '/mês';
+        });
+    }
+
+    // Atualiza textos de rodape e modal Web3
+    const footerCopy = document.getElementById('footer-copyright-text');
+    if (footerCopy) {
+        const yr = new Date().getFullYear();
+        footerCopy.textContent = t('footer.copyright', { year: yr });
+    }
+    const footerFee = document.getElementById('footer-fee-text');
+    if (footerFee) {
+        footerFee.textContent = t('footer.fee', { price: '0.0005' });
+    }
+    const auditBadge = document.getElementById('audit-overall-badge');
+    if (auditBadge && auditBadge.classList.contains('badge-pending') && (auditBadge.textContent.includes('AGUARDANDO') || auditBadge.textContent.includes('AWAITING'))) {
+        auditBadge.textContent = (lang === 'en') ? 'AWAITING ANALYSIS' : 'AGUARDANDO ANÁLISE';
+    }
+    ['audit-step-1-status', 'audit-step-2-status', 'audit-step-3-status'].forEach(id => {
+        const st = document.getElementById(id);
+        if (st && (st.textContent === 'Aguardando' || st.textContent === 'Pending')) {
+            st.textContent = (lang === 'en') ? 'Pending' : 'Aguardando';
+        }
+    });
+    const copyOracleBtn = document.getElementById('btn-copy-oracle');
+    if (copyOracleBtn && !copyOracleBtn.textContent.includes('✓')) {
+        copyOracleBtn.textContent = (lang === 'en') ? '📋 Copy' : '📋 Copiar';
+    }
+    const web3HashInp = document.getElementById('web3-hash-direct-input');
+    if (web3HashInp) {
+        web3HashInp.placeholder = (lang === 'en')
+            ? '0x... (Transaction hash on Base Mainnet)'
+            : '0x... (Hash da transação gerado na Base)';
+    }
+    const manualInp = document.getElementById('playground-manual-input');
+    if (manualInp) {
+        manualInp.placeholder = (lang === 'en')
+            ? 'Paste the JSON response containing the _oracle_proof block...'
+            : 'Cole o JSON da resposta contendo o bloco _oracle_proof...';
     }
 }
 

@@ -91,6 +91,7 @@ function grid402_service_forex(bool $forceRefresh = false): array {
         'ttl_seconds' => $cacheTtl,
         'rates' => $rates,
         'source' => 'Banco Central / Dados Abertos',
+        'legal_license' => 'Fatos Econômicos e Cotações de Domínio Público (Lei nº 9.610/1998 Art. 8º, I e Decreto nº 8.777/2016)',
     ];
 
     // Persistência em cache atômico
