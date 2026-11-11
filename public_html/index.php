@@ -2435,6 +2435,9 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                             <button type="button" id="btn-playground-web3-pay" class="btn-sm btn-primary" onclick="payPlaygroundWithWeb3()" style="padding: 0.55rem 1.1rem; font-size: 0.85rem; font-weight: 700;" data-i18n="playground.unlock.cta_web3">
                                 ⚡ Desbloquear com Carteira Web3 (1 Clique)
                             </button>
+                            <button type="button" id="btn-playground-smart-wallet" class="btn-sm btn-outline" onclick="payPlaygroundWithCoinbaseSmartWallet()" style="padding: 0.55rem 1rem; font-size: 0.82rem; border-color: #0052ff; background: rgba(0, 82, 255, 0.14); color: #fff; font-weight: 600;" data-i18n="playground.unlock.cta_smart_wallet">
+                                🔑 Passkey / Biometria (Coinbase Smart Wallet)
+                            </button>
                             <button type="button" class="btn-sm btn-outline" onclick="openPlaygroundWeb3Modal()" style="padding: 0.55rem 0.95rem; font-size: 0.82rem;" data-i18n="playground.unlock.cta_qr">
                                 📱 QR Code / Celular
                             </button>
@@ -2544,6 +2547,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                     <input type="text" id="tx-input" class="console-input" style="flex: 1; min-width: 260px;" placeholder="Cole o hash de pagamento na Base (0x...) ou use 'demo' para simulação" data-i18n-placeholder="console.input.placeholder">
                     <button type="button" class="btn-sm" onclick="runConsole('paid')" data-i18n="console.btn.send_payment">Enviar com X-Payment</button>
                     <button type="button" class="btn-sm btn-primary" id="btn-web3-pay" onclick="payWithWeb3Wallet()" data-i18n="console.btn.web3_pay">⚡ Pagar com Carteira Web3 (1 Clique)</button>
+                    <button type="button" class="btn-sm btn-outline" id="btn-console-smart-wallet" onclick="payConsoleWithCoinbaseSmartWallet()" style="border-color: #0052ff; background: rgba(0, 82, 255, 0.14); color: #fff; font-weight: 600;" data-i18n="console.btn.smart_wallet">🔑 Passkey / Biometria (Smart Wallet)</button>
                     <button type="button" class="btn-sm btn-outline" onclick="openWeb3Modal()" title="Abrir QR Code e instruções de pagamento" data-i18n="console.btn.web3_qr">📱 QR Code / Celular</button>
                     <button type="button" class="btn-sm btn-outline" onclick="runSandboxSimulation()" title="Simular pagamento gratuitamente no Modo Sandbox" data-i18n="console.btn.sandbox_demo">🧪 Simular Sandbox (demo)</button>
                 </div>
@@ -2566,6 +2570,9 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                     <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                         <button class="btn btn-primary" onclick="payWithWeb3Wallet()" style="font-size: 0.85rem; padding: 0.5rem 1rem;" data-i18n="console.teaser.unlock_btn">
                             ⚡ Desbloquear Dados Completos com Web3
+                        </button>
+                        <button class="btn btn-outline" onclick="payConsoleWithCoinbaseSmartWallet()" style="font-size: 0.85rem; padding: 0.5rem 0.95rem; border-color: #0052ff; background: rgba(0, 82, 255, 0.14); color: #fff; font-weight: 600;" data-i18n="console.btn.smart_wallet">
+                            🔑 Passkey / Biometria (Smart Wallet)
                         </button>
                         <button class="btn btn-outline" onclick="openWeb3Modal()" style="font-size: 0.85rem; padding: 0.5rem 0.9rem;" data-i18n="console.btn.web3_qr">
                             📱 Pagar com QR Code / Celular
@@ -2803,21 +2810,21 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                             </div>
                         </div>
 
-                        <!-- Coluna 2: Instalação / Extensão no PC -->
+                        <!-- Coluna 2: Coinbase Smart Wallet (Passkey) & Extensão no PC -->
                         <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; display: flex; flex-direction: column; justify-content: space-between;">
                             <div>
-                                <div style="font-weight: 700; color: #fff; margin-bottom: 0.5rem; font-size: 0.9rem;" data-i18n="modal.web3.col2.title">💻 Extensão no Navegador</div>
-                                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.5;" data-i18n="modal.web3.col2.desc">
-                                    Instale a MetaMask para autorizar micropagamentos de USDC com apenas 1 clique em qualquer requisição.
+                                <div style="font-weight: 700; color: #fff; margin-bottom: 0.5rem; font-size: 0.9rem;" data-i18n="modal.web3.col2.title">🔑 Sem Extensão? Use Passkey</div>
+                                <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.85rem; line-height: 1.45;" data-i18n="modal.web3.col2.desc">
+                                    Crie ou conecte uma <strong>Coinbase Smart Wallet</strong> em 5 segundos usando biometria/Passkey do celular ou computador, sem instalar extensão nem anotar seed phrase.
                                 </p>
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 8px;">
-                                <a href="https://metamask.io/download/" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="justify-content: center; font-size: 0.85rem; padding: 0.6rem 0.8rem; text-decoration: none;" data-i18n="modal.web3.col2.btn.install">
-                                    🦊 Instalar MetaMask
-                                </a>
-                                <button class="btn btn-outline" onclick="location.reload()" style="justify-content: center; font-size: 0.8rem; padding: 0.5rem;" data-i18n="modal.web3.col2.btn.reload">
-                                    🔄 Já instalei, recarregar
+                                <button type="button" id="btn-modal-smart-wallet" class="btn btn-primary" onclick="payModalWithCoinbaseSmartWallet()" style="justify-content: center; font-size: 0.83rem; padding: 0.6rem 0.8rem; background: #0052ff; color: #fff; border: none;" data-i18n="modal.web3.col2.btn.smart_wallet">
+                                    🔑 Conectar via Passkey (Smart Wallet)
                                 </button>
+                                <a href="https://metamask.io/download/" target="_blank" rel="noopener noreferrer" class="btn btn-outline" style="justify-content: center; font-size: 0.8rem; padding: 0.5rem 0.8rem; text-decoration: none;" data-i18n="modal.web3.col2.btn.install">
+                                    🦊 Ou Instalar Extensão MetaMask
+                                </a>
                             </div>
                         </div>
                     </div>
@@ -3460,14 +3467,45 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             runPlaygroundQuery();
         }
 
-        async function payPlaygroundWithWeb3() {
-            const btn = document.getElementById('btn-playground-web3-pay');
+        let coinbaseSmartWalletProvider = null;
+
+        async function getCoinbaseSmartWalletProvider() {
+            if (coinbaseSmartWalletProvider) {
+                return coinbaseSmartWalletProvider;
+            }
+            const mod = await import('https://esm.sh/@coinbase/wallet-sdk@4');
+            const createFn = mod.createCoinbaseWalletSDK || (mod.default && mod.default.createCoinbaseWalletSDK);
+            if (!createFn) {
+                throw new Error('Falha ao carregar o SDK da Coinbase Smart Wallet.');
+            }
+            const sdk = createFn({
+                appName: 'Grid402 M2M Oracle Hub',
+                appLogoUrl: 'https://grid402.online/favicon.svg',
+                appChainIds: [8453],
+                preference: { options: 'smartWalletOnly' }
+            });
+            coinbaseSmartWalletProvider = sdk.getProvider ? sdk.getProvider() : sdk.evm.getProvider();
+            return coinbaseSmartWalletProvider;
+        }
+
+        async function payPlaygroundWithWeb3(customProvider = null, customBtnId = null) {
+            const btn = document.getElementById(customBtnId || 'btn-playground-web3-pay');
             const statusBadge = document.getElementById('playground-http-status');
             const viewer = document.getElementById('playground-json-viewer');
 
-            if (!window.ethereum) {
-                openPlaygroundWeb3Modal();
-                return;
+            let provider = customProvider || window.ethereum;
+            if (!provider) {
+                try {
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.textContent = 'Abrindo Passkey / Smart Wallet...';
+                    }
+                    provider = await getCoinbaseSmartWalletProvider();
+                } catch (e) {
+                    if (btn) btn.disabled = false;
+                    openPlaygroundWeb3Modal();
+                    return;
+                }
             }
 
             const origText = btn ? btn.textContent : '⚡ Desbloquear com Carteira Web3 (1 Clique)';
@@ -3477,7 +3515,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     btn.textContent = 'Conectando carteira...';
                 }
 
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const accounts = await provider.request({ method: 'eth_requestAccounts' });
                 if (!accounts || accounts.length === 0) {
                     throw new Error('Nenhuma conta conectada.');
                 }
@@ -3485,13 +3523,13 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
                 if (btn) btn.textContent = 'Mudando para rede Base...';
                 try {
-                    await window.ethereum.request({
+                    await provider.request({
                         method: 'wallet_switchEthereumChain',
                         params: [{ chainId: '0x2105' }],
                     });
                 } catch (switchError) {
                     if (switchError.code === 4902) {
-                        await window.ethereum.request({
+                        await provider.request({
                             method: 'wallet_addEthereumChain',
                             params: [{
                                 chainId: '0x2105',
@@ -3526,7 +3564,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 const txData = '0xa9059cbb' + recipientPadded + amountHex;
 
                 if (btn) btn.textContent = 'Assine ' + priceUsdc + ' USDC na carteira...';
-                const txHash = await window.ethereum.request({
+                const txHash = await provider.request({
                     method: 'eth_sendTransaction',
                     params: [{
                         from: userAddress,
@@ -3567,6 +3605,27 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 }
             } catch (err) {
                 if (statusBadge) statusBadge.textContent = 'Pagamento Cancelado';
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = origText;
+                }
+            }
+        }
+
+        async function payPlaygroundWithCoinbaseSmartWallet() {
+            const btn = document.getElementById('btn-playground-smart-wallet');
+            const origText = btn ? btn.textContent : '🔑 Passkey / Biometria (Coinbase Smart Wallet)';
+            try {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = 'Carregando Passkey SDK...';
+                }
+                const smartProvider = await getCoinbaseSmartWalletProvider();
+                await payPlaygroundWithWeb3(smartProvider, 'btn-playground-smart-wallet');
+            } catch (err) {
+                const statusBadge = document.getElementById('playground-http-status');
+                if (statusBadge) statusBadge.textContent = 'Erro ao iniciar Smart Wallet';
             } finally {
                 if (btn) {
                     btn.disabled = false;
@@ -3872,37 +3931,50 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             }
         }
 
-        async function payWithWeb3Wallet() {
-            const btn = document.getElementById('btn-web3-pay');
+        async function payWithWeb3Wallet(customProvider = null, customBtnId = null) {
+            const btn = document.getElementById(customBtnId || 'btn-web3-pay');
             const statusText = document.getElementById('console-status-text');
             const out = document.getElementById('console-output');
 
-            if (!window.ethereum) {
-                openWeb3Modal();
-                return;
+            let provider = customProvider || window.ethereum;
+            if (!provider) {
+                try {
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.textContent = 'Abrindo Passkey / Smart Wallet...';
+                    }
+                    provider = await getCoinbaseSmartWalletProvider();
+                } catch (e) {
+                    if (btn) btn.disabled = false;
+                    openWeb3Modal();
+                    return;
+                }
             }
 
+            const origText = btn ? btn.textContent : '⚡ Pagar com Carteira Web3 (1 Clique)';
             try {
-                btn.disabled = true;
-                btn.textContent = 'Conectando carteira...';
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = 'Conectando carteira...';
+                }
 
                 // 1. Solicita conexão de contas
-                const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                const accounts = await provider.request({ method: 'eth_requestAccounts' });
                 if (!accounts || accounts.length === 0) {
                     throw new Error('Nenhuma conta foi conectada.');
                 }
                 const userAddress = accounts[0];
 
                 // 2. Garante que está na rede Base Mainnet (Chain ID 8453 = 0x2105)
-                btn.textContent = 'Verificando rede Base...';
+                if (btn) btn.textContent = 'Verificando rede Base...';
                 try {
-                    await window.ethereum.request({
+                    await provider.request({
                         method: 'wallet_switchEthereumChain',
                         params: [{ chainId: '0x2105' }],
                     });
                 } catch (switchError) {
                     if (switchError.code === 4902) {
-                        await window.ethereum.request({
+                        await provider.request({
                             method: 'wallet_addEthereumChain',
                             params: [{
                                 chainId: '0x2105',
@@ -3938,10 +4010,10 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 const amountHex = amountRaw.toString(16).padStart(64, '0');
                 const data = '0xa9059cbb' + recipientPadded + amountHex;
 
-                btn.textContent = `Aguardando assinatura de ${priceUsdc} USDC...`;
+                if (btn) btn.textContent = `Aguardando assinatura de ${priceUsdc} USDC...`;
                 out.textContent = `Solicitando aprovação na carteira para transferência de ${priceUsdc} USDC na Base para o oráculo...\nCarteira destino: 0x${recipient}`;
 
-                const txHash = await window.ethereum.request({
+                const txHash = await provider.request({
                     method: 'eth_sendTransaction',
                     params: [{
                         from: userAddress,
@@ -3954,17 +4026,60 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 statusText.textContent = `Transação enviada: ${txHash.substring(0, 10)}... Aguardando confirmação no bloco Base...`;
                 out.textContent = `Transação enviada com sucesso na Base Mainnet!\nTx Hash: ${txHash}\nLink BaseScan: https://basescan.org/tx/${txHash}\n\nAguardando 3.5 segundos para propagação do recibo on-chain...`;
 
-                btn.textContent = 'Desbloqueando dados...';
+                if (btn) btn.textContent = 'Desbloqueando dados...';
                 await new Promise(r => setTimeout(r, 3500));
 
                 await runConsole('paid');
-                btn.textContent = '⚡ Pagar com Carteira Web3 (1 Clique)';
-                btn.disabled = false;
             } catch (err) {
-                btn.disabled = false;
-                btn.textContent = '⚡ Pagar com Carteira Web3 (1 Clique)';
                 out.textContent = `Falha na transação Web3: ${err.message || err}`;
                 statusText.textContent = 'Operação cancelada ou falhou';
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = origText;
+                }
+            }
+        }
+
+        async function payConsoleWithCoinbaseSmartWallet() {
+            const btn = document.getElementById('btn-console-smart-wallet');
+            const origText = btn ? btn.textContent : '🔑 Passkey / Biometria (Smart Wallet)';
+            try {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = 'Carregando Passkey SDK...';
+                }
+                const smartProvider = await getCoinbaseSmartWalletProvider();
+                await payWithWeb3Wallet(smartProvider, 'btn-console-smart-wallet');
+            } catch (err) {
+                const statusText = document.getElementById('console-status-text');
+                if (statusText) statusText.textContent = 'Erro ao iniciar Smart Wallet';
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = origText;
+                }
+            }
+        }
+
+        async function payModalWithCoinbaseSmartWallet() {
+            const btn = document.getElementById('btn-modal-smart-wallet');
+            const origText = btn ? btn.textContent : '🔑 Conectar via Passkey (Smart Wallet)';
+            try {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = 'Abrindo Passkey / Biometria...';
+                }
+                const smartProvider = await getCoinbaseSmartWalletProvider();
+                closeWeb3Modal();
+                await payPlaygroundWithWeb3(smartProvider, 'btn-playground-smart-wallet');
+            } catch (err) {
+                alert('Erro ao conectar Coinbase Smart Wallet: ' + (err.message || err));
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = origText;
+                }
             }
         }
 
