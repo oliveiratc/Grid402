@@ -69,6 +69,23 @@ if ($paymentProof === '') {
         $paymentProof = substr($authHeader, 5);
     }
 }
+if ($paymentProof === '') {
+    if (!empty($_GET['tx'])) {
+        $paymentProof = trim((string) $_GET['tx']);
+    } elseif (!empty($_GET['txHash'])) {
+        $paymentProof = trim((string) $_GET['txHash']);
+    } elseif (!empty($_GET['tx_hash'])) {
+        $paymentProof = trim((string) $_GET['tx_hash']);
+    } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $rawPost = (string) @file_get_contents('php://input');
+        if ($rawPost !== '') {
+            $parsedPost = @json_decode($rawPost, true);
+            if (is_array($parsedPost)) {
+                $paymentProof = trim((string) ($parsedPost['tx'] ?? $parsedPost['txHash'] ?? $parsedPost['tx_hash'] ?? ''));
+            }
+        }
+    }
+}
 
 // Cabeçalhos Globais de IA, Protocolo, Segurança e Conformidade de Dados
 header('Vary: Accept, User-Agent');
@@ -729,12 +746,15 @@ if ($isValidApiAction) {
             $lockedFields = ['holiday_name', 'next_business_day', 'fx_reference.rates', 'market_holidays_calendar', '_oracle_proof'];
         } elseif ($apiParam === 'pass') {
             $previewData = [
-                'product' => 'x402 Prepaid Session Pass (High-Frequency M2M)',
-                'tier_100_credits' => '0.0500 USDC = 100 API calls (<15ms latency)',
-                'tier_1000_credits' => '0.5000 USDC = 1,000 API calls (<15ms latency)',
-                'validity' => '30 days (Stateless HMAC + Atomic Ledger)',
+                'product' => 'x402 Prepaid Session Pass (High-Frequency M2M & Web3 Top-Up)',
+                'tier_starter' => '2.0000 USDC = 4,000 API calls (<15ms latency, 30 days validity)',
+                'tier_pro' => '5.0000 USDC = 10,000 API calls (<15ms latency, 30 days validity)',
+                'tier_fleet' => '20.0000 USDC = 50,000 API calls (<15ms latency, 60 days validity, prioritized)',
+                'network' => 'Base Mainnet (Chain ID 8453)',
+                'token' => 'USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)',
+                'recipient' => GRID402_WALLET_ADDRESS,
             ];
-            $lockedFields = ['pass_token', 'credits_total', 'credits_remaining', 'expires_at', '_oracle_proof'];
+            $lockedFields = ['pass_token', 'credits_total', 'credits_remaining', 'expires_at', 'tier', '_oracle_proof'];
         }
 
         grid402_respond_402($serviceLabel, null, $servicePriceDisplay, $servicePriceRaw, $previewData, $lockedFields);
@@ -2352,6 +2372,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             </a>
             <nav class="nav-links">
                 <a href="#services" data-i18n="nav.services">Serviços</a>
+                <a href="#topup" style="color: #00F0FF; font-weight: 700;" data-i18n="nav.topup">Abastecer Saldo</a>
                 <a href="#comparador" style="color: var(--accent); font-weight: 600;" data-i18n="nav.savings">Economia 98%</a>
                 <a href="#playground" data-i18n="nav.playground">Playground</a>
                 <a href="#console" data-i18n="nav.console">Console</a>
@@ -2380,7 +2401,8 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
             <h1 data-i18n="hero.title">Grid402: Hub de Utilitários de Rede e Dados Públicos para Agentes de IA</h1>
             <p data-i18n="hero.desc">Acesse cotações de câmbio, cripto, suíte de compliance e antifraude (score 360, sanções da CGU e Simples Nacional), indicadores econômicos oficiais (Selic, CDI e IPCA), feriados bancários ANBIMA, DNS, certificados SSL, BGP/ASN, CEP e CNPJ da Receita Federal em milissegundos sem cadastro ou chaves de API. Micropagamentos por chamada em USDC na Base.</p>
             <div class="cta-group">
-                <a href="/agents" class="btn btn-primary" data-i18n="hero.btn.agents">🤖 Central de Agentes IA</a>
+                <a href="#topup" class="btn btn-primary" style="background: linear-gradient(135deg, #0052FF 0%, #00F0FF 100%); font-weight: 700; box-shadow: 0 4px 15px rgba(0, 82, 255, 0.4);" data-i18n="hero.btn.topup">💎 Abastecer Saldo Web3 (Base)</a>
+                <a href="/agents" class="btn btn-outline" data-i18n="hero.btn.agents">🤖 Central de Agentes IA</a>
                 <a href="#playground" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary);" data-i18n="hero.btn.playground">⚡ Testar no Playground</a>
                 <a href="#console" class="btn btn-outline" onclick="switchTab('console')" data-i18n="hero.btn.console">Console e SDKs</a>
                 <a href="/llms.txt" class="btn btn-outline" data-i18n="hero.btn.llms">Documentação llms.txt</a>
@@ -2506,6 +2528,128 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                         <a href="#playground" class="btn-sm btn-outline" style="flex: 1; text-decoration: none; padding: 0.6rem; display: inline-block; border-color: var(--primary); color: var(--primary);" onclick="selectPlaygroundPreset('cnpj')" data-i18n="roi.calc.btn.test">⚡ Testar CNPJ</a>
                     </div>
                 </div>
+            </div>
+        </section>
+
+        <!-- Web3 One-Click Top-Up: Passes de Sessao Pre-Pagos na Base -->
+        <section id="topup" class="protocol-box topup-section" style="border: 1px solid rgba(0, 82, 255, 0.45); background: linear-gradient(180deg, rgba(0, 82, 255, 0.08) 0%, rgba(10, 14, 23, 0.98) 100%); margin-bottom: 3rem;">
+            <div class="playground-header-wrap" style="text-align: center; max-width: 820px; margin: 0 auto 2rem auto;">
+                <div class="hero-tag" style="margin-bottom: 0.5rem; background: rgba(0, 82, 255, 0.15); color: #00F0FF; border: 1px solid rgba(0, 240, 255, 0.35);" data-i18n="topup.tag">⚡ Liquidacao Instantanea em Lote na Base (USDC)</div>
+                <h2 style="font-size: 1.8rem; letter-spacing: -0.5px; margin-bottom: 0.75rem;" data-i18n="topup.title">Abasteca seu Saldo Web3 em 1 Clique (Session Passes)</h2>
+                <p style="text-align: center; color: var(--text-muted); font-size: 0.98rem; line-height: 1.6;" data-i18n="topup.desc">Pague uma unica vez em USDC na rede Base Mainnet e receba na hora um token <code style="color: #00F0FF; background: rgba(0,240,255,0.1); padding: 2px 6px; border-radius: 4px;">pass_g402_...</code> com saldo de milhares de requisicoes de alta velocidade (&lt;15ms) sem assinar transacoes a cada GET.</p>
+                <div style="display: flex; justify-content: center; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem;">
+                    <span style="font-size: 0.85rem; color: #8FA2B9;">Rede: <strong style="color: #fff;">Base Mainnet (8453)</strong></span>
+                    <span style="color: var(--border);">•</span>
+                    <span style="font-size: 0.85rem; color: #8FA2B9;">Moeda: <strong style="color: #2775CA;">USDC</strong></span>
+                    <span style="color: var(--border);">•</span>
+                    <span style="font-size: 0.85rem; color: #8FA2B9;">Contrato: <code style="color: #a0aec0; font-size: 0.78rem;">0x8335...2913</code></span>
+                </div>
+            </div>
+
+            <!-- Tiers de Passes Web3 -->
+            <div class="topup-tiers-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                
+                <!-- Card 1: Starter -->
+                <div class="topup-card" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.75rem 1.5rem; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+                    <div>
+                        <div style="font-size: 0.85rem; text-transform: uppercase; font-weight: 700; color: #8FA2B9; letter-spacing: 1px; margin-bottom: 0.5rem;" data-i18n="topup.starter.tag">Starter Pass</div>
+                        <div style="display: flex; align-items: baseline; gap: 0.35rem; margin-bottom: 0.75rem;">
+                            <span style="font-size: 2.2rem; font-weight: 800; color: #fff;">2</span>
+                            <span style="font-size: 1.1rem; font-weight: 700; color: #2775CA;">USDC</span>
+                        </div>
+                        <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;" data-i18n="topup.starter.desc">Ideal para desenvolvedores individuais, testes rapidos e bots pontuais.</p>
+                        <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; font-size: 0.88rem; color: #d1d5db; line-height: 1.8;">
+                            <li>⚡ <strong style="color: #00F0FF;">4.000 requisicoes</strong> incluidas</li>
+                            <li>⏱️ Validade de <strong style="color: #fff;">30 dias</strong></li>
+                            <li>🚀 Latencia ultrarrapida &lt;15ms</li>
+                            <li>🔒 Assinatura HMAC anti-fraude</li>
+                        </ul>
+                    </div>
+                    <button class="btn btn-outline" style="width: 100%; border-color: #2775CA; color: #fff;" onclick="startWeb3Topup(2, 'starter')" id="btn-topup-starter" data-i18n="topup.starter.btn">Comprar Starter (2 USDC)</button>
+                </div>
+
+                <!-- Card 2: Pro (Mais Popular) -->
+                <div class="topup-card featured" style="background: linear-gradient(180deg, rgba(0, 82, 255, 0.15) 0%, var(--surface) 100%); border: 2px solid #0052FF; border-radius: 12px; padding: 1.75rem 1.5rem; display: flex; flex-direction: column; justify-content: space-between; position: relative; box-shadow: 0 8px 30px rgba(0, 82, 255, 0.25);">
+                    <div style="position: absolute; top: -12px; right: 20px; background: #0052FF; color: #fff; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.5px;" data-i18n="topup.pro.badge">Mais Escolhido</div>
+                    <div>
+                        <div style="font-size: 0.85rem; text-transform: uppercase; font-weight: 700; color: #00F0FF; letter-spacing: 1px; margin-bottom: 0.5rem;" data-i18n="topup.pro.tag">Pro / Agent Pass</div>
+                        <div style="display: flex; align-items: baseline; gap: 0.35rem; margin-bottom: 0.75rem;">
+                            <span style="font-size: 2.2rem; font-weight: 800; color: #fff;">5</span>
+                            <span style="font-size: 1.1rem; font-weight: 700; color: #2775CA;">USDC</span>
+                        </div>
+                        <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;" data-i18n="topup.pro.desc">Para agentes autonomos de IA e esteiras de automacao continua.</p>
+                        <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; font-size: 0.88rem; color: #d1d5db; line-height: 1.8;">
+                            <li>⚡ <strong style="color: #00F0FF;">10.000 requisicoes</strong> incluidas</li>
+                            <li>⏱️ Validade de <strong style="color: #fff;">30 dias</strong></li>
+                            <li>🤖 Perfeito para ElizaOS e AgentKit</li>
+                            <li>📊 Consulta de saldo em tempo real</li>
+                        </ul>
+                    </div>
+                    <button class="btn btn-primary" style="width: 100%; background: linear-gradient(135deg, #0052FF 0%, #00F0FF 100%); font-weight: 700;" onclick="startWeb3Topup(5, 'pro')" id="btn-topup-pro" data-i18n="topup.pro.btn">Comprar Pro (5 USDC)</button>
+                </div>
+
+                <!-- Card 3: Fleet / Enterprise -->
+                <div class="topup-card" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.75rem 1.5rem; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+                    <div style="position: absolute; top: -12px; right: 20px; background: rgba(0, 240, 255, 0.2); border: 1px solid #00F0FF; color: #00F0FF; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; padding: 3px 10px; border-radius: 20px;" data-i18n="topup.fleet.badge">+10.000 Bonus</div>
+                    <div>
+                        <div style="font-size: 0.85rem; text-transform: uppercase; font-weight: 700; color: #8FA2B9; letter-spacing: 1px; margin-bottom: 0.5rem;" data-i18n="topup.fleet.tag">Fleet / Enterprise</div>
+                        <div style="display: flex; align-items: baseline; gap: 0.35rem; margin-bottom: 0.75rem;">
+                            <span style="font-size: 2.2rem; font-weight: 800; color: #fff;">20</span>
+                            <span style="font-size: 1.1rem; font-weight: 700; color: #2775CA;">USDC</span>
+                        </div>
+                        <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;" data-i18n="topup.fleet.desc">Frotas de agentes autonomos, sistemas ERP corporativos e alta demanda.</p>
+                        <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; font-size: 0.88rem; color: #d1d5db; line-height: 1.8;">
+                            <li>⚡ <strong style="color: #00F0FF;">50.000 requisicoes</strong> (+10k bonus)</li>
+                            <li>⏱️ Validade estendida de <strong style="color: #fff;">60 dias</strong></li>
+                            <li>🛡️ Rate-limit prioritario garantido</li>
+                            <li>💼 Suporte direto para frotas de IA</li>
+                        </ul>
+                    </div>
+                    <button class="btn btn-outline" style="width: 100%; border-color: #00F0FF; color: #00F0FF;" onclick="startWeb3Topup(20, 'fleet')" id="btn-topup-fleet" data-i18n="topup.fleet.btn">Comprar Fleet (20 USDC)</button>
+                </div>
+            </div>
+
+            <!-- Caixa de Feedback / Status da Operacao -->
+            <div id="topup-status-box" style="display: none; background: rgba(10, 14, 23, 0.85); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span id="topup-spinner" class="spinner" style="display: inline-block; width: 18px; height: 18px; border: 2px solid #00F0FF; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></span>
+                        <strong id="topup-status-title" style="color: #fff; font-size: 0.95rem;">Processando abastecimento...</strong>
+                    </div>
+                    <button class="btn-sm btn-outline" onclick="closeTopupStatus()" style="font-size: 0.75rem; padding: 2px 8px;">✕ Fechar</button>
+                </div>
+                <div id="topup-status-msg" style="color: var(--text-muted); font-size: 0.88rem; line-height: 1.5; font-family: 'JetBrains Mono', monospace; word-break: break-all;"></div>
+            </div>
+
+            <!-- Card de Sucesso: Token Gerado -->
+            <div id="topup-success-card" style="display: none; background: rgba(0, 240, 255, 0.06); border: 1px solid #00F0FF; border-radius: 12px; padding: 1.75rem; margin-bottom: 1.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <span style="font-size: 1.3rem;">🎉</span>
+                    <h3 style="color: #00F0FF; font-size: 1.2rem; margin: 0;">Session Pass Emitido com Sucesso!</h3>
+                </div>
+                <p style="color: #d1d5db; font-size: 0.9rem; margin-bottom: 1rem;">Seu passe pre-pago esta ativo na rede Base. Utilize o token abaixo no cabecalho <code style="color: #00F0FF;">X-Payment</code> em qualquer uma das 19 APIs do Grid402.</p>
+                
+                <div style="background: #000; border: 1px solid rgba(0, 240, 255, 0.3); border-radius: 8px; padding: 0.75rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+                    <code id="topup-result-token" style="color: #00F0FF; font-size: 0.95rem; font-weight: 700; word-break: break-all;">pass_g402_...</code>
+                    <button class="btn-sm btn-primary" onclick="copyTopupToken()" id="btn-copy-topup-token" style="white-space: nowrap;">📋 Copiar Token</button>
+                </div>
+
+                <div style="display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.85rem; color: #8FA2B9; margin-bottom: 1rem;">
+                    <div>Creditos Disponiveis: <strong id="topup-result-credits" style="color: #fff;">0</strong></div>
+                    <div>Plano: <strong id="topup-result-tier" style="color: #00F0FF; text-transform: uppercase;">-</strong></div>
+                    <div>Expira em: <strong id="topup-result-expires" style="color: #fff;">-</strong></div>
+                </div>
+
+                <div style="background: rgba(0,0,0,0.4); border-radius: 6px; padding: 0.75rem; font-size: 0.82rem; color: #a0aec0;">
+                    <strong style="color: #fff;">Exemplo de chamada com seu Passe:</strong><br>
+                    <code id="topup-example-curl" style="color: #8FA2B9; display: block; margin-top: 0.4rem; font-family: 'JetBrains Mono', monospace;">curl "https://grid402.online/api/v1/forex" -H "X-Payment: ..."</code>
+                </div>
+            </div>
+
+            <!-- Alternativa Manual / Smart Wallet Passkey -->
+            <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; flex-wrap: wrap; padding-top: 1rem; border-top: 1px solid var(--border);">
+                <button class="btn-sm btn-outline" style="border-color: rgba(255,255,255,0.2); color: #fff;" onclick="startWeb3TopupWithSmartWallet(5, 'pro')" id="btn-topup-passkey">🔑 Pagar via Passkey / Biometria (Coinbase Smart Wallet)</button>
+                <a href="#console" class="btn-sm btn-outline" style="border-color: rgba(255,255,255,0.2); color: #8FA2B9;" onclick="switchTab('console')">💻 Ver Console e Documentacao Tecnica</a>
             </div>
         </section>
 
@@ -4333,6 +4477,166 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             navigator.clipboard.writeText(codeBlock.textContent).then(() => {
                 alert('Snippet copiado para a área de transferência!');
             });
+        }
+
+        // Web3 One-Click Top-Up (Session Passes)
+        async function startWeb3Topup(amountUsdc, tierName, customProvider = null) {
+            const btnId = 'btn-topup-' + tierName;
+            const btn = document.getElementById(btnId);
+            const origText = btn ? btn.textContent : 'Comprar';
+
+            const statusBox = document.getElementById('topup-status-box');
+            const statusTitle = document.getElementById('topup-status-title');
+            const statusMsg = document.getElementById('topup-status-msg');
+            const successCard = document.getElementById('topup-success-card');
+
+            if (statusBox) statusBox.style.display = 'block';
+            if (successCard) successCard.style.display = 'none';
+
+            let provider = customProvider || window.ethereum;
+            if (!provider) {
+                if (statusTitle) statusTitle.textContent = 'Carteira Web3 não encontrada';
+                if (statusMsg) {
+                    statusMsg.innerHTML = 'Nenhuma extensão de carteira (MetaMask, Coinbase Wallet, Rainbow) detectada.<br><button class="btn-sm btn-primary" style="margin-top: 8px;" onclick="startWeb3TopupWithSmartWallet(' + amountUsdc + ', \'' + tierName + '\')">🔑 Usar Coinbase Smart Wallet com Passkey / Biometria</button>';
+                }
+                return;
+            }
+
+            try {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = 'Conectando...';
+                }
+                if (statusTitle) statusTitle.textContent = '1/3 Conectando carteira na Base...';
+                if (statusMsg) statusMsg.textContent = 'Solicitando conexão com sua carteira Web3...';
+
+                // 1. Conexão de contas
+                const accounts = await provider.request({ method: 'eth_requestAccounts' });
+                if (!accounts || accounts.length === 0) {
+                    throw new Error('Nenhuma conta foi conectada.');
+                }
+                const userAddress = accounts[0];
+
+                // 2. Garantir rede Base Mainnet (0x2105 = 8453)
+                if (statusTitle) statusTitle.textContent = '2/3 Verificando rede Base Mainnet...';
+                try {
+                    await provider.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: '0x2105' }],
+                    });
+                } catch (switchError) {
+                    if (switchError.code === 4902) {
+                        await provider.request({
+                            method: 'wallet_addEthereumChain',
+                            params: [{
+                                chainId: '0x2105',
+                                chainName: 'Base Mainnet',
+                                nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                                rpcUrls: ['https://mainnet.base.org'],
+                                blockExplorerUrls: ['https://basescan.org'],
+                            }],
+                        });
+                    } else {
+                        throw switchError;
+                    }
+                }
+
+                // 3. Monta a transação ERC-20 transfer(to, amount)
+                const amountRaw = Math.round(Number(amountUsdc) * 1e6);
+                const recipient = '<?php echo GRID402_WALLET_ADDRESS; ?>'.toLowerCase().replace('0x', '');
+                const usdcContract = '<?php echo GRID402_USDC_CONTRACT; ?>';
+
+                const recipientPadded = recipient.padStart(64, '0');
+                const amountHex = amountRaw.toString(16).padStart(64, '0');
+                const data = '0xa9059cbb' + recipientPadded + amountHex;
+
+                if (btn) btn.textContent = 'Assinando ' + amountUsdc + ' USDC...';
+                if (statusTitle) statusTitle.textContent = '3/3 Aguardando confirmação...';
+                if (statusMsg) statusMsg.textContent = 'Confirme a transferência de ' + amountUsdc + ' USDC na sua carteira para a infraestrutura do Grid402.';
+
+                const txHash = await provider.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: userAddress,
+                        to: usdcContract,
+                        data: data,
+                    }],
+                });
+
+                if (statusTitle) statusTitle.textContent = 'Transação enviada! Confirmando no bloco Base...';
+                if (statusMsg) statusMsg.innerHTML = 'Tx enviada: <a href="https://basescan.org/tx/' + txHash + '" target="_blank" style="color: #00F0FF; text-decoration: underline;">' + txHash + '</a><br>Aguardando 3.5 segundos para emissão do seu Session Pass...';
+
+                await new Promise(r => setTimeout(r, 3500));
+
+                // 4. Chama a API para registrar e emitir o Session Pass
+                const resp = await fetch('/api/v1/pass?tx=' + encodeURIComponent(txHash));
+                const passData = await resp.json();
+
+                if (passData && (passData.status === 'ACTIVE' || passData.pass_token)) {
+                    if (statusBox) statusBox.style.display = 'none';
+                    if (successCard) successCard.style.display = 'block';
+
+                    document.getElementById('topup-result-token').textContent = passData.pass_token;
+                    document.getElementById('topup-result-credits').textContent = Number(passData.credits_total || 0).toLocaleString();
+                    document.getElementById('topup-result-tier').textContent = (passData.tier || tierName).toUpperCase();
+                    document.getElementById('topup-result-expires').textContent = passData.expires_at || '30 dias';
+
+                    const exampleCurl = 'curl "https://grid402.online/api/v1/forex" -H "X-Payment: ' + passData.pass_token + '"';
+                    document.getElementById('topup-example-curl').textContent = exampleCurl;
+
+                    try {
+                        localStorage.setItem('grid402_last_pass_token', passData.pass_token);
+                    } catch (e) {}
+
+                    successCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    throw new Error(passData.message || passData.error || 'A transação foi transmitida, mas o bloco ainda está propagando no RPC. Aguarde alguns segundos e consulte: /api/v1/pass?tx=' + txHash);
+                }
+            } catch (err) {
+                if (statusTitle) statusTitle.textContent = 'Operação cancelada ou falhou';
+                if (statusMsg) statusMsg.textContent = 'Detalhes do erro: ' + (err.message || err);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = origText;
+                }
+            }
+        }
+
+        async function startWeb3TopupWithSmartWallet(amountUsdc = 5, tierName = 'pro') {
+            const btn = document.getElementById('btn-topup-passkey');
+            const orig = btn ? btn.textContent : '';
+            try {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.textContent = 'Iniciando Smart Wallet...';
+                }
+                const smartProvider = await getCoinbaseSmartWalletProvider();
+                await startWeb3Topup(amountUsdc, tierName, smartProvider);
+            } catch (err) {
+                alert('Erro ao carregar Coinbase Smart Wallet: ' + (err.message || err));
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = orig;
+                }
+            }
+        }
+
+        function copyTopupToken() {
+            const tokenEl = document.getElementById('topup-result-token');
+            const btn = document.getElementById('btn-copy-topup-token');
+            if (!tokenEl) return;
+            navigator.clipboard.writeText(tokenEl.textContent.trim()).then(() => {
+                const orig = btn.textContent;
+                btn.textContent = '✅ Copiado!';
+                setTimeout(() => { btn.textContent = orig; }, 2500);
+            });
+        }
+
+        function closeTopupStatus() {
+            const box = document.getElementById('topup-status-box');
+            if (box) box.style.display = 'none';
         }
 
         // Modal Legal

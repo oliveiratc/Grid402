@@ -57,10 +57,38 @@ function grid402_issue_session_pass(string $txHash, int $rawUsdcUnits = 50000, b
         @mkdir($dir, 0775, true);
     }
 
-    $credits = $isSandbox ? 5 : max(10, intdiv($rawUsdcUnits, 500));
+    // Calibração dos Tiers Web3 do Grid402:
+    // Starter: >= 2 USDC (2.000.000 raw) -> 4.000 reqs, 30 dias
+    // Pro:     >= 5 USDC (5.000.000 raw) -> 10.000 reqs, 30 dias
+    // Fleet:   >= 20 USDC (20.000.000 raw) -> 50.000 reqs (+10k bonus), 60 dias
+    $validityDays = 30;
+    $tier = 'standard';
+    if ($isSandbox) {
+        $credits = 5;
+        $tier = 'sandbox';
+        $validityDays = 1 / 24; // 1 hora
+    } else {
+        if ($rawUsdcUnits >= 20000000) {
+            $credits = max(50000, intdiv($rawUsdcUnits, 400));
+            $tier = 'fleet';
+            $validityDays = 60;
+        } elseif ($rawUsdcUnits >= 5000000) {
+            $credits = intdiv($rawUsdcUnits, 500);
+            $tier = 'pro';
+            $validityDays = 30;
+        } elseif ($rawUsdcUnits >= 2000000) {
+            $credits = intdiv($rawUsdcUnits, 500);
+            $tier = 'starter';
+            $validityDays = 30;
+        } else {
+            $credits = max(10, intdiv($rawUsdcUnits, 500));
+            $tier = 'standard';
+            $validityDays = 30;
+        }
+    }
     $usdcAmount = $isSandbox ? '0.0000 (Sandbox)' : number_format($rawUsdcUnits / 1e6, 4, '.', '');
     $now = time();
-    $expiresAt = $now + ($isSandbox ? 3600 : (30 * 86400)); // 1h sandbox, 30 dias produção
+    $expiresAt = $now + (int) round($validityDays * 86400);
 
     $fp = fopen($file, 'c+');
     if (!$fp) {
@@ -93,6 +121,7 @@ function grid402_issue_session_pass(string $txHash, int $rawUsdcUnits = 50000, b
             $record = [
                 'pass_id' => $passId,
                 'pass_token' => $token,
+                'tier' => $tier,
                 'mode' => $isSandbox ? 'sandbox' : 'production',
                 'tx_hash' => $cleanTx,
                 'usdc_deposited' => $usdcAmount,
@@ -126,6 +155,7 @@ function grid402_issue_session_pass(string $txHash, int $rawUsdcUnits = 50000, b
     return [
         'service' => 'pass',
         'status' => 'ACTIVE',
+        'tier' => $record['tier'] ?? 'standard',
         'pass_token' => $record['pass_token'],
         'mode' => $record['mode'],
         'credits_total' => $record['credits_total'],
@@ -133,6 +163,7 @@ function grid402_issue_session_pass(string $txHash, int $rawUsdcUnits = 50000, b
         'usdc_deposited' => $record['usdc_deposited'],
         'issued_at' => $record['issued_at'],
         'expires_at' => $record['expires_at'],
+        'expires_epoch' => $record['expires_epoch'] ?? 0,
         'usage_instructions' => [
             'header' => 'X-Payment: ' . $record['pass_token'],
             'credit_rates' => [
@@ -189,6 +220,7 @@ function grid402_get_session_pass_status(string $token): array {
     return [
         'valid' => true,
         'service' => 'pass',
+        'tier' => $entry['tier'] ?? 'standard',
         'status' => ($isExpired ? 'EXPIRED' : ($remaining > 0 ? 'ACTIVE' : 'DEPLETED')),
         'active' => (!$isExpired && $remaining > 0),
         'pass_token' => $entry['pass_token'],
@@ -198,6 +230,7 @@ function grid402_get_session_pass_status(string $token): array {
         'usage_count' => (int)($entry['usage_count'] ?? 0),
         'issued_at' => $entry['issued_at'] ?? null,
         'expires_at' => $entry['expires_at'] ?? null,
+        'expires_epoch' => (int)($entry['expires_epoch'] ?? 0),
         'timestamp' => gmdate('Y-m-d\TH:i:s\Z', $now),
     ];
 }

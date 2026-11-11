@@ -1,0 +1,37 @@
+{
+  "name": "@grid402/plugin-elizaos",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Grid402 Official ElizaOS Plugin for Real-Time Open Data, Forex, Crypto & Compliance Intelligence on Base",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test tests/**/*.test.js"
+  },
+  "keywords": [
+    "elizaos",
+    "elizaos-plugin",
+    "ai16z",
+    "ai-agents",
+    "base",
+    "x402",
+    "usdc",
+    "forex",
+    "crypto",
+    "compliance",
+    "ofac",
+    "lei",
+    "cnpj"
+  ],
+  "author": "oliveiratc",
+  "license": "MIT",
+  "peerDependencies": {
+    "@elizaos/core": ">=0.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
+

@@ -74,7 +74,42 @@ const agentKit = await AgentKit.from({
 
 Exemplos detalhados em TypeScript e Python disponíveis em [`integrations/agentkit/README.md`](integrations/agentkit/README.md).
 
-### 3. Chamadas Diretas via cURL
+### 3. Plugin Oficial para ElizaOS (`@grid402/plugin-elizaos`)
+
+Para agentes autônomos no framework [ElizaOS](https://github.com/elizaos/eliza):
+
+```typescript
+import { grid402Plugin } from "@grid402/plugin-elizaos";
+
+export const character = {
+  name: "CryptoComplianceAgent",
+  plugins: [grid402Plugin],
+  settings: {
+    secrets: {
+      GRID402_PASS_TOKEN: "pass_g402_live..._..." // Adquira em https://grid402.online/#topup
+    }
+  }
+};
+```
+
+Exemplos detalhados e guia de instalação disponíveis em [`integrations/elizaos/README.md`](integrations/elizaos/README.md).
+
+### 4. Recarga Web3 em 1 Clique (Session Passes na Base)
+
+Para agentes e desenvolvedores que buscam alta frequência (&lt;15ms) sem o custo e atrito de assinar 1 transação a cada `GET`:
+- Acesse a interface web em [https://grid402.online/#topup](https://grid402.online/#topup)
+- Conecte sua carteira (MetaMask, Coinbase Smart Wallet com Passkey, Rainbow) na rede Base
+- Selecione seu pacote:
+  - **Starter:** 2 USDC $\rightarrow$ 4.000 requisições (validade 30 dias)
+  - **Pro:** 5 USDC $\rightarrow$ 10.000 requisições (validade 30 dias)
+  - **Fleet:** 20 USDC $\rightarrow$ 50.000 requisições (+10k bônus, validade 60 dias)
+- Receba instantaneamente seu token `pass_g402_live...` para usar no cabeçalho `X-Payment`.
+
+### 5. Dossiê Institucional Base Grants & Coinbase CDP
+
+O plano de crescimento, métricas de rede e candidatura formal a subsídios da Base Foundation e Coinbase Developer Platform estão detalhados em [`docs/BASE_GRANTS_AND_CDP_DOSSIER.md`](docs/BASE_GRANTS_AND_CDP_DOSSIER.md).
+
+### 6. Chamadas Diretas via cURL
 
 #### Consulta com Desafio HTTP 402 e Amostra Gratuita:
 ```bash

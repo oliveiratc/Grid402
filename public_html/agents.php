@@ -506,8 +506,28 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
 }</pre>
         </div>
 
-        <!-- 2. Python Agent Snippet -->
-        <h2 class="section-title" data-i18n="agents.s2.title">2. Código Python para Agentes Autônomos</h2>
+        <!-- 2. Framework ElizaOS Oficial -->
+        <h2 class="section-title">2. Plugin Oficial para ElizaOS (@grid402/plugin-elizaos)</h2>
+        <p class="section-sub">Permita que agentes de IA autonomos no ElizaOS consultem cambio, cripto spot, mercados mundiais e sancoes OFAC/AML.</p>
+
+        <div class="code-box">
+            <button class="copy-btn" onclick="copySnippet('code-eliza', this)">Copiar TypeScript</button>
+            <pre id="code-eliza">import { grid402Plugin } from "@grid402/plugin-elizaos";
+
+export const defaultCharacter = {
+  name: "GridMarketAgent",
+  plugins: [grid402Plugin],
+  settings: {
+    secrets: {
+      // Abasteca seu saldo em https://grid402.online/#topup
+      GRID402_PASS_TOKEN: "pass_g402_live..."
+    }
+  }
+};</pre>
+        </div>
+
+        <!-- 3. Codigo Python para Agentes Autonomos -->
+        <h2 class="section-title" data-i18n="agents.s2.title">3. Código Python para Agentes Autônomos</h2>
         <p class="section-sub" data-i18n="agents.s2.sub">Consumo direto tratando o desafio HTTP 402 ou usando Session Pass (`pass_g402_...`).</p>
 
         <div class="code-box">

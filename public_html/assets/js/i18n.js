@@ -8,6 +8,7 @@ const GRID402_I18N = {
     pt: {
         // Navegacao e Header
         'nav.services': 'Serviços',
+        'nav.topup': 'Abastecer Saldo',
         'nav.savings': 'Economia 98%',
         'nav.playground': 'Playground',
         'nav.console': 'Console',
@@ -22,11 +23,28 @@ const GRID402_I18N = {
         'hero.tag': 'Hub Global de Micro-Serviços e Oráculo M2M para Agentes de IA',
         'hero.title': 'Grid402: Infraestrutura Global de Dados Públicos e Utilitários M2M para Agentes de IA',
         'hero.desc': 'Acesse 19 endpoints globais e brasileiros: identidade corporativa mundial (GLEIF LEI em 200+ países), sanções OFAC SDN + AML Web3 na Base, notarização criptográfica ECDSA, bolsas mundiais e 30+ moedas do BCE, câmbio, cripto, compliance 360, Selic/CDI/IPCA, feriados ANBIMA, DNS, SSL, BGP/ASN, CEP e CNPJ em milissegundos sem cadastro ou API keys. Liquidação via x402 ou Session Pass pré-pago (<15ms).',
+        'hero.btn.topup': '💎 Abastecer Saldo Web3 (Base)',
         'hero.btn.agents': '🤖 Central de Agentes IA',
         'hero.btn.playground': '⚡ Testar no Playground',
         'hero.btn.console': 'Console e SDKs',
         'hero.btn.llms': 'Documentação llms.txt',
         'hero.btn.status': 'Resumo Gratuito (JSON)',
+
+        // Topup Tiers Web3
+        'topup.tag': '⚡ Liquidação Instantânea em Lote na Base (USDC)',
+        'topup.title': 'Abasteça seu Saldo Web3 em 1 Clique (Session Passes)',
+        'topup.desc': 'Pague uma única vez em USDC na rede Base Mainnet e receba na hora um token pass_g402_... com saldo de milhares de requisições de alta velocidade (<15ms) sem assinar transações a cada GET.',
+        'topup.starter.tag': 'Starter Pass',
+        'topup.starter.desc': 'Ideal para desenvolvedores individuais, testes rápidos e bots pontuais.',
+        'topup.starter.btn': 'Comprar Starter (2 USDC)',
+        'topup.pro.badge': 'Mais Escolhido',
+        'topup.pro.tag': 'Pro / Agent Pass',
+        'topup.pro.desc': 'Para agentes autônomos de IA e esteiras de automação contínua.',
+        'topup.pro.btn': 'Comprar Pro (5 USDC)',
+        'topup.fleet.badge': '+10.000 Bônus',
+        'topup.fleet.tag': 'Fleet / Enterprise',
+        'topup.fleet.desc': 'Frotas de agentes autônomos, sistemas ERP corporativos e alta demanda.',
+        'topup.fleet.btn': 'Comprar Fleet (20 USDC)',
 
         // Cards dos 14 Servicos Publicos
         'svc.forex.name': 'Câmbio e Moedas',
@@ -413,6 +431,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
     en: {
         // Navigation and Header
         'nav.services': 'Services',
+        'nav.topup': 'Web3 Top-Up',
         'nav.savings': '98% Savings',
         'nav.playground': 'Playground',
         'nav.console': 'Console',
@@ -427,11 +446,28 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'hero.tag': 'Global Microservices and M2M Oracle Hub for Autonomous AI Agents',
         'hero.title': 'Grid402: Global Open-Data and Network Utilities Infrastructure for AI Agents',
         'hero.desc': 'Access 19 global and regional endpoints: worldwide corporate identity (GLEIF LEI across 200+ countries), US Treasury OFAC SDN sanctions + Base Web3 AML, ECDSA timestamp notarization, world exchange calendars and 30+ ECB currencies, live FX, crypto spot, Compliance 360, DNS, SSL, BGP/ASN, CEP, and CNPJ in milliseconds with zero signup or API keys. Settled via x402 on Base or Prepaid Session Pass (<15ms).',
+        'hero.btn.topup': '💎 Web3 Top-Up (Base)',
         'hero.btn.agents': '🤖 AI Agents Hub',
         'hero.btn.playground': '⚡ Test in Playground',
         'hero.btn.console': 'Console and SDKs',
         'hero.btn.llms': 'llms.txt Documentation',
         'hero.btn.status': 'Free Status (JSON)',
+
+        // Topup Tiers Web3
+        'topup.tag': '⚡ Instant Batch Settlement on Base (USDC)',
+        'topup.title': '1-Click Web3 Credit Top-Up (Session Passes)',
+        'topup.desc': 'Pay once in USDC on Base Mainnet and instantly receive a pass_g402_... token with thousands of high-speed (<15ms) requests without signing transactions on every single GET.',
+        'topup.starter.tag': 'Starter Pass',
+        'topup.starter.desc': 'Ideal for solo developers, quick prototypes, and lightweight bots.',
+        'topup.starter.btn': 'Buy Starter (2 USDC)',
+        'topup.pro.badge': 'Most Popular',
+        'topup.pro.tag': 'Pro / Agent Pass',
+        'topup.pro.desc': 'For autonomous AI agents and continuous automation pipelines.',
+        'topup.pro.btn': 'Buy Pro (5 USDC)',
+        'topup.fleet.badge': '+10,000 Bonus',
+        'topup.fleet.tag': 'Fleet / Enterprise',
+        'topup.fleet.desc': 'Autonomous agent fleets, enterprise ERPs, and heavy-duty pipelines.',
+        'topup.fleet.btn': 'Buy Fleet (20 USDC)',
 
         // 14 Services Cards
         'svc.forex.name': 'Forex and Currencies',
