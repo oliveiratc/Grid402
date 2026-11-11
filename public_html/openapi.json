@@ -562,6 +562,7 @@
         "summary": "Global Corporate Identity via GLEIF LEI (CC0 1.0 Public Domain)",
         "description": "Queries the official Global Legal Entity Identifier Foundation (GLEIF) registry across 200+ jurisdictions. Price: 0.0020 USDC (4 Session Pass credits).",
         "tags": ["Global-LEI"],
+        "security": [{ "x402Payment": [] }],
         "parameters": [
           {
             "name": "lei",
@@ -572,7 +573,14 @@
           }
         ],
         "responses": {
-          "200": { "description": "Verified LEI corporate identity record with ECDSA oracle proof" },
+          "200": {
+            "description": "Verified LEI corporate identity record with ECDSA oracle proof",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LeiResponse" }
+              }
+            }
+          },
           "402": { "$ref": "#/components/responses/PaymentRequired" }
         }
       }
@@ -582,6 +590,7 @@
         "summary": "Global Sanctions (OFAC SDN / UN) & Web3 AML Wallet Inspector",
         "description": "Cross-checks 0x EVM wallets, LEI codes, or entity names against US Treasury OFAC SDN and UN Consolidated Lists, plus live Base Mainnet wallet telemetry. Price: 0.0020 USDC (4 Session Pass credits).",
         "tags": ["Global-OFAC-AML"],
+        "security": [{ "x402Payment": [] }],
         "parameters": [
           {
             "name": "target",
@@ -592,7 +601,14 @@
           }
         ],
         "responses": {
-          "200": { "description": "Sanctions screening and Base Mainnet AML risk report" },
+          "200": {
+            "description": "Sanctions screening and Base Mainnet AML risk report",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OfacResponse" }
+              }
+            }
+          },
           "402": { "$ref": "#/components/responses/PaymentRequired" }
         }
       }
@@ -602,6 +618,7 @@
         "summary": "M2M Cryptographic Timestamp & Proof-of-Existence",
         "description": "Generates a deterministic SHA-256 hash and issues a UTC timestamp certificate signed with the Grid402 Oracle secp256k1 private key. Price: 0.0005 USDC (1 Session Pass credit).",
         "tags": ["Notarization"],
+        "security": [{ "x402Payment": [] }],
         "parameters": [
           {
             "name": "content",
@@ -612,7 +629,14 @@
           }
         ],
         "responses": {
-          "200": { "description": "Signed timestamp and notarization certificate" },
+          "200": {
+            "description": "Signed timestamp and notarization certificate",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NotarizeResponse" }
+              }
+            }
+          },
           "402": { "$ref": "#/components/responses/PaymentRequired" }
         }
       }
@@ -622,6 +646,7 @@
         "summary": "World Financial Calendar (US/EU/UK/BR) & 30+ ECB FX Reference Rates",
         "description": "Returns exchange settlement holiday status for US (NYSE/Fed), EU (TARGET2), UK (LSE), or BR (B3/ANBIMA) plus 30+ official European Central Bank reference rates. Price: 0.0005 USDC (1 Session Pass credit).",
         "tags": ["Global-Markets"],
+        "security": [{ "x402Payment": [] }],
         "parameters": [
           {
             "name": "market",
@@ -643,7 +668,14 @@
           }
         ],
         "responses": {
-          "200": { "description": "Global market settlement calendar and 30+ ECB FX rates" },
+          "200": {
+            "description": "Global market settlement calendar and 30+ ECB FX rates",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GlobalMarketsResponse" }
+              }
+            }
+          },
           "402": { "$ref": "#/components/responses/PaymentRequired" }
         }
       }
@@ -663,7 +695,14 @@
           }
         ],
         "responses": {
-          "200": { "description": "Issued session pass or active balance status" },
+          "200": {
+            "description": "Issued session pass or active balance status",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SessionPassResponse" }
+              }
+            }
+          },
           "402": { "$ref": "#/components/responses/PaymentRequired" }
         }
       }
@@ -812,21 +851,58 @@
           "docs": { "type": "string", "example": "https://grid402.online/llms.txt" }
         }
       },
+      "ForexRateItem": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "example": "USD" },
+          "name": { "type": "string", "example": "Dólar Americano/Real Brasileiro" },
+          "bid": { "type": "number", "example": 5.421 },
+          "ask": { "type": "number", "example": 5.423 },
+          "high": { "type": "number", "example": 5.45 },
+          "low": { "type": "number", "example": 5.39 },
+          "pctChange": { "type": "number", "example": 0.25 },
+          "quote_timestamp": { "type": "string", "format": "date-time", "description": "Exact upstream market quote timestamp (ISO 8601 UTC)", "example": "2026-11-11T10:40:00Z" },
+          "timestamp": { "type": "string", "format": "date-time", "example": "2026-11-11T10:40:00Z" }
+        },
+        "required": ["code", "name", "bid", "ask", "quote_timestamp", "timestamp"]
+      },
       "ForexResponse": {
         "type": "object",
         "properties": {
+          "service": { "type": "string", "example": "forex" },
           "status": { "type": "string", "example": "UP" },
-          "timestamp": { "type": "string" },
-          "rates": { "type": "object" }
-        }
+          "base": { "type": "string", "example": "BRL" },
+          "timestamp": { "type": "string", "format": "date-time", "example": "2026-11-11T10:40:05Z" },
+          "response_timestamp": { "type": "string", "format": "date-time", "description": "Oracle response generation timestamp (ISO 8601 UTC)", "example": "2026-11-11T10:40:05Z" },
+          "ttl_seconds": { "type": "integer", "description": "Cache freshness TTL in seconds", "example": 60 },
+          "rates": {
+            "type": "object",
+            "properties": {
+              "USD": { "$ref": "#/components/schemas/ForexRateItem" },
+              "EUR": { "$ref": "#/components/schemas/ForexRateItem" },
+              "GBP": { "$ref": "#/components/schemas/ForexRateItem" }
+            }
+          },
+          "source": { "type": "string", "example": "Banco Central / Dados Abertos" },
+          "legal_license": { "type": "string", "example": "Fatos Econômicos e Cotações de Domínio Público (Lei nº 9.610/1998 Art. 8º, I e Decreto nº 8.777/2016)" },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
+        },
+        "required": ["service", "status", "base", "timestamp", "response_timestamp", "ttl_seconds", "rates", "legal_license", "_oracle_proof"]
       },
       "CryptoResponse": {
         "type": "object",
         "properties": {
+          "service": { "type": "string", "example": "crypto" },
           "status": { "type": "string", "example": "UP" },
-          "timestamp": { "type": "string" },
-          "tickers": { "type": "object" }
-        }
+          "network": { "type": "string", "example": "Base" },
+          "chain_id": { "type": "integer", "example": 8453 },
+          "timestamp": { "type": "string", "format": "date-time", "example": "2026-11-11T10:40:05Z" },
+          "ttl_seconds": { "type": "integer", "example": 60 },
+          "tickers": { "type": "object" },
+          "legal_license": { "type": "string" },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
+        },
+        "required": ["service", "status", "timestamp", "ttl_seconds", "tickers", "_oracle_proof"]
       },
       "DnsResponse": {
         "type": "object",
@@ -1037,6 +1113,108 @@
         "properties": {
           "error": { "type": "string" },
           "message": { "type": "string" }
+        }
+      },
+      "LeiResponse": {
+        "type": "object",
+        "properties": {
+          "service": { "type": "string", "example": "lei" },
+          "status": { "type": "string", "example": "UP" },
+          "lei": { "type": "string", "example": "5493006MHB84DD0ZWV18" },
+          "legal_name": { "type": "string", "example": "Alphabet Inc." },
+          "jurisdiction": { "type": "string", "example": "US-DE" },
+          "entity_status": { "type": "string", "example": "ACTIVE" },
+          "entity_category": { "type": "string", "example": "GENERAL" },
+          "registration_status": { "type": "string", "example": "ISSUED" },
+          "legal_address": { "type": "object" },
+          "headquarters_address": { "type": "object" },
+          "registration_details": { "type": "object" },
+          "source": { "type": "string", "example": "Global Legal Entity Identifier Foundation (GLEIF)" },
+          "legal_license": { "type": "string", "example": "CC0 1.0 Universal (Public Domain Dedication — ISO 17442)" },
+          "data_protection_compliance": { "type": "string", "example": "GDPR Recital 14 & LGPD Art. 1º (Strictly Corporate Legal Entity Data — Zero Personal/Natural Person PII)" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
+        }
+      },
+      "OfacResponse": {
+        "type": "object",
+        "properties": {
+          "service": { "type": "string", "example": "ofac" },
+          "status": { "type": "string", "example": "UP" },
+          "target": { "type": "string", "example": "0x8589427373d6d84e98730d7795d8f6f8731fda16" },
+          "target_type": { "type": "string", "example": "evm_wallet" },
+          "sanctioned": { "type": "boolean", "example": true },
+          "risk_score": { "type": "integer", "example": 100 },
+          "risk_level": { "type": "string", "example": "CRITICAL" },
+          "compliance_decision": { "type": "string", "example": "BLOCK_TRANSACTION" },
+          "lists_checked": { "type": "array", "items": { "type": "string" } },
+          "matches": { "type": "array", "items": { "type": "object" } },
+          "web3_aml": { "type": "object", "nullable": true },
+          "legal_license": { "type": "string", "example": "Public Domain (17 U.S.C. § 105 - US Government Works & UN Open Data)" },
+          "data_protection_compliance": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
+        }
+      },
+      "NotarizeResponse": {
+        "type": "object",
+        "properties": {
+          "service": { "type": "string", "example": "notarize" },
+          "status": { "type": "string", "example": "NOTARIZED" },
+          "certificate_id": { "type": "string", "example": "G402-CERT-417470D1BB733EF1" },
+          "input_mode": { "type": "string", "example": "raw_payload_hashed" },
+          "input_sha256": { "type": "string", "example": "0x5465790576c0f4fbcc883c3dc4e9f41a7d655a31bce9101d98cfbdf0ea24eb2c" },
+          "input_byte_length": { "type": "integer", "example": 24 },
+          "zero_retention_policy": { "type": "string", "example": "STRICT_STATELESS_HASH_ONLY (Raw content is hashed in RAM and immediately discarded — Zero PII stored)" },
+          "notarized_at_utc": { "type": "string", "format": "date-time" },
+          "unix_epoch": { "type": "integer" },
+          "oracle_authority": { "type": "object" },
+          "legal_license": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
+        }
+      },
+      "GlobalMarketsResponse": {
+        "type": "object",
+        "properties": {
+          "service": { "type": "string", "example": "global-markets" },
+          "status": { "type": "string", "example": "UP" },
+          "market_calendar": {
+            "type": "object",
+            "properties": {
+              "market_code": { "type": "string", "example": "US" },
+              "exchange_name": { "type": "string", "example": "NYSE / NASDAQ / Federal Reserve Wire" },
+              "date": { "type": "string", "example": "2026-07-03" },
+              "is_settlement_workday": { "type": "boolean", "example": false },
+              "holiday_name": { "type": "string", "nullable": true },
+              "next_settlement_workday": { "type": "string", "example": "2026-07-06" }
+            }
+          },
+          "ecb_fx_reference": {
+            "type": "object",
+            "properties": {
+              "base_currency": { "type": "string", "example": "USD" },
+              "reference_date": { "type": "string" },
+              "currencies_count": { "type": "integer", "example": 31 },
+              "rates": { "type": "object" }
+            }
+          },
+          "legal_license": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
+        }
+      },
+      "SessionPassResponse": {
+        "type": "object",
+        "properties": {
+          "service": { "type": "string", "example": "pass" },
+          "status": { "type": "string", "example": "ACTIVE" },
+          "session_pass": { "type": "string", "example": "pass_g402_a1b2c3d4e5f6_9f8e7d6c5b4a" },
+          "credits_total": { "type": "integer", "example": 100 },
+          "credits_remaining": { "type": "integer", "example": 100 },
+          "expires_at": { "type": "string", "format": "date-time" },
+          "usage_header": { "type": "string", "example": "X-Payment: pass_g402_..." },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
         }
       }
     }
