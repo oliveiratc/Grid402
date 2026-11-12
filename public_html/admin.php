@@ -594,6 +594,7 @@ if ($apiParam === 'stats') {
         'server_time' => gmdate('Y-m-d\TH:i:s\Z'),
         'total_requests' => (int)($metrics['total_requests'] ?? 0),
         'total_paid_requests' => (int)($metrics['total_paid_requests'] ?? 0),
+        'total_sandbox_requests' => (int)($metrics['total_sandbox_requests'] ?? 0),
         'total_revenue_usdc' => $revenueUsdc,
         'total_revenue_brl' => round($revenueUsdc * $usdRate, 2),
         'today_revenue_usdc' => $todayUsdc,
@@ -799,6 +800,7 @@ $todayBrl = round($todayUsdc * $usdRate, 2);
 
 $totalReqs = (int)($metrics['total_requests'] ?? 0);
 $paidReqs = (int)($metrics['total_paid_requests'] ?? 0);
+$sandboxReqs = (int)($metrics['total_sandbox_requests'] ?? 0);
 $reqs402 = (int)($metrics['status_counts']['402'] ?? 0);
 $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $paidReqs)) * 100, 1) : 0;
 ?>
@@ -1320,7 +1322,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             <div class="kpi-card">
                 <div class="kpi-title">Consultas Totais</div>
                 <div class="kpi-value" id="kpi-total-reqs"><?php echo number_format($totalReqs, 0, ',', '.'); ?></div>
-                <div class="kpi-sub" id="kpi-paid-reqs"><?php echo number_format($paidReqs, 0, ',', '.'); ?> consultas pagas liquidadas</div>
+                <div class="kpi-sub" id="kpi-paid-reqs"><?php echo number_format($paidReqs, 0, ',', '.'); ?> consultas pagas liquidadas • <?php echo number_format($sandboxReqs, 0, ',', '.'); ?> sandbox</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">Taxa de Conversão</div>
@@ -1603,7 +1605,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 if (todayUsdcEl) todayUsdcEl.textContent = 'US$ ' + Number(data.today_revenue_usdc || 0).toFixed(4);
                 if (todayBrlEl) todayBrlEl.textContent = '≈ R$ ' + Number(data.today_revenue_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + ' hoje';
                 if (totalReqsEl) totalReqsEl.textContent = Number(data.total_requests || 0).toLocaleString('pt-BR');
-                if (paidReqsEl) paidReqsEl.textContent = Number(data.total_paid_requests || 0).toLocaleString('pt-BR') + ' consultas pagas liquidadas';
+                if (paidReqsEl) paidReqsEl.textContent = Number(data.total_paid_requests || 0).toLocaleString('pt-BR') + ' consultas pagas liquidadas • ' + Number(data.total_sandbox_requests || 0).toLocaleString('pt-BR') + ' sandbox';
 
                 const reqs402 = (data.status_counts ? Number(data.status_counts['402'] || 0) : 0);
                 const paid = Number(data.total_paid_requests || 0);

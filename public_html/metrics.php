@@ -165,6 +165,11 @@ function grid402_record_telemetry(
         }
         $metrics['service_counts'][$svc] = ((int)($metrics['service_counts'][$svc] ?? 0)) + 1;
 
+        // 1.1 Contador separado de consultas sandbox/demo (nao geram receita)
+        if ($eventTrafficType === 'sandbox') {
+            $metrics['total_sandbox_requests'] = ((int)($metrics['total_sandbox_requests'] ?? 0)) + 1;
+        }
+
         // 2. Faturamento se pago
         $effectivePrice = $priceUsdc ?? (float)GRID402_PRICE_DISPLAY;
         if ($isPaid) {

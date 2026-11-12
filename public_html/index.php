@@ -790,7 +790,16 @@ if ($isValidApiAction) {
 
     // Pagamento ou Sandbox validado com sucesso! Executa o micro-serviço requisitado
     $isSandbox = !empty($validation['sandbox']);
-    grid402_record_telemetry($apiParam, 200, true, $paymentProof, null, $isSandbox ? 0.0 : (float)$servicePriceDisplay);
+    // Sandbox/demo nao e consulta paga: registra como 'sandbox' para nao inflar "consultas pagas" nem a conversao
+    grid402_record_telemetry(
+        $apiParam,
+        200,
+        !$isSandbox,
+        $paymentProof,
+        null,
+        $isSandbox ? 0.0 : (float)$servicePriceDisplay,
+        $isSandbox ? 'sandbox' : null
+    );
     if (!$isSandbox) {
         grid402_notify_telegram_purchase($apiParam, (float)$servicePriceDisplay, $paymentProof);
     }
