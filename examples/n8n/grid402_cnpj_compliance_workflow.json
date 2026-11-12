@@ -1,0 +1,189 @@
+{
+  "name": "Grid402 - Enriquecimento B2B (CNPJ Compliance + CEP)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "b1a0c001-0001-4000-8000-000000000001",
+      "name": "Ao Executar Manualmente",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cfg-cnpj",
+              "name": "cnpj",
+              "value": "00000000000191",
+              "type": "string"
+            },
+            {
+              "id": "cfg-cep",
+              "name": "cep",
+              "value": "01310100",
+              "type": "string"
+            },
+            {
+              "id": "cfg-payment",
+              "name": "x_payment",
+              "value": "demo",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b1a0c001-0002-4000-8000-000000000002",
+      "name": "Configurar Consulta (Troque demo pelo pass_g402_...)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://grid402.online/api/v1/compliance?cnpj={{ $json.cnpj }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Payment",
+              "value": "={{ $json.x_payment }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b1a0c001-0003-4000-8000-000000000003",
+      "name": "Grid402 - Compliance 360 (CNPJ)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://grid402.online/api/v1/cep?code={{ $('Configurar Consulta (Troque demo pelo pass_g402_...)').item.json.cep }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Payment",
+              "value": "={{ $('Configurar Consulta (Troque demo pelo pass_g402_...)').item.json.x_payment }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b1a0c001-0004-4000-8000-000000000004",
+      "name": "Grid402 - Endereco CEP e IBGE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "out-cnpj",
+              "name": "compliance",
+              "value": "={{ $('Grid402 - Compliance 360 (CNPJ)').item.json }}",
+              "type": "object"
+            },
+            {
+              "id": "out-cep",
+              "name": "endereco_cep",
+              "value": "={{ $json }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b1a0c001-0005-4000-8000-000000000005",
+      "name": "Consolidar Dossie B2B",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Ao Executar Manualmente": {
+      "main": [
+        [
+          {
+            "node": "Configurar Consulta (Troque demo pelo pass_g402_...)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configurar Consulta (Troque demo pelo pass_g402_...)": {
+      "main": [
+        [
+          {
+            "node": "Grid402 - Compliance 360 (CNPJ)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Grid402 - Endereco CEP e IBGE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Grid402 - Endereco CEP e IBGE": {
+      "main": [
+        [
+          {
+            "node": "Consolidar Dossie B2B",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "Grid402"
+    },
+    {
+      "name": "CNPJ"
+    },
+    {
+      "name": "x402"
+    }
+  ]
+}

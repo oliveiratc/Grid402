@@ -52,7 +52,7 @@ APIs de `crypto` e `dns` têm dezenas de alternativas gratuitas lá fora. O **di
 - `/api/v1/forex` (precificação em BRL).
 
 **Ação prática:**
-1. Criar um **guia/template pronto para n8n e Make** mostrando como enriquecer um lead B2B (recebe CNPJ no formulário/WhatsApp → chama `/api/v1/compliance?cnpj=...` com header `X-Payment: pass_g402_...` → retorna score de risco, situação na Receita, Simples Nacional e sanções CEIS/CNEP em 1 chamada).
+1. Template pronto criado em [`examples/n8n/grid402_cnpj_compliance_workflow.json`](examples/n8n/grid402_cnpj_compliance_workflow.json) e guia em [`examples/n8n/README.md`](examples/n8n/README.md) (consulta CNPJ Compliance 360 + CEP/IBGE em paralelo, já pré-configurado com `X-Payment: demo` para teste em 30s e troca fácil para `pass_g402_...`).
 2. Divulgar esse caso de uso em comunidades brasileiras de **n8n, automação, SaaS e IA aplicada** (LinkedIn, Discord/Telegram de n8n Brasil, TabNews).
 
 ### Frente 3: Eliminar a barreira de entrada do Session Pass
@@ -80,8 +80,28 @@ curl -s -H "X-Payment: pass_g402_SEU_TOKEN_AQUI" \
 
 ---
 
-## 5. Checklist de Deploy Imediato
+## 5. Checklist de Deploy Imediato e Submissão nos Diretórios
+
+### Deploy Técnico
 1. Subir as alterações de `public_html/x402.php` para a Hostinger (`https://grid402.online`).
-2. Testar `curl -i https://grid402.online/api/v1/forex` e confirmar que o JSON do `402` já exibe `sandbox_test` e a instrução do `X-Payment: demo`.
-3. Publicar atualização do pacote `mcp/` (`grid402-mcp`) no npm com suporte a `GRID402_SESSION_PASS`.
-4. Submeter nos diretórios (`base.org/ecosystem`, Smithery, Glama, PyPI, npm).
+2. Testar `curl -i https://grid402.online/api/v1/forex` e confirmar que o JSON do `402` já exibe `sandbox_test` e o link `https://grid402.online/#topup`.
+3. Publicar atualização do pacote `mcp/` (`grid402-mcp@1.8.1`) no npm com suporte a `GRID402_SESSION_PASS`:
+   ```bash
+   cd mcp
+   npm publish --access public
+   ```
+
+### Submissão nos Diretórios (Copy & Paste)
+1. **x402 Ecosystem / x402 Bazaar (`https://www.x402.org/ecosystem`):**
+   - **Name:** `Grid402`
+   - **Category:** `Data & Network Utilities / Oracles`
+   - **Endpoint / Discovery:** `https://grid402.online/llms.txt` e `https://grid402.online/openapi.json`
+   - **Description:** `Autonomous open data & network utility hub (Forex, Crypto, DNS, SSL, ASN, CEP, CNPJ, Compliance, LEI, OFAC) settled via HTTP x402 v2 in USDC on Base Mainnet ($0.0005–$0.0030) with ECDSA secp256k1 oracle proofs and <15ms Session Passes.`
+2. **Base Ecosystem Directory (`https://www.base.org/ecosystem`):**
+   - Formulário pronto em [`DIVULGACAO.md`](DIVULGACAO.md) (seção 2).
+3. **Diretórios MCP (Smithery.ai, Glama.ai, PulseMCP, mcp.so):**
+   - **Repositório:** `https://github.com/oliveiratc/Grid402`
+   - **Package npm:** `grid402-mcp` (`1.8.1`)
+   - **Manifestos já no repo:** `smithery.yaml`, `glama.json`, `public_html/.well-known/mcp/server-card.json`
+4. **PyPI e npm (SDKs):**
+   - Comandos prontos em [`DIVULGACAO.md`](DIVULGACAO.md) (seção 1).

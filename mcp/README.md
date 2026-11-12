@@ -58,14 +58,17 @@ Adicione ao seu arquivo de configuração (`claude_desktop_config.json`):
       "env": {
         "GRID402_ENDPOINT": "https://grid402.online",
         "GRID402_SANDBOX": "false",
-        "GRID402_PRIVATE_KEY": "0xsua_chave_privada_base_aqui"
+        "GRID402_SESSION_PASS": "pass_g402_seu_passe_aqui_opcional",
+        "GRID402_PRIVATE_KEY": "0xsua_chave_privada_base_aqui_opcional"
       }
     }
   }
 }
 ```
 
-> 💡 **Modo Sandbox Gratuito:** Você pode definir `"GRID402_SANDBOX": "true"` para testar todas as ferramentas sem gastar USDC nem configurar chave privada (limite de 20 consultas por hora por IP).
+> 💡 **Modo Sandbox Gratuito:** Você pode definir `"GRID402_SANDBOX": "true"` para testar todas as ferramentas sem gastar USDC nem configurar chave privada (limite de 3 consultas por hora por IP).
+>
+> 💡 **Session Pass (Sem Chave Privada):** Se preferir não informar `GRID402_PRIVATE_KEY`, adquira um passe pré-pago em `https://grid402.online/#topup` e defina `"GRID402_SESSION_PASS": "pass_g402_..."` para execução em `<15ms`.
 >
 > 💡 **Nota de Segurança:** A variável `GRID402_PRIVATE_KEY` é opcional. Se informada, o servidor MCP realiza a transferência automática de USDC on-chain na Base a cada consulta paga. Se não informada ou sem saldo, o servidor retorna o desafio x402 com amostra de dados. A chave é processada estritamente na sua máquina local e nunca é enviada ao servidor do Grid402.
 
