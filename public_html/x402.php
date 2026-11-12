@@ -340,7 +340,7 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
     if (!preg_match('/^0x[a-f0-9]{64}$/', $txHash)) {
         return [
             'valid' => false,
-            'reason' => 'Formato de tx_hash invalido. Esperado 0x seguido de 64 caracteres hexadecimais, ou use "demo" para testes.',
+            'reason' => 'Prova de pagamento invalida. O Grid402 liquida por tx_hash: envie USDC na Base para a carteira do oraculo e repita a requisicao com o cabecalho "X-Payment: 0x<64 hex>" (hash da transacao). Payloads assinados EIP-3009 (base64) nao sao aceitos. Para testar sem pagar, use "X-Payment: demo". Guia: /llms.txt',
             'code' => 400,
         ];
     }
@@ -535,7 +535,7 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         'price_usdc' => $priceDisplay,
         'price_raw_units' => $priceRawUnits,
         'recipient_wallet' => GRID402_WALLET_ADDRESS,
-        'action_required' => "Envie {$priceDisplay} USDC para a carteira recipient_wallet na rede Base e refaça a requisição incluindo o cabeçalho \"X-Payment: <tx_hash>\".",
+        'action_required' => "1) Envie {$priceDisplay} USDC (Base, chain 8453) para recipient_wallet. 2) Refaca a requisicao com o cabecalho \"X-Payment: <tx_hash>\" (hash da transacao, nao assinatura EIP-3009). Para testar sem pagar use \"X-Payment: demo\" (3 consultas/hora).",
         'docs' => (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . '/llms.txt',
     ];
 

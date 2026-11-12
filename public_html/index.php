@@ -64,6 +64,10 @@ if ($paymentProof === '' && function_exists('apache_request_headers')) {
     $paymentProof = (string) ($reqHeaders['X-Payment'] ?? $reqHeaders['x-payment'] ?? '');
 }
 if ($paymentProof === '') {
+    // Clientes x402 v2 padrao enviam a prova no cabecalho PAYMENT-SIGNATURE
+    $paymentProof = trim((string) ($_SERVER['HTTP_PAYMENT_SIGNATURE'] ?? ''));
+}
+if ($paymentProof === '') {
     $authHeader = (string) ($_SERVER['HTTP_AUTHORIZATION'] ?? '');
     if (str_starts_with($authHeader, 'x402 ')) {
         $paymentProof = substr($authHeader, 5);

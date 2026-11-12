@@ -1373,8 +1373,19 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                         '200' => ['label' => '200 OK', 'color' => '#10B981'],
                         '402' => ['label' => '402 Desafio', 'color' => '#F59E0B'],
                         '403' => ['label' => '403 Replay', 'color' => '#EF4444'],
+                        '400' => ['label' => '400 Prova inválida', 'color' => '#F97316'],
+                        '429' => ['label' => '429 Limite sandbox', 'color' => '#A855F7'],
                     ];
+                    // Inclui qualquer outro status gravado, para nenhum evento ficar fora das barras
+                    foreach (array_keys($statusCounts) as $extraCode) {
+                        if (!isset($statuses[(string)$extraCode])) {
+                            $statuses[(string)$extraCode] = ['label' => $extraCode . ' Outros', 'color' => '#64748B'];
+                        }
+                    }
                     foreach ($statuses as $code => $info):
+                        if (!isset($statusCounts[$code]) && !in_array((string)$code, ['200', '402', '403'], true)) {
+                            continue;
+                        }
                         $cnt = (int)($statusCounts[$code] ?? 0);
                         $pct = round(($cnt / $totalStatus) * 100);
                     ?>
