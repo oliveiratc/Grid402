@@ -360,6 +360,8 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
 
   if (params.payment_tx_hash) {
     headers['X-Payment'] = params.payment_tx_hash;
+  } else if (process.env.GRID402_SESSION_PASS) {
+    headers['X-Payment'] = process.env.GRID402_SESSION_PASS.trim();
   } else if (process.env.GRID402_SANDBOX === 'true' || process.env.GRID402_SANDBOX === '1') {
     headers['X-Payment'] = 'demo';
   }
@@ -406,12 +408,12 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
       }
     }
 
-    // Se não há chave privada configurada, retorna o desafio de pagamento estruturado
+    // Se não há chave privada ou session pass configurados, retorna o desafio de pagamento estruturado
     return {
       payment_required: true,
-      message: 'Esta consulta requer micropagamento de 0.0005 USDC na rede Base via protocolo x402.',
+      message: 'Esta consulta requer micropagamento em USDC na rede Base via protocolo x402.',
       challenge,
-      instructions: 'Para liquidação automática, defina a variável de ambiente GRID402_PRIVATE_KEY no seu arquivo de configuração MCP.',
+      instructions: 'Opções de acesso: (1) Teste grátis definindo GRID402_SANDBOX=true; (2) Use um passe pré-pago sem expor chave privada definindo GRID402_SESSION_PASS=pass_g402_...; (3) Para auto-liquidação on-chain x402, defina GRID402_PRIVATE_KEY.',
     };
   }
 
