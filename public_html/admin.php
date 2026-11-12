@@ -608,6 +608,7 @@ if ($apiParam === 'stats') {
     $usdRate = (float)($forex['rates']['USD']['bid'] ?? 5.50);
     $wallet = grid402_get_oracle_wallet_balances();
     $oracleConfigured = defined('GRID402_ORACLE_PRIVATE_KEY') && !empty(GRID402_ORACLE_PRIVATE_KEY);
+    $analytics = grid402_compute_admin_analytics($metrics, $usdRate);
 
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-cache, no-store, must-revalidate');
@@ -638,8 +639,13 @@ if ($apiParam === 'stats') {
         'total_revenue_brl' => round($revenueUsdc * $usdRate, 2),
         'today_revenue_usdc' => $todayUsdc,
         'today_revenue_brl' => round($todayUsdc * $usdRate, 2),
+        'arpu_usdc' => $analytics['arpu_usdc'],
+        'arpu_brl' => $analytics['arpu_brl'],
+        'technical_success_rate' => $analytics['technical_success_rate'],
+        'sandbox_rate' => $analytics['sandbox_rate'],
         'usd_rate' => $usdRate,
         'wallet_balances' => $wallet,
+        'passes_stats' => $analytics['passes_stats'] ?? [],
         'oracle_configured' => $oracleConfigured,
         'status_counts' => $metrics['status_counts'] ?? [],
         'service_counts' => $metrics['service_counts'] ?? [],
@@ -647,6 +653,9 @@ if ($apiParam === 'stats') {
         'failure_categories' => $failureCategories,
         'payment_source_labels' => $paymentSourceLabels,
         'failure_category_labels' => $failureCategoryLabels,
+        'daily_history_14d' => $analytics['daily_history_14d'] ?? [],
+        'top_consumers' => $analytics['top_consumers'] ?? [],
+        'service_revenue' => $analytics['service_revenue'] ?? [],
         'recent_events' => $metrics['recent_events'] ?? [],
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
@@ -833,6 +842,7 @@ $forex = grid402_service_forex();
 $usdRate = (float)($forex['rates']['USD']['bid'] ?? 5.50);
 $wallet = grid402_get_oracle_wallet_balances();
 $oracleConfigured = defined('GRID402_ORACLE_PRIVATE_KEY') && !empty(GRID402_ORACLE_PRIVATE_KEY);
+$analytics = grid402_compute_admin_analytics($metrics, $usdRate);
 
 $revenueUsdc = (float)($metrics['total_revenue_usdc'] ?? 0.0);
 $revenueBrl = round($revenueUsdc * $usdRate, 2);
@@ -840,6 +850,15 @@ $revenueBrl = round($revenueUsdc * $usdRate, 2);
 $today = gmdate('Y-m-d');
 $todayUsdc = (float)($metrics['daily'][$today]['usdc'] ?? 0.0);
 $todayBrl = round($todayUsdc * $usdRate, 2);
+
+$arpuUsdc = $analytics['arpu_usdc'];
+$arpuBrl = $analytics['arpu_brl'];
+$technicalSuccessRate = $analytics['technical_success_rate'];
+$sandboxRate = $analytics['sandbox_rate'];
+$passesStats = $analytics['passes_stats'] ?? ['active_passes' => 0, 'remaining_credits' => 0];
+$dailyHistory14d = $analytics['daily_history_14d'] ?? [];
+$topConsumers = $analytics['top_consumers'] ?? [];
+$serviceRevenue = $analytics['service_revenue'] ?? [];
 
 $totalReqs = (int)($metrics['total_requests'] ?? 0);
 $paidReqs = (int)($metrics['total_paid_requests'] ?? 0);
@@ -1000,6 +1019,100 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             color: var(--text-muted);
             margin-top: 0.4rem;
         }
+
+        /* Gráfico Temporal SVG 14 Dias */
+        .chart-wrap {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            margin-top: 0.5rem;
+        }
+        .chart-svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+        .chart-tooltip {
+            position: absolute;
+            display: none;
+            background: #0B132B;
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            color: #fff;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+            pointer-events: none;
+            z-index: 50;
+            white-space: nowrap;
+            transition: opacity 0.15s ease;
+        }
+        .chart-grid-line {
+            stroke: rgba(255, 255, 255, 0.06);
+            stroke-dasharray: 3,3;
+        }
+        .chart-axis-text {
+            fill: var(--text-muted);
+            font-size: 10px;
+            font-family: var(--font-mono);
+            text-anchor: middle;
+        }
+        .chart-bar-rect {
+            fill: url(#chartGradient);
+            transition: height 0.3s ease, y 0.3s ease, opacity 0.2s ease;
+            cursor: pointer;
+        }
+        .chart-bar-rect:hover {
+            opacity: 0.85;
+            filter: brightness(1.2);
+        }
+        .chart-bar-paid-rect {
+            fill: #10B981;
+            transition: height 0.3s ease, y 0.3s ease;
+        }
+        .tag-profile {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.68rem;
+            font-weight: 600;
+            font-family: var(--font-mono);
+        }
+        .profile-paid {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10B981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .profile-sandbox {
+            background: rgba(168, 85, 247, 0.15);
+            color: #C084FC;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+        }
+        .profile-agent {
+            background: rgba(56, 189, 248, 0.15);
+            color: #38BDF8;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+        .profile-402 {
+            background: rgba(245, 158, 11, 0.15);
+            color: #FBBF24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .rank-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+        .rank-badge.top-1 { background: rgba(245, 158, 11, 0.2); color: #F59E0B; border: 1px solid rgba(245, 158, 11, 0.4); }
+        .rank-badge.top-2 { background: rgba(203, 213, 225, 0.2); color: #CBD5E1; border: 1px solid rgba(203, 213, 225, 0.4); }
+        .rank-badge.top-3 { background: rgba(180, 83, 9, 0.2); color: #D97706; border: 1px solid rgba(180, 83, 9, 0.4); }
 
         /* 2-Columns Layout */
         .analytics-row {
@@ -1378,7 +1491,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             </div>
         </header>
 
-        <!-- KPI Cards (5 Cards) -->
+        <!-- KPI Cards Grid (8 Cards Executivos de Alta Fidelidade) -->
         <div class="kpi-grid">
             <div class="kpi-card">
                 <div class="kpi-title">Faturamento Total</div>
@@ -1391,9 +1504,14 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 <div class="kpi-sub" id="kpi-today-brl">≈ R$ <?php echo number_format($todayBrl, 2, ',', '.'); ?> hoje</div>
             </div>
             <div class="kpi-card">
+                <div class="kpi-title">Ticket Médio (ARPU)</div>
+                <div class="kpi-value" id="kpi-arpu-usdc">US$ <?php echo number_format($arpuUsdc, 4); ?></div>
+                <div class="kpi-sub" id="kpi-arpu-brl">≈ R$ <?php echo number_format($arpuBrl, 4, ',', '.'); ?> / consulta paga</div>
+            </div>
+            <div class="kpi-card">
                 <div class="kpi-title">Consultas Totais</div>
                 <div class="kpi-value" id="kpi-total-reqs"><?php echo number_format($totalReqs, 0, ',', '.'); ?></div>
-                <div class="kpi-sub" id="kpi-paid-reqs"><?php echo number_format($paidReqs, 0, ',', '.'); ?> consultas pagas liquidadas • <?php echo number_format($sandboxReqs, 0, ',', '.'); ?> sandbox</div>
+                <div class="kpi-sub" id="kpi-paid-reqs"><?php echo number_format($paidReqs, 0, ',', '.'); ?> pagas • <?php echo number_format($sandboxReqs, 0, ',', '.'); ?> sandbox</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">Taxa de Conversão</div>
@@ -1401,16 +1519,99 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 <div class="kpi-sub">Pagos / Desafios 402 emitidos</div>
             </div>
             <div class="kpi-card">
+                <div class="kpi-title">SLA / Sucesso Técnico</div>
+                <div class="kpi-value" id="kpi-sla-tech" style="color: #10B981;"><?php echo $technicalSuccessRate; ?>%</div>
+                <div class="kpi-sub">HTTP 200 OK sobre total de chamadas</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Adoção Sandbox</div>
+                <div class="kpi-value" id="kpi-sandbox-rate" style="color: #A855F7;"><?php echo $sandboxRate; ?>%</div>
+                <div class="kpi-sub">Testes sem custo antes da conversão</div>
+            </div>
+            <div class="kpi-card">
                 <div class="kpi-title">
                     <span>Saldo On-Chain (Base)</span>
                     <span id="kpi-rpc-status" style="font-size: 0.68rem; font-family: var(--font-mono); color: var(--primary);">RPC ATIVO</span>
                 </div>
                 <div class="kpi-value" id="kpi-wallet-usdc">US$ <?php echo number_format((float)($wallet['usdc_balance'] ?? 0.0), 4); ?></div>
-                <div class="kpi-sub" id="kpi-wallet-eth"><?php echo number_format((float)($wallet['eth_balance'] ?? 0.0), 5); ?> ETH (Gas) • Base</div>
+                <div class="kpi-sub" id="kpi-wallet-passes"><?php echo (int)($passesStats['active_passes'] ?? 0); ?> passes ativos • <?php echo number_format((int)($passesStats['remaining_credits'] ?? 0), 0, ',', '.'); ?> créditos</div>
             </div>
         </div>
 
-        <!-- 2 Columns: Tráfego por Micro-Serviço (19 Nós) e Códigos de Status -->
+        <!-- Linha Analítica 1: Gráfico Temporal Diário SVG (14 Dias) + Top Agentes / Consumidores -->
+        <div class="analytics-row">
+            <div class="panel">
+                <div class="panel-title">
+                    <span>Evolução Diária (Últimos 14 Dias)</span>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Volume e Faturamento</span>
+                </div>
+                <div class="chart-wrap" id="chart-wrap-14d">
+                    <div id="chart-tooltip" class="chart-tooltip"></div>
+                    <svg id="chart-svg-14d" class="chart-svg" viewBox="0 0 680 200" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.9"/>
+                                <stop offset="100%" stop-color="#0052FF" stop-opacity="0.4"/>
+                            </linearGradient>
+                        </defs>
+                        <!-- As barras e eixos são gerados e atualizados dinamicamente via JS -->
+                    </svg>
+                </div>
+                <div style="display: flex; gap: 1.25rem; font-size: 0.72rem; color: var(--text-muted); margin-top: 0.75rem; justify-content: center;">
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                        <span style="display: inline-block; width: 10px; height: 10px; background: linear-gradient(135deg, #00F0FF, #0052FF); border-radius: 2px;"></span>
+                        <span>Consultas Totais</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                        <span style="display: inline-block; width: 10px; height: 10px; background: #10B981; border-radius: 2px;"></span>
+                        <span>Consultas Pagas (x402)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">
+                    <span>Top Agentes / IPs Consumidores (LGPD)</span>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Últimas 100 consultas</span>
+                </div>
+                <div class="table-wrap" style="max-height: 230px; overflow-y: auto;">
+                    <table style="min-width: 100%;">
+                        <thead>
+                            <tr>
+                                <th style="width: 32px;">#</th>
+                                <th>IP Mascarado</th>
+                                <th>Total</th>
+                                <th>Perfil Estimado</th>
+                                <th>Fav</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top-consumers-tbody">
+                            <?php if (empty($topConsumers)): ?>
+                                <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Aguardando eventos no buffer.</td></tr>
+                            <?php else: ?>
+                                <?php foreach ($topConsumers as $c): 
+                                    $pCls = 'profile-agent';
+                                    if ($c['paid'] > 0) $pCls = 'profile-paid';
+                                    elseif ($c['sandbox'] > 0) $pCls = 'profile-sandbox';
+                                    elseif ($c['challenges'] > 5) $pCls = 'profile-402';
+                                    $rkCls = ($c['rank'] <= 3) ? 'top-' . $c['rank'] : '';
+                                ?>
+                                <tr>
+                                    <td><span class="rank-badge <?php echo $rkCls; ?>"><?php echo $c['rank']; ?></span></td>
+                                    <td><code style="font-family: var(--font-mono); font-size: 0.78rem;"><?php echo htmlspecialchars($c['ip_masked'], ENT_QUOTES); ?></code></td>
+                                    <td><strong><?php echo $c['total']; ?></strong> <span style="font-size: 0.7rem; color: var(--text-muted);">(<?php echo $c['paid']; ?>p)</span></td>
+                                    <td><span class="tag-profile <?php echo $pCls; ?>"><?php echo htmlspecialchars($c['profile'], ENT_QUOTES); ?></span></td>
+                                    <td><code style="font-size: 0.72rem; color: var(--accent);"><?php echo htmlspecialchars($c['favorite_service'], ENT_QUOTES); ?></code></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Linha Analítica 2: Volume por Micro-Serviço + Rentabilidade Estimada por Serviço -->
         <div class="analytics-row">
             <div class="panel">
                 <div class="panel-title">Volume por Micro-Serviço (19 Nós)</div>
@@ -1433,6 +1634,31 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                     <?php endforeach; ?>
                 </div>
             </div>
+
+            <div class="panel">
+                <div class="panel-title">
+                    <span>Rentabilidade Estimada por Serviço (USDC)</span>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Volume × Preço Oficial</span>
+                </div>
+                <div id="service-revenue-bars-container">
+                    <?php
+                    $maxRev = 0.0001;
+                    foreach ($serviceRevenue as $sr) {
+                        if ((float)$sr['estimated_usdc'] > $maxRev) $maxRev = (float)$sr['estimated_usdc'];
+                    }
+                    foreach (array_slice($serviceRevenue, 0, 10) as $sr):
+                        $revVal = (float)$sr['estimated_usdc'];
+                        $revPct = round(($revVal / $maxRev) * 100);
+                    ?>
+                    <div class="bar-row">
+                        <span class="bar-label wide"><?php echo htmlspecialchars($sr['service'], ENT_QUOTES); ?> <small style="color: var(--text-muted);">($<?php echo $sr['unit_price']; ?>)</small></span>
+                        <div class="bar-track"><div class="bar-fill" style="width: <?php echo $revPct; ?>%; background: linear-gradient(90deg, #10B981, #00F0FF);"></div></div>
+                        <span class="bar-count" style="width: 72px;">$<?php echo number_format($revVal, 4); ?></span>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
 
             <div class="panel">
                 <div class="panel-title">Distribuição de Status HTTP</div>
@@ -1773,6 +1999,159 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             el.innerHTML = html;
         }
 
+        // Renderiza o Gráfico Temporal SVG Nativo dos Últimos 14 Dias
+        function renderSvgChart(history) {
+            const svg = document.getElementById('chart-svg-14d');
+            if (!svg || !history || history.length === 0) return;
+
+            const maxReqs = Math.max(10, ...history.map(d => Number(d.requests || 0)));
+            const width = 680;
+            const height = 200;
+            const padL = 35;
+            const padR = 15;
+            const padT = 20;
+            const padB = 30;
+            const chartW = width - padL - padR;
+            const chartH = height - padT - padB;
+            const n = history.length;
+            const slotW = chartW / n;
+            const barW = Math.max(12, slotW * 0.55);
+
+            let svgContent = `
+            <defs>
+                <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.9"/>
+                    <stop offset="100%" stop-color="#0052FF" stop-opacity="0.4"/>
+                </linearGradient>
+            </defs>`;
+
+            // Linhas de Grade e Eixo Y
+            const gridSteps = [0, 0.5, 1];
+            gridSteps.forEach(step => {
+                const y = padT + chartH - (step * chartH);
+                const val = Math.round(step * maxReqs);
+                svgContent += `
+                <line x1="${padL}" y1="${y}" x2="${width - padR}" y2="${y}" class="chart-grid-line" />
+                <text x="${padL - 6}" y="${y + 3}" class="chart-axis-text" style="text-anchor: end;">${val}</text>`;
+            });
+
+            // Barras e Eixo X
+            history.forEach((d, i) => {
+                const reqs = Number(d.requests || 0);
+                const paid = Number(d.paid || 0);
+                const usdc = Number(d.usdc || 0);
+                const barH = reqs > 0 ? Math.max(4, Math.round((reqs / maxReqs) * chartH)) : 0;
+                const paidH = paid > 0 ? Math.max(4, Math.round((paid / maxReqs) * chartH)) : 0;
+                const slotX = padL + (i * slotW);
+                const barX = slotX + ((slotW - barW) / 2);
+                const barY = padT + chartH - barH;
+                const paidY = padT + chartH - paidH;
+                const labelX = slotX + (slotW / 2);
+
+                if (barH > 0) {
+                    svgContent += `<rect x="${barX}" y="${barY}" width="${barW}" height="${barH}" rx="3" class="chart-bar-rect" />`;
+                }
+
+                if (paidH > 0) {
+                    svgContent += `<rect x="${barX}" y="${paidY}" width="${barW}" height="${paidH}" rx="3" class="chart-bar-paid-rect" />`;
+                }
+
+                svgContent += `<text x="${labelX}" y="${height - 10}" class="chart-axis-text">${safeHtmlText(d.label || '')}</text>`;
+
+                svgContent += `
+                <rect x="${slotX}" y="${padT}" width="${slotW}" height="${chartH}" fill="transparent" style="cursor: pointer;"
+                    data-date="${safeHtmlText(d.date || '')}"
+                    data-requests="${reqs}"
+                    data-paid="${paid}"
+                    data-usdc="${usdc.toFixed(4)}"
+                    onmouseenter="handleBarHover(event, this)"
+                    onmouseleave="handleBarLeave()"
+                    ontouchstart="handleBarHover(event, this)" />`;
+            });
+
+            svg.innerHTML = svgContent;
+        }
+
+        function handleBarHover(e, el) {
+            const tooltip = document.getElementById('chart-tooltip');
+            const wrap = document.getElementById('chart-wrap-14d');
+            if (!tooltip || !wrap) return;
+
+            const date = el.getAttribute('data-date');
+            const reqs = el.getAttribute('data-requests');
+            const paid = el.getAttribute('data-paid');
+            const usdc = el.getAttribute('data-usdc');
+
+            tooltip.innerHTML = `
+                <div style="font-weight: 700; color: var(--accent); margin-bottom: 2px;">📅 ${date}</div>
+                <div>📊 Total: <strong>${reqs}</strong> requisições</div>
+                <div>🟢 Pagas (x402): <strong>${paid}</strong></div>
+                <div>💰 Faturamento: <strong>US$ ${usdc}</strong></div>
+            `;
+            tooltip.style.display = 'block';
+
+            const wrapRect = wrap.getBoundingClientRect();
+            const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : wrapRect.left + wrapRect.width / 2);
+            let leftPos = clientX - wrapRect.left - 60;
+            if (leftPos < 10) leftPos = 10;
+            if (leftPos > wrapRect.width - 160) leftPos = wrapRect.width - 160;
+
+            tooltip.style.left = leftPos + 'px';
+            tooltip.style.top = '10px';
+        }
+
+        function handleBarLeave() {
+            const tooltip = document.getElementById('chart-tooltip');
+            if (tooltip) tooltip.style.display = 'none';
+        }
+
+        // Renderiza a lista de Top Consumidores
+        function renderTopConsumers(consumers) {
+            const tbody = document.getElementById('top-consumers-tbody');
+            if (!tbody) return;
+            if (!consumers || consumers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Aguardando eventos no buffer.</td></tr>';
+                return;
+            }
+            let html = '';
+            consumers.forEach(c => {
+                let pCls = 'profile-agent';
+                if (c.paid > 0) pCls = 'profile-paid';
+                else if (c.sandbox > 0) pCls = 'profile-sandbox';
+                else if (c.challenges > 5) pCls = 'profile-402';
+                const rkCls = (c.rank <= 3) ? 'top-' + c.rank : '';
+                html += `
+                <tr>
+                    <td><span class="rank-badge ${rkCls}">${c.rank}</span></td>
+                    <td><code style="font-family: var(--font-mono); font-size: 0.78rem;">${safeHtmlText(c.ip_masked)}</code></td>
+                    <td><strong>${c.total}</strong> <span style="font-size: 0.7rem; color: var(--text-muted);">(${c.paid}p)</span></td>
+                    <td><span class="tag-profile ${pCls}">${safeHtmlText(c.profile)}</span></td>
+                    <td><code style="font-size: 0.72rem; color: var(--accent);">${safeHtmlText(c.favorite_service)}</code></td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        }
+
+        // Renderiza a lista de Rentabilidade por Servico
+        function renderServiceRevenue(services) {
+            const el = document.getElementById('service-revenue-bars-container');
+            if (!el || !services) return;
+            const top10 = services.slice(0, 10);
+            const maxVal = Math.max(0.0001, ...top10.map(s => Number(s.estimated_usdc || 0)));
+            let html = '';
+            top10.forEach(s => {
+                const rev = Number(s.estimated_usdc || 0);
+                const p = Math.round((rev / maxVal) * 100);
+                html += `
+                <div class="bar-row">
+                    <span class="bar-label wide">${safeHtmlText(s.service)} <small style="color: var(--text-muted);">($${s.unit_price})</small></span>
+                    <div class="bar-track"><div class="bar-fill" style="width: ${p}%; background: linear-gradient(90deg, #10B981, #00F0FF);"></div></div>
+                    <span class="bar-count" style="width: 72px;">$${rev.toFixed(4)}</span>
+                </div>`;
+            });
+            el.innerHTML = html;
+        }
+
         async function fetchLiveStats(isManual = false) {
             try {
                 const res = await fetch('/admin?api=stats', { cache: 'no-store' });
@@ -1791,13 +2170,27 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 const totalReqsEl = document.getElementById('kpi-total-reqs');
                 const paidReqsEl = document.getElementById('kpi-paid-reqs');
                 const convEl = document.getElementById('kpi-conversion');
+                const arpuUsdcEl = document.getElementById('kpi-arpu-usdc');
+                const arpuBrlEl = document.getElementById('kpi-arpu-brl');
+                const slaTechEl = document.getElementById('kpi-sla-tech');
+                const sandboxRateEl = document.getElementById('kpi-sandbox-rate');
+                const passesEl = document.getElementById('kpi-wallet-passes');
 
                 if (totalUsdcEl) totalUsdcEl.textContent = 'US$ ' + Number(data.total_revenue_usdc || 0).toFixed(4);
-                if (totalBrlEl) totalBrlEl.textContent = '≈ R$ ' + Number(data.total_revenue_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                if (totalBrlEl) totalBrlEl.textContent = '≈ R$ ' + Number(data.total_revenue_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + ' (Base Mainnet)';
                 if (todayUsdcEl) todayUsdcEl.textContent = 'US$ ' + Number(data.today_revenue_usdc || 0).toFixed(4);
                 if (todayBrlEl) todayBrlEl.textContent = '≈ R$ ' + Number(data.today_revenue_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + ' hoje';
                 if (totalReqsEl) totalReqsEl.textContent = Number(data.total_requests || 0).toLocaleString('pt-BR');
-                if (paidReqsEl) paidReqsEl.textContent = Number(data.total_paid_requests || 0).toLocaleString('pt-BR') + ' consultas pagas liquidadas • ' + Number(data.total_sandbox_requests || 0).toLocaleString('pt-BR') + ' sandbox';
+                if (paidReqsEl) paidReqsEl.textContent = Number(data.total_paid_requests || 0).toLocaleString('pt-BR') + ' pagas • ' + Number(data.total_sandbox_requests || 0).toLocaleString('pt-BR') + ' sandbox';
+
+                if (arpuUsdcEl) arpuUsdcEl.textContent = 'US$ ' + Number(data.arpu_usdc || 0.0005).toFixed(4);
+                if (arpuBrlEl) arpuBrlEl.textContent = '≈ R$ ' + Number(data.arpu_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 4 }) + ' / consulta paga';
+                if (slaTechEl) slaTechEl.textContent = Number(data.technical_success_rate || 100).toFixed(1) + '%';
+                if (sandboxRateEl) sandboxRateEl.textContent = Number(data.sandbox_rate || 0).toFixed(1) + '%';
+
+                if (passesEl && data.passes_stats) {
+                    passesEl.textContent = Number(data.passes_stats.active_passes || 0) + ' passes ativos • ' + Number(data.passes_stats.remaining_credits || 0).toLocaleString('pt-BR') + ' créditos';
+                }
 
                 const reqs402 = (data.status_counts ? Number(data.status_counts['402'] || 0) : 0);
                 const paid = Number(data.total_paid_requests || 0);
@@ -1808,14 +2201,27 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 if (data.wallet_balances) {
                     const w = data.wallet_balances;
                     const usdcEl = document.getElementById('kpi-wallet-usdc');
-                    const ethEl = document.getElementById('kpi-wallet-eth');
                     const rpcEl = document.getElementById('kpi-rpc-status');
                     if (usdcEl) usdcEl.textContent = 'US$ ' + Number(w.usdc_balance || 0).toFixed(4);
-                    if (ethEl) ethEl.textContent = Number(w.eth_balance || 0).toFixed(5) + ' ETH (Gas) • Base';
                     if (rpcEl) {
                         rpcEl.textContent = w.rpc_operational ? 'RPC ATIVO' : 'CACHE OFFLINE';
                         rpcEl.style.color = w.rpc_operational ? 'var(--primary)' : 'var(--warning)';
                     }
+                }
+
+                // 2b. Atualizar Gráfico Temporal 14 Dias
+                if (data.daily_history_14d) {
+                    renderSvgChart(data.daily_history_14d);
+                }
+
+                // 2c. Atualizar Top Agentes / Consumidores
+                if (data.top_consumers) {
+                    renderTopConsumers(data.top_consumers);
+                }
+
+                // 2d. Atualizar Rentabilidade Estimada por Serviço
+                if (data.service_revenue) {
+                    renderServiceRevenue(data.service_revenue);
                 }
 
                 // 3. Atualizar Barras de Servicos (19 Nós)
@@ -2022,6 +2428,8 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
         });
 
         // Inicializacao dos contadores e polling
+        const initialDaily = <?php echo json_encode($dailyHistory14d, JSON_HEX_TAG | JSON_HEX_AMP); ?>;
+        renderSvgChart(initialDaily);
         applyFeedFilterAndSearch();
         fetchLiveStats();
         setInterval(fetchLiveStats, 5000);

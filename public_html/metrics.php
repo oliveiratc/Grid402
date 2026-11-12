@@ -296,6 +296,12 @@ function grid402_record_telemetry(
             $metrics['daily'][$today]['usdc'] = round(((float)$metrics['daily'][$today]['usdc']) + $effectivePrice, 4);
         }
 
+        // Rotação determinística: manter apenas os 14 dias mais recentes no histórico
+        ksort($metrics['daily']);
+        if (count($metrics['daily']) > 14) {
+            $metrics['daily'] = array_slice($metrics['daily'], -14, 14, true);
+        }
+
         // 4. Buffer circular de eventos recentes (limite expandido para 100)
         if (!isset($metrics['recent_events']) || !is_array($metrics['recent_events'])) {
             $metrics['recent_events'] = [];
@@ -331,5 +337,207 @@ function grid402_record_telemetry(
     }
 
     fclose($fp);
+}
+
+/**
+ * Obtém estatísticas de Passes de Sessão Web3 (ativos, créditos emitidos e restantes)
+ */
+function grid402_get_passes_stats(): array {
+    $file = defined('GRID402_FILE_PASSES') ? GRID402_FILE_PASSES : (defined('GRID402_PRIVATE_DIR') ? GRID402_PRIVATE_DIR . '/session_passes.json' : __DIR__ . '/private_data/session_passes.json');
+    if (!file_exists($file)) {
+        return [
+            'total_issued' => 0,
+            'active_passes' => 0,
+            'total_credits' => 0,
+            'remaining_credits' => 0,
+        ];
+    }
+    $raw = @file_get_contents($file);
+    $passes = $raw ? (@json_decode($raw, true) ?: []) : [];
+    $total = count($passes);
+    $active = 0;
+    $totalCredits = 0;
+    $remainingCredits = 0;
+    $now = time();
+    foreach ($passes as $p) {
+        $exp = isset($p['expires_at']) ? strtotime($p['expires_at']) : 0;
+        $rem = (int)($p['credits_remaining'] ?? 0);
+        $init = (int)($p['initial_credits'] ?? 0);
+        $totalCredits += $init;
+        $remainingCredits += $rem;
+        if ($exp > $now && $rem > 0) {
+            $active++;
+        }
+    }
+    return [
+        'total_issued' => $total,
+        'active_passes' => $active,
+        'total_credits' => $totalCredits,
+        'remaining_credits' => $remainingCredits,
+    ];
+}
+
+/**
+ * Computa indicadores analíticos avançados para o painel administrativo:
+ * - ARPU (Ticket Médio em USDC e BRL)
+ * - SLA Técnico (Taxa de HTTP 200 %)
+ * - Taxa de Adoção de Sandbox (%)
+ * - Histórico Diário ordenado dos últimos 14 dias (com preenchimento contínuo)
+ * - Top Agentes / IPs Consumidores (anonimizados conforme LGPD)
+ * - Rentabilidade Estimada por Micro-Serviço com base nos preços de tabela USDC
+ * - Estatísticas de Passes de Sessão Web3 Ativos
+ */
+function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50): array {
+    $totalRequests = (int)($metrics['total_requests'] ?? 0);
+    $totalPaid = (int)($metrics['total_paid_requests'] ?? 0);
+    $totalSandbox = (int)($metrics['total_sandbox_requests'] ?? 0);
+    $totalRevenueUsdc = (float)($metrics['total_revenue_usdc'] ?? 0.0);
+    $statusCounts = is_array($metrics['status_counts'] ?? null) ? $metrics['status_counts'] : [];
+    $serviceCounts = is_array($metrics['service_counts'] ?? null) ? $metrics['service_counts'] : [];
+    $recentEvents = is_array($metrics['recent_events'] ?? null) ? $metrics['recent_events'] : [];
+    $rawDaily = is_array($metrics['daily'] ?? null) ? $metrics['daily'] : [];
+
+    // 1. ARPU (Ticket Médio por consulta paga)
+    $arpuUsdc = $totalPaid > 0 ? round($totalRevenueUsdc / $totalPaid, 6) : 0.0005;
+    $arpuBrl = round($arpuUsdc * $usdRate, 4);
+
+    // 2. SLA Técnico (HTTP 200 %)
+    $ok200 = (int)($statusCounts['200'] ?? 0);
+    $technicalSuccessRate = $totalRequests > 0 ? round(($ok200 / $totalRequests) * 100, 1) : 100.0;
+
+    // 3. Taxa de Adoção Sandbox (%)
+    $sandboxRate = $totalRequests > 0 ? round(($totalSandbox / $totalRequests) * 100, 1) : 0.0;
+
+    // 4. Histórico dos últimos 14 dias contínuo (preenchendo eventuais dias sem tráfego)
+    $dailyHistory14d = [];
+    $todayTs = strtotime(gmdate('Y-m-d'));
+    for ($i = 13; $i >= 0; $i--) {
+        $dayStr = gmdate('Y-m-d', $todayTs - ($i * 86400));
+        $dayData = $rawDaily[$dayStr] ?? ['requests' => 0, 'paid' => 0, 'usdc' => 0.0];
+        $dailyHistory14d[] = [
+            'date' => $dayStr,
+            'label' => gmdate('d/m', strtotime($dayStr)),
+            'requests' => (int)($dayData['requests'] ?? 0),
+            'paid' => (int)($dayData['paid'] ?? 0),
+            'usdc' => (float)($dayData['usdc'] ?? 0.0),
+        ];
+    }
+
+    // 5. Top Agentes / IPs Consumidores (LGPD) a partir de recent_events
+    $ipAggregates = [];
+    foreach ($recentEvents as $ev) {
+        $maskedIp = (string)($ev['ip_masked'] ?? 'xxx.xxx.xxx.xxx');
+        if (!isset($ipAggregates[$maskedIp])) {
+            $ipAggregates[$maskedIp] = [
+                'ip_masked' => $maskedIp,
+                'total' => 0,
+                'paid' => 0,
+                'sandbox' => 0,
+                'challenges' => 0,
+                'blocked' => 0,
+                'services' => [],
+                'last_seen' => (string)($ev['timestamp'] ?? ''),
+            ];
+        }
+        $ipAggregates[$maskedIp]['total']++;
+        $evType = (string)($ev['type'] ?? '');
+        $status = (int)($ev['status'] ?? 200);
+        if ($evType === 'paid' || !empty($ev['is_paid'])) {
+            $ipAggregates[$maskedIp]['paid']++;
+        } elseif ($evType === 'sandbox') {
+            $ipAggregates[$maskedIp]['sandbox']++;
+        } elseif ($status === 402 || $evType === 'challenge_402') {
+            $ipAggregates[$maskedIp]['challenges']++;
+        } elseif ($status === 403 || $evType === 'blocked_403') {
+            $ipAggregates[$maskedIp]['blocked']++;
+        }
+
+        $svc = (string)($ev['service'] ?? '');
+        if ($svc !== '') {
+            $ipAggregates[$maskedIp]['services'][$svc] = ($ipAggregates[$maskedIp]['services'][$svc] ?? 0) + 1;
+        }
+    }
+
+    // Ordena os IPs por maior total de requisições
+    uasort($ipAggregates, fn($a, $b) => $b['total'] <=> $a['total']);
+    $topConsumers = [];
+    $rank = 1;
+    foreach ($ipAggregates as $ip => $data) {
+        // Encontra o serviço favorito deste IP
+        arsort($data['services']);
+        $favService = key($data['services']) ?: 'forex';
+        
+        // Perfil heurístico do consumidor
+        $profile = 'Agente IA';
+        if ($data['paid'] > 0) {
+            $profile = 'Agente Pagador (x402)';
+        } elseif ($data['sandbox'] > 0) {
+            $profile = 'Dev em Teste (Sandbox)';
+        } elseif ($data['challenges'] > 5 && $data['paid'] === 0) {
+            $profile = 'Agente sem Wallet';
+        }
+
+        $topConsumers[] = [
+            'rank' => $rank++,
+            'ip_masked' => $data['ip_masked'],
+            'total' => $data['total'],
+            'paid' => $data['paid'],
+            'sandbox' => $data['sandbox'],
+            'challenges' => $data['challenges'],
+            'favorite_service' => $favService,
+            'profile' => $profile,
+            'last_seen' => $data['last_seen'],
+        ];
+        if ($rank > 10) {
+            break;
+        }
+    }
+
+    // 6. Rentabilidade Estimada por Micro-Serviço
+    $pricingTable = [
+        'notarize' => 0.0005,
+        'compliance' => 0.0030,
+        'ofac' => 0.0020,
+        'lei' => 0.0020,
+        'cnpj' => 0.0020,
+        'sanctions' => 0.0010,
+        'simples' => 0.0010,
+        'pass' => 2.0000,
+        'forex' => 0.0005,
+        'crypto' => 0.0005,
+        'indicators' => 0.0005,
+        'holidays' => 0.0005,
+        'workdays' => 0.0005,
+        'global-markets' => 0.0005,
+        'dns' => 0.0005,
+        'ssl' => 0.0005,
+        'asn' => 0.0005,
+        'cep' => 0.0005,
+        'summary' => 0.0005,
+    ];
+
+    $serviceRevenue = [];
+    foreach ($serviceCounts as $svcName => $count) {
+        $price = $pricingTable[$svcName] ?? 0.0005;
+        $serviceRevenue[$svcName] = [
+            'service' => $svcName,
+            'count' => (int)$count,
+            'unit_price' => $price,
+            'estimated_usdc' => round(((int)$count) * $price, 4),
+        ];
+    }
+    // Ordena da maior receita estimada para a menor
+    uasort($serviceRevenue, fn($a, $b) => $b['estimated_usdc'] <=> $a['estimated_usdc']);
+
+    return [
+        'arpu_usdc' => $arpuUsdc,
+        'arpu_brl' => $arpuBrl,
+        'technical_success_rate' => $technicalSuccessRate,
+        'sandbox_rate' => $sandboxRate,
+        'daily_history_14d' => $dailyHistory14d,
+        'top_consumers' => $topConsumers,
+        'service_revenue' => array_values($serviceRevenue),
+        'passes_stats' => grid402_get_passes_stats(),
+    ];
 }
 

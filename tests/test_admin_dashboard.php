@@ -109,6 +109,20 @@ assert($mMeta['recent_events'][2]['payment_source'] === 'facilitator', 'Evento l
 assert($mMeta['recent_events'][2]['settlement_tx'] === strtolower($settlementHash), 'Evento liquidado deve carregar settlement_tx');
 assert($mMeta['recent_events'][2]['is_paid'] === true, 'Evento liquidado deve ser is_paid true');
 assert($mMeta['recent_events'][1]['is_paid'] === false, 'Evento verify_only nao deve ser is_paid');
+
+// --- Teste 2.2: Indicadores Analíticos Avançados (grid402_compute_admin_analytics) ---
+$analytics = grid402_compute_admin_analytics($mMeta, 5.50);
+assert(isset($analytics['arpu_usdc']), 'Analytics deve conter arpu_usdc');
+assert(abs($analytics['arpu_usdc'] - 0.0005) < 0.000001, 'ARPU com 0.001 USDC em 2 pagamentos deve ser 0.0005');
+assert(isset($analytics['technical_success_rate']), 'Analytics deve conter technical_success_rate');
+assert(isset($analytics['sandbox_rate']), 'Analytics deve conter sandbox_rate');
+assert(count($analytics['daily_history_14d']) === 14, 'daily_history_14d deve conter exatamente 14 dias continuos');
+assert(is_array($analytics['top_consumers']), 'top_consumers deve ser array');
+assert(count($analytics['top_consumers']) >= 1, 'top_consumers deve conter ao menos 1 requisitante');
+assert(str_contains($analytics['top_consumers'][0]['ip_masked'], 'xxx.xxx'), 'IP do top_consumers deve estar anonimizado');
+assert(isset($analytics['top_consumers'][0]['profile']), 'Top consumidor deve possuir perfil heuristico');
+assert(is_array($analytics['service_revenue']), 'service_revenue deve ser array');
+assert(count($analytics['service_revenue']) >= 11, 'service_revenue deve cobrir o catálogo de micro-serviços');
 echo "OK!\n";
 
 // --- Teste 3: Autenticação Segura com Bcrypt ---
@@ -257,7 +271,15 @@ try {
     assert(isset($statsJson['payment_sources']['facilitator']), 'payment_sources deve expor todas as chaves canonicas');
     assert(isset($statsJson['failure_categories']['payment_rejected']), 'failure_categories deve expor todas as chaves canonicas');
     assert((int) array_sum($statsJson['status_counts']) === (int) $statsJson['total_requests'], 'Soma dos status deve igualar total_requests');
-    echo "     ✓ Snapshot JSON em tempo real com saldos on-chain e origens/falhas validado com sucesso!\n";
+    // Indicadores executivos e analíticos expandidos
+    assert(isset($statsJson['arpu_usdc']), 'API deve conter arpu_usdc');
+    assert(isset($statsJson['technical_success_rate']), 'API deve conter technical_success_rate');
+    assert(isset($statsJson['sandbox_rate']), 'API deve conter sandbox_rate');
+    assert(isset($statsJson['daily_history_14d']) && count($statsJson['daily_history_14d']) === 14, 'API deve conter daily_history_14d com 14 dias');
+    assert(isset($statsJson['top_consumers']) && is_array($statsJson['top_consumers']), 'API deve conter top_consumers');
+    assert(isset($statsJson['service_revenue']) && is_array($statsJson['service_revenue']), 'API deve conter service_revenue');
+    assert(isset($statsJson['passes_stats']), 'API deve conter passes_stats');
+    echo "     ✓ Snapshot JSON em tempo real com saldos on-chain, ARPU, SLA, gráfico 14D e top consumidores validado!\n";
 
     // 4.5. Testar exportação de CSV autenticado
     echo "  -> Testando exportação de relatório financeiro CSV...\n";
