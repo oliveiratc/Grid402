@@ -398,7 +398,7 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
     $rawDaily = is_array($metrics['daily'] ?? null) ? $metrics['daily'] : [];
 
     // 1. ARPU (Ticket Médio por consulta paga)
-    $arpuUsdc = $totalPaid > 0 ? round($totalRevenueUsdc / $totalPaid, 6) : 0.0005;
+    $arpuUsdc = $totalPaid > 0 ? round($totalRevenueUsdc / $totalPaid, 6) : 0.0;
     $arpuBrl = round($arpuUsdc * $usdRate, 4);
 
     // 2. SLA Técnico (HTTP 200 %)

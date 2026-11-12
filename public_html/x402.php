@@ -552,7 +552,7 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
             'rate_limit' => '3 req/hora por IP',
             'description' => 'Teste a estrutura completa da resposta sem custo enviando o cabecalho X-Payment: demo.',
         ],
-        'action_required' => "1) Assine a autorizacao x402 v2 (cabecalho PAYMENT-SIGNATURE ou X-Payment em base64) para liquidacao automatica via facilitador, OU envie {$priceDisplay} USDC na Base (Chain ID 8453) para recipient_wallet e refaca a requisicao com \"X-Payment: <tx_hash>\". 2) Para chamadas de alta frequencia sem latencia on-chain, adquira um Session Pass em " . (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . "/#topup (ou /api/v1/pass) e utilize \"X-Payment: pass_g402_...\". 3) Para testar gratuitamente agora (cota de 3 req/hora), envie \"X-Payment: demo\".",
+        'action_required' => "1) Assine a autorizacao x402 v2 (cabecalho PAYMENT-SIGNATURE ou X-Payment em base64) para liquidacao automatica via facilitador, OU envie {$priceDisplay} USDC na Base (Chain ID 8453) para recipient_wallet e refaca a requisicao com \"X-Payment: <tx_hash>\". 2) Para chamadas de alta frequencia sem latencia on-chain, adquira um Session Pass em " . (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . "/pass (pacotes Starter/Pro/Fleet) e utilize \"X-Payment: pass_g402_...\". 3) Para testar gratuitamente agora (cota de 3 req/hora), envie \"X-Payment: demo\".",
         'docs' => (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . '/llms.txt',
     ];
 

@@ -1,0 +1,41 @@
+<!-- docs/templates/email_session_pass.html -->
+<!-- Template de entrega de Session Pass apos confirmacao de pagamento (Pix/cartao/USDC). -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Seu Session Pass Grid402</title>
+  <style>
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background:#0a0e17; color:#e5e7eb; margin:0; padding:0; }
+    .wrap { max-width:600px; margin:0 auto; padding:2rem 1.5rem; }
+    h1 { color:#00f0ff; font-size:1.5rem; }
+    .token { background:#111827; border:1px solid #00f0ff; border-radius:8px; padding:1rem; word-break:break-all; font-family:monospace; color:#00f0ff; margin:1rem 0; }
+    .btn { display:inline-block; background:linear-gradient(135deg,#0052ff,#00f0ff); color:#fff; padding:.7rem 1.2rem; border-radius:8px; text-decoration:none; font-weight:700; }
+    pre { background:#111827; border:1px solid #1f2937; border-radius:8px; padding:1rem; overflow-x:auto; color:#cbd5e1; font-size:.85rem; }
+    .muted { color:#8fa2b9; font-size:.9rem; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Seu Session Pass Grid402 esta pronto</h1>
+  <p>Ola {{customer_name}},</p>
+  <p>Seu pagamento de <strong>{{amount_display}}</strong> foi confirmado. Aqui esta o seu token de acesso de alta velocidade:</p>
+
+  <div class="token">{{pass_token}}</div>
+
+  <p><strong>Creditos:</strong> {{credits_total}} &nbsp;|&nbsp; <strong>Plano:</strong> {{tier}} &nbsp;|&nbsp; <strong>Expira em:</strong> {{expires_at}}</p>
+
+  <p>Use o token no cabecalho <code>X-Payment</code>:</p>
+  <pre>curl -s -H "X-Payment: {{pass_token}}" \
+  "https://grid402.online/api/v1/cnpj?cnpj=00000000000191"</pre>
+
+  <p class="muted">Ou defina a variavel de ambiente <code>GRID402_SESSION_PASS={{pass_token}}</code> no servidor MCP (Claude Desktop / Cursor) para uso automatico.</p>
+
+  <p style="margin-top:1.5rem;"><a class="btn" href="https://grid402.online/pass">Gerenciar meu pass</a></p>
+
+  <hr style="border-color:#1f2937; margin:2rem 0;">
+  <p class="muted">Duvidas? Responda este e-mail ou acesse <a href="https://grid402.online">grid402.online</a>.<br>
+  Grid402 Network Intelligence — dados publicos para agentes de IA e automacoes.</p>
+</div>
+</body>
+</html>

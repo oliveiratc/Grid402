@@ -77,6 +77,9 @@ ServerSignature Off
     # Central de Agentes de IA
     RewriteRule ^agents/?$ agents.php [QSA,L]
 
+    # Pagina de compra de Session Pass (linkavel na resposta HTTP 402)
+    RewriteRule ^pass/?$ pass.php [QSA,L]
+
     # Painel Administrativo de Monitoramento e Faturamento
     RewriteRule ^admin/?$ admin.php [QSA,L]
     RewriteRule ^dashboard/?$ admin.php [QSA,L]

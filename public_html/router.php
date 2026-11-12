@@ -27,6 +27,18 @@ if (preg_match('#^/(admin|dashboard)(/.*)?$#', $uri)) {
     exit;
 }
 
-// 4. Fallback para o Gateway central (index.php)
+// 4. Painel Admin
+if (preg_match('#^/(admin|dashboard)(/.*)?$#', $uri)) {
+    require __DIR__ . '/admin.php';
+    exit;
+}
+
+// 5. Pagina de compra de Session Pass
+if (preg_match('#^/pass(/.*)?$#', $uri)) {
+    require __DIR__ . '/pass.php';
+    exit;
+}
+
+// 6. Fallback para o Gateway central (index.php)
 require __DIR__ . '/index.php';
 
