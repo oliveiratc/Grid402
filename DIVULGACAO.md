@@ -51,7 +51,7 @@ A rede Base (Coinbase) possui um diretório oficial onde projetos pioneiros no u
 * **Link de submissão:** [https://base.org/ecosystem](https://base.org/ecosystem) ou via formulário do Discord oficial da Base (`#builders`).
 * **Campos preenchidos para copiar e colar:**
   - **Project Name:** Grid402
-  - **Website:** https://www.grid402.com.br
+  - **Website:** https://grid402.online
   - **Category:** Infrastructure / AI / DePIN / Oracles
   - **Short Tagline:** High-performance public data & network utilities hub for autonomous AI agents powered by x402 micropayments on Base.
   - **Network:** Base Mainnet (Chain ID 8453)
@@ -81,15 +81,15 @@ AI agents and scraping pipelines can now resolve network utilities with zero sig
 ⚡ $0.0005 USDC per technical query on Base Mainnet (Chain ID 8453)
 🔒 100% Zero-PII, open datasets, atomic anti-replay locking
 
-Live: https://www.grid402.com.br
-Crawler docs: https://www.grid402.com.br/llms.txt
-Free summary: https://www.grid402.com.br/api/v1/summary
+Live: https://grid402.online
+Crawler docs: https://grid402.online/llms.txt
+Free summary: https://grid402.online/api/v1/summary
 SDKs: Python & TypeScript
 ```
 
 ### Modelo em Português (LinkedIn / X / Comunidades Dev Brasil):
 ```text
-Lançamos o Grid402 (https://www.grid402.com.br): o primeiro hub de dados públicos e utilitários de rede M2M com micropagamentos HTTP 402 na rede Base.
+Lançamos o Grid402 (https://grid402.online): o primeiro hub de dados públicos e utilitários de rede M2M com micropagamentos HTTP 402 na rede Base.
 
 Agentes autônomos, robôs e esteiras de desenvolvimento agora contam com APIs ultrarrápidas sem burocracia de cadastro, cartão de crédito ou mensalidades:
 - Câmbio fiduciário (Dólar, Euro, Libra para Real)
@@ -102,9 +102,9 @@ Agentes autônomos, robôs e esteiras de desenvolvimento agora contam com APIs u
 Custo: apenas US$ 0.0005 USDC por consulta na Base Mainnet, validado on-chain.
 
 Badges dinâmicos SVG para repositórios:
-[![Câmbio USD/BRL](https://www.grid402.com.br/badge/forex.svg)](https://www.grid402.com.br)
-[![Cripto BTC/USD](https://www.grid402.com.br/badge/crypto.svg)](https://www.grid402.com.br)
-[![Grid402 Hub](https://www.grid402.com.br/badge/system.svg)](https://www.grid402.com.br)
+[![Câmbio USD/BRL](https://grid402.online/badge/forex.svg)](https://grid402.online)
+[![Cripto BTC/USD](https://grid402.online/badge/crypto.svg)](https://grid402.online)
+[![Grid402 Hub](https://grid402.online/badge/system.svg)](https://grid402.online)
 
 SDKs oficiais disponíveis em Python (`pip install grid402`) e Node.js (`npm install grid402`).
 ```
@@ -118,17 +118,17 @@ Crie um Pull Request simples adicionando o Grid402 nas listas mais populares:
 ### 4.1. Repositório: `awesome-base`
 Adicionar sob a seção **AI / Infrastructure / Micropayments**:
 ```markdown
-- [Grid402](https://www.grid402.com.br) - High-speed open data & network utility hub with HTTP 402 USDC micro-settlement on Base.
+- [Grid402](https://grid402.online) - High-speed open data & network utility hub with HTTP 402 USDC micro-settlement on Base.
 ```
 
 ### 4.2. Repositório: `awesome-ai-agents` ou `awesome-ai-tools`
 Adicionar sob **Agent Infrastructure e Utility Hubs**:
 ```markdown
-- [Grid402](https://www.grid402.com.br) - Public data & network utilities hub (forex, crypto, DNS, SSL, ASN, CEP) for autonomous AI agents with HTTP 402 micropayments.
+- [Grid402](https://grid402.online) - Public data & network utilities hub (forex, crypto, DNS, SSL, ASN, CEP) for autonomous AI agents with HTTP 402 micropayments.
 ```
 
 ### 4.3. Repositório: `awesome-brasil`
 Adicionar sob **APIs Públicas e Utilitários**:
 ```markdown
-- [Grid402](https://www.grid402.com.br) - APIs públicas de alta performance (Câmbio, Cripto, DNS, SSL, ASN, CEP/IBGE) com micropagamentos x402 e badges dinâmicos em SVG.
+- [Grid402](https://grid402.online) - APIs públicas de alta performance (Câmbio, Cripto, DNS, SSL, ASN, CEP/IBGE) com micropagamentos x402 e badges dinâmicos em SVG.
 ```

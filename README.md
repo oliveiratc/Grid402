@@ -96,7 +96,7 @@ Exemplos detalhados e guia de instalação disponíveis em [`integrations/elizao
 
 ### 4. Recarga Web3 em 1 Clique (Session Passes na Base)
 
-Para agentes e desenvolvedores que buscam alta frequência (&lt;15ms) sem o custo e atrito de assinar 1 transação a cada `GET`:
+Para agentes e desenvolvedores que buscam alta frequência (abaixo de 15ms) sem o custo e atrito de assinar 1 transação a cada `GET`:
 - Acesse a interface web em [https://grid402.online/#topup](https://grid402.online/#topup)
 - Conecte sua carteira (MetaMask, Coinbase Smart Wallet com Passkey, Rainbow) na rede Base
 - Selecione seu pacote:
@@ -105,7 +105,7 @@ Para agentes e desenvolvedores que buscam alta frequência (&lt;15ms) sem o cust
   - **Fleet:** 20 USDC $\rightarrow$ 50.000 requisições (+10k bônus, validade 60 dias)
 - Receba instantaneamente seu token `pass_g402_live...` para usar no cabeçalho `X-Payment`.
 
-### 5. Dossiê Institucional Base Grants & Coinbase CDP
+### 5. Dossiê Institucional Base Grants e Coinbase CDP
 
 O plano de crescimento, métricas de rede e candidatura formal a subsídios da Base Foundation e Coinbase Developer Platform estão detalhados em [`docs/BASE_GRANTS_AND_CDP_DOSSIER.md`](docs/BASE_GRANTS_AND_CDP_DOSSIER.md).
 
@@ -113,18 +113,18 @@ O plano de crescimento, métricas de rede e candidatura formal a subsídios da B
 
 #### Consulta com Desafio HTTP 402 e Amostra Gratuita:
 ```bash
-curl -i "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191"
+curl -i "https://grid402.online/api/v1/cnpj?cnpj=00000000000191"
 ```
 
 #### Liquidação On-Chain na Base:
 ```bash
-curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
+curl "https://grid402.online/api/v1/cnpj?cnpj=00000000000191" \
   -H "X-Payment: 0x<tx_hash_da_transferencia_na_base>"
 ```
 
 #### Modo Sandbox Gratuito para Testes:
 ```bash
-curl "https://www.grid402.com.br/api/v1/cnpj?cnpj=00000000000191" \
+curl "https://grid402.online/api/v1/cnpj?cnpj=00000000000191" \
   -H "X-Payment: demo"
 ```
 

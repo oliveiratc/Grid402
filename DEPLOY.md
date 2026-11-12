@@ -69,23 +69,23 @@ Após o deploy e a primeira execução do cron (em até 2 minutos):
 
 ### A. Teste de Navegador
 Acesse no navegador:
-👉 `https://www.grid402.com.br`
+👉 `https://grid402.online`
 *Você deverá ver a Landing Page dark-mode com status ao vivo dos serviços e latências.*
 
 ### B. Teste do Manifesto de IA
 Acesse:
-👉 `https://www.grid402.com.br/llms.txt`
+👉 `https://grid402.online/llms.txt`
 
 ### C. Teste do Desafio x402 via cURL
 No terminal da sua máquina:
 ```bash
-curl -i -H "Accept: application/json" https://www.grid402.com.br/telemetry
+curl -i -H "Accept: application/json" https://grid402.online/telemetry
 ```
 *Deve retornar `HTTP/1.1 402 Payment Required` com o endereço da sua carteira e o valor de 0.0005 USDC.*
 
 ### D. Teste do Resumo Gratuito
 ```bash
-curl -H "Accept: application/json" https://www.grid402.com.br/status?format=json
+curl -H "Accept: application/json" https://grid402.online/status?format=json
 ```
 *Deve retornar HTTP 200 em menos de 30ms com as métricas consolidadas dos serviços brasileiros.*
 

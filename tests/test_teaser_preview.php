@@ -55,7 +55,7 @@ assert_test(
     isset($bbPreview['locked_fields']) &&
     is_array($bbPreview['locked_fields']) &&
     in_array('capital_social', $bbPreview['locked_fields'], true) &&
-    in_array('qsa_socios_administradores', $bbPreview['locked_fields'], true),
+    in_array('natureza_juridica', $bbPreview['locked_fields'], true),
     json_encode($bbPreview['locked_fields'] ?? [])
 );
 
