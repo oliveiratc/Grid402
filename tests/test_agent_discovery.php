@@ -13,33 +13,24 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/helpers_server.php';
+
 echo "========================================================\n";
 echo "  Grid402: Testes de Descoberta para Agentes e Marketplaces\n";
 echo "========================================================\n\n";
 
-$port = 8955;
-$descriptors = [
-    0 => ['pipe', 'r'],
-    1 => ['pipe', 'w'],
-    2 => ['pipe', 'w']
-];
-
-$phpBinary = PHP_BINARY;
-if (!file_exists($phpBinary)) {
-    $phpBinary = defined('PHP_BINARY') && !empty(PHP_BINARY) ? PHP_BINARY : 'php';
-}
-
-$routerScript = __DIR__ . '/router.php';
-$cmd = "\"{$phpBinary}\" -S 127.0.0.1:{$port} -t \"" . __DIR__ . "/../public_html\" \"{$routerScript}\"";
-
-$proc = proc_open($cmd, $descriptors, $pipes);
-if (!is_resource($proc)) {
-    echo "FALHA: Nao foi possivel iniciar o servidor embutido do PHP na porta {$port}.\n";
+try {
+    $server = grid402_start_server([
+        'docroot' => __DIR__ . '/../public_html',
+        'router' => __DIR__ . '/router.php',
+        'probe' => '/llms.txt',
+    ]);
+} catch (Throwable $e) {
+    echo "FALHA: Nao foi possivel iniciar o servidor embutido do PHP: " . $e->getMessage() . "\n";
     exit(1);
 }
 
-// Aguarda 400ms para o listener subir
-usleep(400000);
+$baseUrl = $server['base_url'];
 
 function test_http_request(string $url, array $headers = []): array {
     $ch = curl_init($url);
@@ -77,7 +68,7 @@ function assert_test(bool $condition, string $title, string $details = ''): void
 try {
     // 1. Teste /llms.txt
     echo "1. Validando /llms.txt...\n";
-    $resLlms = test_http_request("http://127.0.0.1:{$port}/llms.txt");
+    $resLlms = test_http_request("{$baseUrl}/llms.txt");
     assert_test($resLlms['code'] === 200, "Status HTTP 200 para /llms.txt", "Recebido: {$resLlms['code']}");
     assert_test(str_contains($resLlms['content_type'], 'text/plain'), "Content-Type text/plain para /llms.txt", "Recebido: {$resLlms['content_type']}");
     assert_test(str_contains($resLlms['body'], 'Grid402'), "Contem nome Grid402");
@@ -86,7 +77,7 @@ try {
 
     // 2. Teste /llms-full.txt
     echo "\n2. Validando /llms-full.txt...\n";
-    $resFull = test_http_request("http://127.0.0.1:{$port}/llms-full.txt");
+    $resFull = test_http_request("{$baseUrl}/llms-full.txt");
     assert_test($resFull['code'] === 200, "Status HTTP 200 para /llms-full.txt", "Recebido: {$resFull['code']}");
     assert_test(str_contains($resFull['content_type'], 'text/plain'), "Content-Type text/plain para /llms-full.txt", "Recebido: {$resFull['content_type']}");
     assert_test(str_contains($resFull['body'], '_oracle_proof'), "Contem documentacao da prova criptografica de oraculo");
@@ -95,7 +86,7 @@ try {
 
     // 3. Teste /.well-known/mcp.json
     echo "\n3. Validando /.well-known/mcp.json...\n";
-    $resMcp = test_http_request("http://127.0.0.1:{$port}/.well-known/mcp.json");
+    $resMcp = test_http_request("{$baseUrl}/.well-known/mcp.json");
     assert_test($resMcp['code'] === 200, "Status HTTP 200 para /.well-known/mcp.json", "Recebido: {$resMcp['code']}");
     $mcpData = json_decode($resMcp['body'], true);
     assert_test(is_array($mcpData), "Manifesto MCP e um JSON valido");
@@ -111,7 +102,7 @@ try {
 
     // 4. Teste /.well-known/ai-plugin.json
     echo "\n4. Validando /.well-known/ai-plugin.json...\n";
-    $resPlugin = test_http_request("http://127.0.0.1:{$port}/.well-known/ai-plugin.json");
+    $resPlugin = test_http_request("{$baseUrl}/.well-known/ai-plugin.json");
     assert_test($resPlugin['code'] === 200, "Status HTTP 200 para /.well-known/ai-plugin.json", "Recebido: {$resPlugin['code']}");
     $pluginData = json_decode($resPlugin['body'], true);
     assert_test(is_array($pluginData), "Manifesto AI Plugin e um JSON valido");
@@ -120,7 +111,7 @@ try {
 
     // 5. Teste /agents (Portal Web para Desenvolvedores de Agentes)
     echo "\n5. Validando pagina /agents...\n";
-    $resAgents = test_http_request("http://127.0.0.1:{$port}/agents");
+    $resAgents = test_http_request("{$baseUrl}/agents");
     assert_test($resAgents['code'] === 200, "Status HTTP 200 para /agents", "Recebido: {$resAgents['code']}");
     assert_test(str_contains($resAgents['body'], '<!DOCTYPE html>'), "Pagina /agents retorna documento HTML5");
     assert_test(str_contains($resAgents['body'], 'Central de Agentes de IA'), "Titulo e header presentes");
@@ -153,16 +144,8 @@ try {
     assert_test(!$hasAmp, "Nenhum arquivo de descoberta contem o caractere ampersand");
 
 } finally {
-    // Encerramento do processo do servidor web
-    if (is_resource($proc)) {
-        foreach ($pipes as $p) {
-            if (is_resource($p)) {
-                fclose($p);
-            }
-        }
-        proc_terminate($proc);
-        proc_close($proc);
-    }
+    // Encerramento do servidor web de teste (mata a arvore de processos)
+    grid402_stop_server($server);
 }
 
 echo "\n--------------------------------------------------------\n";

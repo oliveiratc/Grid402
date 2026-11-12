@@ -11,27 +11,29 @@ require_once __DIR__ . '/../public_html/config.php';
 echo "=== Homologando Endpoints HTTP de Compliance e Antifraude ===\n\n";
 
 // Inicia servidor PHP embutido para testes
-$host = '127.0.0.1';
-$port = 8899;
-$docRoot = realpath(__DIR__ . '/../public_html');
+require_once __DIR__ . '/helpers_server.php';
 
-$cmd = sprintf('php -S %s:%d -t %s', $host, $port, escapeshellarg($docRoot));
-$descriptors = [
-    0 => ['pipe', 'r'],
-    1 => ['pipe', 'w'],
-    2 => ['pipe', 'w']
-];
+// Estado de rate limit isolado por execucao (evita contaminacao entre testes).
+$sandboxRatesFile = sys_get_temp_dir() . '/grid402_sandbox_rates_' . getmypid() . '_' . bin2hex(random_bytes(4)) . '.json';
 
-$process = proc_open($cmd, $descriptors, $pipes);
-if (!is_resource($process)) {
-    echo "Erro ao iniciar servidor local de teste.\n";
+try {
+    $server = grid402_start_server([
+        'docroot' => __DIR__ . '/../public_html',
+        'probe' => '/',
+        // O teste dispara 4 consultas sandbox (X-Payment: demo) no mesmo IP; o
+        // limite padrao de producao (3/hora) faria a ultima retornar 429.
+        'env' => [
+            'GRID402_SANDBOX_RATE_LIMIT' => '1000',
+            'GRID402_FILE_SANDBOX_RATES' => $sandboxRatesFile,
+        ],
+    ]);
+} catch (Throwable $e) {
+    @unlink($sandboxRatesFile);
+    echo "Erro ao iniciar servidor local de teste: " . $e->getMessage() . "\n";
     exit(1);
 }
 
-// Aguarda subida do servidor
-usleep(500000);
-
-$baseUrl = "http://{$host}:{$port}";
+$baseUrl = $server['base_url'];
 $passed = 0;
 $total = 0;
 
@@ -111,9 +113,8 @@ try {
 
 } finally {
     // Encerra servidor
-    if (is_resource($process)) {
-        proc_terminate($process);
-    }
+    grid402_stop_server($server);
+    @unlink($sandboxRatesFile);
 }
 
 echo "\n--------------------------------------------------\n";

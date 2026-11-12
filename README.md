@@ -18,9 +18,9 @@
 
 ## ⚡ Destaques da Arquitetura
 
-* **Monetização Nativa via HTTP x402:** Cobrança por chamada (0.0005 a 0.0020 USDC) liquidada diretamente em USDC na rede Base (Chain ID 8453), sem necessidade de chaves de API ou cadastro prévio.
+* **Monetização Nativa via HTTP x402 (v2 Exact):** Cobrança por chamada (0.0005 a 0.0020 USDC) liquidada diretamente em USDC na rede Base (Chain ID 8453) via autorizações gasless EIP-3009 (`PAYMENT-SIGNATURE`), Session Passes pré-pagos ou transferências on-chain, sem necessidade de chaves de API estáticas.
 * **Amostras Gratuitas no HTTP 402 (Teaser Data):** O desafio 402 inclui uma prévia segura dos dados públicos encontrados (ex: razão social, município e UF no CNPJ; logradouro e bairro no CEP; status TLS no SSL) antes da liquidação financeira.
-* **Modo Sandbox Gratuito para Testes:** Permite simulação instantânea via cabeçalho `X-Payment: demo` (com cota de 20 requisições por hora por IP), facilitando desenvolvimento local e pipelines CI/CD.
+* **Modo Sandbox para Testes e CI/CD:** Permite simulação técnica via cabeçalho `X-Payment: demo` (cota defensiva por IP), facilitando desenvolvimento local e pipelines de homologação antes de operar em produção.
 * **Zero Banco de Dados (Zero-DB):** Arquitetura ultraleve baseada em arquivos JSON planos com travamento concorrente (`flock`) e escrita atômica (`grid402_atomic_write`), sem sobrecarga de conexões SQL.
 * **Distribuição Smithery.ai:** Manifesto `smithery.yaml` na raiz para instalação e configuração em 1 clique em clientes MCP como Claude Desktop e Cursor.
 * **Coinbase Developer Platform (CDP) AgentKit:** Provedor de ações pronto em TypeScript e Python (`integrations/agentkit/`) para auto-liquidação M2M por agentes autônomos baseados em LangChain e CrewAI.

@@ -10,6 +10,7 @@ echo "=== Testando Módulo de Telemetria e Painel Administrativo ===\n";
 define('GRID402_EXEC', true);
 require_once __DIR__ . '/../public_html/config.php';
 require_once __DIR__ . '/../public_html/metrics.php';
+require_once __DIR__ . '/helpers_server.php';
 
 // --- Teste 1: Anonimização de IP (LGPD) ---
 echo "[1/5] Testando anonimização de IP (grid402_mask_ip)... ";
@@ -75,6 +76,39 @@ for ($i = 0; $i < 110; $i++) {
 }
 $mAfter = grid402_get_metrics();
 assert(count($mAfter['recent_events']) === 100, 'Buffer circular deve reter exatamente 100 eventos recentes no maximo');
+
+// --- Teste 2.1: Origem do pagamento e categoria de falha na telemetria ---
+// Pagamento liquidado via facilitator (conta faturamento)
+$settlementHash = '0x' . bin2hex(random_bytes(32));
+grid402_record_telemetry('dns', 200, true, null, '189.40.50.9', 0.0005, 'paid', [
+    'payment_source' => 'facilitator',
+    'settlement_tx' => $settlementHash,
+]);
+// Pagamento em modo verify_only (nao fatura)
+grid402_record_telemetry('cep', 200, true, null, '189.40.50.9', 0.0005, 'paid', [
+    'payment_source' => 'facilitator_verify_only',
+]);
+// Falha de pagamento (registra apenas categoria de falha)
+grid402_record_telemetry('dns', 402, false, null, '189.40.50.9', null, 'challenge_402', [
+    'failure_category' => 'payment_rejected',
+]);
+
+$mMeta = grid402_get_metrics();
+assert(($mMeta['payment_sources']['tx_hash'] ?? 0) === 1, 'Origem tx_hash deve contabilizar 1 evento');
+assert(($mMeta['payment_sources']['sandbox'] ?? 0) === 1, 'Origem sandbox deve contabilizar 1 evento');
+assert(($mMeta['payment_sources']['facilitator'] ?? 0) === 1, 'Origem facilitator deve contabilizar 1 evento');
+assert(($mMeta['payment_sources']['facilitator_verify_only'] ?? 0) === 1, 'Origem facilitator_verify_only deve contabilizar 1 evento');
+assert(($mMeta['failure_categories']['payment_rejected'] ?? 0) === 1, 'Falha payment_rejected deve contabilizar 1 evento');
+assert($mMeta['total_paid_requests'] === 2, 'Somente pagamentos liquidados devem contar como pagos (tx_hash + facilitator)');
+assert(abs($mMeta['total_revenue_usdc'] - 0.001) < 0.0000001, 'Receita deve somar apenas pagamentos liquidaveis (0.001 USDC)');
+
+// Evento mais recente deve carregar a categoria de falha e nao uma origem de pagamento
+assert($mMeta['recent_events'][0]['failure_category'] === 'payment_rejected', 'Evento de falha deve carregar failure_category');
+assert($mMeta['recent_events'][0]['payment_source'] === null, 'Evento de falha nao deve carregar payment_source');
+assert($mMeta['recent_events'][2]['payment_source'] === 'facilitator', 'Evento liquidado deve carregar payment_source facilitator');
+assert($mMeta['recent_events'][2]['settlement_tx'] === strtolower($settlementHash), 'Evento liquidado deve carregar settlement_tx');
+assert($mMeta['recent_events'][2]['is_paid'] === true, 'Evento liquidado deve ser is_paid true');
+assert($mMeta['recent_events'][1]['is_paid'] === false, 'Evento verify_only nao deve ser is_paid');
 echo "OK!\n";
 
 // --- Teste 3: Autenticação Segura com Bcrypt ---
@@ -88,12 +122,36 @@ echo "OK!\n";
 // --- Teste 4 e 5: Ciclo HTTP do Painel Admin (Setup, Login, 401, CSV, Senha e Dashboard) ---
 echo "[4/5] Subindo servidor web local para testar fluxos HTTP do /admin...\n";
 
-$port = 8959;
-$descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
-$phpBinary = defined('PHP_BINARY') && !empty(PHP_BINARY) ? PHP_BINARY : 'php';
-$cmd = "\"{$phpBinary}\" -S 127.0.0.1:{$port} -t \"" . __DIR__ . "/../public_html\" \"" . __DIR__ . "/../public_html/router.php\"";
-$proc = proc_open($cmd, $descriptors, $pipes);
-usleep(350000); // 350ms
+// Porta livre, comando em formato array e teardown por arvore de processos:
+// tudo centralizado em tests/helpers_server.php.
+$server = grid402_start_server([
+    'docroot' => __DIR__ . '/../public_html',
+    'router' => __DIR__ . '/../public_html/router.php',
+    'probe' => '/admin',
+]);
+$port = $server['port'];
+$serverLog = $server['log_file'];
+
+// Pre-aquece o cache de saldos on-chain: consultas RPC reais (3 URLs x 3s) estouram
+// o CURLOPT_TIMEOUT de 4s do cliente em um servidor embutido single-thread.
+$walletCacheFile = GRID402_PRIVATE_DIR . '/wallet_balance_cache.json';
+$walletCacheBackup = $walletCacheFile . '.bak_test';
+$hadWalletCache = file_exists($walletCacheFile);
+if ($hadWalletCache) {
+    copy($walletCacheFile, $walletCacheBackup);
+}
+if (!is_dir(GRID402_PRIVATE_DIR)) {
+    @mkdir(GRID402_PRIVATE_DIR, 0755, true);
+}
+@file_put_contents($walletCacheFile, (string) json_encode([
+    'oracle_address' => defined('GRID402_WALLET_ADDRESS') ? GRID402_WALLET_ADDRESS : '0xa31c31069c43ac1c0075a93c325b0dcd7744356c',
+    'usdc_balance' => 0.0,
+    'eth_balance' => 0.0,
+    'network' => 'Base Mainnet',
+    'chain_id' => 8453,
+    'cached_at' => time(),
+    'rpc_operational' => true,
+], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
 function curl_admin(string $url, array $options = []): array {
     $ch = curl_init($url);
@@ -192,7 +250,14 @@ try {
     assert(isset($statsJson['oracle_configured']), 'Deve conter oracle_configured');
     assert(isset($statsJson['wallet_balances']['usdc_balance']), 'Deve conter usdc_balance');
     assert(isset($statsJson['wallet_balances']['eth_balance']), 'Deve conter eth_balance');
-    echo "     ✓ Snapshot JSON em tempo real com saldos on-chain validado com sucesso!\n";
+    assert(isset($statsJson['payment_sources']) && is_array($statsJson['payment_sources']), 'Deve conter payment_sources');
+    assert(isset($statsJson['failure_categories']) && is_array($statsJson['failure_categories']), 'Deve conter failure_categories');
+    assert(isset($statsJson['payment_source_labels']['tx_hash']), 'Deve conter rotulos de origem do pagamento');
+    assert(isset($statsJson['failure_category_labels']['payment_rejected']), 'Deve conter rotulos de categoria de falha');
+    assert(isset($statsJson['payment_sources']['facilitator']), 'payment_sources deve expor todas as chaves canonicas');
+    assert(isset($statsJson['failure_categories']['payment_rejected']), 'failure_categories deve expor todas as chaves canonicas');
+    assert((int) array_sum($statsJson['status_counts']) === (int) $statsJson['total_requests'], 'Soma dos status deve igualar total_requests');
+    echo "     ✓ Snapshot JSON em tempo real com saldos on-chain e origens/falhas validado com sucesso!\n";
 
     // 4.5. Testar exportação de CSV autenticado
     echo "  -> Testando exportação de relatório financeiro CSV...\n";
@@ -203,7 +268,15 @@ try {
     assert(stripos($csvResp['headers'], 'Content-Type: text/csv') !== false, 'Header deve ser text/csv');
     assert(str_starts_with($csvResp['body'], "\xEF\xBB\xBF"), 'CSV deve iniciar com BOM UTF-8');
     assert(str_contains($csvResp['body'], 'Servico') and str_contains($csvResp['body'], 'Tipo') and str_contains($csvResp['body'], 'Valor USDC'), 'Deve conter colunas principais do CSV');
-    echo "     ✓ Relatório CSV com BOM UTF-8 e 9 colunas validado com sucesso!\n";
+    assert(str_contains($csvResp['body'], 'Origem do Pagamento'), 'CSV deve conter coluna Origem do Pagamento');
+    assert(str_contains($csvResp['body'], 'Falha'), 'CSV deve conter coluna Falha');
+    assert(str_contains($csvResp['body'], 'Hash Liquidacao'), 'CSV deve conter coluna Hash Liquidacao');
+
+    // Valida a contagem exata de colunas do cabecalho (12 colunas)
+    $csvLines = preg_split('/\r?\n/', ltrim($csvResp['body'], "\xEF\xBB\xBF"));
+    $csvHeader = str_getcsv($csvLines[0] ?? '', ';');
+    assert(count($csvHeader) === 12, 'CSV deve conter exatamente 12 colunas (Recebeu: ' . count($csvHeader) . ')');
+    echo "     ✓ Relatório CSV com BOM UTF-8 e 12 colunas validado com sucesso!\n";
 
     // 4.6. Acessar Dashboard HTML com sessão autenticada e extrair CSRF
     echo "  -> Acessando Dashboard HTML autenticado e validando token CSRF...\n";
@@ -215,6 +288,11 @@ try {
     assert(str_contains($dashResp['body'], 'Ao Vivo'), 'Deve conter indicador de atualização Ao Vivo');
     assert(str_contains($dashResp['body'], 'Saldo On-Chain (Base)'), 'Deve conter card de Saldo On-Chain');
     assert(str_contains($dashResp['body'], 'password-modal-overlay'), 'Deve conter modal de alteração de senha');
+    assert(str_contains($dashResp['body'], 'Origem dos Pagamentos'), 'Deve conter painel de Origem dos Pagamentos');
+    assert(str_contains($dashResp['body'], 'Falhas de Pagamento por Categoria'), 'Deve conter painel de Falhas de Pagamento');
+    assert(str_contains($dashResp['body'], 'Origem / Falha'), 'Deve conter coluna Origem / Falha no feed');
+    assert(str_contains($dashResp['body'], 'payment-source-bars-container'), 'Deve conter container das barras de origem');
+    assert(str_contains($dashResp['body'], 'failure-bars-container'), 'Deve conter container das barras de falha');
 
     preg_match('/name="csrf-token"\s+content="([a-f0-9]{64})"/', $dashResp['body'], $authCsrfMatches);
     $authCsrf = $authCsrfMatches[1] ?? '';
@@ -338,13 +416,14 @@ try {
     echo "     ✓ Bloqueio HTTP 429 contra força bruta validado com sucesso!\n";
 
 } finally {
-    proc_terminate($proc);
-    fclose($pipes[0]); fclose($pipes[1]); fclose($pipes[2]);
-    proc_close($proc);
+    if (isset($server)) {
+        grid402_stop_server($server);
+    }
+    if (isset($serverLog) && is_file($serverLog)) @unlink($serverLog);
 
     // Restaura arquivos de teste
-    if (file_exists($cookieFile)) @unlink($cookieFile);
-    if (isset($loginPageCookie) and file_exists($loginPageCookie)) @unlink($loginPageCookie);
+    if (isset($cookieFile) && file_exists($cookieFile)) @unlink($cookieFile);
+    if (isset($loginPageCookie) && file_exists($loginPageCookie)) @unlink($loginPageCookie);
     $loginRateFile = GRID402_PRIVATE_DIR . '/admin_login_rate.json';
     if (file_exists($loginRateFile)) @unlink($loginRateFile);
     if (file_exists($testAuthBackup)) {
@@ -354,6 +433,11 @@ try {
     }
     if (file_exists($backupMetricsFile)) {
         rename($backupMetricsFile, GRID402_FILE_METRICS);
+    }
+    if ($hadWalletCache && file_exists($walletCacheBackup)) {
+        rename($walletCacheBackup, $walletCacheFile);
+    } else {
+        @unlink($walletCacheFile);
     }
 }
 

@@ -42,12 +42,20 @@ X-Payment-Network: base-mainnet
 ```
 
 ### Como o Agente Autonomo Deve Proceder:
-1. Ler os dados de pagamento dos cabecalhos ou do corpo JSON.
-2. Executar a transferencia ERC-20 de USDC na Base para o endereco destinatario.
-3. Obter o transaction hash (`0x...`).
-4. Reenviar a requisicao original incluindo o cabecalho HTTP:
-   `X-Payment: 0xSEU_TRANSACTION_HASH`
-5. O servidor valida a transacao on-chain e entrega o payload com status HTTP 200 e a prova de oraculo `_oracle_proof`.
+Existem 3 formas de liquidacao suportadas pelo Grid402:
+
+1. **Protocolo x402 v2 Oficial (EIP-3009 - Recomendado para Agentes M2M):**
+   - Assine off-chain a autorizacao ERC-3009 para `recipient_wallet`.
+   - Reenvie a requisicao com o cabecalho `PAYMENT-SIGNATURE: <payload_base64>` ou `X-Payment: <payload_base64>`.
+   - O Grid402 liquida via facilitador e devolve HTTP 200 com o recibo de liquidacao no cabecalho `PAYMENT-RESPONSE`.
+
+2. **Session Pass de Alta Frequencia (<15ms, sem espera de bloco):**
+   - Compre créditos pré-pagos (Starter 2 USDC, Pro 5 USDC ou Fleet 20 USDC) no portal ou via `POST /api/v1/pass`.
+   - Reenvie as consultas incluindo `X-Payment: pass_g402_...`.
+
+3. **Transferencia Direta On-Chain (Base Mainnet):**
+   - Execute a transferencia ERC-20 de USDC para `recipient_wallet`.
+   - Reenvie a requisicao com `X-Payment: 0x<tx_hash>`.
 
 ---
 

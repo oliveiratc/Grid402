@@ -12,6 +12,7 @@ if (!defined('GRID402_EXEC')) {
     define('GRID402_EXEC', true);
 }
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/facilitator.php';
 
 /**
  * Consulta recibo de transação via JSON-RPC com fallback de nós públicos da Base
@@ -303,6 +304,12 @@ function grid402_mark_transaction_used(string $txHash): bool {
  * Retorna array ['valid' => bool, 'reason' => string, 'code' => int]
  */
 function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null, ?string $clientIp = null): array {
+    // Payload x402 padrao (base64) e sensivel a maiusculas: classifica antes de normalizar
+    if (grid402_classify_payment_proof($txHash) === 'x402_payload') {
+        $resourceUrl = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '';
+        return grid402_validate_exact_payment(trim($txHash), $requiredRawUnits ?? GRID402_USDC_REQUIRED_RAW, $resourceUrl);
+    }
+
     $txHash = strtolower(trim($txHash));
     $clientIp = $clientIp ?? (string)($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
 
@@ -329,6 +336,7 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
         return [
             'valid' => true,
             'sandbox' => true,
+            'source' => 'sandbox',
             'reason' => 'Modo Sandbox autenticado com sucesso via cabecalho de simulacao.',
             'code' => 200,
             'remaining' => $rate['remaining'],
@@ -340,7 +348,8 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
     if (!preg_match('/^0x[a-f0-9]{64}$/', $txHash)) {
         return [
             'valid' => false,
-            'reason' => 'Prova de pagamento invalida. O Grid402 liquida por tx_hash: envie USDC na Base para a carteira do oraculo e repita a requisicao com o cabecalho "X-Payment: 0x<64 hex>" (hash da transacao). Payloads assinados EIP-3009 (base64) nao sao aceitos. Para testar sem pagar, use "X-Payment: demo". Guia: /llms.txt',
+            'reason' => 'Prova de pagamento invalida. Formatos aceitos: "X-Payment: 0x<64 hex>" (hash de transacao USDC na Base), "X-Payment: pass_g402_..." (Session Pass), "X-Payment: demo" (sandbox) ou payload x402 padrao em base64 (PAYMENT-SIGNATURE). Guia: /llms.txt',
+            'category' => 'invalid_proof',
             'code' => 400,
         ];
     }
@@ -350,6 +359,7 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
         return [
             'valid' => false,
             'reason' => 'Replay attack detectado: este hash de transacao ja foi liquidado anteriormente.',
+            'category' => 'replay',
             'code' => 403,
         ];
     }
@@ -376,6 +386,7 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
             return [
                 'valid' => true,
                 'sandbox' => true,
+                'source' => 'sandbox',
                 'network' => 'Base Sepolia',
                 'chain_id' => 84532,
                 'reason' => 'Transacao validada com sucesso na testnet Base Sepolia (Modo Sandbox).',
@@ -457,6 +468,7 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
     return [
         'valid' => true,
         'sandbox' => false,
+        'source' => 'tx_hash',
         'raw_amount' => $matchedRawAmount ?? $requiredAmount,
         'reason' => 'Pagamento x402 validado com sucesso na Base Mainnet.',
         'code' => 200,
@@ -535,7 +547,7 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         'price_usdc' => $priceDisplay,
         'price_raw_units' => $priceRawUnits,
         'recipient_wallet' => GRID402_WALLET_ADDRESS,
-        'action_required' => "1) Envie {$priceDisplay} USDC (Base, chain 8453) para recipient_wallet. 2) Refaca a requisicao com o cabecalho \"X-Payment: <tx_hash>\" (hash da transacao, nao assinatura EIP-3009). Para testar sem pagar use \"X-Payment: demo\" (3 consultas/hora).",
+        'action_required' => "1) Assine a autorizacao x402 v2 (cabecalho PAYMENT-SIGNATURE ou X-Payment em base64) para liquidacao automatica via facilitador, OU envie {$priceDisplay} USDC na Base (Chain ID 8453) para recipient_wallet e refaca a requisicao com \"X-Payment: <tx_hash>\". 2) Para chamadas de alta frequencia sem latencia on-chain, adquira um Session Pass em " . (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . " e utilize \"X-Payment: pass_g402_...\".",
         'docs' => (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . '/llms.txt',
     ];
 

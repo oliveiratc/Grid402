@@ -5,14 +5,21 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/helpers_server.php';
+
 echo "=== Testes do Endpoint /api/v1/verify ===\n\n";
 
-$port = 8959;
-$phpBinary = defined('PHP_BINARY') && !empty(PHP_BINARY) ? PHP_BINARY : 'php';
-$cmd = "\"{$phpBinary}\" -S 127.0.0.1:{$port} -t \"" . __DIR__ . "/../public_html\"";
-$descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
-$proc = proc_open($cmd, $descriptors, $pipes);
-usleep(350000); // 350ms para inicializacao do servidor
+try {
+    $server = grid402_start_server([
+        'docroot' => __DIR__ . '/../public_html',
+        'probe' => '/',
+    ]);
+} catch (Throwable $e) {
+    echo "FALHA: Nao foi possivel iniciar o servidor embutido do PHP: " . $e->getMessage() . "\n";
+    exit(1);
+}
+
+$baseUrl = $server['base_url'];
 
 $testsPassed = 0;
 $testsFailed = 0;
@@ -61,7 +68,7 @@ try {
 
     // 2. Teste POST com payload legitimo
     $postRes = curl_request(
-        "http://127.0.0.1:{$port}/api/v1/verify",
+        "{$baseUrl}/api/v1/verify",
         'POST',
         json_encode($validData),
         ['Content-Type: application/json', 'Accept: application/json']
@@ -83,7 +90,7 @@ try {
     $tamperedData['workdays'] = 6; // Adulterado
 
     $tamperedRes = curl_request(
-        "http://127.0.0.1:{$port}/api/v1/verify",
+        "{$baseUrl}/api/v1/verify",
         'POST',
         json_encode($tamperedData),
         ['Content-Type: application/json']
@@ -105,7 +112,7 @@ try {
     $forgedData['_oracle_proof']['signature'] = '0x1234567890abcdef';
 
     $forgedRes = curl_request(
-        "http://127.0.0.1:{$port}/api/v1/verify",
+        "{$baseUrl}/api/v1/verify",
         'POST',
         json_encode($forgedData),
         ['Content-Type: application/json']
@@ -124,7 +131,7 @@ try {
     // 5. Teste GET com parametro payload urlencoded
     $encodedPayload = urlencode(json_encode($validData));
     $getRes = curl_request(
-        "http://127.0.0.1:{$port}/api/v1/verify?payload={$encodedPayload}",
+        "{$baseUrl}/api/v1/verify?payload={$encodedPayload}",
         'GET',
         null,
         ['Accept: application/json']
@@ -141,7 +148,7 @@ try {
 
     // 6. Teste defensivo: Rejeicao de JSON malformado
     $malformedRes = curl_request(
-        "http://127.0.0.1:{$port}/api/v1/verify",
+        "{$baseUrl}/api/v1/verify",
         'POST',
         '{ invalid json content here',
         ['Content-Type: application/json']
@@ -155,7 +162,7 @@ try {
     // 7. Teste defensivo: Rejeicao de payload excessivo (> 64 KB)
     $hugePayload = json_encode(['data' => str_repeat('A', 70000)]);
     $hugeRes = curl_request(
-        "http://127.0.0.1:{$port}/api/v1/verify",
+        "{$baseUrl}/api/v1/verify",
         'POST',
         $hugePayload,
         ['Content-Type: application/json']
@@ -167,11 +174,7 @@ try {
     );
 
 } finally {
-    proc_terminate($proc);
-    fclose($pipes[0]);
-    fclose($pipes[1]);
-    fclose($pipes[2]);
-    proc_close($proc);
+    grid402_stop_server($server);
 }
 
 echo "\nResultado: {$testsPassed} passaram | {$testsFailed} falharam.\n";

@@ -45,7 +45,10 @@
 ## Micropayment Protocol Details
 - Rede e Chain ID: Base Mainnet (Chain ID 8453)
 - Tarifa Padrao por Requisicao: 0.0005 USDC (Sancoes e Simples: 0.0010 USDC, CNPJ, LEI e OFAC: 0.0020 USDC, Compliance 360: 0.0030 USDC)
-- Session Pass de Alta Frequencia: Envie 0.0500 USDC (100 creditos) ou 0.5000 USDC (1.000 creditos) em `GET /api/v1/pass` com `X-Payment: 0x<tx_hash>` e reutilize o token `pass_g402_...` em qualquer endpoint com zero latencia on-chain.
+- Formas de Liquidacao Suportadas:
+  1) Protocolo x402 v2 padrao (M2M Gasless): Envie a autorizacao assinada EIP-3009 em base64 no cabecalho `PAYMENT-SIGNATURE` ou `X-Payment` (esquema `exact`). O Grid402 valida e liquida via facilitador retornando o recibo em `PAYMENT-RESPONSE`.
+  2) Session Pass Pre-Pago (<15ms): Adquira créditos em lote (2 USDC = 4.000 reqs, 5 USDC = 10.000 reqs, 20 USDC = 50.000 reqs) e reutilize o token `pass_g402_...` no cabecalho `X-Payment` sem latencia on-chain.
+  3) Transferencia Direta On-Chain: Envie o valor em USDC na Base para a carteira do oraculo e repita a chamada com `X-Payment: 0x<tx_hash>`.
 - [Base Mainnet Scanner](https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c): Carteira oraculo recebedora de micropagamentos (0xa31c31069c43ac1c0075a93c325b0dcd7744356c)
 - [USDC Contract on Base](https://basescan.org/token/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913): Contrato oficial de USDC na rede Base Mainnet (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
 

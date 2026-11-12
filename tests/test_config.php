@@ -16,7 +16,7 @@ assert(defined('GRID402_TELEGRAM_BOT_TOKEN'), 'GRID402_TELEGRAM_BOT_TOKEN deve e
 assert(defined('GRID402_TELEGRAM_CHAT_ID'), 'GRID402_TELEGRAM_CHAT_ID deve estar definida');
 
 $services = grid402_get_services();
-assert(count($services) === 10, 'Deve conter exatamente 10 micro-servicos');
+assert(count($services) === 19, 'Deve conter exatamente 19 micro-servicos');
 
 $keys = array_keys($services);
 assert(in_array('forex', $keys, true), 'Deve conter servico forex');
@@ -29,5 +29,14 @@ assert(in_array('cnpj', $keys, true), 'Deve conter servico cnpj');
 assert(in_array('indicators', $keys, true), 'Deve conter servico indicators');
 assert(in_array('holidays', $keys, true), 'Deve conter servico holidays');
 assert(in_array('workdays', $keys, true), 'Deve conter servico workdays');
+assert(in_array('sanctions', $keys, true), 'Deve conter servico sanctions');
+assert(in_array('simples', $keys, true), 'Deve conter servico simples');
+assert(in_array('compliance', $keys, true), 'Deve conter servico compliance');
+assert(in_array('lei', $keys, true), 'Deve conter servico lei');
+assert(in_array('ofac', $keys, true), 'Deve conter servico ofac');
+assert(in_array('notarize', $keys, true), 'Deve conter servico notarize');
+assert(in_array('global-markets', $keys, true), 'Deve conter servico global-markets');
+assert(in_array('pass', $keys, true), 'Deve conter servico pass');
+assert(in_array('verify', $keys, true), 'Deve conter servico verify');
 
 echo "✓ Todas as verificações de configuração passaram com sucesso! (" . count($services) . " utilitários validados)\n";

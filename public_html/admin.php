@@ -508,6 +508,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // 4. Endpoints de API JSON e Exportacao CSV
+// Mapas canonicos de origem de pagamento e categoria de falha (usados no CSV, no JSON e no painel)
+$paymentSourceLabels = [
+    'tx_hash' => 'TX hash (legado)',
+    'pass' => 'Session pass',
+    'facilitator' => 'Facilitador (settle)',
+    'facilitator_verify_only' => 'Facilitador (verify only)',
+    'sandbox' => 'Sandbox',
+    'unknown' => 'Não identificada',
+];
+$failureCategoryLabels = [
+    'invalid_proof' => 'Prova inválida',
+    'payment_rejected' => 'Pagamento rejeitado',
+    'authorization_expired' => 'Autorização expirada',
+    'replay' => 'Replay (já usado)',
+    'facilitator_unavailable' => 'Facilitador indisponível',
+    'facilitator_disabled' => 'Facilitador desativado',
+    'unknown' => 'Outros',
+];
+$paymentSourceKeys = array_keys($paymentSourceLabels);
+$failureCategoryKeys = array_keys($failureCategoryLabels);
+
 // 4.1. Endpoint de Exportacao Financeira CSV (/admin?api=export_csv)
 if ($apiParam === 'export_csv') {
     if (!$isLoggedIn) {
@@ -541,6 +562,9 @@ if ($apiParam === 'export_csv') {
             'Cotacao PTAX BRL',
             'Valor BRL Estimado',
             'Hash BaseScan',
+            'Origem do Pagamento',
+            'Falha',
+            'Hash Liquidacao',
             'IP Mascarado'
         ], ';');
 
@@ -558,6 +582,9 @@ if ($apiParam === 'export_csv') {
                 number_format($usdRate, 4, '.', ''),
                 number_format($priceBrl, 2, ',', '.'),
                 $ev['tx_hash'] ?? '',
+                $ev['payment_source'] ?? '',
+                $ev['failure_category'] ?? '',
+                $ev['settlement_tx'] ?? '',
                 $ev['ip_masked'] ?? ''
             ], ';');
         }
@@ -589,6 +616,18 @@ if ($apiParam === 'stats') {
     $today = gmdate('Y-m-d');
     $todayUsdc = (float)($metrics['daily'][$today]['usdc'] ?? 0.0);
 
+    $paymentSources = [];
+    $rawSources = is_array($metrics['payment_sources'] ?? null) ? $metrics['payment_sources'] : [];
+    foreach ($paymentSourceKeys as $key) {
+        $paymentSources[$key] = (int)($rawSources[$key] ?? 0);
+    }
+
+    $failureCategories = [];
+    $rawFailures = is_array($metrics['failure_categories'] ?? null) ? $metrics['failure_categories'] : [];
+    foreach ($failureCategoryKeys as $key) {
+        $failureCategories[$key] = (int)($rawFailures[$key] ?? 0);
+    }
+
     echo json_encode([
         'status' => 'success',
         'server_time' => gmdate('Y-m-d\TH:i:s\Z'),
@@ -604,6 +643,10 @@ if ($apiParam === 'stats') {
         'oracle_configured' => $oracleConfigured,
         'status_counts' => $metrics['status_counts'] ?? [],
         'service_counts' => $metrics['service_counts'] ?? [],
+        'payment_sources' => $paymentSources,
+        'failure_categories' => $failureCategories,
+        'payment_source_labels' => $paymentSourceLabels,
+        'failure_category_labels' => $failureCategoryLabels,
         'recent_events' => $metrics['recent_events'] ?? [],
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
@@ -990,6 +1033,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             font-size: 0.82rem;
         }
         .bar-label { width: 95px; font-family: var(--font-mono); color: var(--text-main); }
+        .bar-label.wide { width: 158px; font-size: 0.74rem; line-height: 1.2; }
         .bar-track {
             flex: 1;
             height: 8px;
@@ -1121,6 +1165,28 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             border-radius: 4px;
             font-weight: 700;
             font-size: 0.75rem;
+        }
+        .tag-source {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            font-family: var(--font-mono);
+            background: rgba(56, 189, 248, 0.12);
+            color: #7DD3FC;
+            white-space: nowrap;
+        }
+        .tag-failure {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            font-family: var(--font-mono);
+            background: rgba(239, 68, 68, 0.14);
+            color: #FCA5A5;
+            white-space: nowrap;
         }
         .tx-link { color: var(--accent); text-decoration: none; }
         .tx-link:hover { text-decoration: underline; }
@@ -1257,6 +1323,11 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             .bar-label {
                 width: 75px;
             }
+            .bar-label.wide {
+                width: 96px;
+                font-size: 0.68rem;
+                line-height: 1.15;
+            }
             .bar-track {
                 margin: 0 0.5rem;
                 height: 6px;
@@ -1368,6 +1439,13 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 <div id="status-bars-container">
                     <?php
                     $statusCounts = $metrics['status_counts'] ?? [];
+                    $totalRequests = (int)($metrics['total_requests'] ?? 0);
+                    $statusSum = array_sum(array_map('intval', $statusCounts));
+                    // Garante que a soma das barras de status corresponda ao total de consultas
+                    $residual = $totalRequests - $statusSum;
+                    if ($residual > 0) {
+                        $statusCounts['outros'] = (int)(($statusCounts['outros'] ?? 0) + $residual);
+                    }
                     $totalStatus = array_sum($statusCounts) ?: 1;
                     $statuses = [
                         '200' => ['label' => '200 OK', 'color' => '#10B981'],
@@ -1379,7 +1457,10 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                     // Inclui qualquer outro status gravado, para nenhum evento ficar fora das barras
                     foreach (array_keys($statusCounts) as $extraCode) {
                         if (!isset($statuses[(string)$extraCode])) {
-                            $statuses[(string)$extraCode] = ['label' => $extraCode . ' Outros', 'color' => '#64748B'];
+                            $statuses[(string)$extraCode] = [
+                                'label' => ($extraCode === 'outros' ? 'Outros' : $extraCode . ' Outros'),
+                                'color' => '#64748B',
+                            ];
                         }
                     }
                     foreach ($statuses as $code => $info):
@@ -1393,6 +1474,57 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                         <span class="bar-label"><?php echo $info['label']; ?></span>
                         <div class="bar-track"><div class="bar-fill" style="width: <?php echo $pct; ?>%; background: <?php echo $info['color']; ?>;"></div></div>
                         <span class="bar-count"><?php echo $cnt; ?> (<?php echo $pct; ?>%)</span>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2 Columns: Origem dos Pagamentos e Categorias de Falha -->
+        <div class="analytics-row">
+            <div class="panel">
+                <div class="panel-title">Origem dos Pagamentos</div>
+                <div id="payment-source-bars-container">
+                    <?php
+                    $sourceCounts = $metrics['payment_sources'] ?? [];
+                    $maxSource = max(array_values(array_map('intval', $sourceCounts)) ?: [0]);
+                    if ($maxSource <= 0) $maxSource = 1;
+                    $totalSource = array_sum(array_map('intval', $sourceCounts));
+
+                    foreach ($paymentSourceLabels as $srcKey => $srcLabel):
+                        $cnt = (int)($sourceCounts[$srcKey] ?? 0);
+                        if ($cnt === 0 && $srcKey === 'unknown') continue;
+                        $widthPct = round(($cnt / $maxSource) * 100);
+                        $sharePct = $totalSource > 0 ? round(($cnt / $totalSource) * 100) : 0;
+                    ?>
+                    <div class="bar-row" data-source-key="<?php echo htmlspecialchars($srcKey, ENT_QUOTES); ?>">
+                        <span class="bar-label wide"><?php echo htmlspecialchars($srcLabel, ENT_QUOTES); ?></span>
+                        <div class="bar-track"><div class="bar-fill" style="width: <?php echo $widthPct; ?>%;"></div></div>
+                        <span class="bar-count"><?php echo $cnt; ?> (<?php echo $sharePct; ?>%)</span>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Falhas de Pagamento por Categoria</div>
+                <div id="failure-bars-container">
+                    <?php
+                    $failureCounts = $metrics['failure_categories'] ?? [];
+                    $maxFailure = max(array_values(array_map('intval', $failureCounts)) ?: [0]);
+                    if ($maxFailure <= 0) $maxFailure = 1;
+                    $totalFailure = array_sum(array_map('intval', $failureCounts));
+
+                    foreach ($failureCategoryLabels as $failKey => $failLabel):
+                        $cnt = (int)($failureCounts[$failKey] ?? 0);
+                        if ($cnt === 0 && $failKey === 'unknown') continue;
+                        $widthPct = round(($cnt / $maxFailure) * 100);
+                        $sharePct = $totalFailure > 0 ? round(($cnt / $totalFailure) * 100) : 0;
+                    ?>
+                    <div class="bar-row" data-failure-key="<?php echo htmlspecialchars($failKey, ENT_QUOTES); ?>">
+                        <span class="bar-label wide"><?php echo htmlspecialchars($failLabel, ENT_QUOTES); ?></span>
+                        <div class="bar-track"><div class="bar-fill" style="width: <?php echo $widthPct; ?>%; background: linear-gradient(90deg, #EF4444, #F59E0B);"></div></div>
+                        <span class="bar-count"><?php echo $cnt; ?> (<?php echo $sharePct; ?>%)</span>
                     </div>
                     <?php endforeach; ?>
                 </div>
@@ -1434,6 +1566,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                             <th>Serviço</th>
                             <th>Status</th>
                             <th>Tipo</th>
+                            <th>Origem / Falha</th>
                             <th>Valor (USDC)</th>
                             <th>Transação On-Chain (Base)</th>
                             <th>IP Requisitante (LGPD)</th>
@@ -1445,7 +1578,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                         if (empty($events)):
                         ?>
                         <tr id="no-events-row">
-                            <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Nenhuma consulta registrada até o momento.</td>
+                            <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">Nenhuma consulta registrada até o momento.</td>
                         </tr>
                         <?php else: ?>
                             <?php foreach ($events as $ev):
@@ -1471,11 +1604,32 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                                         <span style="color: var(--text-muted); font-size: 0.75rem;">GRATUITO</span>
                                     <?php endif; ?>
                                 </td>
+                                <td>
+                                    <?php
+                                    $evFailure = (string)($ev['failure_category'] ?? '');
+                                    $evSource = (string)($ev['payment_source'] ?? '');
+                                    if ($evFailure !== '' && $evFailure !== 'unknown') {
+                                        $failLbl = $failureCategoryLabels[$evFailure] ?? $evFailure;
+                                        echo '<span class="tag-failure">' . htmlspecialchars($failLbl, ENT_QUOTES) . '</span>';
+                                    } elseif ($evSource !== '' && $evSource !== 'unknown') {
+                                        $srcLbl = $paymentSourceLabels[$evSource] ?? $evSource;
+                                        echo '<span class="tag-source">' . htmlspecialchars($srcLbl, ENT_QUOTES) . '</span>';
+                                    } else {
+                                        echo '<span style="color: var(--text-muted);">-</span>';
+                                    }
+                                    ?>
+                                </td>
                                 <td><?php echo !empty($ev['is_paid']) ? '$' . $ev['price_usdc'] : '-'; ?></td>
                                 <td>
-                                    <?php if (!empty($ev['tx_hash'])): ?>
-                                        <a href="https://basescan.org/tx/<?php echo htmlspecialchars($ev['tx_hash'], ENT_QUOTES); ?>" target="_blank" class="tx-link">
-                                            <?php echo substr($ev['tx_hash'], 0, 8) . '...' . substr($ev['tx_hash'], -6); ?> ↗
+                                    <?php
+                                    $evTx = (string)($ev['settlement_tx'] ?? '');
+                                    if ($evTx === '') {
+                                        $evTx = (string)($ev['tx_hash'] ?? '');
+                                    }
+                                    ?>
+                                    <?php if ($evTx !== ''): ?>
+                                        <a href="https://basescan.org/tx/<?php echo htmlspecialchars($evTx, ENT_QUOTES); ?>" target="_blank" class="tx-link">
+                                            <?php echo substr($evTx, 0, 8) . '...' . substr($evTx, -6); ?> ↗
                                         </a>
                                     <?php else: ?>
                                         <span style="color: var(--text-muted);">-</span>
@@ -1592,6 +1746,33 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             return span.innerHTML;
         }
 
+        // Renderiza barras de origem de pagamento / categoria de falha
+        function renderBreakdownBars(containerId, keyAttr, counts, labels, gradient) {
+            const el = document.getElementById(containerId);
+            if (!el || !labels) return;
+            counts = counts || {};
+            const keys = Object.keys(labels);
+            if (keys.length === 0) return;
+
+            const total = keys.reduce((acc, k) => acc + Number(counts[k] || 0), 0);
+            const maxVal = Math.max(1, ...keys.map(k => Number(counts[k] || 0)));
+            const fillExtra = gradient ? '; background: linear-gradient(90deg, #EF4444, #F59E0B);' : '';
+            let html = '';
+            keys.forEach(k => {
+                const c = Number(counts[k] || 0);
+                if (c === 0 && k === 'unknown') return;
+                const widthPct = Math.round((c / maxVal) * 100);
+                const sharePct = total > 0 ? Math.round((c / total) * 100) : 0;
+                html += `
+                <div class="bar-row" ${keyAttr}="${safeHtmlText(k)}">
+                    <span class="bar-label wide">${safeHtmlText(labels[k] || k)}</span>
+                    <div class="bar-track"><div class="bar-fill" style="width: ${widthPct}%${fillExtra}"></div></div>
+                    <span class="bar-count">${c} (${sharePct}%)</span>
+                </div>`;
+            });
+            el.innerHTML = html;
+        }
+
         async function fetchLiveStats(isManual = false) {
             try {
                 const res = await fetch('/admin?api=stats', { cache: 'no-store' });
@@ -1659,6 +1840,25 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                     }
                 }
 
+                // 3b. Atualizar Barras de Origem de Pagamento e Categorias de Falha
+                renderBreakdownBars(
+                    'payment-source-bars-container',
+                    'data-source-key',
+                    data.payment_sources,
+                    data.payment_source_labels,
+                    false
+                );
+                renderBreakdownBars(
+                    'failure-bars-container',
+                    'data-failure-key',
+                    data.failure_categories,
+                    data.failure_category_labels,
+                    true
+                );
+
+                const sourceLabels = data.payment_source_labels || {};
+                const failureLabels = data.failure_category_labels || {};
+
                 // 4. Atualizar Tabela de Eventos (100 Eventos Sanitizados)
                 const tbody = document.getElementById('recent-events-tbody');
                 const events = data.recent_events || [];
@@ -1666,7 +1866,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
 
                 if (tbody) {
                     if (events.length === 0) {
-                        tbody.innerHTML = '<tr id="no-events-row"><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">Nenhuma consulta registrada até o momento.</td></tr>';
+                        tbody.innerHTML = '<tr id="no-events-row"><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">Nenhuma consulta registrada até o momento.</td></tr>';
                     } else {
                         let rowsHtml = '';
                         events.forEach(ev => {
@@ -1687,7 +1887,17 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                             }
 
                             const val = ev.is_paid ? '$' + safeHtmlText(ev.price_usdc) : '-';
-                            const rawTx = String(ev.tx_hash || '');
+
+                            const failKey = String(ev.failure_category || '');
+                            const srcKey = String(ev.payment_source || '');
+                            let originBadge = '<span style="color: var(--text-muted);">-</span>';
+                            if (failKey && failKey !== 'unknown') {
+                                originBadge = `<span class="tag-failure">${safeHtmlText(failureLabels[failKey] || failKey)}</span>`;
+                            } else if (srcKey && srcKey !== 'unknown') {
+                                originBadge = `<span class="tag-source">${safeHtmlText(sourceLabels[srcKey] || srcKey)}</span>`;
+                            }
+
+                            const rawTx = String(ev.settlement_tx || ev.tx_hash || '');
                             const isHexTx = /^0x[a-f0-9]{64}$/i.test(rawTx);
                             const tx = isHexTx
                                 ? `<a href="https://basescan.org/tx/${encodeURIComponent(rawTx)}" target="_blank" class="tx-link">${safeHtmlText(rawTx.substr(0, 8))}...${safeHtmlText(rawTx.substr(-6))} ↗</a>`
@@ -1702,6 +1912,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                                 <td><strong>${cleanService}</strong></td>
                                 <td><span class="tag-status status-${st}">HTTP ${st}</span></td>
                                 <td>${typeBadge}</td>
+                                <td>${originBadge}</td>
                                 <td>${val}</td>
                                 <td>${tx}</td>
                                 <td style="color: var(--text-muted);">${cleanIp}</td>

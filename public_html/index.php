@@ -768,23 +768,41 @@ if ($isValidApiAction) {
     $clientIp = grid402_get_trusted_client_ip();
 
     $validation = grid402_validate_payment($paymentProof, $servicePriceRaw, $clientIp);
+    // Payload x402 padrao (base64) nunca e gravado em telemetria nem ecoado na resposta
+    $proofIsPayload = grid402_classify_payment_proof($paymentProof) === 'x402_payload';
+    $proofForLog = $proofIsPayload ? null : $paymentProof;
     if (!$validation['valid']) {
         $serviceLabel = $apiParam !== '' ? $apiParam : 'technical-utility';
-        grid402_record_telemetry($serviceLabel, $validation['code'], false, $paymentProof, null, (float)$servicePriceDisplay);
+        grid402_record_telemetry(
+            $serviceLabel,
+            $validation['code'],
+            false,
+            $proofForLog,
+            null,
+            (float)$servicePriceDisplay,
+            null,
+            ['failure_category' => $validation['category'] ?? 'payment_rejected']
+        );
         http_response_code($validation['code']);
         header('Content-Type: application/json; charset=utf-8');
         if ($validation['code'] === 402) {
             header('X-Authenticate: x402');
             header('X-Accept-Payment: base:usdc:' . GRID402_WALLET_ADDRESS . ':' . $servicePriceDisplay);
-        } elseif ($validation['code'] === 429) {
+        } elseif ($validation['code'] === 429 || $validation['code'] === 503) {
             header('Retry-After: ' . ($validation['retry_after'] ?? 3600));
         }
 
         $errPayload = [
-            'error' => ($validation['code'] === 403) ? 'ReplayAttackDetected' : (($validation['code'] === 429) ? 'SandboxRateLimitExceeded' : 'PaymentFailed'),
+            'error' => ($validation['code'] === 403) ? 'ReplayAttackDetected' : (($validation['code'] === 429) ? 'SandboxRateLimitExceeded' : (($validation['code'] === 503) ? 'SettlementUnavailable' : 'PaymentFailed')),
             'message' => $validation['reason'],
-            'tx_hash' => $paymentProof,
+            'tx_hash' => $proofForLog,
         ];
+        if ($validation['code'] === 402) {
+            $errPayload['x402Version'] = 2;
+            $errPayload['accepts'] = grid402_build_accepts((int) $servicePriceRaw);
+            $errPayload['price_usdc'] = $servicePriceDisplay;
+            $errPayload['recipient_wallet'] = GRID402_WALLET_ADDRESS;
+        }
         if (isset($validation['sandbox'])) {
             $errPayload['sandbox'] = true;
         }
@@ -795,21 +813,28 @@ if ($isValidApiAction) {
     // Pagamento ou Sandbox validado com sucesso! Executa o micro-serviço requisitado
     $isSandbox = !empty($validation['sandbox']);
     // Sandbox/demo nao e consulta paga: registra como 'sandbox' para nao inflar "consultas pagas" nem a conversao
+    $settlementTx = $validation['settlement_tx'] ?? null;
     grid402_record_telemetry(
         $apiParam,
         200,
         !$isSandbox,
-        $paymentProof,
+        $settlementTx ?? $proofForLog,
         null,
         $isSandbox ? 0.0 : (float)$servicePriceDisplay,
-        $isSandbox ? 'sandbox' : null
+        $isSandbox ? 'sandbox' : null,
+        ['payment_source' => $validation['source'] ?? null]
     );
     if (!$isSandbox) {
-        grid402_notify_telegram_purchase($apiParam, (float)$servicePriceDisplay, $paymentProof);
+        grid402_notify_telegram_purchase($apiParam, (float)$servicePriceDisplay, (string) ($settlementTx ?? $proofForLog ?? 'x402-exact'));
     }
     http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');
     header('X-Payment-Status: Accepted');
+    if (($validation['source'] ?? '') === 'facilitator') {
+        $receiptHeader = grid402_build_payment_response_header($validation);
+        header('PAYMENT-RESPONSE: ' . $receiptHeader);
+        header('X-PAYMENT-RESPONSE: ' . $receiptHeader);
+    }
     if ($isSandbox) {
         header('X-Payment-Mode: sandbox');
         header('X-Payment-Amount: 0.0000 USDC (Sandbox)');
@@ -2892,7 +2917,7 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
                     <button type="button" class="btn-sm" onclick="runConsole('pass')" data-i18n="console.act.pass" style="border-color: rgba(16, 185, 129, 0.5);">⚡ Session Pass (/api/v1/pass)</button>
                 </div>
                 <div class="input-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    <input type="text" id="tx-input" class="console-input" style="flex: 1; min-width: 260px;" placeholder="Cole o hash de pagamento na Base (0x...) ou use 'demo' para simulação" data-i18n-placeholder="console.input.placeholder">
+                    <input type="text" id="tx-input" class="console-input" style="flex: 1; min-width: 260px;" placeholder="Cole seu Session Pass (pass_g402_...), hash de pagamento (0x...) ou assine via Web3" data-i18n-placeholder="console.input.placeholder">
                     <button type="button" class="btn-sm" onclick="runConsole('paid')" data-i18n="console.btn.send_payment">Enviar com X-Payment</button>
                     <button type="button" class="btn-sm btn-primary" id="btn-web3-pay" onclick="payWithWeb3Wallet()" data-i18n="console.btn.web3_pay">⚡ Pagar com Carteira Web3 (1 Clique)</button>
                     <button type="button" class="btn-sm btn-outline" id="btn-console-smart-wallet" onclick="payConsoleWithCoinbaseSmartWallet()" style="border-color: #0052ff; background: rgba(0, 82, 255, 0.14); color: #fff; font-weight: 600;" data-i18n="console.btn.smart_wallet">🔑 Passkey / Biometria (Smart Wallet)</button>

@@ -223,7 +223,7 @@ define('GRID402_FILE_CRYPTO', GRID402_PRIVATE_DIR . '/crypto_cache.json');
 define('GRID402_FILE_METRICS', GRID402_PRIVATE_DIR . '/metrics.json');
 define('GRID402_FILE_ADMIN_AUTH', GRID402_PRIVATE_DIR . '/admin_auth.json');
 define('GRID402_FILE_CNPJ', GRID402_PRIVATE_DIR . '/cnpj_cache.json');
-define('GRID402_FILE_SANDBOX_RATES', GRID402_PRIVATE_DIR . '/sandbox_rates.json');
+define('GRID402_FILE_SANDBOX_RATES', (string) grid402_env('GRID402_FILE_SANDBOX_RATES', GRID402_PRIVATE_DIR . '/sandbox_rates.json'));
 define('GRID402_FILE_INDICATORS', GRID402_PRIVATE_DIR . '/indicators_cache.json');
 define('GRID402_FILE_HOLIDAYS', GRID402_PRIVATE_DIR . '/holidays_cache.json');
 define('GRID402_FILE_WORKDAYS', GRID402_PRIVATE_DIR . '/workdays_cache.json');
@@ -231,6 +231,18 @@ define('GRID402_FILE_LEI', GRID402_PRIVATE_DIR . '/lei_cache.json');
 define('GRID402_FILE_OFAC', GRID402_PRIVATE_DIR . '/ofac_cache.json');
 define('GRID402_FILE_GLOBAL_MARKETS', GRID402_PRIVATE_DIR . '/global_markets_cache.json');
 define('GRID402_FILE_PASSES', GRID402_PRIVATE_DIR . '/session_passes.json');
+define('GRID402_FILE_USED_NONCES', GRID402_PRIVATE_DIR . '/used_nonces.json');
+
+// Facilitador x402 (pagamentos `exact` / EIP-3009). Modos: disabled (padrao), verify_only, settle
+$grid402FacilitatorMode = strtolower(trim((string) grid402_env('GRID402_FACILITATOR_MODE', 'disabled')));
+if (!in_array($grid402FacilitatorMode, ['disabled', 'verify_only', 'settle'], true)) {
+    $grid402FacilitatorMode = 'disabled';
+}
+define('GRID402_FACILITATOR_MODE', $grid402FacilitatorMode);
+unset($grid402FacilitatorMode);
+define('GRID402_FACILITATOR_URL', rtrim((string) grid402_env('GRID402_FACILITATOR_URL', 'https://api.cdp.coinbase.com/platform'), '/'));
+define('GRID402_CDP_API_KEY_ID', (string) grid402_env('GRID402_CDP_API_KEY_ID', ''));
+define('GRID402_CDP_API_KEY_SECRET', (string) grid402_env('GRID402_CDP_API_KEY_SECRET', ''));
 
 // 5. Catálogo Oficial dos 6 Micro-Serviços Core de Dados Públicos e Rede
 function grid402_get_utility_services(): array {

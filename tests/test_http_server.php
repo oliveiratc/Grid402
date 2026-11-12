@@ -1,24 +1,20 @@
 <?php
 declare(strict_types=1);
 
-echo "[TEST] Iniciando servidor web de teste na porta 8942...\n";
+require_once __DIR__ . '/helpers_server.php';
 
-$descriptors = [
-    0 => ['pipe', 'r'],
-    1 => ['pipe', 'w'],
-    2 => ['pipe', 'w'],
-];
+echo "[TEST] Iniciando servidor web de teste...\n";
 
-$phpBinary = defined('PHP_BINARY') && !empty(PHP_BINARY) ? PHP_BINARY : 'php';
-$cmd = "\"{$phpBinary}\" -S 127.0.0.1:8942 -t \"" . __DIR__ . "/../public_html\"";
-
-$process = proc_open($cmd, $descriptors, $pipes);
-if (!is_resource($process)) {
-    die("Falha ao iniciar servidor de testes PHP.\n");
+try {
+    $server = grid402_start_server([
+        'docroot' => __DIR__ . '/../public_html',
+        'probe' => '/',
+    ]);
+} catch (Throwable $e) {
+    die("Falha ao iniciar servidor de testes PHP: " . $e->getMessage() . "\n");
 }
 
-// Aguarda o servidor subir
-usleep(350000); // 350ms
+$baseUrl = $server['base_url'];
 
 function http_get(string $url, array $headers = []): array {
     $ch = curl_init($url);
@@ -37,7 +33,7 @@ function http_get(string $url, array $headers = []): array {
 try {
     // 1. Teste de Acesso de Navegador (HTML Landing Page)
     echo "1. Testando requisição de navegador (Accept: text/html)...\n";
-    $respHtml = http_get('http://127.0.0.1:8942/', ['Accept: text/html']);
+    $respHtml = http_get("{$baseUrl}/", ['Accept: text/html']);
     assert($respHtml['code'] === 200, "Código deve ser 200 (Recebido: {$respHtml['code']})");
     assert(str_contains($respHtml['body'], '<!DOCTYPE html>'), 'Deve retornar documento HTML');
     assert(str_contains($respHtml['body'], 'Grid402'), 'Deve conter nome da aplicação Grid402');
@@ -45,7 +41,7 @@ try {
 
     // 2. Teste de Resumo Gratuito (JSON)
     echo "2. Testando endpoint de resumo gratuito (format=json)...\n";
-    $respJson = http_get('http://127.0.0.1:8942/?format=json', ['Accept: application/json']);
+    $respJson = http_get("{$baseUrl}/?format=json", ['Accept: application/json']);
     assert($respJson['code'] === 200, "Código deve ser 200");
     $dataFree = json_decode($respJson['body'], true);
     assert(is_array($dataFree), "Deve ser um JSON válido");
@@ -56,7 +52,7 @@ try {
 
     // 3. Teste de Desafio x402 (Consulta técnica sem pagamento)
     echo "3. Testando desafio x402 ao solicitar utilitário técnico...\n";
-    $resp402 = http_get('http://127.0.0.1:8942/?api=forex', ['Accept: application/json']);
+    $resp402 = http_get("{$baseUrl}/?api=forex", ['Accept: application/json']);
     assert($resp402['code'] === 402, "Código deve ser 402 Payment Required (Recebido: {$resp402['code']})");
     $data402 = json_decode($resp402['body'], true);
     assert($data402['error'] === 'PaymentRequired', 'Erro deve ser PaymentRequired');
@@ -71,7 +67,7 @@ try {
     require_once __DIR__ . '/../public_html/x402.php';
     grid402_mark_transaction_used($usedTx);
 
-    $respReplay = http_get('http://127.0.0.1:8942/?api=forex', [
+    $respReplay = http_get("{$baseUrl}/?api=forex", [
         'Accept: application/json',
         "X-Payment: {$usedTx}",
     ]);
@@ -82,9 +78,5 @@ try {
 
     echo "✓ Todos os fluxos HTTP foram validados com 100% de sucesso!\n";
 } finally {
-    proc_terminate($process);
-    fclose($pipes[0]);
-    fclose($pipes[1]);
-    fclose($pipes[2]);
-    proc_close($process);
+    grid402_stop_server($server);
 }

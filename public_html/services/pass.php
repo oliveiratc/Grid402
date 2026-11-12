@@ -317,6 +317,7 @@ function grid402_consume_session_pass(string $token, int $requiredRawUnits = 500
                 $result = [
                     'valid' => true,
                     'sandbox' => $isSandbox,
+                    'source' => $isSandbox ? 'sandbox' : 'pass',
                     'session_pass' => true,
                     'pass_id' => $passId,
                     'credits_debited' => $creditsNeeded,

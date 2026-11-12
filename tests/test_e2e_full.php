@@ -86,12 +86,24 @@ echo "  ✓ Arquivos de Descoberta M2M (llms.txt, openapi.json, robots.txt, site
 echo "[PASSO {$step}] Subindo servidor web local para simular tráfego HTTP real...\n";
 $step++;
 
-$port = 8956;
-$descriptors = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
-$phpBinary = defined('PHP_BINARY') && !empty(PHP_BINARY) ? PHP_BINARY : 'php';
-$cmd = "\"{$phpBinary}\" -S 127.0.0.1:{$port} -t \"" . __DIR__ . "/../public_html\"";
-$proc = proc_open($cmd, $descriptors, $pipes);
-usleep(350000); // 350ms para inicialização do listener
+require_once __DIR__ . '/helpers_server.php';
+
+// Estado de rate limit isolado por execucao: o arquivo compartilhado acumularia
+// requisicoes sandbox de outros testes (mesmo IP 127.0.0.1) e causaria HTTP 429.
+$sandboxRatesFile = sys_get_temp_dir() . '/grid402_sandbox_rates_' . getmypid() . '_' . bin2hex(random_bytes(4)) . '.json';
+
+try {
+    $server = grid402_start_server([
+        'docroot' => __DIR__ . '/../public_html',
+        'probe' => '/',
+        'env' => ['GRID402_FILE_SANDBOX_RATES' => $sandboxRatesFile],
+    ]);
+} catch (Throwable $e) {
+    @unlink($sandboxRatesFile);
+    die("Falha ao iniciar servidor de testes PHP: " . $e->getMessage() . "\n");
+}
+
+$baseUrl = $server['base_url'];
 
 function test_req(string $url, array $headers = []): array {
     $ch = curl_init($url);
@@ -110,7 +122,7 @@ function test_req(string $url, array $headers = []): array {
 try {
     // 3.1. Navegador Humano
     echo "  -> Simulando acesso de navegador web (Accept: text/html)...\n";
-    $nav = test_req("http://127.0.0.1:{$port}/", ['Accept: text/html']);
+    $nav = test_req("{$baseUrl}/", ['Accept: text/html']);
     assert($nav['code'] === 200, "Navegador deve receber HTTP 200 (Recebeu: {$nav['code']})");
     assert(str_contains($nav['body'], '<!DOCTYPE html>'), "Deve conter HTML5");
     assert(str_contains($nav['body'], 'Grid402'), "Deve exibir Grid402");
@@ -123,7 +135,7 @@ try {
 
     // 3.2. Agente de IA consultando resumo gratuito
     echo "  -> Simulando consulta de resumo gratuito por Agente IA (Accept: application/json)...\n";
-    $freeReq = test_req("http://127.0.0.1:{$port}/?format=json", ['Accept: application/json']);
+    $freeReq = test_req("{$baseUrl}/?format=json", ['Accept: application/json']);
     assert($freeReq['code'] === 200, "Resumo gratuito deve responder 200");
     assert($freeReq['time_ms'] < 100, "Leitura de resumo gratuito deve ser < 100ms (Levou {$freeReq['time_ms']}ms)");
     $freeJson = json_decode($freeReq['body'], true);
@@ -132,7 +144,7 @@ try {
 
     // 3.3. Agente solicitando utilitário técnico sem pagamento (Desafio x402)
     echo "  -> Simulando requisição de micro-serviço técnico sem X-Payment (Desafio x402)...\n";
-    $chalReq = test_req("http://127.0.0.1:{$port}/?api=forex", ['Accept: application/json']);
+    $chalReq = test_req("{$baseUrl}/?api=forex", ['Accept: application/json']);
     assert($chalReq['code'] === 402, "Deve retornar desafio HTTP 402 Payment Required");
     $chalData = json_decode($chalReq['body'], true);
     assert($chalData['error'] === 'PaymentRequired', 'Erro deve ser PaymentRequired');
@@ -147,7 +159,7 @@ try {
     require_once __DIR__ . '/../public_html/x402.php';
     grid402_mark_transaction_used($testReplayTx);
 
-    $replayReq = test_req("http://127.0.0.1:{$port}/?api=forex", [
+    $replayReq = test_req("{$baseUrl}/?api=forex", [
         'Accept: application/json',
         "X-Payment: {$testReplayTx}",
     ]);
@@ -158,23 +170,23 @@ try {
 
     // 3.5. Requisição de Badges SVG Dinâmicos
     echo "  -> Simulando requisição de Badges SVG dinâmicos...\n";
-    $badgeForex = test_req("http://127.0.0.1:{$port}/badge.php?target=forex");
+    $badgeForex = test_req("{$baseUrl}/badge.php?target=forex");
     assert($badgeForex['code'] === 200, "Badge forex deve retornar HTTP 200");
     assert(str_contains($badgeForex['body'], '<svg'), "Badge forex deve conter tag <svg");
     assert(str_contains($badgeForex['body'], 'USD / BRL'), "Badge forex deve conter USD / BRL");
 
-    $badgeSys = test_req("http://127.0.0.1:{$port}/badge.php?target=system");
+    $badgeSys = test_req("{$baseUrl}/badge.php?target=system");
     assert($badgeSys['code'] === 200, "Badge system deve retornar HTTP 200");
     assert(str_contains($badgeSys['body'], 'Grid402 Hub'), "Badge system deve conter Grid402 Hub");
     echo "     ✓ Badges dinâmicos SVG emitidos em {$badgeForex['time_ms']} ms (HTTP 200)!\n";
 
     // 3.6. Requisições jurídicas (Terms e Privacy para Agentes e LGPD)
     echo "  -> Simulando consulta de Termos de Uso e Privacidade LGPD...\n";
-    $termsReq = test_req("http://127.0.0.1:{$port}/?page=terms", ['Accept: application/json']);
+    $termsReq = test_req("{$baseUrl}/?page=terms", ['Accept: application/json']);
     assert($termsReq['code'] === 200, "Terms deve retornar HTTP 200");
     assert(str_contains($termsReq['body'], 'AS-IS'), "Terms deve conter cláusula AS-IS");
 
-    $privReq = test_req("http://127.0.0.1:{$port}/?page=privacy", ['Accept: application/json']);
+    $privReq = test_req("{$baseUrl}/?page=privacy", ['Accept: application/json']);
     assert($privReq['code'] === 200, "Privacy deve retornar HTTP 200");
     assert(str_contains($privReq['body'], 'LGPD'), "Privacy deve referenciar a LGPD");
     echo "     ✓ Termos de Uso e Política LGPD validados em {$termsReq['time_ms']} ms (HTTP 200)!\n";
@@ -186,7 +198,7 @@ try {
         'start_date' => '2026-12-24',
         'end_date' => '2026-12-28',
     ]);
-    $workdaysReq = test_req("http://127.0.0.1:{$port}/?{$workdaysQuery}", ['Accept: application/json']);
+    $workdaysReq = test_req("{$baseUrl}/?{$workdaysQuery}", ['Accept: application/json']);
     assert($workdaysReq['code'] === 402, "Workdays sem pagamento deve responder HTTP 402");
     $workdaysChal = json_decode($workdaysReq['body'], true);
     assert($workdaysChal['error'] === 'PaymentRequired', 'Erro deve ser PaymentRequired');
@@ -195,7 +207,7 @@ try {
     assert(in_array('workdays', $workdaysChal['locked_fields'] ?? [], true), 'workdays deve ser campo bloqueado');
 
     echo "  -> Simulando execução de dias úteis em Modo Sandbox (X-Payment: demo)...\n";
-    $workdaysDemo = test_req("http://127.0.0.1:{$port}/?{$workdaysQuery}", [
+    $workdaysDemo = test_req("{$baseUrl}/?{$workdaysQuery}", [
         'Accept: application/json',
         'X-Payment: demo',
     ]);
@@ -218,7 +230,7 @@ try {
 
     // 3.9. Validação do Micro-Endpoint /api/v1/verify
     echo "  -> Testando micro-endpoint /api/v1/verify com payload assinado real...\n";
-    $chVerify = curl_init("http://127.0.0.1:{$port}/api/v1/verify");
+    $chVerify = curl_init("{$baseUrl}/api/v1/verify");
     curl_setopt_array($chVerify, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST => true,
@@ -239,7 +251,7 @@ try {
     // Teste com payload adulterado
     $tamperedWorkdays = $workdaysData;
     $tamperedWorkdays['workdays'] = 999;
-    $chTampered = curl_init("http://127.0.0.1:{$port}/api/v1/verify");
+    $chTampered = curl_init("{$baseUrl}/api/v1/verify");
     curl_setopt_array($chTampered, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST => true,
@@ -260,9 +272,8 @@ try {
     echo "  ✓ Todos os testes HTTP foram validados com êxito!\n\n";
 
 } finally {
-    proc_terminate($proc);
-    fclose($pipes[0]); fclose($pipes[1]); fclose($pipes[2]);
-    proc_close($proc);
+    grid402_stop_server($server);
+    @unlink($sandboxRatesFile);
 }
 
 // 4. Conectividade Blockchain com a Base Mainnet
