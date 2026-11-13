@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Grid402 // Hub de Utilitários de Rede e Dados Públicos Abertos (Protocolo x402)
  * 
