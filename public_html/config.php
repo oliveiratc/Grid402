@@ -149,7 +149,7 @@ define('GRID402_CHAIN_ID', 8453); // Base Mainnet
 define('GRID402_SEPOLIA_RPC_URL', (string) grid402_env('GRID402_SEPOLIA_RPC_URL', 'https://sepolia.base.org'));
 define('GRID402_SEPOLIA_CHAIN_ID', 84532); // Base Sepolia Testnet
 define('GRID402_SEPOLIA_USDC_CONTRACT', strtolower((string) grid402_env('GRID402_SEPOLIA_USDC_CONTRACT', '0x036cbd53842c5426634e7929541ec2318f3dcf7e')));
-define('GRID402_SANDBOX_RATE_LIMIT', (int) grid402_env('GRID402_SANDBOX_RATE_LIMIT', 3)); // 3 consultas gratuitas por hora por IP (converte para x402 pago)
+define('GRID402_SANDBOX_RATE_LIMIT', (int) grid402_env('GRID402_SANDBOX_RATE_LIMIT', 30)); // 30 consultas gratuitas por hora por IP (converte para x402 pago)
 define('GRID402_USDC_REQUIRED_RAW', (int) grid402_env('GRID402_USDC_REQUIRED_RAW', 500)); // 0.000500 USDC
 define('GRID402_PRICE_DISPLAY', (string) grid402_env('GRID402_PRICE_DISPLAY', '0.0005'));
 define('GRID402_PRICE_CNPJ', (string) grid402_env('GRID402_PRICE_CNPJ', '0.0020'));
@@ -165,7 +165,16 @@ define('GRID402_CANONICAL_DOMAIN', (string) grid402_env('GRID402_CANONICAL_DOMAI
 define('GRID402_CANONICAL_HOST', (string) grid402_env('GRID402_CANONICAL_HOST', 'grid402.online'));
 
 // 2.1. Parâmetros de Assinatura Criptográfica do Oráculo (Proof of Data)
+// 1.6. Chave publica/privada do oraculo (Proof of Data). Em producao, DEFINIR via env (rotacao).
+// NUNCA usar a chave default em producao: ela esta publica no repo (testes apenas).
 define('GRID402_ORACLE_WALLET', strtolower((string) grid402_env('GRID402_ORACLE_WALLET', GRID402_WALLET_ADDRESS)));
+define('GRID402_ORACLE_PRIVATE_KEY', (string) grid402_env('GRID402_ORACLE_PRIVATE_KEY', ''));
+define('GRID402_ORACLE_PUBLIC_KEY', (string) grid402_env('GRID402_ORACLE_PUBLIC_KEY', ''));
+if (GRID402_ORACLE_PRIVATE_KEY !== '') {
+    define('GRID402_ORACLE_KEY_CONFIGURED', true);
+} else {
+    define('GRID402_ORACLE_KEY_CONFIGURED', false);
+}
 define('GRID402_ORACLE_ALGORITHM', 'secp256k1-sha256');
 
 // 3. Parâmetros de Performance e Timeout

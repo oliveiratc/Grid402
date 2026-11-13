@@ -812,16 +812,18 @@ if ($isValidApiAction) {
 
     // Pagamento ou Sandbox validado com sucesso! Executa o micro-serviço requisitado
     $isSandbox = !empty($validation['sandbox']);
-    // Sandbox/demo nao e consulta paga: registra como 'sandbox' para nao inflar "consultas pagas" nem a conversao
+    $isVerifyOnly = (($validation['source'] ?? '') === 'facilitator_verify_only');
+    $isRealPayment = !$isSandbox && !$isVerifyOnly;
+    // Sandbox/demo e verify_only nao sao consulta paga: registra como 'sandbox'/'verify_only'
     $settlementTx = $validation['settlement_tx'] ?? null;
     grid402_record_telemetry(
         $apiParam,
         200,
-        !$isSandbox,
+        $isRealPayment,
         $settlementTx ?? $proofForLog,
         null,
-        $isSandbox ? 0.0 : (float)$servicePriceDisplay,
-        $isSandbox ? 'sandbox' : null,
+        ($isSandbox || $isVerifyOnly) ? 0.0 : (float)$servicePriceDisplay,
+        $isSandbox ? 'sandbox' : ($isVerifyOnly ? 'verify_only' : null),
         ['payment_source' => $validation['source'] ?? null]
     );
     if (!$isSandbox) {
@@ -1005,6 +1007,17 @@ if ($isValidApiAction) {
     }
 
     if (is_array($result) && (!isset($result['code']) || $result['code'] === 200)) {
+        if (isset($result['timestamp']) && is_string($result['timestamp'])) {
+            $ts = strtotime($result['timestamp']);
+            if ($ts !== false) {
+                $age = time() - (int) $ts;
+                if ($age < 0) {
+                    $age = 0;
+                }
+                $result['data_age_seconds'] = $age;
+                $result['data_freshness'] = ($age <= 300) ? 'fresh' : 'stale';
+            }
+        }
         grid402_sign_data($result, $isSandbox);
     }
 

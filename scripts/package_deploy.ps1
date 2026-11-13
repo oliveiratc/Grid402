@@ -40,6 +40,8 @@ if (Test-Path "$publicHtml\private_data\.htaccess") {
 }
 
 Remove-Item -Path "$tempStage\private_data\*.json" -Force -ErrorAction SilentlyContinue
+# Segredos de env nao devem ir no pacote de deploy (sao configurados no .env da raiz do host)
+Remove-Item -Path "$tempStage\private_data\.env" -Force -ErrorAction SilentlyContinue
 
 # Compactação usando .NET ZipArchive com barras POSIX (/) para total compatibilidade com Linux/Hostinger
 Add-Type -AssemblyName System.IO.Compression

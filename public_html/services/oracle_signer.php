@@ -72,7 +72,7 @@ function grid402_sign_data(array &$data, bool $isSandbox = false): void {
     $dataHash = grid402_compute_data_hash($data);
     $messageToSign = $dataHash . ':' . $timestamp . ':' . ($isSandbox ? 'sandbox' : 'mainnet');
 
-    $privKeyPem = (string)(getenv('GRID402_ORACLE_PRIVATE_KEY') ?: GRID402_DEFAULT_ORACLE_PRIVKEY);
+    $privKeyPem = (string)(getenv('GRID402_ORACLE_PRIVATE_KEY') ?: (defined('GRID402_ORACLE_PRIVATE_KEY') && GRID402_ORACLE_PRIVATE_KEY !== '' ? GRID402_ORACLE_PRIVATE_KEY : GRID402_DEFAULT_ORACLE_PRIVKEY));
     $oracleWallet = defined('GRID402_ORACLE_WALLET') ? GRID402_ORACLE_WALLET : '0xa31c31069c43ac1c0075a93c325b0dcd7744356c';
 
     $signatureHex = '';
@@ -103,6 +103,17 @@ function grid402_verify_oracle_proof(array $data, ?string $pubKeyPem = null): ar
     }
 
     $proof = $data['_oracle_proof'];
+    $declaredAddress = strtolower((string) ($proof['oracle_address'] ?? ''));
+    $expectedAddress = defined('GRID402_ORACLE_WALLET') ? strtolower((string) GRID402_ORACLE_WALLET) : '';
+    if ($expectedAddress !== '' && $declaredAddress !== '' && $declaredAddress !== $expectedAddress) {
+        return [
+            'valid' => false,
+            'error' => 'OracleAddressMismatch',
+            'expected_address' => $expectedAddress,
+            'received_address' => $declaredAddress
+        ];
+    }
+
     $dataHash = grid402_compute_data_hash($data);
 
     if (($proof['data_hash'] ?? '') !== $dataHash) {
@@ -127,7 +138,7 @@ function grid402_verify_oracle_proof(array $data, ?string $pubKeyPem = null): ar
         return ['valid' => false, 'error' => 'InvalidSignatureHex'];
     }
 
-    $pubKey = $pubKeyPem ?: (getenv('GRID402_ORACLE_PUBLIC_KEY') ?: GRID402_DEFAULT_ORACLE_PUBKEY);
+    $pubKey = $pubKeyPem ?: ((defined('GRID402_ORACLE_PUBLIC_KEY') && GRID402_ORACLE_PUBLIC_KEY !== '') ? GRID402_ORACLE_PUBLIC_KEY : (getenv('GRID402_ORACLE_PUBLIC_KEY') ?: GRID402_DEFAULT_ORACLE_PUBKEY));
     $res = openssl_verify($messageToSign, $sigBinary, $pubKey, OPENSSL_ALGO_SHA256);
 
     if ($res !== 1) {
