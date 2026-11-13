@@ -549,6 +549,31 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
     header('Payment-Required: ' . $b64Header);
     header('payment-required: ' . $b64Header);
 
+    // Gatilhos de conversão visíveis apenas para clientes que não pagaram (402).
+    // Não altera requisitos de pagamento, apenas informa opções.
+    $growthCfgForAds = ['starter_promo_enabled' => false, 'starter_promo_credits' => 10, 'starter_promo_requires_first_paid' => true];
+    if (function_exists('grid402_growth_read')) {
+        $growthDataForAds = grid402_growth_read();
+        $growthCfgForAds = $growthDataForAds['config'] ?? $growthCfgForAds;
+    }
+    $canonicalBase = defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online';
+    $conversionInfo = [
+        'starter_promo' => [
+            'enabled' => (bool)($growthCfgForAds['starter_promo_enabled'] ?? false),
+            'credits' => (int)($growthCfgForAds['starter_promo_credits'] ?? 10),
+            'terms' => 'Uma vez por carteira; exige primeira consulta paga validada; recompensas passam por aprovação administrativa.',
+            'claim_url' => $canonicalBase . '/growth',
+        ],
+        'session_pass' => [
+            'description' => 'Melhor custo por chamada recorrente + latência <15ms',
+            'url' => $canonicalBase . '/pass',
+        ],
+        'catalog' => [
+            'description' => 'Compare preços por endpoint e escolha seu pacote',
+            'url' => $canonicalBase . '/catalog',
+        ],
+    ];
+
     $payload = [
         'x402Version' => 2,
         'error' => 'PaymentRequired',
@@ -575,6 +600,7 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
             'description' => 'Teste a estrutura completa da resposta sem custo enviando o cabecalho X-Payment: demo.',
         ],
         'action_required' => "1) Assine a autorizacao x402 v2 (cabecalho PAYMENT-SIGNATURE ou X-Payment em base64) para liquidacao automatica via facilitador, OU envie {$priceDisplay} USDC na Base (Chain ID 8453) para recipient_wallet e refaca a requisicao com \"X-Payment: <tx_hash>\". 2) Para chamadas de alta frequencia sem latencia on-chain, adquira um Session Pass em " . (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . "/pass (pacotes Starter/Pro/Fleet) e utilize \"X-Payment: pass_g402_...\". 3) Para testar gratuitamente agora (cota de 3 req/hora), envie \"X-Payment: demo\".",
+        'conversion' => $conversionInfo,
         'docs' => (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . '/llms.txt',
     ];
 

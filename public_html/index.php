@@ -913,8 +913,16 @@ if ($isValidApiAction) {
         header('X-Payment-Network: Base (ChainID 8453)');
     }
     if (!empty($validation['session_pass'])) {
+        $creditsRemaining = (int)($validation['credits_remaining'] ?? 0);
+        $growthCfg = function_exists('grid402_growth_read') ? (grid402_growth_read()['config'] ?? []) : [];
+        $lowBalanceThreshold = (int)($growthCfg['low_balance_threshold'] ?? 10);
         header('X-Pass-Credits-Debited: ' . ($validation['credits_debited'] ?? 1));
-        header('X-Pass-Credits-Remaining: ' . ($validation['credits_remaining'] ?? 0));
+        header('X-Pass-Credits-Remaining: ' . $creditsRemaining);
+        if ($creditsRemaining <= $lowBalanceThreshold) {
+            header('X-Pass-Low-Balance: true');
+            header('X-Pass-Low-Balance-Threshold: ' . $lowBalanceThreshold);
+            header('X-Pass-Recharge: ' . (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . '/pass');
+        }
     }
     header('Cache-Control: private, no-cache');
 
@@ -1106,6 +1114,29 @@ if ($isValidApiAction) {
                 'services' => grid402_get_utility_services(),
             ];
             break;
+    }
+
+    if (is_array($result)) {
+        // Digest de faturamento por chamada: torna Pay-per-Request vs Session Pass auditável pelo agente
+        $payerForDigest = (string) ($validation['payer'] ?? '');
+        $digestId = substr(hash_hmac('sha256', json_encode([
+            'service' => $apiParam,
+            'price' => $servicePriceDisplay,
+            'source' => $validation['source'] ?? 'unknown',
+            'credits_debited' => $validation['credits_debited'] ?? null,
+            'ts' => (string) ($result['timestamp'] ?? gmdate('Y-m-d\TH:i:s\Z')),
+        ], JSON_UNESCAPED_SLASHES), function_exists('grid402_growth_secret') ? grid402_growth_secret() : GRID402_CRON_SECRET), 0, 16);
+
+        $result['_billing'] = [
+            'service' => $apiParam,
+            'price_usdc' => $servicePriceDisplay,
+            'payment_source' => $validation['source'] ?? 'unknown',
+            'credits_debited' => $validation['credits_debited'] ?? null,
+            'credits_remaining' => $validation['credits_remaining'] ?? null,
+            'payer_last4' => $payerForDigest !== '' ? substr(strtolower($payerForDigest), -4) : null,
+            'digest_id' => $digestId,
+        ];
+        header('X-Billing-Digest: ' . $digestId);
     }
 
     if ($isSandbox && is_array($result)) {

@@ -7,7 +7,9 @@ declare(strict_types=1);
 
 define('GRID402_EXEC', true);
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/metrics.php';
 require_once __DIR__ . '/growth.php';
+require_once __DIR__ . '/services/onchain_stats.php';
 
 $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['SERVER_PORT'] ?? 80) == 443);
 session_name('GRID402_ADMIN_SESS');
@@ -25,10 +27,20 @@ $action = (string)($_POST['action'] ?? ($_GET['action'] ?? ''));
 $msg = '';
 $err = '';
 
+// Token CSRF próprio desta página (mesma sessão administrativa)
+if (empty($_SESSION['growth_admin_csrf'])) {
+    $_SESSION['growth_admin_csrf'] = bin2hex(random_bytes(32));
+}
+$csrfToken = (string) $_SESSION['growth_admin_csrf'];
+
 $data = grid402_growth_read();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if ($action === 'update_config') {
+    $submittedCsrf = (string)($_POST['csrf_token'] ?? '');
+    if ($submittedCsrf === '' || !hash_equals($csrfToken, $submittedCsrf)) {
+        http_response_code(403);
+        $err = 'Token CSRF inválido. Recarregue a página e tente novamente.';
+    } elseif ($action === 'update_config') {
         $payload = [
             'free_trial_limit' => $_POST['free_trial_limit'] ?? 0,
             'recurring_service_threshold' => $_POST['recurring_service_threshold'] ?? 3,
@@ -44,6 +56,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = grid402_growth_update_config($payload);
         $msg = isset($result['error']) ? $result['error'] : 'Configuração atualizada.';
         $data = grid402_growth_read();
+    } elseif ($action === 'reconcile_onchain') {
+        $window = (int)($_POST['window'] ?? 10000);
+        $window = in_array($window, [10000, 30000, 60000], true) ? $window : 10000;
+        $snapshot = grid402_onchain_stats_refresh($window);
+        $msg = !empty($snapshot['rpc_ok'])
+            ? ('Snapshot on-chain atualizado (blocos ' . ($snapshot['from_block'] ?? '?') . '–' . ($snapshot['to_block'] ?? '?') . ')' . (!empty($snapshot['partial']) ? ' — parcial: ' . ($snapshot['chunks_failed'] ?? '?') . '/' . ($snapshot['chunks_total'] ?? '?') . ' chunks falharam' : ''))
+            : 'RPC indisponível — snapshot anterior mantido. Nada foi sobrescrito.';
     } elseif ($action === 'issue_reward') {
         $result = grid402_growth_issue_pending_reward((string)($_POST['reward_id'] ?? ''));
         $msg = isset($result['error']) ? $result['error'] : 'Créditos emitidos.';
@@ -68,6 +87,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $metrics = grid402_growth_metrics();
 $cfg = $data['config'];
+$standardMetrics = grid402_get_metrics();
+$onchain = grid402_onchain_stats_read();
+$compare = grid402_onchain_stats_compare($onchain, $standardMetrics);
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -98,6 +120,7 @@ $cfg = $data['config'];
     <p><a href="/admin">← Voltar ao Admin</a></p>
     <h1>Growth Administration</h1>
     <?php if ($msg): ?><div class="panel ok"><?php echo htmlspecialchars($msg); ?></div><?php endif; ?>
+    <?php if ($err): ?><div class="panel" style="border-color:#EF4444;color:#FECACA;"><?php echo htmlspecialchars($err); ?></div><?php endif; ?>
 
     <section class="panel">
         <h2>KPIs</h2>
@@ -112,9 +135,38 @@ $cfg = $data['config'];
     </section>
 
     <section class="panel">
+        <h2>Reconciliação On-Chain (USDC → wallet oráculo)</h2>
+        <p class="muted">Leitura pública via <code>eth_getLogs</code> de eventos <code>Transfer(USDC)</code> para a carteira oráculo. Nenhuma transação é assinada ou enviada. Comparativo serve como sinal, não como verdade absoluta.</p>
+        <form method="post" action="/growth_admin" style="display:flex;gap:.6rem;align-items:end;flex-wrap:wrap;margin-bottom:.75rem;">
+            <input type="hidden" name="action" value="reconcile_onchain">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+            <label>Janela de blocos
+                <select name="window">
+                    <option value="10000" selected>10.000 blocos (~5,5h)</option>
+                    <option value="30000">30.000 blocos (~16h)</option>
+                    <option value="60000">60.000 blocos (~33h, limite máximo)</option>
+                </select>
+            </label>
+            <button type="submit" class="primary">Reconciliar agora</button>
+        </form>
+        <table>
+            <tbody>
+                <tr><th>Última atualização</th><td><?php echo htmlspecialchars((string)($compare['generated_at'] ?? 'nunca')); ?> <?php echo $compare['rpc_ok'] ? '<span class="ok">(RPC ok)</span>' : '<span class="warn">(RPC indisponível — último snapshot mantido)</span>'; ?></td></tr>
+                <tr><th>Janela</th><td><?php echo (int)$compare['window_blocks']; ?> blocos (<?php echo htmlspecialchars((string)($onchain['from_block'] ?? '?')); ?>–<?php echo htmlspecialchars((string)($onchain['to_block'] ?? '?')); ?>)<?php echo !empty($onchain['partial']) ? ' — <span class="warn">parcial (' . (int)$onchain['chunks_failed'] . '/' . (int)$onchain['chunks_total'] . ' chunks falharam)</span>' : ''; ?></td></tr>
+                <tr><th>Transfers recebidas on-chain</th><td><?php echo (int)$compare['onchain_transfers']; ?> de <?php echo (int)$compare['onchain_unique_senders']; ?> carteiras únicas (pós-filtro)</td></tr>
+                <tr><th>USDC recebido on-chain</th><td><?php echo number_format((float)$compare['onchain_received_usdc'], 4); ?> USDC</td></tr>
+                <tr><th>Receita registrada (telemetria)</th><td><?php echo number_format((float)$compare['telemetry_total_revenue_usdc'], 4); ?> USDC em <?php echo (int)$compare['telemetry_paid_requests']; ?> chamadas pagas</td></tr>
+                <tr><th>Delta (on-chain − telemetria)</th><td class="<?php echo abs((float)$compare['revenue_delta_usdc']) > 0.01 ? 'warn' : 'ok'; ?>"><?php echo number_format((float)$compare['revenue_delta_usdc'], 4); ?> USDC</td></tr>
+            </tbody>
+        </table>
+        <p class="muted" style="margin-top:.5rem;"><?php echo htmlspecialchars((string)$compare['note']); ?></p>
+    </section>
+
+    <section class="panel">
         <h2>Configuração do Engine</h2>
         <form method="post" class="grid" action="/growth_admin">
             <input type="hidden" name="action" value="update_config">
+            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
             <label>Free trial (consultas)<input type="number" min="0" name="free_trial_limit" value="<?php echo (int)$cfg['free_trial_limit']; ?>"></label>
             <label>Threshold recurring service<input type="number" min="0" name="recurring_service_threshold" value="<?php echo (int)$cfg['recurring_service_threshold']; ?>"></label>
             <label>Threshold 24h<input type="number" min="0" name="recurring_24h_threshold" value="<?php echo (int)$cfg['recurring_24h_threshold']; ?>"></label>
@@ -143,7 +195,7 @@ $cfg = $data['config'];
                     <td class="<?php echo ($r['status'] ?? '') === 'issued' ? 'ok' : 'warn'; ?>"><?php echo htmlspecialchars((string)($r['status'] ?? 'pending')); ?></td>
                     <td>
                         <?php if (($r['status'] ?? '') === 'pending'): ?>
-                            <form method="post" action="/growth_admin" style="display:inline"><input type="hidden" name="action" value="issue_reward"><input type="hidden" name="reward_id" value="<?php echo htmlspecialchars((string)$r['reward_id']); ?>"><button class="primary" type="submit">Aprovar</button></form>
+                            <form method="post" action="/growth_admin" style="display:inline"><input type="hidden" name="action" value="issue_reward"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>"><input type="hidden" name="reward_id" value="<?php echo htmlspecialchars((string)$r['reward_id']); ?>"><button class="primary" type="submit">Aprovar</button></form>
                         <?php endif; ?>
                     </td>
                 </tr>
@@ -164,8 +216,8 @@ $cfg = $data['config'];
                     <td class="<?php echo ($b['status'] ?? '') === 'active' ? 'ok' : 'warn'; ?>"><?php echo htmlspecialchars((string)($b['status'] ?? 'pending')); ?></td>
                     <td><?php echo htmlspecialchars((string)($b['validated_at'] ?? 'pendente')); ?></td>
                     <td>
-                        <form method="post" action="/growth_admin" style="display:inline"><input type="hidden" name="action" value="toggle_builder"><input type="hidden" name="builder_id" value="<?php echo htmlspecialchars((string)$b['builder_id']); ?>"><input type="hidden" name="status" value="active"><button class="primary" type="submit">Validar</button></form>
-                        <form method="post" action="/growth_admin" style="display:inline"><input type="hidden" name="action" value="toggle_builder"><input type="hidden" name="builder_id" value="<?php echo htmlspecialchars((string)$b['builder_id']); ?>"><input type="hidden" name="status" value="pending"><button class="danger" type="submit">Rejeitar</button></form>
+                        <form method="post" action="/growth_admin" style="display:inline"><input type="hidden" name="action" value="toggle_builder"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>"><input type="hidden" name="builder_id" value="<?php echo htmlspecialchars((string)$b['builder_id']); ?>"><input type="hidden" name="status" value="active"><button class="primary" type="submit">Validar</button></form>
+                        <form method="post" action="/growth_admin" style="display:inline"><input type="hidden" name="action" value="toggle_builder"><input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>"><input type="hidden" name="builder_id" value="<?php echo htmlspecialchars((string)$b['builder_id']); ?>"><input type="hidden" name="status" value="pending"><button class="danger" type="submit">Rejeitar</button></form>
                     </td>
                 </tr>
             <?php endforeach; ?>

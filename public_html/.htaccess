@@ -94,6 +94,7 @@ ServerSignature Off
     RewriteRule ^growth/?$ growth_program.php [QSA,L]
     RewriteRule ^builder/?$ builder_reputation.php [QSA,L]
     RewriteRule ^reputation/?$ builder_reputation.php [QSA,L]
+    RewriteRule ^agenthub/?$ /agent-hub [R=301,L]
     RewriteRule ^agent-hub/?$ agenthub.php [QSA,L]
     RewriteRule ^payment-dashboard/?$ payment_dashboard.php [QSA,L]
 

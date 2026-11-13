@@ -238,3 +238,14 @@ Arquivo `claude_desktop_config.json`:
 
 Manifesto remoto de ferramentas disponivel em:
 `https://grid402.online/.well-known/mcp.json`
+
+---
+
+## 7. Paginas Publicas de Descoberta e Conversao
+
+- [Catalogo Completo](https://grid402.online/catalog): Todos os endpoints, precos, limites e exemplos
+- [Trust Center](https://grid402.online/trust): SLA, disponibilidade 14 dias, metodologia, incidentes
+- [Agent Hub](https://grid402.online/agent-hub): Como integrar agentes autonomos (HTTP x402, MCP, AgentKit)
+- [Growth Program](https://grid402.online/growth): Starter, Builder Rewards e Referrals para agentes
+- [Builder Reputation](https://grid402.online/reputation): Builders validados (pseudonimo, sem PII)
+- [Payment Dashboard](https://grid402.online/payment-dashboard): Pay-per-Request vs Session Pass em uma unica tela

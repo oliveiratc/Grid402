@@ -263,6 +263,7 @@ function grid402_growth_event(string $type, array $context = []): array {
                 'paid_requests' => 0,
                 'paid_revenue_usdc' => 0.0,
                 'requests_24h' => 0,
+                'requests_24h_start' => $now,
                 'sandbox_requests' => 0,
                 'challenges_402' => 0,
                 'days_active' => 0,
@@ -302,6 +303,12 @@ function grid402_growth_event(string $type, array $context = []): array {
             }
         }
 
+        // Janela deslizante de ~24h para "requests_24h" (não é mais acumulador vitalício)
+        $windowStart = strtotime((string)($p['requests_24h_start'] ?? $now)) ?: time();
+        if ((time() - $windowStart) >= 86400) {
+            $p['requests_24h'] = 0;
+            $p['requests_24h_start'] = $now;
+        }
         $p['requests_24h'] = (int)($p['requests_24h'] ?? 0) + (($type !== 'page_visit') ? 1 : 0);
 
         $data['events'][] = [

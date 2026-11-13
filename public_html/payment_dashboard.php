@@ -5,6 +5,7 @@ declare(strict_types=1);
 define('GRID402_EXEC', true);
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/metrics.php';
+require_once __DIR__ . '/growth.php';
 require_once __DIR__ . '/services/pass.php';
 $token = (string)($_GET['token'] ?? '');
 $pass = ($token !== '') ? grid402_get_session_pass_status($token) : null;
@@ -57,6 +58,19 @@ $passesStats = grid402_get_passes_stats();
     </form>
 
     <?php if ($pass && !empty($pass['ok'])): ?>
+        <?php
+            $remaining = (int)($pass['credits_remaining'] ?? 0);
+            $growthCfg = function_exists('grid402_growth_read') ? (grid402_growth_read()['config'] ?? []) : [];
+            $lowBalanceThreshold = (int)($growthCfg['low_balance_threshold'] ?? 10);
+            $isLow = $remaining <= $lowBalanceThreshold;
+        ?>
+        <?php if ($isLow): ?>
+            <div class="card" style="margin-top:1rem;border-color:#F59E0B;background:#241A06;">
+                <h3 style="color:#FCD34D;margin-top:0;">Saldo baixo</h3>
+                <p style="color:#FDE68A;">Restam <strong><?php echo $remaining; ?> crédito(s)</strong> no seu Session Pass (limite de aviso: <?php echo $lowBalanceThreshold; ?>). Recarregue para evitar interrupção nas chamadas.</p>
+                <p><a class="btn" href="/pass" style="display:inline-block;background:#F59E0B;color:#1F2937;text-decoration:none;font-weight:700;padding:.5rem 1rem;border-radius:8px;">Recarregar Session Pass →</a></p>
+            </div>
+        <?php endif; ?>
         <div class="card" style="margin-top:1rem;">
             <h3>Pass ativo</h3>
             <p><strong>Créditos restantes:</strong> <?php echo (int)($pass['credits_remaining'] ?? 0); ?> / <?php echo (int)($pass['credits_total'] ?? 0); ?></p>
