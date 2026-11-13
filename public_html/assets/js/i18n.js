@@ -142,7 +142,7 @@ const GRID402_I18N = {
         'playground.title': 'Playground Interativo e Verificador de Oráculo',
         'playground.desc': 'Execute consultas reais nos micro-serviços do Grid402 em modo Sandbox gratuito ou simule o desafio x402. Valide instantaneamente a atestação criptográfica ECDSA secp256k1 (_oracle_proof) com o motor matemático em tempo real.',
         'playground.btn.challenge': '🔒 Desafio x402 (HTTP 402)',
-        'playground.btn.sandbox': '🧪 Sandbox (3 testes/h)',
+        'playground.btn.sandbox': '🧪 Sandbox (30 consultas/h)',
         'playground.btn.manual': '✍️ Validar JSON Externo',
         'playground.route': 'Rota:',
         'playground.btn.run': '⚡ Executar Consulta',
@@ -218,7 +218,7 @@ const GRID402_I18N = {
         'console.smithery.desc': 'O Grid402 está catalogado no registro global da Smithery.ai. Você pode registrar instantaneamente o servidor de ferramentas no seu Claude Desktop ou Cursor sem precisar editar arquivos de configuração manualmente.',
         'console.smithery.cmd_claude': 'Comando de Instalação no Claude Desktop:',
         'console.smithery.cmd_cursor': 'Comando de Instalação no Cursor:',
-        'console.smithery.params': '<strong style="color: #fff;">💡 Parâmetros Suportados no smithery.yaml:</strong><ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;"><li><code>sandbox: true</code> — Ativa o Modo Sandbox gratuito (20 consultas por hora por IP) para testes sem necessidade de carteira.</li><li><code>privateKey: 0x...</code> — Chave privada EVM opcional para auto-liquidação em USDC na Base (0.0005 a 0.0020 USDC por chamada).</li></ul>',
+        'console.smithery.params': '<strong style="color: #fff;">💡 Parâmetros Suportados no smithery.yaml:</strong><ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;"><li><code>sandbox: true</code> — Ativa o Modo Sandbox gratuito (30 consultas por hora por IP) para testes sem necessidade de carteira.</li><li><code>privateKey: 0x...</code> — Chave privada EVM opcional para auto-liquidação em USDC na Base (0.0005 a 0.0020 USDC por chamada).</li></ul>',
 
         'console.agentkit.title': '🪙 Integração Nativa Coinbase AgentKit (CDP)',
         'console.agentkit.desc': 'Permita que agentes de IA com carteiras CDP na Base consultem dados públicos e utilitários de rede pagando tarifas x402 de forma 100% autônoma, sem interrupção humana. O provedor de ações intercepta o desafio 402, transfere o USDC e reenvia a requisição de forma transparente.',

@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Grid402 // Hub de Utilitários de Rede e Dados Públicos Abertos (Protocolo x402)
  * 
@@ -112,7 +112,7 @@ if ($paymentProof === '') {
 header('Vary: Accept, User-Agent');
 header('Link: </openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json", </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp/server-card.json>; rel="service-meta"; type="application/json", </sitemap.xml>; rel="sitemap"; type="application/xml", </terms>; rel="terms-of-service"; type="text/html", </privacy>; rel="privacy-policy"; type="text/html"');
 header('X-Agent-Protocol: x402; network=base; chain_id=8453');
-header('X-Micropayment-Pricing: 0.0005 USDC; token=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913');
+header('X-Micropayment-Pricing: 0.0005-0.0030 USDC; token=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913; pricing=/catalog');
 header('X-Data-Protection-Policy: Zero-PII; Corporate-Entities-Only; LGPD-Art1-Compliant; GDPR-Recital14-Compliant; CCPA-Compliant');
 header('X-Open-Data-Licenses: CC0-1.0, US-Public-Domain-17USC105, BR-LAI-12527, EU-Open-Data-2019-1024, IETF-Public-Standards');
 header('X-Copyright: Copyright (c) ' . date('Y') . ' Grid402 Network Intelligence. All rights reserved. Proprietary Software & Architecture (Law 9.609/1998 & Law 9.610/1998).');
@@ -2533,13 +2533,13 @@ grid402_log_public_visit('/');
             <h1 data-i18n="hero.title">Grid402: Hub de Utilitários de Rede e Dados Públicos para Agentes de IA</h1>
             <p data-i18n="hero.desc">Acesse cotações de câmbio, cripto, suíte de compliance e antifraude (score 360, sanções da CGU e Simples Nacional), indicadores econômicos oficiais (Selic, CDI e IPCA), feriados bancários ANBIMA, DNS, certificados SSL, BGP/ASN, CEP e CNPJ da Receita Federal em milissegundos sem cadastro ou chaves de API. Micropagamentos por chamada em USDC na Base.</p>
             <div class="cta-group">
-                <a href="#topup" class="btn btn-primary" style="background: linear-gradient(135deg, #0052FF 0%, #00F0FF 100%); font-weight: 700; box-shadow: 0 4px 15px rgba(0, 82, 255, 0.4);" data-i18n="hero.btn.topup">💎 Abastecer Saldo Web3 (Base)</a>
-                <a href="/agents" class="btn btn-outline" data-i18n="hero.btn.agents">🤖 Central de Agentes IA</a>
-                <a href="#playground" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary);" data-i18n="hero.btn.playground">⚡ Testar no Playground</a>
-                <a href="#console" class="btn btn-outline" onclick="switchTab('console')" data-i18n="hero.btn.console">Console e SDKs</a>
-                <a href="/llms.txt" class="btn btn-outline" data-i18n="hero.btn.llms">Documentação llms.txt</a>
-                <a href="/status" class="btn btn-outline" data-i18n="hero.btn.status">Resumo Gratuito (JSON)</a>
+                <a href="#playground" class="btn btn-primary" style="background: linear-gradient(135deg, #0052FF 0%, #00F0FF 100%); font-weight: 800; box-shadow: 0 4px 15px rgba(0, 82, 255, 0.4);">⚡ Testar agora (Sandbox)</a>
+                <a href="/catalog" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary); font-weight: 700;">Ver preços, limites e exemplos →</a>
+                <a href="/agents" class="btn btn-outline" data-i18n="hero.btn.agents">🤖 Integrar no seu agente</a>
             </div>
+            <p style="margin-top: .7rem; font-size: .82rem; color: var(--text-muted);">
+                Sem cartão, sem API key, sem cadastro. Sandbox: <strong>30 consultas por hora por IP</strong>. Produção: x402 ou Session Pass.
+            </p>
         </section>
 
         <!-- Grid dos Servicos Publicos -->
@@ -2668,7 +2668,10 @@ grid402_log_public_visit('/');
             <div class="playground-header-wrap" style="text-align: center; max-width: 820px; margin: 0 auto 2rem auto;">
                 <div class="hero-tag" style="margin-bottom: 0.5rem; background: rgba(0, 82, 255, 0.15); color: #00F0FF; border: 1px solid rgba(0, 240, 255, 0.35);" data-i18n="topup.tag">⚡ Liquidacao Instantanea em Lote na Base (USDC)</div>
                 <h2 style="font-size: 1.8rem; letter-spacing: -0.5px; margin-bottom: 0.75rem;" data-i18n="topup.title">Abasteca seu Saldo Web3 em 1 Clique (Session Passes)</h2>
-                <p style="text-align: center; color: var(--text-muted); font-size: 0.98rem; line-height: 1.6;" data-i18n="topup.desc">Pague uma unica vez em USDC na rede Base Mainnet e receba na hora um token <code style="color: #00F0FF; background: rgba(0,240,255,0.1); padding: 2px 6px; border-radius: 4px;">pass_g402_...</code> com saldo de milhares de requisicoes de alta velocidade (&lt;15ms) sem assinar transacoes a cada GET.</p>
+                <p style="text-align: center; color: var(--text-muted); font-size: 0.98rem; line-height: 1.6;" data-i18n="topup.desc">Pague uma unica vez em USDC na rede Base Mainnet e receba na hora um token <code style="color: #00F0FF; background: rgba(0,240,255,0.1); padding: 2px 6px; border-radius: 4px;">pass_g402_...</code> com saldo de milhares de requisições de alta velocidade (&lt;15ms) sem assinar transações a cada GET.</p>
+                <div style="text-align:center; background: rgba(0,240,255,.08); border:1px solid rgba(0,240,255,.24); border-radius:8px; padding:.75rem .9rem; margin-bottom:1.2rem; font-size:.82rem; color:#CBD5E1;">
+                    <strong style="color:#fff;">Como ler o saldo:</strong> 1 crédito custa 0.0005 USDC no serviço padrão. Corporativo debita 4 créditos (CNPJ, LEI, OFAC) e 6 créditos (Compliance 360). <a href="/catalog" style="color:#00F0FF; font-weight:700;">Ver tabela oficial /catalog</a>
+                </div>
                 <div style="display: flex; justify-content: center; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem;">
                     <span style="font-size: 0.85rem; color: #8FA2B9;">Rede: <strong style="color: #fff;">Base Mainnet (8453)</strong></span>
                     <span style="color: var(--border);">•</span>
@@ -2691,7 +2694,7 @@ grid402_log_public_visit('/');
                         </div>
                         <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;" data-i18n="topup.starter.desc">Ideal para desenvolvedores individuais, testes rapidos e bots pontuais.</p>
                         <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; font-size: 0.88rem; color: #d1d5db; line-height: 1.8;">
-                            <li>⚡ <strong style="color: #00F0FF;">4.000 requisicoes</strong> incluidas</li>
+                            <li>⚡ <strong style="color: #00F0FF;">4.000 créditos</strong> incluídos</li>
                             <li>⏱️ Validade de <strong style="color: #fff;">30 dias</strong></li>
                             <li>🚀 Latencia ultrarrapida &lt;15ms</li>
                             <li>🔒 Assinatura HMAC anti-fraude</li>
@@ -2711,7 +2714,7 @@ grid402_log_public_visit('/');
                         </div>
                         <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;" data-i18n="topup.pro.desc">Para agentes autonomos de IA e esteiras de automacao continua.</p>
                         <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; font-size: 0.88rem; color: #d1d5db; line-height: 1.8;">
-                            <li>⚡ <strong style="color: #00F0FF;">10.000 requisicoes</strong> incluidas</li>
+                            <li>⚡ <strong style="color: #00F0FF;">10.000 créditos</strong> incluídos</li>
                             <li>⏱️ Validade de <strong style="color: #fff;">30 dias</strong></li>
                             <li>🤖 Perfeito para ElizaOS e AgentKit</li>
                             <li>📊 Consulta de saldo em tempo real</li>
@@ -2731,7 +2734,7 @@ grid402_log_public_visit('/');
                         </div>
                         <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;" data-i18n="topup.fleet.desc">Frotas de agentes autonomos, sistemas ERP corporativos e alta demanda.</p>
                         <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; font-size: 0.88rem; color: #d1d5db; line-height: 1.8;">
-                            <li>⚡ <strong style="color: #00F0FF;">50.000 requisicoes</strong> (+10k bonus)</li>
+                            <li>⚡ <strong style="color: #00F0FF;">50.000 créditos</strong> (+10k bônus)</li>
                             <li>⏱️ Validade estendida de <strong style="color: #fff;">60 dias</strong></li>
                             <li>🛡️ Rate-limit prioritario garantido</li>
                             <li>💼 Suporte direto para frotas de IA</li>
@@ -2829,7 +2832,7 @@ grid402_log_public_visit('/');
             <div class="playground-toolbar">
                 <div class="mode-toggle-group">
                     <button type="button" class="mode-toggle-btn active" id="btn-mode-challenge" onclick="setPlaygroundMode('challenge')" data-i18n="playground.btn.challenge">🔒 Desafio x402 (HTTP 402)</button>
-                    <button type="button" class="mode-toggle-btn" id="btn-mode-sandbox" onclick="setPlaygroundMode('sandbox')" data-i18n="playground.btn.sandbox">🧪 Sandbox (3 testes/h)</button>
+                    <button type="button" class="mode-toggle-btn" id="btn-mode-sandbox" onclick="setPlaygroundMode('sandbox')" data-i18n="playground.btn.sandbox">🧪 Sandbox (30 consultas/h)</button>
                     <button type="button" class="mode-toggle-btn" id="btn-mode-manual" onclick="setPlaygroundMode('manual')" data-i18n="playground.btn.manual">✍️ Validar JSON Externo</button>
                 </div>
                 <div class="playground-url-bar">
@@ -2894,18 +2897,27 @@ grid402_log_public_visit('/');
                         </p>
                         <div id="playground-locked-fields-grid" class="locked-fields-grid"></div>
                         <div class="unlock-cta-group">
-                            <button type="button" id="btn-playground-web3-pay" class="btn-sm btn-primary" onclick="payPlaygroundWithWeb3()" style="padding: 0.55rem 1.1rem; font-size: 0.85rem; font-weight: 700;" data-i18n="playground.unlock.cta_web3">
-                                ⚡ Desbloquear com Carteira Web3 (1 Clique)
+                            <div style="background: rgba(51,65,85,.35); border:1px solid var(--border); border-radius:8px; padding:.75rem .9rem; margin-bottom:.65rem; font-size:.82rem; color:#cbd5e1;">
+                                <strong style="color:#fff;">Fluxo principal:</strong> clique em “Desbloquear agora”. Preço do endpoint (R$/USDC) está no catálogo.
+                            </div>
+                            <button type="button" id="btn-playground-web3-pay" class="btn-sm btn-primary" onclick="payPlaygroundWithWeb3()" style="padding: 0.6rem 1.15rem; font-size: 0.85rem; font-weight: 800;" data-i18n="playground.unlock.cta_web3">
+                                ⚡ Desbloquear agora (1 clique / carteira Web3)
                             </button>
-                            <button type="button" id="btn-playground-smart-wallet" class="btn-sm btn-outline" onclick="payPlaygroundWithCoinbaseSmartWallet()" style="padding: 0.55rem 1rem; font-size: 0.82rem; border-color: #0052ff; background: rgba(0, 82, 255, 0.14); color: #fff; font-weight: 600;" data-i18n="playground.unlock.cta_smart_wallet">
-                                🔑 Passkey / Biometria (Coinbase Smart Wallet)
-                            </button>
-                            <button type="button" class="btn-sm btn-outline" onclick="openPlaygroundWeb3Modal()" style="padding: 0.55rem 0.95rem; font-size: 0.82rem;" data-i18n="playground.unlock.cta_qr">
-                                📱 QR Code / Celular
-                            </button>
-                            <button type="button" class="btn-sm btn-outline" onclick="unlockPlaygroundViaSandbox()" style="padding: 0.55rem 0.95rem; font-size: 0.82rem; border-color: rgba(0, 240, 255, 0.35); color: var(--accent);" data-i18n="playground.unlock.cta_sandbox">
-                                🧪 Ver Amostra Completa (Sandbox)
-                            </button>
+                            <details style="margin-top:.6rem; border:1px solid var(--border); border-radius:8px; padding:.55rem .75rem; background:#0b132b;">
+                                <summary style="cursor:pointer; color:#00F0FF; font-weight:700;">Outras formas de desbloquear</summary>
+                                <div style="display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.7rem;">
+                                    <button type="button" id="btn-playground-smart-wallet" class="btn-sm btn-outline" onclick="payPlaygroundWithCoinbaseSmartWallet()" style="padding: 0.5rem .85rem; font-size: 0.78rem; border-color: #0052ff; background: rgba(0, 82, 255, 0.14); color: #fff; font-weight: 600;" data-i18n="playground.unlock.cta_smart_wallet">
+                                        🔑 Passkey / Biometria
+                                    </button>
+                                    <button type="button" class="btn-sm btn-outline" onclick="openPlaygroundWeb3Modal()" style="padding: 0.5rem .85rem; font-size: 0.78rem;" data-i18n="playground.unlock.cta_qr">
+                                        📱 QR / Celular
+                                    </button>
+                                    <a class="btn-sm btn-outline" href="/catalog" style="text-decoration:none; display:inline-flex; border-color: var(--border); color: var(--muted); padding: 0.5rem .85rem; font-size: .78rem;">Ver preço do endpoint</a>
+                                    <button type="button" class="btn-sm btn-outline" onclick="unlockPlaygroundViaSandbox()" style="padding: 0.5rem .85rem; font-size: 0.78rem; border-color: rgba(0, 240, 255, 0.35); color: var(--accent);" data-i18n="playground.unlock.cta_sandbox">
+                                        🧪 Ver amostra Sandbox
+                                    </button>
+                                </div>
+                            </details>
                         </div>
                     </div>
 
@@ -3083,7 +3095,7 @@ grid402_log_public_visit('/');
                     <div style="background: rgba(0, 0, 0, 0.3); border-radius: 6px; padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--text-muted);" data-i18n-html="console.smithery.params">
                         <strong style="color: #fff;">💡 Parâmetros Suportados no smithery.yaml:</strong>
                         <ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;">
-                            <li><code>sandbox: true</code> — Ativa o Modo Sandbox gratuito (20 consultas por hora por IP) para testes sem necessidade de carteira.</li>
+                            <li><code>sandbox: true</code> — Ativa o Modo Sandbox gratuito (30 consultas por hora por IP) para testes sem necessidade de carteira.</li>
                             <li><code>privateKey: 0x...</code> — Chave privada EVM opcional para auto-liquidação em USDC na Base (0.0005 a 0.0020 USDC por chamada).</li>
                         </ul>
                     </div>
@@ -3184,7 +3196,7 @@ curl -i "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191"
 curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
   -H "X-Payment: 0x&lt;tx_hash_na_base&gt;"
 
-# 4. Modo Sandbox gratuito para testes e CI/CD (20 req/hora por IP)
+# 4. Modo Sandbox gratuito para testes e CI/CD (30 req/hora por IP)
 curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
   -H "X-Payment: demo"</div>
             </div>
