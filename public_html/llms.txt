@@ -4,6 +4,8 @@
 
 ## Core Documentation
 - [Full LLM Context](https://grid402.online/llms-full.txt): Documentacao exaustiva com schemas JSON e contratos de endpoints para modelos de linguagem
+- [Catálogo Completo de Serviços](https://grid402.online/catalog): Preço, limites, exemplos e status de todos os endpoints
+- [Trust Center](https://grid402.online/trust): SLA, disponibilidade histórica, metodologia e política de incidentes
 - [Central de Agentes de IA](https://grid402.online/agents): Guia rapido de integracao para agentes autonomos, Claude Desktop, Python e cURL
 - [OpenAPI Specification](https://grid402.online/openapi.json): Especificacao completa e interativa da API no padrao OpenAPI 3.1
 - [MCP Server Card](https://grid402.online/.well-known/mcp/server-card.json): Ficha de descoberta de capacidades SEP-1649 para servidores MCP

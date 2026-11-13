@@ -454,6 +454,8 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
             <nav>
                 <a href="/" data-i18n="agents.nav.home">Início</a>
                 <a href="/agents" class="active" data-i18n="nav.agents">Agentes IA</a>
+                <a href="/catalog">Catálogo</a>
+                <a href="/trust">Trust</a>
                 <a href="/llms.txt">llms.txt</a>
                 <a href="/openapi.json">OpenAPI</a>
                 <a href="/admin">Admin</a>
@@ -471,6 +473,14 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
                 O Grid402 permite que agentes autônomos de IA (Claude, Cursor, LangChain, CrewAI e Coinbase AgentKit) consultem 22 endpoints globais e brasileiros de domínio público via <strong>HTTP 402</strong> ou <strong>Session Pass pré-pago (&lt;15ms)</strong>, liquidando micropagamentos em USDC na rede Base com <strong>prova criptográfica ECDSA</strong>.
             </p>
         </section>
+
+        <div class="card" style="margin: 0 0 1.5rem 0; border-color: rgba(0,240,255,.35);">
+            <h2 style="margin-top:.2rem;">Entrada sem carteira Web3 — 3 minutos</h2>
+            <p style="color:#94A3B8;">Você pode testar agora com <code>X-Payment: demo</code> (30 consultas por hora por IP). Para produção sem gerenciar transação, instale o SDK/MCP e configure o facilitador ou um Session Pass; o agente apenas chama a URL.</p>
+            <div class="code-box" style="margin:.75rem 0;"><pre><code>curl -H "X-Payment: demo" https://grid402.online/api/v1/cnpj?cnpj=00000000000191</code></pre></div>
+            <a href="/catalog" style="color:#00F0FF;font-weight:700;">Ver preços, limites e exemplos →</a> &nbsp;·&nbsp;
+            <a href="/pass" style="color:#00F0FF;font-weight:700;">Comprar Session Pass →</a>
+        </div>
 
         <div class="features-grid">
             <div class="card">
@@ -741,6 +751,8 @@ curl -X POST "https://grid402.online/api/v1/verify" \
             <div style="display:flex; gap:16px; align-items:center;">
                 <a href="/terms" data-i18n="nav.terms">Termos</a>
                 <a href="/privacy" data-i18n="nav.privacy">Privacidade</a>
+                <a href="/catalog">Catálogo</a>
+                <a href="/trust">Trust</a>
                 <a href="/about" data-i18n="nav.about">Sobre</a>
                 <a href="/contact" data-i18n="nav.contact">Contato</a>
                 <a href="https://github.com/oliveiratc/Grid402" target="_blank" rel="noopener noreferrer">GitHub</a>

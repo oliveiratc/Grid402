@@ -1066,7 +1066,7 @@ function setLanguage(lang) {
     // Atualiza contadores e textos dinamicos do header
     const badgeText = document.getElementById('badge-live-text');
     if (badgeText) {
-        const count = badgeText.getAttribute('data-i18n-count') || '14';
+        const count = badgeText.getAttribute('data-i18n-count') || '22';
         badgeText.textContent = (lang === 'en')
             ? `Base Mainnet (8453) • ${count}/${count} Services Operational`
             : `Base Mainnet (8453) • ${count}/${count} Serviços Operantes`;

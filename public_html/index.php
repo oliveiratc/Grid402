@@ -245,6 +245,8 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
             <nav class="nav-links">
                 <a href="/">Home</a>
                 <a href="/agents" <?php echo $canonicalPath === '/agents' ? 'class="active"' : ''; ?> data-i18n="nav.agents">Agentes IA</a>
+                <a href="/catalog" <?php echo $canonicalPath === '/catalog' ? 'class="active"' : ''; ?>>Catálogo</a>
+                <a href="/trust" <?php echo $canonicalPath === '/trust' ? 'class="active"' : ''; ?>>Trust</a>
                 <a href="/about" <?php echo $canonicalPath === '/about' ? 'class="active"' : ''; ?> data-i18n="nav.about">Sobre</a>
                 <a href="/contact" <?php echo $canonicalPath === '/contact' ? 'class="active"' : ''; ?> data-i18n="nav.contact">Contato</a>
                 <a href="/terms" <?php echo $canonicalPath === '/terms' ? 'class="active"' : ''; ?> data-i18n="nav.terms">Termos</a>
@@ -265,6 +267,8 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
             <div class="footer-links">
                 <a href="/">Home</a>
                 <a href="/agents" data-i18n="nav.agents">Agentes IA</a>
+                <a href="/catalog">Catálogo</a>
+                <a href="/trust">Trust</a>
                 <a href="/about" data-i18n="nav.about">Sobre</a>
                 <a href="/contact" data-i18n="nav.contact">Contato</a>
                 <a href="/terms" data-i18n="nav.terms">Termos</a>
@@ -2503,6 +2507,8 @@ grid402_log_public_visit('/');
                 <a href="#playground" data-i18n="nav.playground">Playground</a>
                 <a href="#console" data-i18n="nav.console">Console</a>
                 <a href="/agents" style="color: var(--accent); font-weight: 600;" data-i18n="nav.agents">Agentes IA</a>
+                <a href="/catalog" style="color: var(--accent); font-weight: 600;">Catálogo</a>
+                <a href="/trust" style="color: var(--accent); font-weight: 600;">Trust</a>
                 <a href="/about" data-i18n="nav.about">About</a>
                 <a href="/contact" data-i18n="nav.contact">Contact</a>
                 <a href="/terms" data-i18n="nav.terms">Terms</a>
@@ -3381,6 +3387,8 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
         <footer>
             <div class="footer-links">
                 <a href="/agents" style="color: var(--primary); font-weight: 600;" data-i18n="nav.agents">Agentes IA</a>
+                <a href="/catalog" style="color: var(--primary); font-weight: 600;">Catálogo</a>
+                <a href="/trust" style="color: var(--primary); font-weight: 600;">Trust Center</a>
                 <a href="/about" data-i18n="nav.about">About</a>
                 <a href="/contact" data-i18n="nav.contact">Contact</a>
                 <a href="/terms" target="_blank" data-i18n="nav.terms">Terms of Service</a>

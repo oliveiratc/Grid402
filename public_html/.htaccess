@@ -82,6 +82,11 @@ ServerSignature Off
     # Central de Agentes de IA
     RewriteRule ^agents/?$ agents.php [QSA,L]
 
+    # Catálogo único e Trust Center
+    RewriteRule ^catalog/?$ catalog.php [QSA,L]
+    RewriteRule ^docs/?$ catalog.php [QSA,L]
+    RewriteRule ^trust/?$ trust.php [QSA,L]
+
     # Pagina de compra de Session Pass (linkavel na resposta HTTP 402)
     RewriteRule ^pass/?$ pass.php [QSA,L]
 
