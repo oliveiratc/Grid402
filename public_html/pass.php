@@ -2,6 +2,9 @@
 // pass.php - Pagina dedicada de compra de Session Pass (Grid402)
 // Linkavel diretamente na resposta HTTP 402 para humanos inspecionando o desafio.
 $domain = defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online';
+
+require_once __DIR__ . '/metrics.php';
+grid402_record_page_visit('/pass');
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">

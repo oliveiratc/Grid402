@@ -616,6 +616,8 @@ if ($apiParam === 'stats') {
     $revenueUsdc = (float)($metrics['total_revenue_usdc'] ?? 0.0);
     $today = gmdate('Y-m-d');
     $todayUsdc = (float)($metrics['daily'][$today]['usdc'] ?? 0.0);
+    $totalPageViews = (int)($metrics['total_page_views'] ?? 0);
+    $todayPageViews = (int)($metrics['daily'][$today]['page_views'] ?? 0);
 
     $paymentSources = [];
     $rawSources = is_array($metrics['payment_sources'] ?? null) ? $metrics['payment_sources'] : [];
@@ -633,6 +635,8 @@ if ($apiParam === 'stats') {
         'status' => 'success',
         'server_time' => gmdate('Y-m-d\TH:i:s\Z'),
         'total_requests' => (int)($metrics['total_requests'] ?? 0),
+        'total_page_views' => $totalPageViews,
+        'today_page_views' => $todayPageViews,
         'total_paid_requests' => (int)($metrics['total_paid_requests'] ?? 0),
         'total_sandbox_requests' => (int)($metrics['total_sandbox_requests'] ?? 0),
         'total_revenue_usdc' => $revenueUsdc,
@@ -859,6 +863,9 @@ $passesStats = $analytics['passes_stats'] ?? ['active_passes' => 0, 'remaining_c
 $dailyHistory14d = $analytics['daily_history_14d'] ?? [];
 $topConsumers = $analytics['top_consumers'] ?? [];
 $serviceRevenue = $analytics['service_revenue'] ?? [];
+
+$totalPageViews = (int)($metrics['total_page_views'] ?? 0);
+$todayPageViews = (int)($metrics['daily'][$today]['page_views'] ?? 0);
 
 $totalReqs = (int)($metrics['total_requests'] ?? 0);
 $paidReqs = (int)($metrics['total_paid_requests'] ?? 0);
@@ -1507,6 +1514,11 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 <div class="kpi-title">Ticket Médio (ARPU)</div>
                 <div class="kpi-value" id="kpi-arpu-usdc">US$ <?php echo number_format($arpuUsdc, 4); ?></div>
                 <div class="kpi-sub" id="kpi-arpu-brl">≈ R$ <?php echo number_format($arpuBrl, 4, ',', '.'); ?> / consulta paga</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Visitas (Página)</div>
+                <div class="kpi-value" id="kpi-total-visits"><?php echo number_format($totalPageViews, 0, ',', '.'); ?></div>
+                <div class="kpi-sub" id="kpi-today-visits"><?php echo number_format($todayPageViews, 0, ',', '.'); ?> hoje • HTML público</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">Consultas Totais</div>
@@ -2168,6 +2180,8 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 const todayUsdcEl = document.getElementById('kpi-today-usdc');
                 const todayBrlEl = document.getElementById('kpi-today-brl');
                 const totalReqsEl = document.getElementById('kpi-total-reqs');
+                const totalVisitsEl = document.getElementById('kpi-total-visits');
+                const todayVisitsEl = document.getElementById('kpi-today-visits');
                 const paidReqsEl = document.getElementById('kpi-paid-reqs');
                 const convEl = document.getElementById('kpi-conversion');
                 const arpuUsdcEl = document.getElementById('kpi-arpu-usdc');
@@ -2181,6 +2195,8 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 if (todayUsdcEl) todayUsdcEl.textContent = 'US$ ' + Number(data.today_revenue_usdc || 0).toFixed(4);
                 if (todayBrlEl) todayBrlEl.textContent = '≈ R$ ' + Number(data.today_revenue_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + ' hoje';
                 if (totalReqsEl) totalReqsEl.textContent = Number(data.total_requests || 0).toLocaleString('pt-BR');
+                if (totalVisitsEl) totalVisitsEl.textContent = Number(data.total_page_views || 0).toLocaleString('pt-BR');
+                if (todayVisitsEl) todayVisitsEl.textContent = Number(data.today_page_views || 0).toLocaleString('pt-BR') + ' hoje • HTML público';
                 if (paidReqsEl) paidReqsEl.textContent = Number(data.total_paid_requests || 0).toLocaleString('pt-BR') + ' pagas • ' + Number(data.total_sandbox_requests || 0).toLocaleString('pt-BR') + ' sandbox';
 
                 if (arpuUsdcEl) arpuUsdcEl.textContent = 'US$ ' + Number(data.arpu_usdc ?? 0).toFixed(4);

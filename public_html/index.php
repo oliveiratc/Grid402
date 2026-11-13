@@ -35,6 +35,18 @@ require_once __DIR__ . '/services/pass_checkout.php';
 require_once __DIR__ . '/services/oracle_signer.php';
 require_once __DIR__ . '/metrics.php';
 
+/**
+ * Registra visita à página pública HTML (contador de acessos exibido no /admin).
+ * Só conta GET/HEAD — APIs JSON continuam aferidas pela telemetria técnica.
+ */
+function grid402_log_public_visit(string $path): void {
+    $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    if (!in_array($method, ['GET', 'HEAD'], true)) {
+        return;
+    }
+    grid402_record_page_visit($path, grid402_get_trusted_client_ip(), (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''));
+}
+
 // Leitura de cabeçalhos e rotas
 $acceptHeader = (string) ($_SERVER['HTTP_ACCEPT'] ?? '');
 $userAgent = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
@@ -57,6 +69,7 @@ $isJsonExplicit = (isset($_GET['format']) && $_GET['format'] === 'json') || str_
 if (str_contains($acceptHeader, 'text/markdown') || str_contains($acceptHeader, 'text/x-markdown') || (isset($_GET['format']) && $_GET['format'] === 'markdown')) {
     header('Content-Type: text/markdown; charset=utf-8');
     header('Vary: Accept, User-Agent');
+    grid402_log_public_visit('/llms.txt');
     readfile(__DIR__ . '/llms.txt');
     exit;
 }
@@ -113,6 +126,7 @@ header('Content-Signal: search=yes, ai-train=no');
  * Renderizador de Paginas Institucionais HTML para Agentes e Navegadores
  */
 function grid402_render_page_html(string $title, string $metaDesc, string $canonicalPath, string $h1, string $bodyContent): void {
+    grid402_log_public_visit($canonicalPath);
     header('Content-Type: text/html; charset=utf-8');
     ?>
 <!DOCTYPE html>
@@ -439,6 +453,7 @@ if ($requestPath === '/admin' || $requestPath === '/dashboard' || $pageParam ===
 
 // 1.2. Central de Agentes de IA (/agents)
 if ($requestPath === '/agents' || $pageParam === 'agents') {
+    grid402_log_public_visit('/agents');
     require __DIR__ . '/agents.php';
     exit;
 }
@@ -1098,6 +1113,7 @@ $servicesCatalog = grid402_get_utility_services();
 
 $usdRate = $services['forex']['usd_brl'] ?? 5.50;
 $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
+grid402_log_public_visit('/');
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">

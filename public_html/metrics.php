@@ -48,6 +48,8 @@ function grid402_default_metrics(): array {
         'updated_at' => gmdate('Y-m-d\TH:i:s\Z'),
         'total_requests' => 0,
         'total_paid_requests' => 0,
+        'total_sandbox_requests' => 0,
+        'total_page_views' => 0,
         'total_revenue_usdc' => 0.0,
         'status_counts' => [
             '200' => 0,
@@ -98,6 +100,57 @@ function grid402_default_metrics(): array {
 }
 
 /**
+ * Normaliza métricas legadas/parciais para o schema atual
+ */
+function grid402_normalize_metrics(array $metrics): array {
+    $metrics['version'] = $metrics['version'] ?? '1.0.0';
+    $metrics['updated_at'] = $metrics['updated_at'] ?? gmdate('Y-m-d\TH:i:s\Z');
+    $metrics['total_requests'] = (int)($metrics['total_requests'] ?? 0);
+    $metrics['total_paid_requests'] = (int)($metrics['total_paid_requests'] ?? 0);
+    $metrics['total_sandbox_requests'] = (int)($metrics['total_sandbox_requests'] ?? 0);
+    $metrics['total_page_views'] = (int)($metrics['total_page_views'] ?? 0);
+    $metrics['total_revenue_usdc'] = (float)($metrics['total_revenue_usdc'] ?? 0.0);
+
+    if (!isset($metrics['status_counts']) || !is_array($metrics['status_counts'])) {
+        $metrics['status_counts'] = [];
+    }
+    if (!isset($metrics['service_counts']) || !is_array($metrics['service_counts'])) {
+        $metrics['service_counts'] = [];
+    }
+    if (!isset($metrics['payment_sources']) || !is_array($metrics['payment_sources'])) {
+        $metrics['payment_sources'] = [];
+    }
+    if (!isset($metrics['failure_categories']) || !is_array($metrics['failure_categories'])) {
+        $metrics['failure_categories'] = [];
+    }
+    if (!isset($metrics['recent_events']) || !is_array($metrics['recent_events'])) {
+        $metrics['recent_events'] = [];
+    }
+    if (!isset($metrics['daily']) || !is_array($metrics['daily'])) {
+        $metrics['daily'] = [];
+    }
+
+    foreach ($metrics['daily'] as $day => $stats) {
+        if (!is_array($stats)) {
+            $stats = [];
+        }
+        $stats = array_merge([
+            'requests' => 0,
+            'page_views' => 0,
+            'paid' => 0,
+            'usdc' => 0.0,
+        ], $stats);
+        $stats['requests'] = (int)$stats['requests'];
+        $stats['page_views'] = (int)$stats['page_views'];
+        $stats['paid'] = (int)$stats['paid'];
+        $stats['usdc'] = (float)$stats['usdc'];
+        $metrics['daily'][$day] = $stats;
+    }
+
+    return $metrics;
+}
+
+/**
  * Carrega o snapshot atual de métricas
  */
 function grid402_get_metrics(): array {
@@ -110,7 +163,7 @@ function grid402_get_metrics(): array {
         return grid402_default_metrics();
     }
     $data = @json_decode($content, true);
-    return is_array($data) ? $data : grid402_default_metrics();
+    return is_array($data) ? grid402_normalize_metrics($data) : grid402_default_metrics();
 }
 
 /**
@@ -141,6 +194,7 @@ function grid402_record_telemetry(
         $filesize = filesize($file);
         $content = ($filesize > 0) ? (string) fread($fp, $filesize) : '';
         $metrics = ($content !== '') ? (@json_decode($content, true) ?: grid402_default_metrics()) : grid402_default_metrics();
+        $metrics = grid402_normalize_metrics($metrics);
 
         $now = gmdate('Y-m-d\TH:i:s\Z');
         $today = gmdate('Y-m-d');
@@ -288,7 +342,7 @@ function grid402_record_telemetry(
             $metrics['daily'] = [];
         }
         if (!isset($metrics['daily'][$today])) {
-            $metrics['daily'][$today] = ['requests' => 0, 'paid' => 0, 'usdc' => 0.0];
+            $metrics['daily'][$today] = ['requests' => 0, 'page_views' => 0, 'paid' => 0, 'usdc' => 0.0];
         }
         $metrics['daily'][$today]['requests'] = ((int)$metrics['daily'][$today]['requests']) + 1;
         if ($isBillablePaid) {
@@ -329,6 +383,83 @@ function grid402_record_telemetry(
         }
 
         // Gravação segura
+        ftruncate($fp, 0);
+        rewind($fp);
+        fwrite($fp, (string) json_encode($metrics, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        fflush($fp);
+        flock($fp, LOCK_UN);
+    }
+
+    fclose($fp);
+}
+
+/**
+ * Registra uma visita à página pública (contador de acessos)
+ *
+ * Usado pelo canal HTML (home, institucionais, /agents, /pass).
+ * Não substitui a telemetria técnica das APIs /api/v1/*.
+ *
+ * O IP nunca é armazenado em texto puro fora do buffer anonimizado (LGPD).
+ */
+function grid402_record_page_visit(?string $path = null, ?string $ip = null, ?string $ua = null): void {
+    $file = GRID402_FILE_METRICS;
+    $dir = dirname($file);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+
+    $fp = @fopen($file, 'c+');
+    if (!$fp) {
+        return;
+    }
+
+    if (flock($fp, LOCK_EX)) {
+        $filesize = filesize($file);
+        $content = ($filesize > 0) ? (string) fread($fp, $filesize) : '';
+        $metrics = ($content !== '') ? (@json_decode($content, true) ?: grid402_default_metrics()) : grid402_default_metrics();
+        if (!is_array($metrics)) {
+            $metrics = grid402_default_metrics();
+        }
+        $metrics = grid402_normalize_metrics($metrics);
+
+        $now = gmdate('Y-m-d\TH:i:s\Z');
+        $today = gmdate('Y-m-d');
+
+        $metrics['updated_at'] = $now;
+        $metrics['total_page_views'] = (int)($metrics['total_page_views'] ?? 0) + 1;
+        $metrics['total_requests'] = (int)($metrics['total_requests'] ?? 0) + 1;
+
+        if (!isset($metrics['daily'][$today])) {
+            $metrics['daily'][$today] = ['requests' => 0, 'page_views' => 0, 'paid' => 0, 'usdc' => 0.0];
+        }
+        $metrics['daily'][$today]['requests'] = (int)($metrics['daily'][$today]['requests'] ?? 0) + 1;
+        $metrics['daily'][$today]['page_views'] = (int)($metrics['daily'][$today]['page_views'] ?? 0) + 1;
+
+        // Rotação determinística: manter apenas os 14 dias mais recentes
+        ksort($metrics['daily']);
+        if (count($metrics['daily']) > 14) {
+            $metrics['daily'] = array_slice($metrics['daily'], -14, 14, true);
+        }
+
+        // Buffer leve de visitas (anonimizado, sem UA bruto em claro)
+        if (!isset($metrics['recent_visits']) || !is_array($metrics['recent_visits'])) {
+            $metrics['recent_visits'] = [];
+        }
+        $maxUa = $ua !== null ? trim($ua) : '';
+        if ($maxUa !== '') {
+            $maxUa = substr(preg_replace('/[\r\n\t]+/', ' ', $maxUa), 0, 180);
+        }
+
+        array_unshift($metrics['recent_visits'], [
+            'timestamp' => $now,
+            'path' => $path !== null ? substr(trim($path), 0, 180) : '/',
+            'ip_masked' => grid402_mask_ip($ip ?? (string)($_SERVER['REMOTE_ADDR'] ?? '')),
+            'ua_masked' => $maxUa !== '' ? substr($maxUa, 0, 80) . '…' : '',
+        ]);
+        if (count($metrics['recent_visits']) > 50) {
+            $metrics['recent_visits'] = array_slice($metrics['recent_visits'], 0, 50);
+        }
+
         ftruncate($fp, 0);
         rewind($fp);
         fwrite($fp, (string) json_encode($metrics, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
