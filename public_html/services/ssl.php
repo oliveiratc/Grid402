@@ -26,6 +26,17 @@ function grid402_service_ssl(string $host): array {
         ];
     }
 
+    // Proteção contra SSRF: resolve o IP e bloqueia faixas privadas/reservadas
+    $resolvedIp = gethostbyname($host);
+    if ($resolvedIp === $host || !filter_var($resolvedIp, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+        return [
+            'success' => false,
+            'error' => 'ForbiddenHost',
+            'message' => 'O host informado resolve para um endereço IP privado, reservado ou inválido.',
+            'code' => 403,
+        ];
+    }
+
     $g = stream_context_create([
         'ssl' => [
             'capture_peer_cert' => true,
@@ -41,7 +52,7 @@ function grid402_service_ssl(string $host): array {
     $errstr = '';
     $t0 = microtime(true);
     $client = @stream_socket_client(
-        "ssl://{$host}:443",
+        "ssl://{$resolvedIp}:443",
         $errno,
         $errstr,
         3.0,
