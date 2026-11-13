@@ -102,10 +102,15 @@ const authorization = {
   validBefore: validBefore.toString(),
   nonce,
 };
+
+// Bazaar: o payload liquidado precisa carregar a extensão em echo da que o 402 anunciou,
+// caso o facilitador a suporte e tenha /discovery/resources (docs.x402.org/extensions/bazaar.md).
+const echoExtensions = info?.extensions && typeof info.extensions === 'object' ? info.extensions : undefined;
 const payload = {
   x402Version: 2,
   accepted: accept,
   payload: { signature, authorization },
+  ...(echoExtensions ? { extensions: echoExtensions } : {}),
 };
 const b64 = Buffer.from(JSON.stringify(payload)).toString('base64');
 
@@ -128,6 +133,18 @@ if (paymentResponse) {
   } catch {
     console.log('\n[4] PAYMENT-RESPONSE (base64, decode falhou):', paymentResponse);
   }
+}
+
+const extensionResponses = res2.headers.get('EXTENSION-RESPONSES') ?? res2.headers.get('extension-responses');
+if (extensionResponses) {
+  try {
+    const ext = JSON.parse(Buffer.from(extensionResponses, 'base64').toString('utf-8'));
+    console.log('\n[4b] EXTENSION-RESPONSES (resultado de catalogação Bazaar):', JSON.stringify(ext, null, 2));
+  } catch {
+    console.log('\n[4b] EXTENSION-RESPONSES (base64, decode falhou):', extensionResponses);
+  }
+} else {
+  console.log('\n[4b] EXTENSION-RESPONSES não presente no cabeçalho (ausência não é falha; o facilitador pode não enviar o header).');
 }
 
 console.log('\n[5] Corpo (ate 1500 bytes):\n', text.slice(0, 1500));

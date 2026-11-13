@@ -525,12 +525,20 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         'iconUrl' => (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . '/assets/icon-192x192.png',
     ];
 
-    // Bazaar discovery metadata (opcional) — inclui exemplo de entrada e saída
+    // Bazaar discovery metadata conforme spec (docs.x402.org/extensions/bazaar.md):
+    // extensions.bazaar.info.input.type/output.type são exigidos pela validação dos facilitadores.
+    $exampleOutput = ($preview !== null && !empty($preview)) ? $preview : new \stdClass();
     $bazaarInfo = [
-        'type' => 'http',
-        'method' => 'GET',
-        'input' => ['type' => 'object', 'properties' => []],
-        'output' => ['type' => 'json', 'example' => $preview ?? []],
+        'info' => [
+            'input' => [
+                'type' => 'http',
+                'method' => 'GET',
+            ],
+            'output' => [
+                'type' => 'json',
+                'example' => $exampleOutput,
+            ],
+        ],
     ];
 
     $x402V2HeaderData = [
@@ -539,9 +547,7 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         'resource' => $resourceInfo,
         'accepts' => $acceptsList,
         'extensions' => [
-            'bazaar' => [
-                'info' => $bazaarInfo,
-            ],
+            'bazaar' => $bazaarInfo,
         ],
     ];
 
@@ -590,9 +596,7 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         'price_raw_units' => $priceRawUnits,
         'recipient_wallet' => GRID402_WALLET_ADDRESS,
         'extensions' => [
-            'bazaar' => [
-                'info' => $bazaarInfo,
-            ],
+            'bazaar' => $bazaarInfo,
         ],
         'sandbox_test' => [
             'header' => 'X-Payment: demo',
