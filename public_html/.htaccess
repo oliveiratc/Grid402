@@ -67,6 +67,7 @@ ServerSignature Off
     RewriteRule ^api/v1/dns/?$ index.php?api=dns [QSA,L]
     RewriteRule ^api/v1/ssl/?$ index.php?api=ssl [QSA,L]
     RewriteRule ^api/v1/asn/?$ index.php?api=asn [QSA,L]
+    RewriteRule ^api/v1/domain-audit/?$ index.php?api=domain-audit [QSA,L]
     RewriteRule ^api/v1/cep/?$ index.php?api=cep [QSA,L]
     RewriteRule ^api/v1/cnpj/?$ index.php?api=cnpj [QSA,L]
     RewriteRule ^api/v1/indicators/?$ index.php?api=indicators [QSA,L]

@@ -16,6 +16,7 @@ require_once __DIR__ . '/services/forex.php';
 require_once __DIR__ . '/services/crypto.php';
 require_once __DIR__ . '/services/dns.php';
 require_once __DIR__ . '/services/ssl.php';
+require_once __DIR__ . '/services/domain_audit.php';
 require_once __DIR__ . '/services/asn.php';
 require_once __DIR__ . '/services/cep.php';
 require_once __DIR__ . '/services/cnpj.php';
@@ -877,6 +878,13 @@ if ($isValidApiAction) {
         case 'asn':
             $ip = isset($_GET['ip']) ? (string)$_GET['ip'] : null;
             $result = grid402_service_asn($ip);
+            if (isset($result['code']) && $result['code'] !== 200) {
+                http_response_code($result['code']);
+            }
+            break;
+        case 'domain-audit':
+            $domain = (string) ($_GET['domain'] ?? $_GET['host'] ?? 'base.org');
+            $result = grid402_service_domain_audit($domain);
             if (isset($result['code']) && $result['code'] !== 200) {
                 http_response_code($result['code']);
             }

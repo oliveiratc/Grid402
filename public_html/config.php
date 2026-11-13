@@ -296,6 +296,14 @@ function grid402_get_utility_services(): array {
             'category' => 'Rede',
             'type' => 'on_demand',
         ],
+        'domain-audit' => [
+            'id' => 'domain-audit',
+            'name' => 'Domain Audit (DNS + SSL + ASN)',
+            'description' => 'Auditoria completa de domínio em 1 chamada: registros DNS, certificado TLS/SSL e roteamento ASN/BGP',
+            'endpoint' => '/api/v1/domain-audit',
+            'category' => 'Rede',
+            'type' => 'on_demand',
+        ],
         'cep' => [
             'id' => 'cep',
             'name' => 'CEP e IBGE',

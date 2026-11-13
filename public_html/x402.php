@@ -589,6 +589,7 @@ function grid402_notify_telegram_purchase(string $service, float $priceUsdc, str
         'workdays' => 'Calculadora de Dias Uteis Financeiros',
         'dns' => 'Utilitario DNS Avancado',
         'ssl' => 'Auditoria de Certificado SSL e TLS',
+        'domain-audit' => 'Auditoria Completa de Domínio (DNS + SSL + ASN)',
         'asn' => 'Roteamento BGP e ASN de Rede',
     ];
 
