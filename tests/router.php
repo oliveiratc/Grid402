@@ -13,6 +13,26 @@ if ($uri === '/status') {
     return true;
 }
 
+$localPages = [
+    '/' => null,
+    '/agents' => 'agents.php',
+    '/catalog' => 'catalog.php',
+    '/trust' => 'trust.php',
+    '/growth' => 'growth_program.php',
+    '/agenthub' => 'agenthub.php',
+    '/payment-dashboard' => 'payment_dashboard.php',
+    '/reputation' => 'builder_reputation.php',
+    '/growth_admin' => 'growth_admin.php',
+];
+
+if (isset($localPages[$uri])) {
+    $file = $localPages[$uri];
+    if ($file) {
+        require __DIR__ . '/../public_html/' . $file;
+        return true;
+    }
+}
+
 if (preg_match('#^/api/v1/([a-z0-9_-]+)#', $uri, $matches)) {
     $_GET['api'] = $matches[1];
     require __DIR__ . '/../public_html/index.php';

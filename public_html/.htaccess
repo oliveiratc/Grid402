@@ -90,9 +90,17 @@ ServerSignature Off
     # Pagina de compra de Session Pass (linkavel na resposta HTTP 402)
     RewriteRule ^pass/?$ pass.php [QSA,L]
 
+    # Web3 Agent Growth Program
+    RewriteRule ^growth/?$ growth_program.php [QSA,L]
+    RewriteRule ^builder/?$ builder_reputation.php [QSA,L]
+    RewriteRule ^reputation/?$ builder_reputation.php [QSA,L]
+    RewriteRule ^agent-hub/?$ agenthub.php [QSA,L]
+    RewriteRule ^payment-dashboard/?$ payment_dashboard.php [QSA,L]
+
     # Painel Administrativo de Monitoramento e Faturamento
     RewriteRule ^admin/?$ admin.php [QSA,L]
     RewriteRule ^dashboard/?$ admin.php [QSA,L]
+    RewriteRule ^growth_admin/?$ growth_admin.php [QSA,L]
 
     # Rotas Institucionais e Atalhos
     RewriteRule ^status/?$ index.php?api=summary [QSA,L]

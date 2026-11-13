@@ -88,6 +88,7 @@ function grid402_emitir_passe_por_tx(string $txHash): array {
         $targetWallet = substr(strtolower(GRID402_WALLET_ADDRESS), 2); // sem 0x
 
         $rawAmount = 0;
+        $payer = '';
         $found = false;
         foreach ((array)($receipt['logs'] ?? []) as $log) {
             $contract = strtolower((string)($log['address'] ?? ''));
@@ -105,6 +106,7 @@ function grid402_emitir_passe_por_tx(string $txHash): array {
             }
             $dataHex = (string)($log['data'] ?? '0x0');
             $rawAmount = (int) hexdec(substr($dataHex, 2));
+            $payer = '0x' . substr(strtolower((string)($topics[1] ?? '')), -40);
             $found = true;
             break;
         }
@@ -130,6 +132,7 @@ function grid402_emitir_passe_por_tx(string $txHash): array {
             'code' => 200,
             'network' => 'Base Mainnet',
             'chain_id' => GRID402_CHAIN_ID,
+            'payer' => $payer,
             'tx_hash' => $txHash,
             'raw_usdc_units' => $rawAmount,
             'usdc_deposited' => number_format($rawAmount / 1e6, 4, '.', '') . ' USDC',

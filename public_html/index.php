@@ -34,6 +34,7 @@ require_once __DIR__ . '/services/pass.php';
 require_once __DIR__ . '/services/pass_checkout.php';
 require_once __DIR__ . '/services/oracle_signer.php';
 require_once __DIR__ . '/metrics.php';
+require_once __DIR__ . '/growth.php';
 
 /**
  * Registra visita à página pública HTML (contador de acessos exibido no /admin).
@@ -246,6 +247,8 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
                 <a href="/">Home</a>
                 <a href="/agents" <?php echo $canonicalPath === '/agents' ? 'class="active"' : ''; ?> data-i18n="nav.agents">Agentes IA</a>
                 <a href="/catalog" <?php echo $canonicalPath === '/catalog' ? 'class="active"' : ''; ?>>Catálogo</a>
+                <a href="/growth" <?php echo $canonicalPath === '/growth' ? 'class="active"' : ''; ?>>Growth</a>
+                <a href="/payment-dashboard" <?php echo $canonicalPath === '/payment-dashboard' ? 'class="active"' : ''; ?>>Pagamentos</a>
                 <a href="/trust" <?php echo $canonicalPath === '/trust' ? 'class="active"' : ''; ?>>Trust</a>
                 <a href="/about" <?php echo $canonicalPath === '/about' ? 'class="active"' : ''; ?> data-i18n="nav.about">Sobre</a>
                 <a href="/contact" <?php echo $canonicalPath === '/contact' ? 'class="active"' : ''; ?> data-i18n="nav.contact">Contato</a>
@@ -268,6 +271,8 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
                 <a href="/">Home</a>
                 <a href="/agents" data-i18n="nav.agents">Agentes IA</a>
                 <a href="/catalog">Catálogo</a>
+                <a href="/growth">Growth</a>
+                <a href="/payment-dashboard">Pagamentos</a>
                 <a href="/trust">Trust</a>
                 <a href="/about" data-i18n="nav.about">Sobre</a>
                 <a href="/contact" data-i18n="nav.contact">Contato</a>
@@ -831,6 +836,11 @@ if ($isValidApiAction) {
         } elseif ($validation['code'] === 429 || $validation['code'] === 503) {
             header('Retry-After: ' . ($validation['retry_after'] ?? 3600));
         }
+        grid402_growth_event('challenge_402', [
+            'service' => $serviceLabel,
+            'amount_usdc' => (float)$servicePriceDisplay,
+            'proof' => $proofForLog ?? $paymentProof ?? '',
+        ]);
 
         $errPayload = [
             'error' => ($validation['code'] === 403) ? 'ReplayAttackDetected' : (($validation['code'] === 429) ? 'SandboxRateLimitExceeded' : (($validation['code'] === 503) ? 'SettlementUnavailable' : 'PaymentFailed')),
@@ -857,6 +867,21 @@ if ($isValidApiAction) {
     $isRealPayment = !$isSandbox && !$isVerifyOnly;
     // Sandbox/demo e verify_only nao sao consulta paga: registra como 'sandbox'/'verify_only'
     $settlementTx = $validation['settlement_tx'] ?? null;
+    if ($isRealPayment) {
+        grid402_growth_event('paid_request', [
+            'service' => $apiParam,
+            'payer' => $validation['payer'] ?? '',
+            'amount_usdc' => (float)$servicePriceDisplay,
+            'type' => ($validation['source'] ?? '') === 'pass' ? 'pass' : 'x402',
+        ]);
+    } else {
+        $growthType = $isSandbox ? 'sandbox_request' : 'verify_only';
+        grid402_growth_event($growthType, [
+            'service' => $apiParam,
+            'proof' => $proofForLog ?? $paymentProof ?? '',
+            'type' => $validation['source'] ?? '',
+        ]);
+    }
     grid402_record_telemetry(
         $apiParam,
         200,
@@ -1059,6 +1084,14 @@ if ($isValidApiAction) {
                 }
             }
             $result = grid402_emitir_passe_por_tx($txParam);
+            if (!empty($result['ok'])) {
+                grid402_growth_event('pass_purchase', [
+                    'service' => 'pass',
+                    'payer' => (string)($result['payer'] ?? ''),
+                    'amount_usdc' => ((int)($result['raw_usdc_units'] ?? 0)) / 1000000,
+                    'proof' => (string)($result['tx_hash'] ?? ''),
+                ]);
+            }
             // Tratamento de códigos de erro do checkout
             if (!empty($result['code']) && $result['code'] !== 200) {
                 http_response_code($result['code']);
@@ -2508,6 +2541,8 @@ grid402_log_public_visit('/');
                 <a href="#console" data-i18n="nav.console">Console</a>
                 <a href="/agents" style="color: var(--accent); font-weight: 600;" data-i18n="nav.agents">Agentes IA</a>
                 <a href="/catalog" style="color: var(--accent); font-weight: 600;">Catálogo</a>
+                <a href="/growth" style="color: var(--accent); font-weight: 600;">Growth</a>
+                <a href="/payment-dashboard" style="color: var(--accent); font-weight: 600;">Pagamentos</a>
                 <a href="/trust" style="color: var(--accent); font-weight: 600;">Trust</a>
                 <a href="/about" data-i18n="nav.about">About</a>
                 <a href="/contact" data-i18n="nav.contact">Contact</a>
@@ -3400,6 +3435,8 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             <div class="footer-links">
                 <a href="/agents" style="color: var(--primary); font-weight: 600;" data-i18n="nav.agents">Agentes IA</a>
                 <a href="/catalog" style="color: var(--primary); font-weight: 600;">Catálogo</a>
+                <a href="/growth" style="color: var(--primary); font-weight: 600;">Growth Program</a>
+                <a href="/payment-dashboard" style="color: var(--primary); font-weight: 600;">Payment Dashboard</a>
                 <a href="/trust" style="color: var(--primary); font-weight: 600;">Trust Center</a>
                 <a href="/about" data-i18n="nav.about">About</a>
                 <a href="/contact" data-i18n="nav.contact">Contact</a>

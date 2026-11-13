@@ -466,6 +466,7 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
 
     // Pagamento confirmado e trava retida com sucesso!
     return [
+        'payer' => strtolower((string)($receipt['from'] ?? '')),
         'valid' => true,
         'sandbox' => false,
         'source' => 'tx_hash',
@@ -519,6 +520,17 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         'url' => $fullUrl,
         'description' => $msg,
         'mimeType' => 'application/json',
+        'serviceName' => 'Grid402 ' . strtoupper((string) ($serviceName ?? 'hub')),
+        'tags' => ['public-data', 'utility', 'x402', 'base', 'agents'],
+        'iconUrl' => (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . '/assets/icon-192x192.png',
+    ];
+
+    // Bazaar discovery metadata (opcional) — inclui exemplo de entrada e saída
+    $bazaarInfo = [
+        'type' => 'http',
+        'method' => 'GET',
+        'input' => ['type' => 'object', 'properties' => []],
+        'output' => ['type' => 'json', 'example' => $preview ?? []],
     ];
 
     $x402V2HeaderData = [
@@ -526,6 +538,11 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         'error' => 'Payment required',
         'resource' => $resourceInfo,
         'accepts' => $acceptsList,
+        'extensions' => [
+            'bazaar' => [
+                'info' => $bazaarInfo,
+            ],
+        ],
     ];
 
     $b64Header = base64_encode((string) json_encode($x402V2HeaderData, JSON_UNESCAPED_SLASHES));
@@ -547,6 +564,11 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         'price_usdc' => $priceDisplay,
         'price_raw_units' => $priceRawUnits,
         'recipient_wallet' => GRID402_WALLET_ADDRESS,
+        'extensions' => [
+            'bazaar' => [
+                'info' => $bazaarInfo,
+            ],
+        ],
         'sandbox_test' => [
             'header' => 'X-Payment: demo',
             'rate_limit' => GRID402_SANDBOX_RATE_LIMIT . ' req/hora por IP',

@@ -6,6 +6,10 @@
 - [Full LLM Context](https://grid402.online/llms-full.txt): Documentacao exaustiva com schemas JSON e contratos de endpoints para modelos de linguagem
 - [Catálogo Completo de Serviços](https://grid402.online/catalog): Preço, limites, exemplos e status de todos os endpoints
 - [Trust Center](https://grid402.online/trust): SLA, disponibilidade histórica, metodologia e política de incidentes
+- [Agent Hub](https://grid402.online/agenthub): Documentação e exemplos de integração para agentes autônomos
+- [Growth Program](https://grid402.online/growth): Starter, Builders, Referrals para agentes autônomos
+- [Builder Reputation](https://grid402.online/reputation): Reputação Pública de builders Grid402
+- [Payment Dashboard](https://grid402.online/payment-dashboard): Pay-per-Request vs Session Pass — visão de uma única tela
 - [Central de Agentes de IA](https://grid402.online/agents): Guia rapido de integracao para agentes autonomos, Claude Desktop, Python e cURL
 - [OpenAPI Specification](https://grid402.online/openapi.json): Especificacao completa e interativa da API no padrao OpenAPI 3.1
 - [MCP Server Card](https://grid402.online/.well-known/mcp/server-card.json): Ficha de descoberta de capacidades SEP-1649 para servidores MCP

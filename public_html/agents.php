@@ -455,6 +455,8 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
                 <a href="/" data-i18n="agents.nav.home">Início</a>
                 <a href="/agents" class="active" data-i18n="nav.agents">Agentes IA</a>
                 <a href="/catalog">Catálogo</a>
+                <a href="/growth">Growth</a>
+                <a href="/payment-dashboard">Pagamentos</a>
                 <a href="/trust">Trust</a>
                 <a href="/llms.txt">llms.txt</a>
                 <a href="/openapi.json">OpenAPI</a>
@@ -753,6 +755,8 @@ curl -X POST "https://grid402.online/api/v1/verify" \
                 <a href="/privacy" data-i18n="nav.privacy">Privacidade</a>
                 <a href="/catalog">Catálogo</a>
                 <a href="/trust">Trust</a>
+                <a href="/growth">Growth</a>
+                <a href="/payment-dashboard">Pagamentos</a>
                 <a href="/about" data-i18n="nav.about">Sobre</a>
                 <a href="/contact" data-i18n="nav.contact">Contato</a>
                 <a href="https://github.com/oliveiratc/Grid402" target="_blank" rel="noopener noreferrer">GitHub</a>

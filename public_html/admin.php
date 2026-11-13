@@ -12,6 +12,7 @@ if (!defined('GRID402_EXEC')) {
 }
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/metrics.php';
+require_once __DIR__ . '/growth.php';
 require_once __DIR__ . '/services/forex.php';
 
 /**
@@ -594,7 +595,22 @@ if ($apiParam === 'export_csv') {
     exit;
 }
 
-// 4.2. Endpoint de Polling JSON (/admin?api=stats)
+// 4.2. Endpoint Growth Engine (/admin?api=growth)
+if ($apiParam === 'growth') {
+    if (!$isLoggedIn) {
+        http_response_code(401);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['error' => 'Unauthorized', 'message' => 'Sessão administrativa expirada ou inválida.'], JSON_PRETTY_PRINT);
+        exit;
+    }
+
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+    echo json_encode(grid402_growth_admin_payload(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// 4.3. Endpoint de Polling JSON (/admin?api=stats)
 if ($apiParam === 'stats') {
     if (!$isLoggedIn) {
         http_response_code(401);
@@ -1490,6 +1506,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                     <span class="pulse-dot"></span>
                     <span id="live-timer-text">Ao Vivo (5s)</span>
                 </div>
+                <a href="/growth_admin" class="btn-outline" title="Abrir admin Growth">🌱 Growth Admin</a>
                 <a href="/admin?api=export_csv" class="btn-outline" title="Baixar histórico completo de consultas em CSV">📥 Exportar CSV</a>
                 <button type="button" class="btn-outline" onclick="openPasswordModal()">🔑 Alterar Senha</button>
                 <button type="button" class="btn-outline" onclick="fetchLiveStats(true)">🔄 Atualizar</button>
@@ -1550,8 +1567,31 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             </div>
         </div>
 
+        <!-- Growth Engine (Web3) -->
+        <section id="growth-engine" class="panel" style="grid-column: 1 / -1; margin-top: 1rem;">
+            <div class="panel-title">
+                <span>Growth Engine (Web3) — Starter, Builders, Referrals &amp; Reputation</span>
+                <a href="/growth" class="btn-outline" target="_blank" rel="noopener">Open Growth Program</a>
+            </div>
+            <div class="kpi-grid" id="growth-kpi-grid" style="margin-top: 1rem;">
+                <div class="kpi-card"><div class="kpi-title">Wallets ativas</div><div class="kpi-value" id="growth-wallets">0</div><div class="kpi-sub" id="growth-new-wallets">Novos no período</div></div>
+                <div class="kpi-card"><div class="kpi-title">Conversão 1ª compra</div><div class="kpi-value" id="growth-conversion">0%</div><div class="kpi-sub">Visitantes → compradores</div></div>
+                <div class="kpi-card"><div class="kpi-title">Conversão 2ª compra</div><div class="kpi-value" id="growth-conversion-2">0%</div><div class="kpi-sub">Compradores → recorrentes</div></div>
+                <div class="kpi-card"><div class="kpi-title">Receita total (USDC)</div><div class="kpi-value" id="growth-revenue">US$ 0.0000</div><div class="kpi-sub" id="growth-revenue-usd">Transação verificada</div></div>
+                <div class="kpi-card"><div class="kpi-title">Receita / wallet</div><div class="kpi-value" id="growth-revenue-wallet">US$ 0.0000</div><div class="kpi-sub">Ticket médio por carteira</div></div>
+                <div class="kpi-card"><div class="kpi-title">Builders ativos</div><div class="kpi-value" id="growth-builders">0</div><div class="kpi-sub">Integrações validadas</div></div>
+                <div class="kpi-card"><div class="kpi-title">Referrals</div><div class="kpi-value" id="growth-referrals">0</div><div class="kpi-sub">Códigos de indicação</div></div>
+                <div class="kpi-card"><div class="kpi-title">Créditos emitidos</div><div class="kpi-value" id="growth-promo-credits">0</div><div class="kpi-sub">Promo / rewards</div></div>
+            </div>
+            <div id="growth-admin-actions" style="display:none;margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.5rem;">
+                <button type="button" class="btn-outline" onclick="fetchGrowthAdmin(true)">🔄 Atualizar KPIs Growth</button>
+                <a href="/builder_reputation" class="btn-outline" target="_blank">Ver reputação pública</a>
+                <a href="/growth" class="btn-outline" target="_blank">Abrir página do programa</a>
+            </div>
+        </section>
+
         <!-- Linha Analítica 1: Gráfico Temporal Diário SVG (14 Dias) + Top Agentes / Consumidores -->
-        <div class="analytics-row">
+<div class="analytics-row">
             <div class="panel">
                 <div class="panel-title">
                     <span>Evolução Diária (Últimos 14 Dias)</span>
@@ -2164,6 +2204,35 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             el.innerHTML = html;
         }
 
+        async function fetchGrowthAdmin(isManual = false) {
+            try {
+                const res = await fetch('/admin?api=growth', { cache: 'no-store' });
+                if (res.status === 401) {
+                    window.location.reload();
+                    return;
+                }
+                const data = await res.json();
+                if (!data || !data.metrics) return;
+
+                const metrics = data.metrics;
+                const setText = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = value;
+                };
+
+                setText('growth-wallets', Number(metrics.wallets_connected || 0).toLocaleString('pt-BR'));
+                setText('growth-conversion', Number(metrics.conversion_first_payment || 0).toFixed(1) + '%');
+                setText('growth-conversion-2', Number(metrics.conversion_second_payment || 0).toFixed(1) + '%');
+                setText('growth-revenue', 'US$ ' + Number(metrics.paid_revenue_usdc || 0).toFixed(4));
+                setText('growth-revenue-wallet', 'US$ ' + Number(metrics.revenue_per_wallet_usdc || 0).toFixed(8));
+                setText('growth-builders', Number(metrics.builders_registered || 0).toLocaleString('pt-BR'));
+                setText('growth-referrals', Number(metrics.referrals_registered || 0).toLocaleString('pt-BR'));
+                setText('growth-promo-credits', Number(metrics.promo_credits_total || 0).toLocaleString('pt-BR'));
+            } catch (error) {
+                // silencioso — dashboard principal continua funcionando
+            }
+        }
+
         async function fetchLiveStats(isManual = false) {
             try {
                 const res = await fetch('/admin?api=stats', { cache: 'no-store' });
@@ -2448,7 +2517,9 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
         renderSvgChart(initialDaily);
         applyFeedFilterAndSearch();
         fetchLiveStats();
+        fetchGrowthAdmin();
         setInterval(fetchLiveStats, 5000);
+        setInterval(fetchGrowthAdmin, 15000);
     </script>
     <footer style="max-width: 1280px; margin: 2.5rem auto 1.5rem; padding: 1.25rem 1.5rem 0; border-top: 1px solid rgba(255,255,255,0.08); text-align: center; font-size: 0.78rem; color: #64748B;">
         © <?php echo date('Y'); ?> Grid402 Network Intelligence. Todos os direitos reservados • Software e Arquitetura Protegidos (Lei nº 9.609/1998 e Lei nº 9.610/1998).
