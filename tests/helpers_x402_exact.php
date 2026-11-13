@@ -97,7 +97,11 @@ function t_payload(array $over = []): string {
 function t_install_transport(array $handlers, array &$calls): void {
     $GLOBALS['grid402_facilitator_transport'] = static function (string $url, array $headers, string $body, int $timeout) use ($handlers, &$calls): array {
         $path = (string) parse_url($url, PHP_URL_PATH);
-        $endpoint = substr($path, (int) strpos($path, '/v2/'));
+        if (str_contains($path, '/v2/x402/')) {
+            $endpoint = substr($path, (int) strpos($path, '/v2/'));
+        } else {
+            $endpoint = '/' . basename($path);
+        }
         $calls[] = ['endpoint' => $endpoint, 'headers' => $headers, 'body' => json_decode($body, true), 'timeout' => $timeout];
         $handler = $handlers[$endpoint] ?? ['status' => 404, 'body' => '{}', 'error' => null];
         $res = is_callable($handler) ? $handler() : $handler;

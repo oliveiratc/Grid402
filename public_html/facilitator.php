@@ -169,11 +169,11 @@ function grid402_validate_exact_requirements(array $decoded, int $requiredRawUni
     if ($decoded['scheme'] !== 'exact') {
         return $fail('Esquema de pagamento nao suportado. O Grid402 aceita apenas o esquema "exact".');
     }
-    if (!in_array($decoded['network'], ['eip155:' . GRID402_CHAIN_ID, 'base'], true)) {
-        return $fail('Rede de pagamento incorreta. Use a Base Mainnet (eip155:' . GRID402_CHAIN_ID . ').');
+    if (!in_array($decoded['network'], [GRID402_X402_NETWORK_V2, GRID402_X402_NETWORK_V1], true)) {
+        return $fail('Rede de pagamento incorreta. Use a rede ' . (GRID402_X402_NETWORK === 'base-sepolia' ? 'Base Sepolia (eip155:84532)' : 'Base Mainnet (eip155:' . GRID402_X402_CHAIN_ID . ')') . '.');
     }
-    if ($decoded['asset'] !== null && $decoded['asset'] !== GRID402_USDC_CONTRACT) {
-        return $fail('Ativo de pagamento incorreto. Use o USDC oficial da Base: ' . GRID402_USDC_CONTRACT . '.');
+    if ($decoded['asset'] !== null && $decoded['asset'] !== GRID402_X402_USDC_CONTRACT) {
+        return $fail('Ativo de pagamento incorreto. Use o USDC oficial da rede: ' . GRID402_X402_USDC_CONTRACT . '.');
     }
     if ($auth['to'] !== GRID402_WALLET_ADDRESS) {
         return $fail('Destinatario incorreto. A autorizacao deve transferir para ' . GRID402_WALLET_ADDRESS . '.');
@@ -396,6 +396,21 @@ function grid402_facilitator_http(string $url, array $headers, string $body, int
 }
 
 /**
+ * Decide como o facilitador sera autenticado:
+ * 'override' (transporte de teste), 'cdp' (credenciais CDP) ou
+ * 'public' (facilitador publico sem auth, ex.: x402.org testnet / PayAI / Mogami).
+ */
+function grid402_facilitator_auth_mode(): string {
+    if (is_callable($GLOBALS['grid402_facilitator_transport'] ?? null)) {
+        return 'override';
+    }
+    if (GRID402_CDP_API_KEY_ID !== '' && GRID402_CDP_API_KEY_SECRET !== '') {
+        return 'cdp';
+    }
+    return 'public';
+}
+
+/**
  * Chama um endpoint do facilitador. Retorna:
  * ['ok' => bool, 'unavailable' => bool, 'data' => array, 'error' => string]
  * `unavailable` = timeout, falha de rede, erro 5xx ou credenciais ausentes (nunca vaza segredos).
@@ -408,15 +423,17 @@ function grid402_facilitator_call(string $endpoint, array $body, int $timeout): 
     $path = (string) ($parts['path'] ?? '');
 
     $headers = ['Content-Type: application/json', 'Accept: application/json'];
-    $hasOverride = is_callable($GLOBALS['grid402_facilitator_transport'] ?? null);
+    $authMode = grid402_facilitator_auth_mode();
 
-    if (GRID402_CDP_API_KEY_ID !== '' || !$hasOverride) {
+    if ($authMode === 'cdp') {
         $jwt = grid402_cdp_build_jwt(GRID402_CDP_API_KEY_ID, GRID402_CDP_API_KEY_SECRET, 'POST', $host, $path);
         if (!$jwt['ok']) {
             return ['ok' => false, 'unavailable' => true, 'data' => [], 'error' => $jwt['error']];
         }
         $headers[] = 'Authorization: Bearer ' . $jwt['token'];
     }
+    // 'override' (transporte de teste) e 'public' (facilitador sem auth):
+    // nenhuma credencial é enviada; segredos nunca são exigidos.
 
     $http = grid402_facilitator_http($url, $headers, (string) json_encode($body, JSON_UNESCAPED_SLASHES), $timeout);
     $status = (int) ($http['status'] ?? 0);
@@ -439,12 +456,12 @@ function grid402_build_payment_requirements(int $version, int $requiredRawUnits,
         'scheme' => 'exact',
         'payTo' => GRID402_WALLET_ADDRESS,
         'maxTimeoutSeconds' => 300,
-        'asset' => GRID402_USDC_CONTRACT,
+        'asset' => GRID402_X402_USDC_CONTRACT,
         'extra' => ['name' => 'USD Coin', 'version' => '2'],
     ];
     if ($version === 1) {
         return $base + [
-            'network' => 'base',
+            'network' => GRID402_X402_NETWORK_V1,
             'maxAmountRequired' => (string) $requiredRawUnits,
             'resource' => $resourceUrl,
             'description' => 'Grid402 micro-service',
@@ -452,7 +469,7 @@ function grid402_build_payment_requirements(int $version, int $requiredRawUnits,
         ];
     }
     return $base + [
-        'network' => 'eip155:' . GRID402_CHAIN_ID,
+        'network' => GRID402_X402_NETWORK_V2,
         'amount' => (string) $requiredRawUnits,
     ];
 }
@@ -507,7 +524,7 @@ function grid402_validate_exact_payment(string $rawProof, int $requiredRawUnits,
     ];
 
     // 1) Verificacao
-    $verify = grid402_facilitator_call('/v2/x402/verify', $requestBody, GRID402_FACILITATOR_VERIFY_TIMEOUT);
+    $verify = grid402_facilitator_call(GRID402_FACILITATOR_VERIFY_PATH, $requestBody, GRID402_FACILITATOR_VERIFY_TIMEOUT);
     if ($verify['unavailable']) {
         grid402_release_nonce($nonceKey);
         return $unavailable();
@@ -536,7 +553,7 @@ function grid402_validate_exact_payment(string $rawProof, int $requiredRawUnits,
     }
 
     // 2) Liquidacao (sem retentativa automatica para nao liquidar duas vezes)
-    $settle = grid402_facilitator_call('/v2/x402/settle', $requestBody, GRID402_FACILITATOR_SETTLE_TIMEOUT);
+    $settle = grid402_facilitator_call(GRID402_FACILITATOR_SETTLE_PATH, $requestBody, GRID402_FACILITATOR_SETTLE_TIMEOUT);
     if ($settle['unavailable']) {
         grid402_set_nonce_state($nonceKey, 'pending');
         return $unavailable('Liquidacao sem confirmacao do facilitador. Nao reenvie esta autorizacao; aguarde e consulte o saldo antes de tentar novamente.');
@@ -561,7 +578,7 @@ function grid402_validate_exact_payment(string $rawProof, int $requiredRawUnits,
         'payer' => $auth['from'],
         'settlement_tx' => $settlementTx !== '' ? $settlementTx : null,
         'raw_amount' => (int) $auth['value'],
-        'network' => (string) ($settle['data']['network'] ?? ('eip155:' . GRID402_CHAIN_ID)),
+        'network' => (string) ($settle['data']['network'] ?? GRID402_X402_NETWORK_V2),
         'reason' => 'Pagamento x402 liquidado pelo facilitador.',
         'code' => 200,
     ];
@@ -574,7 +591,7 @@ function grid402_build_payment_response_header(array $validation): string {
     return base64_encode((string) json_encode([
         'success' => true,
         'transaction' => $validation['settlement_tx'] ?? null,
-        'network' => $validation['network'] ?? ('eip155:' . GRID402_CHAIN_ID),
+        'network' => $validation['network'] ?? GRID402_X402_NETWORK_V2,
         'payer' => $validation['payer'] ?? null,
     ], JSON_UNESCAPED_SLASHES));
 }

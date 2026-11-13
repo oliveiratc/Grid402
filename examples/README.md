@@ -8,6 +8,7 @@ Esta pasta contém exemplos prontos para demonstração e integração do **Grid
 
 - **`autonomous_agent.mjs`**: Exemplo completo em **Node.js (ESM)** utilizando `ethers.js` para auto-liquidação on-chain.
 - **`autonomous_agent.py`**: Exemplo em **Python** para integração em frameworks como **CrewAI**, **LangChain** e **ElizaOS**.
+- **`sepolia_x402_buyer.mjs`**: Buyer de **homologação em Base Sepolia** — assina EIP-3009 contra o USDC de teste e troca pelo recurso via facilitador público x402.org. Chave só via env (`GRID402_TEST_PRIVATE_KEY`). Ver `docs/FACILITATOR_SETUP.md`.
 
 ---
 

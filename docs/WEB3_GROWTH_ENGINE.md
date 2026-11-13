@@ -66,10 +66,10 @@
 
 ## O que falta para 1.0
 
-- [ ] Facilitador `settle` habilitado em produção e monitorado
-- [ ] Listing no x402 Bazaar **confirmado** (hoje só documentado/manifesto; sem `EXTENSION-RESPONSES` de facilitador não se pode afirmar presença)
-- [ ] Rewards reais (txhash + emissão de pass) sem intervenção manual
-- [ ] Teste em Base Sepolia autorizado pelo mantenedor
+- [ ] Homologação Sepolia executada pelo mantenedor (`GRID402_X402_NETWORK=base-sepolia` + `x402.org/facilitator` + `examples/sepolia_x402_buyer.mjs`) — guia completo em `docs/FACILITATOR_SETUP.md`
+- [ ] Facilitador de Mainnet escolhido: CDP com credenciais, PayAI (atenção ao custo ~0.00166 USDC/settle), ou permanecer com Tx-hash direto
+- [ ] Listing no x402 Bazaar **confirmado** via settle + `EXTENSION-RESPONSES`; até lá, apenas submissão manual a diretórios (`docs/AGENT_MARKETPLACE_SUBMISSIONS.md`)
+- [ ] Rewards reais (txhash + emissão de pass) sem intervenção manual — **decisão: manter aprovação manual**
 - [ ] Métrica de carteiras únicas vs. checkout completion rate
 - [ ] Testes de carga: 1000 req/min com wallets distintas
 - [ ] Spend caps em SDK/MCP (hoje existe apenas documentação/budget-aware no hub)

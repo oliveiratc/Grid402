@@ -148,6 +148,26 @@ define('GRID402_USDC_CONTRACT', strtolower((string) grid402_env('GRID402_USDC_CO
 define('GRID402_CHAIN_ID', 8453); // Base Mainnet
 define('GRID402_SEPOLIA_RPC_URL', (string) grid402_env('GRID402_SEPOLIA_RPC_URL', 'https://sepolia.base.org'));
 define('GRID402_SEPOLIA_CHAIN_ID', 84532); // Base Sepolia Testnet
+
+// Rede de aceite do fluxo x402 `exact`. 'base' (mainnet, padrao) ou 'base-sepolia' (testnet).
+// Opt-in via GRID402_X402_NETWORK; qualquer valor invalido cai para 'base'.
+$grid402X402Network = strtolower(trim((string) grid402_env('GRID402_X402_NETWORK', 'base')));
+if (!in_array($grid402X402Network, ['base', 'base-sepolia'], true)) {
+    $grid402X402Network = 'base';
+}
+define('GRID402_X402_NETWORK', $grid402X402Network);
+if ($grid402X402Network === 'base-sepolia') {
+    define('GRID402_X402_CHAIN_ID', 84532);
+    define('GRID402_X402_NETWORK_V2', 'eip155:84532');
+    define('GRID402_X402_NETWORK_V1', 'base-sepolia');
+    define('GRID402_X402_USDC_CONTRACT', '0x036cbd53842c5426634e7929541ec2318f3dcf7e');
+} else {
+    define('GRID402_X402_CHAIN_ID', (int) GRID402_CHAIN_ID);
+    define('GRID402_X402_NETWORK_V2', 'eip155:' . GRID402_CHAIN_ID);
+    define('GRID402_X402_NETWORK_V1', 'base');
+    define('GRID402_X402_USDC_CONTRACT', GRID402_USDC_CONTRACT);
+}
+unset($grid402X402Network);
 define('GRID402_SEPOLIA_USDC_CONTRACT', strtolower((string) grid402_env('GRID402_SEPOLIA_USDC_CONTRACT', '0x036cbd53842c5426634e7929541ec2318f3dcf7e')));
 define('GRID402_SANDBOX_RATE_LIMIT', (int) grid402_env('GRID402_SANDBOX_RATE_LIMIT', 30)); // 30 consultas gratuitas por hora por IP (converte para x402 pago)
 define('GRID402_USDC_REQUIRED_RAW', (int) grid402_env('GRID402_USDC_REQUIRED_RAW', 500)); // 0.000500 USDC
@@ -250,6 +270,8 @@ if (!in_array($grid402FacilitatorMode, ['disabled', 'verify_only', 'settle'], tr
 define('GRID402_FACILITATOR_MODE', $grid402FacilitatorMode);
 unset($grid402FacilitatorMode);
 define('GRID402_FACILITATOR_URL', rtrim((string) grid402_env('GRID402_FACILITATOR_URL', 'https://api.cdp.coinbase.com/platform'), '/'));
+define('GRID402_FACILITATOR_VERIFY_PATH', (string) grid402_env('GRID402_FACILITATOR_VERIFY_PATH', '/v2/x402/verify'));
+define('GRID402_FACILITATOR_SETTLE_PATH', (string) grid402_env('GRID402_FACILITATOR_SETTLE_PATH', '/v2/x402/settle'));
 define('GRID402_CDP_API_KEY_ID', (string) grid402_env('GRID402_CDP_API_KEY_ID', ''));
 define('GRID402_CDP_API_KEY_SECRET', (string) grid402_env('GRID402_CDP_API_KEY_SECRET', ''));
 
