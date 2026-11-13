@@ -63,6 +63,58 @@ GRID402_CONNECT_TIMEOUT_MS=1500
 
 ---
 
+## 4. Deploy Automatico (GitHub Actions -> Hostinger)
+
+A partir do workflow `.github/workflows/deploy.yml`, todo push em `main` que passa nos testes dispara um deploy automatico via FTP para a Hostinger.
+
+### 4.1 Configuracao unica (uma vez)
+
+No GitHub do repositorio -> Settings -> Secrets and variables -> Actions -> New repository secret, crie:
+
+| Secret | Valor | Onde obter |
+|---|---|---|
+| `FTP_SERVER` | host FTP (ex.: `ftp.grid402.online` ou o host fornecido pela Hostinger) | hPanel -> Sites -> Gerenciar -> FTP Accounts |
+| `FTP_USERNAME` | usuario FTP | hPanel -> FTP Accounts |
+| `FTP_PASSWORD` | senha FTP | hPanel -> FTP Accounts |
+
+Use a conta FTP principal (a que tem acesso a raiz do site). O workflow envia `public_html/` -> raiz do site.
+
+### 4.2 Como funciona
+
+1. Push em `main` dispara `.github/workflows/ci.yml` (testes PHP + SDKs).
+2. Ao concluir com sucesso, dispara `.github/workflows/deploy.yml` (via `workflow_run`).
+3. O job de deploy:
+   - Lint PHP
+   - Smoke test (`test_config.php`)
+   - Upload incremental via FTPS (porta 21) de `public_html/` -> raiz do site, **excluindo** `private_data/*.json`, `private_data/.env`, `.env`, logs, `node_modules`, `dist`
+4. Disponivel tambem via Actions -> "Deploy - Grid402 (Hostinger)" -> Run workflow (manual).
+
+### 4.3 O que o deploy automatico NAO toca (configuracao manual, uma vez)
+
+- **`.env` na raiz do usuario** (um nivel acima de `public_html/`) - copie de `.env.example` e preencha (`GRID402_FACILITATOR_MODE=settle`, CDP creds, oracle, Telegram, sandbox rate limit 30). Sem isso, o facilitador fica `disabled` e nada fatura.
+- **Tarefas Cron** no hPanel (Advanced -> Cron Jobs) apontando para `collector.php` - sem elas, forex/summary ficam congelados.
+- **Webhook do Mercado Pago** -> `https://grid402.online/webhooks/mercadopago` (eventos `payment`).
+- **Payment Links / Price IDs** no `.env` (MP_LINK_*, STRIPE_PRICE_*).
+
+### 4.4 Quando o deploy automatico NAO e suficiente
+
+- Primeira publicacao em um host vazio: prefira o pacote `dist/grid402_hostinger_deploy.zip` (upload manual) para garantir permissoes e estrutura.
+- Mudancas de `.htaccess` com `mod_rewrite` desabilitado: o hPanel pode exigir ativacao manual.
+- Alteracoes de `.env` (sempre manuais, por seguranca).
+- Migracoes de schema (nao ha - zero-DB).
+
+### 4.5 Desativar o deploy automatico
+
+Em `.github/workflows/deploy.yml`, comente o bloco `on:` ou adicione `if: false` no job. Ou remova os secrets - sem `FTP_PASSWORD`, o job falha antes de enviar.
+
+### 4.6 Rollback
+
+- Reverta o commit no GitHub (`git revert <sha> && git push`) -> CI roda -> deploy automatico restaura a versao anterior.
+- Ou restaure manualmente via hPanel (Gerenciador de Arquivos -> versoes anteriores, se disponivel).
+- Dados em `private_data/*.json` (metricas, passes, vendas) **nao** sao sobrescritos pelo deploy (excluidos) -> seguros.
+
+---
+
 ## 🔍 3. Verificação de Funcionamento
 
 Após o deploy e a primeira execução do cron (em até 2 minutos):
