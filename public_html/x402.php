@@ -477,6 +477,24 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
 }
 
 /**
+ * Monta a lista `accepts` padrão do fluxo x402 exact (usada no desafio 402 e na rejeição).
+ */
+function grid402_build_accepts(int $priceRawUnits): array {
+    return [[
+        'scheme' => 'exact',
+        'network' => GRID402_X402_NETWORK_V2,
+        'asset' => GRID402_X402_USDC_CONTRACT,
+        'amount' => (string) $priceRawUnits,
+        'payTo' => GRID402_WALLET_ADDRESS,
+        'maxTimeoutSeconds' => 300,
+        'extra' => [
+            'name' => GRID402_X402_TOKEN_NAME,
+            'version' => GRID402_X402_TOKEN_VERSION,
+        ],
+    ]];
+}
+
+/**
  * Emite a resposta HTTP 402 Payment Required estruturada compativel com x402 v2
  */
 function grid402_respond_402(?string $serviceName = null, ?string $errorMessage = null, ?string $priceDisplay = null, ?int $priceRawUnits = null, ?array $preview = null, ?array $lockedFields = null): void {
@@ -499,22 +517,11 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
     $isHttps = (isset($_SERVER['HTTPS']) and $_SERVER['HTTPS'] === 'on') or (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) and $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
     $proto = $isHttps ? 'https' : 'http';
     $reqUri = $_SERVER['REQUEST_URI'] ?? ('/api/v1/' . ($serviceName ?? 'forex'));
-    $fullUrl = $proto . '://' . $host . $reqUri;
+    // Opt-in: URL pública absoluta do recurso (config por trás de proxy ou homologação local).
+    $resourceBase = rtrim((string) grid402_env('GRID402_X402_RESOURCE_URL', ''), '/');
+    $fullUrl = ($resourceBase !== '') ? ($resourceBase . $reqUri) : ($proto . '://' . $host . $reqUri);
 
-    $acceptsList = [
-        [
-            'scheme' => 'exact',
-            'network' => GRID402_X402_NETWORK_V2,
-            'asset' => GRID402_X402_USDC_CONTRACT,
-            'amount' => (string)$priceRawUnits,
-            'payTo' => GRID402_WALLET_ADDRESS,
-            'maxTimeoutSeconds' => 300,
-            'extra' => [
-                'name' => 'USD Coin',
-                'version' => '2',
-            ],
-        ],
-    ];
+    $acceptsList = grid402_build_accepts($priceRawUnits);
 
     $resourceInfo = [
         'url' => $fullUrl,
@@ -533,6 +540,7 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
             'input' => [
                 'type' => 'http',
                 'method' => 'GET',
+                'discoverable' => true,
             ],
             'output' => [
                 'type' => 'json',

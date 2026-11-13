@@ -161,11 +161,15 @@ if ($grid402X402Network === 'base-sepolia') {
     define('GRID402_X402_NETWORK_V2', 'eip155:84532');
     define('GRID402_X402_NETWORK_V1', 'base-sepolia');
     define('GRID402_X402_USDC_CONTRACT', '0x036cbd53842c5426634e7929541ec2318f3dcf7e');
+    define('GRID402_X402_TOKEN_NAME', 'USDC'); // Circle Sepolia USDC (EIP-712 domain name() = "USDC")
+    define('GRID402_X402_TOKEN_VERSION', '2');
 } else {
     define('GRID402_X402_CHAIN_ID', (int) GRID402_CHAIN_ID);
     define('GRID402_X402_NETWORK_V2', 'eip155:' . GRID402_CHAIN_ID);
     define('GRID402_X402_NETWORK_V1', 'base');
     define('GRID402_X402_USDC_CONTRACT', GRID402_USDC_CONTRACT);
+    define('GRID402_X402_TOKEN_NAME', 'USD Coin'); // Circle Base Mainnet USDC (EIP-712 domain name() = "USD Coin")
+    define('GRID402_X402_TOKEN_VERSION', '2');
 }
 unset($grid402X402Network);
 define('GRID402_SEPOLIA_USDC_CONTRACT', strtolower((string) grid402_env('GRID402_SEPOLIA_USDC_CONTRACT', '0x036cbd53842c5426634e7929541ec2318f3dcf7e')));

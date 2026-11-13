@@ -457,7 +457,7 @@ function grid402_build_payment_requirements(int $version, int $requiredRawUnits,
         'payTo' => GRID402_WALLET_ADDRESS,
         'maxTimeoutSeconds' => 300,
         'asset' => GRID402_X402_USDC_CONTRACT,
-        'extra' => ['name' => 'USD Coin', 'version' => '2'],
+        'extra' => ['name' => GRID402_X402_TOKEN_NAME, 'version' => GRID402_X402_TOKEN_VERSION],
     ];
     if ($version === 1) {
         return $base + [
