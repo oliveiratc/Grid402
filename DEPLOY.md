@@ -63,6 +63,50 @@ GRID402_CONNECT_TIMEOUT_MS=1500
 
 ---
 
+## 5. Git Deploy nativo da Hostinger (branch `deploy`) - RECOMENDADO
+
+O Git Deploy da Hostinger publica a **raiz do branch** no document root do site. Como
+o repositorio tem `public_html/` como subpasta, publicar a branch `main` faria o app
+cair em `/public_html/` e o docroot ficaria sem `index.php` -> **HTTP 403 Forbidden**.
+
+Por isso existe a branch **`deploy`**: um branch orfao gerado automaticamente onde a
+raiz e exatamente o conteudo de `public_html/`.
+
+### 5.1 Configuracao no hPanel (uma vez)
+
+Sites -> grid402.online -> Gerenciar -> Git:
+- **Repositorio:** `oliveiratc/Grid402`
+- **Branch:** `deploy`  <- importante (nao `main`)
+- **Diretorio raiz:** `public_html` (pasta do servidor, ja correta)
+- **Implantacao automatica:** ativada
+
+Depois: **Reimplantar**.
+
+### 5.2 Geracao automatica da branch `deploy`
+
+- `.github/workflows/build-deploy-branch.yml` roda a cada push em `main`
+- `scripts/build_deploy_branch.sh` extrai `public_html/` de `main`, remove segredos
+  (`private_data/*.json`, `.env`) e publica a branch `deploy` (force-push)
+- Local: `bash scripts/build_deploy_branch.sh deploy origin`
+
+Fluxo: `push main` -> CI gera `deploy` -> Hostinger auto-redeploya `deploy` -> site atualizado.
+
+### 5.3 Como saber que deu certo
+
+```bash
+curl -s -o /dev/null -w "%{http_code}" https://grid402.online/          # 200 (nao 403)
+curl -s https://grid402.online/api/v1/forex | grep -q sandbox_test && echo "sandbox_test OK"
+curl -s -o /dev/null -w "%{http_code}" https://grid402.online/pass     # 200
+curl -s -o /dev/null -w "%{http_code}" https://grid402.online/plans    # 200
+```
+
+Se `/` continuar 403: a branch ainda esta `main`. Troque para `deploy` e reimplante.
+Se `/` der 200 mas `/pass` der 404: a branch esta correta mas o deploy ainda nao rodou
+(ou `public_html/` no servidor tem residuos) -> use **Reimplantar** novamente ou limpe
+a pasta `public_html/` no Gerenciador de Arquivos antes de reimplantar.
+
+---
+
 ## 4. Deploy Automatico (GitHub Actions -> Hostinger)
 
 A partir do workflow `.github/workflows/deploy.yml`, todo push em `main` que passa nos testes dispara um deploy automatico via FTP para a Hostinger.
