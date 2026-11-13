@@ -304,6 +304,22 @@ function grid402_get_utility_services(): array {
             'category' => 'Rede',
             'type' => 'on_demand',
         ],
+        'kyb-audit' => [
+            'id' => 'kyb-audit',
+            'name' => 'KYB & Compliance Audit (CNPJ + OFAC + LEI)',
+            'description' => 'Auditoria completa de entidade em 1 chamada: dados cadastrais CNPJ, triagem OFAC/sanções e registro LEI',
+            'endpoint' => '/api/v1/kyb-audit',
+            'category' => 'Compliance',
+            'type' => 'on_demand',
+        ],
+        'market-snapshot' => [
+            'id' => 'market-snapshot',
+            'name' => 'Market Snapshot (Forex + Crypto + Indicators)',
+            'description' => 'Snapshot consolidado de mercado em 1 chamada: câmbio Forex, criptoativos e indicadores econômicos',
+            'endpoint' => '/api/v1/market-snapshot',
+            'category' => 'Financeiro',
+            'type' => 'on_demand',
+        ],
         'cep' => [
             'id' => 'cep',
             'name' => 'CEP e IBGE',

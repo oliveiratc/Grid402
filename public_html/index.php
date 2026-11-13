@@ -17,6 +17,8 @@ require_once __DIR__ . '/services/crypto.php';
 require_once __DIR__ . '/services/dns.php';
 require_once __DIR__ . '/services/ssl.php';
 require_once __DIR__ . '/services/domain_audit.php';
+require_once __DIR__ . '/services/kyb_audit.php';
+require_once __DIR__ . '/services/market_snapshot.php';
 require_once __DIR__ . '/services/asn.php';
 require_once __DIR__ . '/services/cep.php';
 require_once __DIR__ . '/services/cnpj.php';
@@ -444,7 +446,7 @@ if ($requestPath === '/agents' || $pageParam === 'agents') {
 $isStatusRoute = ($requestPath === '/status' || $requestPath === '/api/v1/summary' || $requestPath === '/telemetry');
 $isHomeRoute = ($requestPath === '/' || $requestPath === '/index.php');
 $isVerifyRoute = ($requestPath === '/api/v1/verify' || $apiParam === 'verify');
-$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'domain-audit', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays', 'sanctions', 'simples', 'compliance', 'lei', 'ofac', 'notarize', 'global-markets', 'pass'];
+$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'domain-audit', 'kyb-audit', 'market-snapshot', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays', 'sanctions', 'simples', 'compliance', 'lei', 'ofac', 'notarize', 'global-markets', 'pass'];
 $isValidApiAction = in_array($apiParam, $validApiEndpoints, true);
 $isInstitutionalRoute = in_array($requestPath, ['/about', '/contact', '/terms', '/privacy', '/admin', '/dashboard', '/agents'], true);
 
@@ -888,6 +890,18 @@ if ($isValidApiAction) {
             if (isset($result['code']) && $result['code'] !== 200) {
                 http_response_code($result['code']);
             }
+            break;
+        case 'kyb-audit':
+            $cnpjVal = (string) ($_GET['cnpj'] ?? '');
+            $nameVal = (string) ($_GET['name'] ?? '');
+            $leiVal = (string) ($_GET['lei'] ?? '');
+            $result = grid402_service_kyb_audit($cnpjVal, $nameVal, $leiVal);
+            if (isset($result['code']) && $result['code'] !== 200) {
+                http_response_code($result['code']);
+            }
+            break;
+        case 'market-snapshot':
+            $result = grid402_service_market_snapshot();
             break;
         case 'cep':
             $code = (string) ($_GET['code'] ?? '01310100');
