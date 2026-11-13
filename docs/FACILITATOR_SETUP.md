@@ -2,8 +2,9 @@
 
 **Decisões registradas**
 - (c) Rewards: **mantida aprovação manual** em `/growth_admin`. Nenhuma emissão automática de créditos.
-- (a) Facilitador público: homologação com `x402.org/facilitator` (testnet, grátis, v2), produção com decisão de operador (PayAI / CDP / Mogami — veja matriz abaixo).
-- (b) Bazaar: listing só pode ser afirmado após settlement com facilitador que suporte a extensão `bazaar`; até lá, apenas submissão manual a diretórios.
+- (a) Facilitador público: homologação com `x402.org/facilitator` (testnet, grátis, v2), produção **mantida com pagamento direto on-chain (tx_hash) e `GRID402_FACILITATOR_MODE=disabled`** — decisão do mantenedor em 2026-11-13 (sem fee ao serviço; agentes pagam com carteira própria). PayAI/CDP não foram habilitados.
+- (b) Bazaar: listing só pode ser afirmado após settlement com facilitador que suporte a extensão `bazaar`; até lá, apenas submissão manual a diretórios (já feita pelo mantenedor) + e-mail enviado à PayAI (aguardando resposta).
+  - Nota: mesmo com facilitator desabilitado, o catálogo do Bazaar (via PayAI) exige **settles via PayAI em Mainnet** para catalogar. Um caminho real de homologação Mainnet sem custo para o Grid402: o oráculo tem ~1.000 créditos grátis PayAI; um único settle de 0.0005 USDC por um agente/comprador real pode ser suficiente para indexação — decidir quando isso fizer sentido (o comprador paga; o Grid402 gasta 1 crédito grátis).
 
 ---
 
@@ -105,10 +106,10 @@ Aprovado manter **100% manual**: rewards ficam `pending` até aprovação em `/g
 
 ## 6. Checklist de produção (em ordem)
 
-- [ ] Homologação Sepolia concluída com HTTP 200 + recibo `PAYMENT-RESPONSE`
-- [ ] Facilitador de Mainnet escolhido (PayAI com revisão de preços, CDP, ou Tx-hash direto)
-- [ ] Se PayAI: preços revistos (`GRID402_PRICE_*`) ou volumes via Session Pass
-- [ ] `GRID402_FACILITATOR_MODE=settle` definido no servidor (Hostinger → env do app)
+- [x] Homologação Sepolia concluída com HTTP 200 + recibo `PAYMENT-RESPONSE` (2 settles via PayAI, 2026-11-13)
+- [x] Facilitador de Mainnet escolhido: **Tx-hash direto (mantido desabilitado)** — decisão do mantenedor 2026-11-13
+- [ ] Resposta da PayAI ao e-mail de catalogação (aguardando)
+- [ ] Settle real em Mainnet com comprador habilitado (se/quando a PayAI confirmar indexação ou se feito para contagem de catálogo)
 - [ ] Cache do Hostinger purgado após mudança de env/build
 - [ ] Settle real em Mainnet com valor mínimo (0.0005 USDC) verificado via `PAYMENT-RESPONSE`
 - [ ] Listing Bazaar confirmado (ou não) via `EXTENSION-RESPONSES`
