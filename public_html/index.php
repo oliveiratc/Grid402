@@ -31,6 +31,7 @@ require_once __DIR__ . '/services/ofac.php';
 require_once __DIR__ . '/services/notarize.php';
 require_once __DIR__ . '/services/global_markets.php';
 require_once __DIR__ . '/services/pass.php';
+require_once __DIR__ . '/services/pass_checkout.php';
 require_once __DIR__ . '/services/oracle_signer.php';
 require_once __DIR__ . '/metrics.php';
 
@@ -446,7 +447,7 @@ if ($requestPath === '/agents' || $pageParam === 'agents') {
 $isStatusRoute = ($requestPath === '/status' || $requestPath === '/api/v1/summary' || $requestPath === '/telemetry');
 $isHomeRoute = ($requestPath === '/' || $requestPath === '/index.php');
 $isVerifyRoute = ($requestPath === '/api/v1/verify' || $apiParam === 'verify');
-$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'domain-audit', 'kyb-audit', 'market-snapshot', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays', 'sanctions', 'simples', 'compliance', 'lei', 'ofac', 'notarize', 'global-markets', 'pass'];
+$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'domain-audit', 'kyb-audit', 'market-snapshot', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays', 'sanctions', 'simples', 'compliance', 'lei', 'ofac', 'notarize', 'global-markets', 'pass', 'pass-emitir'];
 $isValidApiAction = in_array($apiParam, $validApiEndpoints, true);
 $isInstitutionalRoute = in_array($requestPath, ['/about', '/contact', '/terms', '/privacy', '/admin', '/dashboard', '/agents'], true);
 
@@ -628,6 +629,7 @@ if ($isValidApiAction) {
 
     // 2.2. Definição de Preço Escalonado por Serviço e Verificação Prévia Defensiva
     $isPass = ($apiParam === 'pass');
+    $isPassEmitir = ($apiParam === 'pass-emitir');
     $isCompliance = ($apiParam === 'compliance');
     $isSanctionsOrSimples = in_array($apiParam, ['sanctions', 'simples'], true);
     $isCorporateTier = in_array($apiParam, ['cnpj', 'lei', 'ofac'], true);
@@ -770,11 +772,27 @@ if ($isValidApiAction) {
     // Auditoria on-chain com trava atômica anti-replay e suporte a Modo Sandbox
     $clientIp = grid402_get_trusted_client_ip();
 
-    $validation = grid402_validate_payment($paymentProof, $servicePriceRaw, $clientIp);
-    // Payload x402 padrao (base64) nunca e gravado em telemetria nem ecoado na resposta
-    $proofIsPayload = grid402_classify_payment_proof($paymentProof) === 'x402_payload';
-    $proofForLog = $proofIsPayload ? null : $paymentProof;
-    if (!$validation['valid']) {
+    if ($isPassEmitir) {
+        // Checkout Web3 One-Click Top-Up: nao exige X-Payment previo.
+        // O txHash e validado on-chain dentro do case 'pass-emitir' abaixo.
+        $validation = [
+            'valid' => true,
+            'sandbox' => false,
+            'source' => 'web3_topup',
+            'settlement_tx' => null,
+            'session_pass' => true,
+            'raw_amount' => null,
+        ];
+        $isSandbox = false;
+        $isRealPayment = true;
+        $proofIsPayload = false;
+        $proofForLog = null;
+    } else {
+        $validation = grid402_validate_payment($paymentProof, $servicePriceRaw, $clientIp);
+        // Payload x402 padrao (base64) nunca e gravado em telemetria nem ecoado na resposta
+        $proofIsPayload = grid402_classify_payment_proof($paymentProof) === 'x402_payload';
+        $proofForLog = $proofIsPayload ? null : $paymentProof;
+        if (!$validation['valid']) {
         $serviceLabel = $apiParam !== '' ? $apiParam : 'technical-utility';
         grid402_record_telemetry(
             $serviceLabel,
@@ -812,6 +830,7 @@ if ($isValidApiAction) {
         echo json_encode($errPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         exit;
     }
+    } // fecha else (pass-emitir pula a validacao x402 e segue direto ao switch abaixo)
 
     // Pagamento ou Sandbox validado com sucesso! Executa o micro-serviço requisitado
     $isSandbox = !empty($validation['sandbox']);
@@ -1007,6 +1026,24 @@ if ($isValidApiAction) {
         case 'pass':
             $rawUnitsPaid = (int) ($validation['raw_amount'] ?? 50000);
             $result = grid402_issue_session_pass($paymentProof, $rawUnitsPaid, $isSandbox);
+            break;
+
+        // Web3 One-Click Top-Up: emite um Session Pass a partir de uma txHash USDC
+        // já confirmada on-chain (Base Mainnet). Não exige X-Payment prévio.
+        case 'pass-emitir':
+            $txParam = (string) ($_GET['tx'] ?? $_GET['txHash'] ?? $_GET['tx_hash'] ?? '');
+            if ($txParam === '' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+                $rawPost = (string) @file_get_contents('php://input');
+                $parsedPost = @json_decode($rawPost, true);
+                if (is_array($parsedPost)) {
+                    $txParam = trim((string) ($parsedPost['tx'] ?? $parsedPost['txHash'] ?? $parsedPost['tx_hash'] ?? ''));
+                }
+            }
+            $result = grid402_emitir_passe_por_tx($txParam);
+            // Tratamento de códigos de erro do checkout
+            if (!empty($result['code']) && $result['code'] !== 200) {
+                http_response_code($result['code']);
+            }
             break;
         default:
             $result = [
@@ -4661,8 +4698,8 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
                 await new Promise(r => setTimeout(r, 3500));
 
-                // 4. Chama a API para registrar e emitir o Session Pass
-                const resp = await fetch('/api/v1/pass?tx=' + encodeURIComponent(txHash));
+                // 4. Chama o checkout Web3 para validar on-chain e emitir o Session Pass
+                const resp = await fetch('/api/v1/pass-emitir?tx=' + encodeURIComponent(txHash));
                 const passData = await resp.json();
 
                 if (passData && (passData.status === 'ACTIVE' || passData.pass_token)) {
@@ -4758,7 +4795,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             if (btn) { btn.disabled = true; btn.textContent = 'Validando...'; }
 
             try {
-                const resp = await fetch('/api/v1/pass?tx=' + encodeURIComponent(tx));
+                const resp = await fetch('/api/v1/pass-emitir?tx=' + encodeURIComponent(tx));
                 const passData = await resp.json();
 
                 if (passData && (passData.status === 'ACTIVE' || passData.pass_token)) {

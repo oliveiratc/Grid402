@@ -70,6 +70,8 @@ ServerSignature Off
     RewriteRule ^api/v1/domain-audit/?$ index.php?api=domain-audit [QSA,L]
     RewriteRule ^api/v1/kyb-audit/?$ index.php?api=kyb-audit [QSA,L]
     RewriteRule ^api/v1/market-snapshot/?$ index.php?api=market-snapshot [QSA,L]
+    # Web3 Top-Up: emissão de Session Pass a partir de txHash on-chain
+    RewriteRule ^api/v1/pass-emitir/?$ index.php?api=pass-emitir [QSA,L]
     RewriteRule ^api/v1/cep/?$ index.php?api=cep [QSA,L]
     RewriteRule ^api/v1/cnpj/?$ index.php?api=cnpj [QSA,L]
     RewriteRule ^api/v1/indicators/?$ index.php?api=indicators [QSA,L]
