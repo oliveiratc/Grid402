@@ -104,6 +104,16 @@ Aprovado manter **100% manual**: rewards ficam `pending` até aprovação em `/g
 
 ---
 
+## 5.1 Cron de reconciliação on-chain
+
+Cron criado no Hostinger (conta `u637629962`, uid `2URlitBU3F`):
+
+- Agenda: `30 4 * * 0` (domingo, 04:30) — weekly snapshot de 10.000 blocos (~5,5h) via `services/onchain_stats.php`
+- Saída: descartada (`>/dev/null`); resultado fica em `private_data/onchain_stats_cache.json` (não vai para o deploy)
+- Verificar: `/growth_admin` → seção "Reconciliação On-Chain" mostra o snapshot atualizado após a primeira execução (domingo 2026-11-15)
+
+---
+
 ## 6. Checklist de produção (em ordem)
 
 - [x] Homologação Sepolia concluída com HTTP 200 + recibo `PAYMENT-RESPONSE` (2 settles via PayAI, 2026-11-13)
