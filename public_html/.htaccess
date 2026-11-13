@@ -80,6 +80,12 @@ ServerSignature Off
     # Pagina de compra de Session Pass (linkavel na resposta HTTP 402)
     RewriteRule ^pass/?$ pass.php [QSA,L]
 
+    # Pagina de planos em BRL (Alavanca 2)
+    RewriteRule ^plans/?$ plans.php [QSA,L]
+
+    # Trial gratuito de 200 creditos (Alavanca 2, topo de funil)
+    RewriteRule ^trial/?$ trial.php [QSA,L]
+
     # Painel Administrativo de Monitoramento e Faturamento
     RewriteRule ^admin/?$ admin.php [QSA,L]
     RewriteRule ^dashboard/?$ admin.php [QSA,L]

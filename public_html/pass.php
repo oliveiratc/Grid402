@@ -39,7 +39,7 @@ $domain = defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'http
     <p>Pague uma vez em USDC na rede Base Mainnet e receba na hora um token com saldo de milhares de requisicoes de alta velocidade (&lt;15ms), sem assinar transacao a cada GET. Ideal para agentes de IA e esteiras de automacao (n8n, Make, Zapier).</p>
 
     <div class="note">
-        <strong>Nao tem USDC/carteira?</strong> Em breve: checkout em Pix (BRL) e cartao. Enquanto isso, use o <a href="<?php echo htmlspecialchars($domain, ENT_QUOTES, 'UTF-8'); ?>/#topup">abastecimento Web3</a> (MetaMask, Coinbase Smart Wallet com Passkey, Rainbow) ou o modo Sandbox gratuito: <code>X-Payment: demo</code> (3 req/hora por IP).
+        <strong>Nao tem USDC/carteira?</strong> Em breve: checkout em Pix (BRL) e cartao. Enquanto isso, use o <a href="<?php echo htmlspecialchars($domain, ENT_QUOTES, 'UTF-8'); ?>/#topup">abastecimento Web3</a> (MetaMask, Coinbase Smart Wallet com Passkey, Rainbow) ou o modo Sandbox gratuito: <code>X-Payment: demo</code> (3 req/hora por IP). <strong>Novo:</strong> <a href="<?php echo htmlspecialchars($domain, ENT_QUOTES, 'UTF-8'); ?>/plans">planos em BRL (Pix/cartao)</a>.
     </div>
 
     <h2>Pacotes</h2>
