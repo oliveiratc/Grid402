@@ -22,6 +22,9 @@
 - [DNS Records Lookup](https://grid402.online/api/v1/dns?domain=base.org): Resolucao autoritativa de registros A, AAAA, MX, TXT, NS e CNAME
 - [TLS and SSL Inspector](https://grid402.online/api/v1/ssl?host=base.org): Inspecao e auditoria de certificados TLS e SSL na porta 443
 - [ASN and BGP Intelligence](https://grid402.online/api/v1/asn?ip=1.1.1.1): Roteamento BGP, bloco alocado e numero ASN de IPs
+- [Domain Audit (DNS + SSL + ASN)](https://grid402.online/api/v1/domain-audit?host=base.org): Auditoria consolidada de dominio com DNS, TLS e IP/BGP numa unica chamada
+- [KYB & Compliance Audit (CNPJ + OFAC + LEI)](https://grid402.online/api/v1/kyb-audit?cnpj=00000000000191): Triagem consolidada KYB/AML numa unica chamada
+- [Market Snapshot (Forex + Crypto + Indicadores)](https://grid402.online/api/v1/market-snapshot): Snapshot consolidado de mercado numa unica chamada
 - [CEP Postal Address API](https://grid402.online/api/v1/cep?code=01310100): Resolucao de endereco postal brasileiro e codigo municipal IBGE
 - [CNPJ Corporate Registry API](https://grid402.online/api/v1/cnpj?cnpj=00000000000191): Dados cadastrais de Pessoa Juridica na Receita Federal
 - [Economic Indicators API](https://grid402.online/api/v1/indicators): Taxas oficiais Selic (meta e diaria), CDI anual e diario, IPCA 12m e mensal (BCB e IBGE)

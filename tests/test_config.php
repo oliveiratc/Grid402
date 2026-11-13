@@ -16,7 +16,7 @@ assert(defined('GRID402_TELEGRAM_BOT_TOKEN'), 'GRID402_TELEGRAM_BOT_TOKEN deve e
 assert(defined('GRID402_TELEGRAM_CHAT_ID'), 'GRID402_TELEGRAM_CHAT_ID deve estar definida');
 
 $services = grid402_get_services();
-assert(count($services) === 19, 'Deve conter exatamente 19 micro-servicos');
+assert(count($services) === 22, 'Deve conter exatamente 22 micro-servicos');
 
 $keys = array_keys($services);
 assert(in_array('forex', $keys, true), 'Deve conter servico forex');

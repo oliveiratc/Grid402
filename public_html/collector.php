@@ -122,6 +122,27 @@ $servicesSummary = [
         'endpoint' => '/api/v1/asn',
         'category' => 'Rede',
     ],
+    'domain-audit' => [
+        'name' => 'Domain Audit (DNS + SSL + ASN)',
+        'status' => 'UP',
+        'endpoint' => '/api/v1/domain-audit',
+        'category' => 'Rede',
+        'type' => 'on_demand',
+    ],
+    'kyb-audit' => [
+        'name' => 'KYB & Compliance Audit (CNPJ + OFAC + LEI)',
+        'status' => 'UP',
+        'endpoint' => '/api/v1/kyb-audit',
+        'category' => 'Compliance',
+        'type' => 'on_demand',
+    ],
+    'market-snapshot' => [
+        'name' => 'Market Snapshot (Forex + Crypto + Indicators)',
+        'status' => 'UP',
+        'endpoint' => '/api/v1/market-snapshot',
+        'category' => 'Financeiro',
+        'type' => 'on_demand',
+    ],
     'cep' => [
         'name' => 'CEP e IBGE',
         'status' => 'UP',

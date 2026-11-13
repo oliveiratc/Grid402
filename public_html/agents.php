@@ -465,10 +465,10 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
         </header>
 
         <section class="hero">
-            <div class="badge" data-i18n="agents.hero.badge">x402 Global Autonomous Agent Hub • 19 Services</div>
+            <div class="badge" data-i18n="agents.hero.badge">x402 Global Autonomous Agent Hub • 22 Services</div>
             <h1 data-i18n="agents.hero.title">Infraestrutura Global de Dados e Utilitários M2M para Agentes de IA</h1>
             <p class="lead" data-i18n-html="agents.hero.lead">
-                O Grid402 permite que agentes autônomos de IA (Claude, Cursor, LangChain, CrewAI e Coinbase AgentKit) consultem 19 endpoints globais e brasileiros de domínio público via <strong>HTTP 402</strong> ou <strong>Session Pass pré-pago (&lt;15ms)</strong>, liquidando micropagamentos em USDC na rede Base com <strong>prova criptográfica ECDSA</strong>.
+                O Grid402 permite que agentes autônomos de IA (Claude, Cursor, LangChain, CrewAI e Coinbase AgentKit) consultem 22 endpoints globais e brasileiros de domínio público via <strong>HTTP 402</strong> ou <strong>Session Pass pré-pago (&lt;15ms)</strong>, liquidando micropagamentos em USDC na rede Base com <strong>prova criptográfica ECDSA</strong>.
             </p>
         </section>
 
@@ -489,7 +489,7 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
 
         <!-- 1. Model Context Protocol (MCP) -->
         <h2 class="section-title" data-i18n="agents.s1.title">1. Integração com Model Context Protocol (MCP)</h2>
-        <p class="section-sub" data-i18n="agents.s1.sub">Adicione todas as 19 ferramentas globais e brasileiras ao Claude Desktop ou Cursor com 1 clique.</p>
+        <p class="section-sub" data-i18n="agents.s1.sub">Adicione todas as 22 ferramentas globais e brasileiras ao Claude Desktop ou Cursor com 1 clique.</p>
 
         <div class="code-box">
             <button class="copy-btn" onclick="copySnippet('code-mcp', this)" data-i18n="playground.btn.copy">Copiar JSON</button>
@@ -581,7 +581,7 @@ curl -X POST "https://grid402.online/api/v1/verify" \
         </div>
 
         <!-- Tabela de Endpoints -->
-        <h2 class="section-title" data-i18n="agents.table.title">Catálogo dos 19 Endpoints Globais e Tarifas</h2>
+        <h2 class="section-title" data-i18n="agents.table.title">Catálogo dos 22 Endpoints Globais e Tarifas</h2>
         <p class="section-sub" data-i18n="agents.table.sub">Valores por chamada em USDC na rede Base Mainnet ou em créditos de Session Pass.</p>
 
         <div class="table-wrap">
@@ -711,7 +711,7 @@ curl -X POST "https://grid402.online/api/v1/verify" \
                 </tr>
                 <tr>
                     <td><span class="endpoint-name">/status</span></td>
-                    <td data-i18n="console.act.summary">Status e saúde operacional dos 19 micro-serviços</td>
+                    <td data-i18n="console.act.summary">Status e saúde operacional dos 22 micro-serviços</td>
                     <td><span class="tag-free">Gratuito / Free</span></td>
                     <td>-</td>
                 </tr>

@@ -1626,10 +1626,10 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
         <!-- Linha Analítica 2: Volume por Micro-Serviço + Rentabilidade Estimada por Serviço -->
         <div class="analytics-row">
             <div class="panel">
-                <div class="panel-title">Volume por Micro-Serviço (19 Nós)</div>
+                <div class="panel-title">Volume por Micro-Serviço (22 Serviços)</div>
                 <div id="service-bars-container">
                     <?php
-                    $servicesList = ['lei', 'ofac', 'notarize', 'global-markets', 'pass', 'compliance', 'sanctions', 'simples', 'workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'summary'];
+                    $servicesList = ['lei', 'ofac', 'notarize', 'global-markets', 'pass', 'compliance', 'sanctions', 'simples', 'workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'kyb-audit', 'domain-audit', 'market-snapshot', 'summary'];
                     $serviceCounts = $metrics['service_counts'] ?? [];
                     $maxSvc = max(array_values($serviceCounts) ?: [1]);
                     if ($maxSvc <= 0) $maxSvc = 1;
@@ -2240,7 +2240,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                     renderServiceRevenue(data.service_revenue);
                 }
 
-                // 3. Atualizar Barras de Servicos (19 Nós)
+                // 3. Atualizar Barras de Servicos (22 Nós)
                 const serviceBarsEl = document.getElementById('service-bars-container');
                 if (serviceBarsEl) {
                     if (data.service_counts) {

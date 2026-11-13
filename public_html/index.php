@@ -301,7 +301,7 @@ if ($pageParam === 'about' || $requestPath === '/about') {
             <p><strong>Central Telefônica:</strong> <a href="tel:+5511958325848">+55 11 95832-5848</a></p>
             <p><strong>Carteira Oráculo (Base):</strong> <a href="https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c" target="_blank" rel="noopener noreferrer">0xa31c31069c43ac1c0075a93c325b0dcd7744356c</a></p>
         </div></div>';
-        grid402_render_page_html('About Grid402 - Global M2M Open Data & Network Utilities Hub', 'Saiba mais sobre a infraestrutura global e os 19 serviços públicos do Grid402 para agentes de IA e desenvolvedores.', '/about', 'About Grid402', $aboutBody);
+        grid402_render_page_html('About Grid402 - Global M2M Open Data & Network Utilities Hub', 'Saiba mais sobre a infraestrutura global e os 22 serviços públicos do Grid402 para agentes de IA e desenvolvedores.', '/about', 'About Grid402', $aboutBody);
     } else {
         header('Content-Type: application/json; charset=utf-8');
         echo json_encode([
@@ -364,7 +364,7 @@ if ($pageParam === 'terms' || $requestPath === '/terms') {
         <h2>1. Fornecimento no Estado em que se Encontra (AS-IS)</h2>
         <p>O Grid402 é uma infraestrutura técnica de oráculo M2M fornecida estritamente "NO ESTADO EM QUE SE ENCONTRA" (AS-IS), sem garantias de adequação a finalidades comerciais exclusivas, aconselhamento jurídico ou decisões de crédito.</p>
         <h2>2. Base Legal de Dados Públicos, Domínio Público e Licenças Abertas</h2>
-        <p>Todas as 19 rotas do Grid402 processam exclusivamente informações de domínio público, fatos econômicos e registros governamentais abertos, livres de restrições proprietárias:</p>
+        <p>Todas as 22 rotas do Grid402 processam exclusivamente informações de domínio público, fatos econômicos e registros governamentais abertos, livres de restrições proprietárias:</p>
         <ul>
             <li><strong>Global LEI (/api/v1/lei):</strong> Global Legal Entity Identifier Foundation (GLEIF) sob licença <strong>CC0 1.0 Universal (Public Domain Dedication)</strong>, padrão ISO 17442.</li>
             <li><strong>Sanções Internacionais (/api/v1/ofac):</strong> US Treasury OFAC SDN (domínio público federal sob <strong>17 U.S.C. § 105</strong>) e listas consolidadas públicas do Conselho de Segurança da ONU.</li>
@@ -2753,7 +2753,7 @@ grid402_log_public_visit('/');
                     <span style="font-size: 1.3rem;">🎉</span>
                     <h3 style="color: #00F0FF; font-size: 1.2rem; margin: 0;">Session Pass Emitido com Sucesso!</h3>
                 </div>
-                <p style="color: #d1d5db; font-size: 0.9rem; margin-bottom: 1rem;">Seu passe pre-pago esta ativo na rede Base. Utilize o token abaixo no cabecalho <code style="color: #00F0FF;">X-Payment</code> em qualquer uma das 19 APIs do Grid402.</p>
+                <p style="color: #d1d5db; font-size: 0.9rem; margin-bottom: 1rem;">Seu passe pre-pago esta ativo na rede Base. Utilize o token abaixo no cabecalho <code style="color: #00F0FF;">X-Payment</code> em qualquer uma das 22 APIs do Grid402.</p>
                 
                 <div style="background: #000; border: 1px solid rgba(0, 240, 255, 0.3); border-radius: 8px; padding: 0.75rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
                     <code id="topup-result-token" style="color: #00F0FF; font-size: 0.95rem; font-weight: 700; word-break: break-all;">pass_g402_...</code>
@@ -4864,7 +4864,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 <h3>1. Objeto e Fornecimento AS-IS</h3>
                 <p>O <strong>Grid402</strong> é uma infraestrutura global de micro-serviços de dados públicos e utilitários M2M para agentes autônomos e desenvolvedores, fornecida "NO ESTADO EM QUE SE ENCONTRA" (AS-IS).</p>
                 <h3>2. Direito de Uso de Informações Públicas e Licenças Abertas</h3>
-                <p>Todas as 19 APIs operam estritamente sobre fontes públicas abertas e fatos não passíveis de reserva proprietária: <strong>GLEIF LEI</strong> (CC0 1.0 Universal), <strong>OFAC SDN / ONU</strong> (Domínio Público 17 U.S.C. § 105), <strong>BCE / BCB / IBGE</strong> (Diretiva UE 2019/1024, Lei nº 12.527/2011 - LAI e Decreto nº 8.777/2016), <strong>Fatos Econômicos e Algoritmos de Calendário</strong> (Lei nº 9.610/1998 Art. 8º, I, II e IV) e <strong>Protocolos IETF</strong> (DNS, TLS, BGP/ASN, RFC 8785).</p>
+                <p>Todas as 22 APIs operam estritamente sobre fontes públicas abertas e fatos não passíveis de reserva proprietária: <strong>GLEIF LEI</strong> (CC0 1.0 Universal), <strong>OFAC SDN / ONU</strong> (Domínio Público 17 U.S.C. § 105), <strong>BCE / BCB / IBGE</strong> (Diretiva UE 2019/1024, Lei nº 12.527/2011 - LAI e Decreto nº 8.777/2016), <strong>Fatos Econômicos e Algoritmos de Calendário</strong> (Lei nº 9.610/1998 Art. 8º, I, II e IV) e <strong>Protocolos IETF</strong> (DNS, TLS, BGP/ASN, RFC 8785).</p>
                 <h3>3. Pagamentos x402 e Session Passes</h3>
                 <p>Os micropagamentos e passes pré-pagos em USDC na Base Mainnet (8453) remuneram exclusivamente o processamento computacional e a assinatura criptográfica ECDSA do Oráculo, sendo definitivos e irreversíveis.</p>
                 <h3>4. Direitos Autorais e Propriedade Intelectual Reservados</h3>
@@ -4882,7 +4882,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 <h3>1. Purpose and "AS-IS" Provision</h3>
                 <p><strong>Grid402</strong> is a global open-data microservices and M2M network utility gateway for autonomous AI agents and developers, provided strictly "AS-IS".</p>
                 <h3>2. Open Data Legal Basis and Public Domain Rights</h3>
-                <p>All 19 endpoints process strictly public-domain and open-licensed records: <strong>GLEIF LEI</strong> (CC0 1.0 Universal), <strong>US Treasury OFAC SDN / UN</strong> (Public Domain under 17 U.S.C. § 105), <strong>ECB / Central Bank Indicators</strong> (EU Open Data Directive 2019/1024 & Brazilian Open Data Decree 8.777/2016), <strong>Market Facts & Statutory Calendars</strong> (17 U.S.C. § 102(b) & Law 9.610/1998 Art. 8), and <strong>IETF Standards</strong> (DNS, TLS, BGP/ASN, RFC 8785).</p>
+                <p>All 22 endpoints process strictly public-domain and open-licensed records: <strong>GLEIF LEI</strong> (CC0 1.0 Universal), <strong>US Treasury OFAC SDN / UN</strong> (Public Domain under 17 U.S.C. § 105), <strong>ECB / Central Bank Indicators</strong> (EU Open Data Directive 2019/1024 & Brazilian Open Data Decree 8.777/2016), <strong>Market Facts & Statutory Calendars</strong> (17 U.S.C. § 102(b) & Law 9.610/1998 Art. 8), and <strong>IETF Standards</strong> (DNS, TLS, BGP/ASN, RFC 8785).</p>
                 <h3>3. x402 Micropayments and Session Passes</h3>
                 <p>USDC micropayments and Session Passes settled on Base Mainnet (Chain ID 8453) compensate strictly for computational processing and ECDSA cryptographic attestation, with immediate on-chain finality.</p>
                 <h3>4. Copyright and All Rights Reserved</h3>

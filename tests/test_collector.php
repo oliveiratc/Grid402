@@ -23,7 +23,7 @@ assert(is_array($freeData), "summary_free.json deve ser JSON válido");
 assert($freeData['protocol'] === 'x402', "Protocolo deve ser x402");
 assert($freeData['chain_id'] === 8453, "Chain ID deve ser 8453");
 assert($freeData['status'] === 'OPERATIONAL', "Status deve ser OPERATIONAL");
-assert(count($freeData['services']) === 19, "Deve conter 19 serviços catalogados");
+assert(count($freeData['services']) === 22, "Deve conter 22 serviços catalogados");
 assert(isset($freeData['services']['forex']['usd_brl']), "Deve conter cotação de USD");
 assert(isset($freeData['services']['crypto']['btc_usd']), "Deve conter cotação de BTC");
 

@@ -22,7 +22,7 @@ const GRID402_I18N = {
         // Hero
         'hero.tag': 'Hub Global de Micro-Serviços e Oráculo M2M para Agentes de IA',
         'hero.title': 'Grid402: Infraestrutura Global de Dados Públicos e Utilitários M2M para Agentes de IA',
-        'hero.desc': 'Acesse 19 endpoints globais e brasileiros: identidade corporativa mundial (GLEIF LEI em 200+ países), sanções OFAC SDN + AML Web3 na Base, notarização criptográfica ECDSA, bolsas mundiais e 30+ moedas do BCE, câmbio, cripto, compliance 360, Selic/CDI/IPCA, feriados ANBIMA, DNS, SSL, BGP/ASN, CEP e CNPJ em milissegundos sem cadastro ou API keys. Liquidação via x402 ou Session Pass pré-pago (<15ms).',
+        'hero.desc': 'Acesse 22 endpoints globais e brasileiros: identidade corporativa mundial (GLEIF LEI em 200+ países), sanções OFAC SDN + AML Web3 na Base, notarização criptográfica ECDSA, auditoria KYB completa (CNPJ + OFAC + LEI), auditoria de domínio (DNS + SSL + ASN), snapshot consolidado de mercado (Forex + Cripto + Indicadores), bolsas mundiais e 30+ moedas do BCE, câmbio, cripto, compliance 360, Selic/CDI/IPCA, feriados ANBIMA, DNS, SSL, BGP/ASN, CEP e CNPJ em milissegundos sem cadastro ou API keys. Liquidação via x402 ou Session Pass pré-pago (<15ms).',
         'hero.btn.topup': '💎 Abastecer Saldo Web3 (Base)',
         'hero.btn.agents': '🤖 Central de Agentes IA',
         'hero.btn.playground': '⚡ Testar no Playground',
@@ -233,7 +233,7 @@ const GRID402_I18N = {
 
 client = Grid402Client()
 
-# 1. Resumo gratuito do hub (19 serviços globais e regionais)
+# 1. Resumo gratuito do hub (22 serviços globais e regionais)
 summary = client.get_summary()
 print("Serviços operantes:", summary["status"])
 
@@ -254,7 +254,7 @@ const ssl = await client.getSsl('base.org');
 console.log('Expira em dias:', ssl.certificate.days_remaining);
 
 // 3. Modo Sandbox ('X-Payment': 'demo') ou Session Pass ('X-Payment': 'pass_g402_...')`,
-        'console.curl.code': `# 1. Resumo gratuito dos 19 micro-serviços
+        'console.curl.code': `# 1. Resumo gratuito dos 22 micro-serviços
 curl -i https://grid402.online/status
 
 # 2. Desafio HTTP 402 com Amostra Preliminar Gratuita (GLEIF LEI ou CNPJ)
@@ -337,9 +337,9 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         // Pagina /agents
         'agents.brand.sub': 'Central Global de Agentes IA e MCP',
         'agents.nav.home': 'Início',
-        'agents.hero.badge': 'x402 Global Autonomous Agent Hub • 19 Serviços',
+        'agents.hero.badge': 'x402 Global Autonomous Agent Hub • 22 Serviços',
         'agents.hero.title': 'Infraestrutura Global de Dados e Utilitários M2M para Agentes de IA',
-        'agents.hero.lead': 'O Grid402 permite que agentes autônomos de IA (Claude, Cursor, LangChain, CrewAI e Coinbase AgentKit) consultem 19 endpoints globais e brasileiros de domínio público via <strong>HTTP 402</strong> ou <strong>Session Pass pré-pago (&lt;15ms)</strong>, liquidando micropagamentos em USDC na rede Base com <strong>prova criptográfica ECDSA</strong>.',
+        'agents.hero.lead': 'O Grid402 permite que agentes autônomos de IA (Claude, Cursor, LangChain, CrewAI e Coinbase AgentKit) consultem 22 endpoints globais e brasileiros de domínio público via <strong>HTTP 402</strong> ou <strong>Session Pass pré-pago (&lt;15ms)</strong>, liquidando micropagamentos em USDC na rede Base com <strong>prova criptográfica ECDSA</strong>.',
         'agents.f1.title': 'Zero Cadastro Humano',
         'agents.f1.desc': 'Não requer chaves estáticas de API, cartão de crédito ou login. Agentes de IA contratam serviços diretamente via carteira Web3 on-chain ou Passkey.',
         'agents.f2.title': 'Oráculo Criptográfico',
@@ -347,12 +347,12 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'agents.f3.title': 'x402 Session Pass (<15ms)',
         'agents.f3.desc': 'Compre 100 a 1.000 créditos em uma única transação USDC na Base e execute chamadas M2M de alta frequência em menos de 15ms sem aguardar blocos.',
         'agents.s1.title': '1. Integração com Model Context Protocol (MCP)',
-        'agents.s1.sub': 'Adicione todas as 19 ferramentas globais e brasileiras ao Claude Desktop ou Cursor com 1 clique.',
+        'agents.s1.sub': 'Adicione todas as 22 ferramentas globais e brasileiras ao Claude Desktop ou Cursor com 1 clique.',
         'agents.s2.title': '2. Código Python para Agentes Autônomos',
         'agents.s2.sub': 'Consumo direto tratando o desafio HTTP 402 ou usando Session Pass (pass_g402_...).',
         'agents.s3.title': '3. Teste Rápido no Terminal (cURL)',
         'agents.s3.sub': 'Inspecione desafios x402, emita um Session Pass ou valide provas criptográficas diretamente no terminal.',
-        'agents.table.title': 'Catálogo dos 19 Endpoints Globais e Tarifas',
+        'agents.table.title': 'Catálogo dos 22 Endpoints Globais e Tarifas',
         'agents.table.sub': 'Valores por chamada em USDC na rede Base Mainnet ou em créditos de Session Pass.',
         'agents.th.service': 'Serviço / Fonte Pública',
         'agents.th.price': 'Tarifa (USDC / Pass)',
@@ -400,7 +400,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
             <h2>1. Fornecimento no Estado em que se Encontra (AS-IS)</h2>
             <p>O Grid402 é uma infraestrutura técnica de oráculo M2M fornecida estritamente "NO ESTADO EM QUE SE ENCONTRA" (AS-IS), sem garantias de adequação a finalidades comerciais exclusivas, aconselhamento jurídico ou decisões de crédito.</p>
             <h2>2. Base Legal de Dados Públicos, Domínio Público e Licenças Abertas</h2>
-            <p>Todas as 19 rotas do Grid402 processam exclusivamente informações de domínio público, fatos econômicos e registros governamentais abertos, livres de restrições proprietárias:</p>
+            <p>Todas as 22 rotas do Grid402 processam exclusivamente informações de domínio público, fatos econômicos e registros governamentais abertos, livres de restrições proprietárias:</p>
             <ul>
                 <li><strong>Global LEI (/api/v1/lei):</strong> Global Legal Entity Identifier Foundation (GLEIF) sob licença <strong>CC0 1.0 Universal (Public Domain Dedication)</strong>, padrão ISO 17442.</li>
                 <li><strong>Sanções Internacionais (/api/v1/ofac):</strong> US Treasury OFAC SDN (domínio público federal sob <strong>17 U.S.C. § 105</strong>) e listas consolidadas públicas do Conselho de Segurança da ONU.</li>
@@ -445,7 +445,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         // Hero
         'hero.tag': 'Global Microservices and M2M Oracle Hub for Autonomous AI Agents',
         'hero.title': 'Grid402: Global Open-Data and Network Utilities Infrastructure for AI Agents',
-        'hero.desc': 'Access 19 global and regional endpoints: worldwide corporate identity (GLEIF LEI across 200+ countries), US Treasury OFAC SDN sanctions + Base Web3 AML, ECDSA timestamp notarization, world exchange calendars and 30+ ECB currencies, live FX, crypto spot, Compliance 360, DNS, SSL, BGP/ASN, CEP, and CNPJ in milliseconds with zero signup or API keys. Settled via x402 on Base or Prepaid Session Pass (<15ms).',
+        'hero.desc': 'Access 22 global and regional endpoints: worldwide corporate identity (GLEIF LEI across 200+ countries), US Treasury OFAC SDN sanctions + Base Web3 AML, ECDSA timestamp notarization, full KYB audit (CNPJ + OFAC + LEI), full domain audit (DNS + SSL + ASN), consolidated market snapshot (FX + crypto + indicators), world exchange calendars and 30+ ECB currencies, live FX, crypto spot, Compliance 360, DNS, SSL, BGP/ASN, CEP, and CNPJ in milliseconds with zero signup or API keys. Settled via x402 on Base or Prepaid Session Pass (<15ms).',
         'hero.btn.topup': '💎 Web3 Top-Up (Base)',
         'hero.btn.agents': '🤖 AI Agents Hub',
         'hero.btn.playground': '⚡ Test in Playground',
@@ -656,7 +656,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
 
 client = Grid402Client()
 
-# 1. Free hub status summary (19 global and regional services)
+# 1. Free hub status summary (22 global and regional services)
 summary = client.get_summary()
 print("Operational status:", summary["status"])
 
@@ -677,7 +677,7 @@ const ssl = await client.getSsl('base.org');
 console.log('Days remaining:', ssl.certificate.days_remaining);
 
 // 3. Free Sandbox ('X-Payment': 'demo') or Prepaid Session Pass ('X-Payment': 'pass_g402_...')`,
-        'console.curl.code': `# 1. Free status summary of all 19 microservices
+        'console.curl.code': `# 1. Free status summary of all 22 microservices
 curl -i https://grid402.online/status
 
 # 2. HTTP 402 Challenge with Free Teaser Sample (GLEIF LEI or OFAC)
@@ -760,9 +760,9 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         // /agents Page
         'agents.brand.sub': 'Global AI Agents and MCP Hub',
         'agents.nav.home': 'Home',
-        'agents.hero.badge': 'x402 Global Autonomous Agent Hub • 19 Services',
+        'agents.hero.badge': 'x402 Global Autonomous Agent Hub • 22 Services',
         'agents.hero.title': 'Global Open-Data and M2M Utility Infrastructure for AI Agents',
-        'agents.hero.lead': 'Grid402 enables autonomous AI agents (Claude, Cursor, LangChain, CrewAI, and Coinbase AgentKit) to query 19 global and regional public-domain endpoints via <strong>HTTP 402</strong> or <strong>Prepaid Session Pass (&lt;15ms)</strong>, settling USDC micropayments on Base with <strong>ECDSA cryptographic proofs</strong>.',
+        'agents.hero.lead': 'Grid402 enables autonomous AI agents (Claude, Cursor, LangChain, CrewAI, and Coinbase AgentKit) to query 22 global and regional public-domain endpoints via <strong>HTTP 402</strong> or <strong>Prepaid Session Pass (&lt;15ms)</strong>, settling USDC micropayments on Base with <strong>ECDSA cryptographic proofs</strong>.',
         'agents.f1.title': 'Zero Human Signup',
         'agents.f1.desc': 'No static API keys, credit cards, or accounts required. AI agents purchase oracle data autonomously via on-chain Web3 wallets or Passkeys.',
         'agents.f2.title': 'Cryptographic Oracle',
@@ -770,12 +770,12 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'agents.f3.title': 'x402 Session Pass (<15ms)',
         'agents.f3.desc': 'Purchase 100 to 1,000 prepaid credits in a single Base USDC transaction and execute high-frequency M2M calls in under 15ms with zero block wait.',
         'agents.s1.title': '1. Model Context Protocol (MCP) Integration',
-        'agents.s1.sub': 'Add all 19 global and regional oracle tools to Claude Desktop or Cursor in 1 click.',
+        'agents.s1.sub': 'Add all 22 global and regional oracle tools to Claude Desktop or Cursor in 1 click.',
         'agents.s2.title': '2. Python Code for Autonomous Agents',
         'agents.s2.sub': 'Direct consumption handling HTTP 402 challenges or using a Prepaid Session Pass (pass_g402_...).',
         'agents.s3.title': '3. Quick Terminal Test (cURL)',
         'agents.s3.sub': 'Inspect x402 challenges, issue a Session Pass, or verify cryptographic oracle proofs directly from your terminal.',
-        'agents.table.title': 'Global 19-Endpoint Catalog and Pricing',
+        'agents.table.title': 'Global 22-Endpoint Catalog and Pricing',
         'agents.table.sub': 'Pay-per-call rates in USDC on Base Mainnet or Prepaid Session Pass credits.',
         'agents.th.service': 'Service / Open-Data Source',
         'agents.th.price': 'Rate (USDC / Pass)',
@@ -823,7 +823,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
             <h2>1. Provided "AS-IS"</h2>
             <p>Grid402 is a technical M2M oracle infrastructure provided strictly "AS-IS", without warranties of fitness for a particular commercial purpose, legal counsel, or credit underwriting.</p>
             <h2>2. Public Domain Legal Basis and Open Data Licenses</h2>
-            <p>All 19 Grid402 endpoints process exclusively public-domain records, non-copyrightable facts, and open government registries:</p>
+            <p>All 22 Grid402 endpoints process exclusively public-domain records, non-copyrightable facts, and open government registries:</p>
             <ul>
                 <li><strong>Global LEI (/api/v1/lei):</strong> Global Legal Entity Identifier Foundation (GLEIF) under <strong>CC0 1.0 Universal (Public Domain Dedication)</strong>, ISO 17442 standard.</li>
                 <li><strong>Global Sanctions (/api/v1/ofac):</strong> US Treasury OFAC SDN (US Federal Public Domain under <strong>17 U.S.C. § 105</strong>) and United Nations Security Council Consolidated Lists.</li>
