@@ -25,51 +25,53 @@ Conclusão razoável: o catálogo PayAI não indexa settles de teste (Sepolia) e
 - Buyer ecoa a extensão no payload e imprime `EXTENSION-RESPONSES` quando presente.
 - `extra.name/version` do USDC agora dependem da rede (`USD Coin` mainnet / `USDC` Sepolia — o Sepolia "USD Coin" estava errado e rejeitava as assinaturas).
 
-## O que falta para o Bazaar (ações suas) — atualizado 2026-11-13 22:30
+## O que falta para o Bazaar (ações suas) — atualizado 2026-11-13 23:05
 
-**Situação atual:** produção agora roda `GRID402_FACILITATOR_MODE=settle` via PayAI (padrão do código) e os preços são 10x maiores. Ainda assim, o Bazaar (payTo=0xa31c...) segue com `items: total 0` e `stats` do recurso em 0, porque **nenhum settle real em Mainnet aconteceu ainda**.
+**Situação atual:** produção roda `GRID402_FACILITATOR_MODE=settle` via PayAI (default do código); preços 10x; x402 linter OK (7/7). Bazaar (payTo=0xa31c...) segue com `items: total 0` e stats do recurso em `0` — Sepolia não catalogou nada; Mainnet ainda não teve nenhum settle.
 
-**Passo 1 — Obter USDC na Base Mainnet (mínimo necessário):**
-1. Coinbase (ou qualquer CEX BR: Mercado Bitcoin, Binance, Coinbase) → comprar US$ 0,05 de USDC.
-2. Saque direto **na rede Base** (não no Ethereum, para economizar gás), caindo na sua carteira de teste ou em carteira sua principal. Custo total < US$ 0,10.
-3. Alternativa: trocar ETH por USDC diretamente na Base (gas ~zero).
+**Passo 1 — Criar a conta merchant (grátis, único passo que depende de você):**
+1. Abra https://merchant.payai.network/onboarding (portal merchant; cadastro/login com seu e-mail).
+2. Vincule a carteira `0xa31c31069c43ac1c0075a93c325b0dcd7744356c` como payTo; siga o fluxo até ver os créditos livres (~1.000).
+3. Reporte aqui quando ativa — o portal mostra o estado (incluindo se há revisão pendente).
 
-**Passo 2 — UMA compra de teste real no seu endpoint (0.0050 USDC):**
-```powershell
-$env:GRID402_TEST_PRIVATE_KEY='0xSUA_CHAVE'           # qualquer carteira sua com USDC na Base
-$env:GRID402_TARGET_URL='https://grid402.online/api/v1/crypto'
-node examples/sepolia_x402_buyer.mjs
-```
-*Importante:* o script verifica o network do accept — funciona em Mainnet também; só precisa de USDC real.
+**Passo 2 — Se o Bazaar não catalogar automaticamente com a conta ativa, enviar o e-mail reforçado (seção "Rascunho" abaixo) com as evidências de hoje:**
+- 7/7 PASS no linter x402,
+- dois settles Sepolia via facilitador,
+- payTo com free-credits disponíveis,
+- `/discovery/resources?payTo=0xa31c...` → `total: 0`.
 
-**Passo 3 — Confirmar catalogação:**
-```powershell
-Invoke-RestMethod "https://facilitator.payai.network/discovery/resources?payTo=0xa31c31069c43ac1c0075a93c325b0dcd7744356c"
-```
-Esperado: `items` com seu recurso. Se seguir vazio, mande o e-mail abaixo (com a tx do Passo 2 como evidência).
+**Passo 3 — Se necessário, comprar US$ 0,05 de USDC na Base e fazer 1 settle real:**
+1. CEX BR (Mercado Bitcoin/Binance/Coinbase) → compre US$ 0,05 de USDC → saque **direto na rede Base** (não Ethereum; economia de gás). Total < US$ 0,10.
+2. Rode o buyer que já existe no repo:
+   ```powershell
+   $env:GRID402_TEST_PRIVATE_KEY='0xSUA_CHAVE'
+   $env:GRID402_TARGET_URL='https://grid402.online/api/v1/crypto'
+   node examples/sepolia_x402_buyer.mjs
+   ```
+3. Confira o catálogo de novo: `Invoke-RestMethod "https://facilitator.payai.network/discovery/resources?payTo=0xa31c31069c43ac1c0075a93c325b0dcd7744356c"`.
 
-**Passo 4 — Portal merchant (pode ser etapa obrigatória):**
-https://merchant.payai.network — criar conta de comerciante é **grátis**; o campo `payTo` já mostra créditos disponíveis hoje, mas a catalogação pode depender de cadastro + revisão manual. Crie a conta e vincule a mesma carteira (0xa31c...).
-
-**Nota:** isto não move posição econômica relevante — 0.0050 USDC é ~R$ 0,03. Trata-se apenas de provar a esteira completa do Bazaar em produção.
+**Nota:** o portal merchant é client-side (sem conteúdo estático útil) — não há como inspeção remota revelar o fluxo; só seu e-mail e clique funcionam nele.
 
 ## Rascunho de email para info@payai.network
 
-> Subject: Bazaar listing — Grid402 (grid402.online) — Mainnet facilitator, resource not indexed
+> Subject: Bazaar listing request — Grid402 (grid402.online) — facilitator OK, resource not indexed
 >
 > Hi PayAI team,
 >
-> I'm operating an x402 pay-per-call service (grid402.online — Brazilian public/economic data for autonomous agents, 22 endpoints) on the **Base Mainnet** with `payTo`: `0xa31c31069c43ac1c0075a93c325b0dcd7744356c`, settling via your facilitator (`https://facilitator.payai.network`, `/verify` + `/settle`, `exact` scheme).
+> I operate Grid402 (https://grid402.online), an x402 pay-per-call hub of Brazilian public/economic data for autonomous agents — 22 endpoints across CNPJ, Simples Nacional, CEIS/CNEP sanctions, CEP/IBGE, ANBIMA banking calendars, forex, DNS/SSL/ASN. Base Mainnet, `payTo`: `0xa31c31069c43ac1c0075a93c325b0dcd7744356c`, `GRID402_FACILITATOR_MODE=settle` via your facilitator since 2026-11-13.
 >
-> Production runs `GRID402_FACILITATOR_MODE=settle` through your facilitator since 2026-11-13. Production x402 prices are 0.0050–0.0300 USDC depending on the endpoint. The 402 advertises the bazaar extension in spec format (`info.input.type=http/method=GET`, `discoverable: true`, `output.type=json`), `serviceName`/`tags`/`iconUrl` valid, absolute HTTPS `resource.url`.
+> Independent verification evidence (public):
+> - Third-party x402 linter (https://x402lint.sebastiaan-ba3.workers.dev): **PASS on 7/7 sampled endpoints** (/api/v1/crypto, /api/v1/cnpj, /api/v1/compliance, /api/v1/sanctions, /api/v1/forex, /api/v1/pass, /api/v1/workdays) — 0 errors, HTTP 402 with correct `accepts` (eip155:8453, asset 0x833589..., amount 5000, payTo a31c...).
+> - Two successful Sepolia `exact` settles via your facilitator (2026-11-13): tx 0xe5785e3c...eb2e478a, tx 0xb2e3c7e2...c90abc3e, HTTP 200 responses, on-chain receipts status 0x1, payer = 0xa592625ADbceB8E025Ac383F1a3Fd8EBB6a63F90.
+> - Our 402 advertises the bazaar extension in spec format (`info.input.type=http/method=GET`, `discoverable: true`, `output.type=json`), `serviceName`/`tags`/`iconUrl` valid, absolute HTTPS `resource.url`.
+> - `/discovery/resources?payTo=0xa31c...` returns `{"items":[],"total":0}` and the vendor resource stats endpoint shows `settlements: 0`.
 >
-> Your discovery endpoint `/discovery/resources?payTo=0xa31c31069c43ac1c0075a93c325b0dcd7744356c` returns `{"items":[],"total":0}`, and `/discovery/resources/https%3A%2F%2Fgrid402.online%2Fapi%2Fv1%2Fcrypto/stats` shows `settlements: 0`. I have not yet executed a Mainnet settle (no USDC on Base in my wallet yet).
+> Free credits for our payTo are available per `https://facilitator.payai.network/free-credits?payTo=0xa31c...`, but nothing in your public docs explains what is required for cataloging. Questions:
 >
-> Questions:
-> 1. Is a merchant account on https://merchant.payai.network required for cataloging?
-> 2. Are Mainnet `exact` settles the only settlements counted toward your catalog (Sepolia settles apparently are not — I have two Sepolia receipts with zero stats)?
-> 3. What is needed so that https://grid402.online/api/v1/crypto (and the other 21 endpoints) appear in your Bazaar?
-> 4. If a manual review is required, can you start it now?
+> 1. Is a merchant account at https://merchant.payai.network required for cataloging? If so, is registration free and instant?
+> 2. Do only Mainnet `exact` settles count toward your Bazaar? Sepolia settles filed under the same facilitator show zero in stats — is that expected?
+> 3. What is needed so that https://grid402.online/api/v1/crypto (and the rest) appear in your Bazaar?
+> 4. If there is a manual review step, can you start it now?
 >
 > Thanks,
 > Thiago — grid402.online
