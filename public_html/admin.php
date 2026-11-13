@@ -661,26 +661,6 @@ if ($apiParam === 'stats') {
     exit;
 }
 
-// 4.3. Endpoint de Vendas e MRR em BRL (Alavanca 2)
-if ($apiParam === 'sales') {
-    if (!$isLoggedIn) {
-        http_response_code(401);
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['error' => 'Unauthorized'], JSON_PRETTY_PRINT);
-        exit;
-    }
-    require_once __DIR__ . '/services/sales.php';
-    header('Content-Type: application/json; charset=utf-8');
-    header('Cache-Control: no-cache, no-store, must-revalidate');
-    echo json_encode([
-        'status' => 'success',
-        'server_time' => gmdate('Y-m-d\TH:i:s\Z'),
-        'mrr' => grid402_sales_mrr(),
-        'plans' => grid402_plans(),
-        'recent_sales' => grid402_sales_list(50),
-    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-    exit;
-}
 // Se não estiver logado, exibe tela de login ou setup
 if (!$isLoggedIn) {
     ?>

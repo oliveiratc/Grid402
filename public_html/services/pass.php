@@ -50,7 +50,7 @@ function grid402_pass_verify_token_format(string $token): ?string {
 /**
  * Emite um novo Passe de Sessão Pré-pago (ou retorna o passe já emitido para a mesma txHash)
  */
-function grid402_issue_session_pass(string $txHash, int $rawUsdcUnits = 50000, bool $isSandbox = false, array $options = []): array {
+function grid402_issue_session_pass(string $txHash, int $rawUsdcUnits = 50000, bool $isSandbox = false): array {
     $file = defined('GRID402_FILE_PASSES') ? GRID402_FILE_PASSES : (GRID402_PRIVATE_DIR . '/session_passes.json');
     $dir = dirname($file);
     if (!is_dir($dir)) {
@@ -63,8 +63,6 @@ function grid402_issue_session_pass(string $txHash, int $rawUsdcUnits = 50000, b
     // Fleet:   >= 20 USDC (20.000.000 raw) -> 50.000 reqs (+10k bonus), 60 dias
     $validityDays = 30;
     $tier = 'standard';
-    $mode = $isSandbox ? 'sandbox' : 'production';
-    $mode = (string) ($options['mode'] ?? $mode);
     if ($isSandbox) {
         $credits = 5;
         $tier = 'sandbox';
@@ -88,14 +86,7 @@ function grid402_issue_session_pass(string $txHash, int $rawUsdcUnits = 50000, b
             $validityDays = 30;
         }
     }
-    // Permite override (fiat pass, trials customizados)
-    $tier = (string) ($options['tier'] ?? $tier);
-    $credits = (int) ($options['credits'] ?? $credits);
-    $validityDays = (float) ($options['validity_days'] ?? $validityDays);
     $usdcAmount = $isSandbox ? '0.0000 (Sandbox)' : number_format($rawUsdcUnits / 1e6, 4, '.', '');
-    if (isset($options['payment_method'])) {
-        // metadata guardado no record abaixo
-    }
     $now = time();
     $expiresAt = $now + (int) round($validityDays * 86400);
 
@@ -131,11 +122,8 @@ function grid402_issue_session_pass(string $txHash, int $rawUsdcUnits = 50000, b
                 'pass_id' => $passId,
                 'pass_token' => $token,
                 'tier' => $tier,
-                'mode' => $mode,
+                'mode' => $isSandbox ? 'sandbox' : 'production',
                 'tx_hash' => $cleanTx,
-                'payment_method' => (string) ($options['payment_method'] ?? ($isSandbox ? 'sandbox' : 'usdc')),
-                'customer_email' => (string) ($options['customer_email'] ?? ''),
-                'order_ref' => (string) ($options['order_ref'] ?? ''),
                 'usdc_deposited' => $usdcAmount,
                 'credits_total' => $credits,
                 'credits_remaining' => $credits,
@@ -347,21 +335,3 @@ function grid402_consume_session_pass(string $token, int $requiredRawUnits = 500
     return $result;
 }
 
-
-/**
- * Emite um Session Pass pago em moeda fiat (Pix/cartao) - Alavanca 2.
- * Reaproveita grid402_issue_session_pass com txHash sintetico 'fiat:<orderRef>'
- * (idempotente: mesma order_ref retorna o passe existente).
- */
-function grid402_issue_fiat_pass(string $orderRef, int $rawUsdcUnits, string $tier = '', string $customerEmail = '', string $paymentMethod = 'pix'): array {
-    $opts = [
-        'mode' => 'fiat',
-        'payment_method' => $paymentMethod,
-        'customer_email' => $customerEmail,
-        'order_ref' => $orderRef,
-    ];
-    if ($tier !== '') {
-        $opts['tier'] = $tier;
-    }
-    return grid402_issue_session_pass('fiat:' . $orderRef, $rawUsdcUnits, false, $opts);
-}

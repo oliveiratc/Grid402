@@ -240,7 +240,6 @@ define('GRID402_FILE_LEI', GRID402_PRIVATE_DIR . '/lei_cache.json');
 define('GRID402_FILE_OFAC', GRID402_PRIVATE_DIR . '/ofac_cache.json');
 define('GRID402_FILE_GLOBAL_MARKETS', GRID402_PRIVATE_DIR . '/global_markets_cache.json');
 define('GRID402_FILE_PASSES', GRID402_PRIVATE_DIR . '/session_passes.json');
-define('GRID402_FILE_SALES', GRID402_PRIVATE_DIR . '/sales.json');
 define('GRID402_FILE_USED_NONCES', GRID402_PRIVATE_DIR . '/used_nonces.json');
 
 // Facilitador x402 (pagamentos `exact` / EIP-3009). Modos: disabled (padrao), verify_only, settle

@@ -39,18 +39,6 @@ if (preg_match('#^/pass(/.*)?$#', $uri)) {
     exit;
 }
 
-// 6. Pagina de planos BRL (Alavanca 2)
-if (preg_match('#^/plans(/.*)?$#', $uri)) {
-    require __DIR__ . '/plans.php';
-    exit;
-}
-
-// 7. Trial gratuito (Alavanca 2)
-if (preg_match('#^/trial(/.*)?$#', $uri)) {
-    require __DIR__ . '/trial.php';
-    exit;
-}
-
-// 8. Fallback para o Gateway central (index.php)
+// 6. Fallback para o Gateway central (index.php)
 require __DIR__ . '/index.php';
 
