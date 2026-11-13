@@ -82,14 +82,14 @@ grid402_record_page_visit('/pass');
     <p>Ou defina a variavel de ambiente <code>GRID402_SESSION_PASS=pass_g402_...</code> no servidor MCP (<code>grid402-mcp</code>) para uso automatico.</p>
 
     <h2>Endpoints disponiveis</h2>
-    <pre>GET /api/v1/forex        0.0005 USDC
-GET /api/v1/crypto       0.0005 USDC
-GET /api/v1/dns          0.0005 USDC
-GET /api/v1/ssl          0.0005 USDC
-GET /api/v1/asn          0.0005 USDC
-GET /api/v1/cep          0.0005 USDC
-GET /api/v1/cnpj         0.0020 USDC
-GET /api/v1/compliance   0.0020 USDC (premium)</pre>
+    <pre>GET /api/v1/forex        0.0050 USDC
+GET /api/v1/crypto       0.0050 USDC
+GET /api/v1/dns          0.0050 USDC
+GET /api/v1/ssl          0.0050 USDC
+GET /api/v1/asn          0.0050 USDC
+GET /api/v1/cep          0.0050 USDC
+GET /api/v1/cnpj         0.0200 USDC
+GET /api/v1/compliance   0.0200 USDC (premium)</pre>
 
     <p style="margin-top:2rem;"><a href="<?php echo htmlspecialchars($domain, ENT_QUOTES, 'UTF-8'); ?>/">&larr; Voltar ao portal</a> &nbsp;|&nbsp; <a href="<?php echo htmlspecialchars($domain, ENT_QUOTES, 'UTF-8'); ?>/llms.txt">llms.txt</a> &nbsp;|&nbsp; <a href="<?php echo htmlspecialchars($domain, ENT_QUOTES, 'UTF-8'); ?>/openapi.json">OpenAPI</a></p>
 </div>

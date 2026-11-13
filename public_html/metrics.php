@@ -1,9 +1,9 @@
 <?php
 /**
- * Grid402 - Módulo de Telemetria Interna e Métricas em Tempo Real (Zero-DB)
+ * Grid402 - MÃ³dulo de Telemetria Interna e MÃ©tricas em Tempo Real (Zero-DB)
  * 
- * Gravação atômica via flock(LOCK_EX) com buffer circular de eventos recentes
- * e anonimização de IPs em conformidade com a LGPD.
+ * GravaÃ§Ã£o atÃ´mica via flock(LOCK_EX) com buffer circular de eventos recentes
+ * e anonimizaÃ§Ã£o de IPs em conformidade com a LGPD.
  */
 
 declare(strict_types=1);
@@ -40,7 +40,7 @@ function grid402_mask_ip(?string $ip): string {
 }
 
 /**
- * Retorna a estrutura inicial padrão de métricas
+ * Retorna a estrutura inicial padrÃ£o de mÃ©tricas
  */
 function grid402_default_metrics(): array {
     return [
@@ -100,7 +100,7 @@ function grid402_default_metrics(): array {
 }
 
 /**
- * Normaliza métricas legadas/parciais para o schema atual
+ * Normaliza mÃ©tricas legadas/parciais para o schema atual
  */
 function grid402_normalize_metrics(array $metrics): array {
     $metrics['version'] = $metrics['version'] ?? '1.0.0';
@@ -151,7 +151,7 @@ function grid402_normalize_metrics(array $metrics): array {
 }
 
 /**
- * Carrega o snapshot atual de métricas
+ * Carrega o snapshot atual de mÃ©tricas
  */
 function grid402_get_metrics(): array {
     $file = GRID402_FILE_METRICS;
@@ -337,7 +337,7 @@ function grid402_record_telemetry(
             $metrics['failure_categories'][$failureCategory] = ((int)($metrics['failure_categories'][$failureCategory] ?? 0)) + 1;
         }
 
-        // 3. Agrupamento diário
+        // 3. Agrupamento diÃ¡rio
         if (!isset($metrics['daily'])) {
             $metrics['daily'] = [];
         }
@@ -350,7 +350,7 @@ function grid402_record_telemetry(
             $metrics['daily'][$today]['usdc'] = round(((float)$metrics['daily'][$today]['usdc']) + $effectivePrice, 4);
         }
 
-        // Rotação determinística: manter apenas os 14 dias mais recentes no histórico
+        // RotaÃ§Ã£o determinÃ­stica: manter apenas os 14 dias mais recentes no histÃ³rico
         ksort($metrics['daily']);
         if (count($metrics['daily']) > 14) {
             $metrics['daily'] = array_slice($metrics['daily'], -14, 14, true);
@@ -382,7 +382,7 @@ function grid402_record_telemetry(
             $metrics['recent_events'] = array_slice($metrics['recent_events'], 0, 100);
         }
 
-        // Gravação segura
+        // GravaÃ§Ã£o segura
         ftruncate($fp, 0);
         rewind($fp);
         fwrite($fp, (string) json_encode($metrics, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
@@ -394,13 +394,52 @@ function grid402_record_telemetry(
 }
 
 /**
- * Registra uma visita à página pública (contador de acessos)
+ * Registra uma visita Ã  pÃ¡gina pÃºblica (contador de acessos)
  *
  * Usado pelo canal HTML (home, institucionais, /agents, /pass).
- * Não substitui a telemetria técnica das APIs /api/v1/*.
+ * NÃ£o substitui a telemetria tÃ©cnica das APIs /api/v1/*.
  *
- * O IP nunca é armazenado em texto puro fora do buffer anonimizado (LGPD).
+ * O IP nunca Ã© armazenado em texto puro fora do buffer anonimizado (LGPD).
  */
+/**
+ * Ajusta o total de USDC faturado sem incrementar contador de requests.
+ * Uso: compras de Session Pass (web3 top-up) cujo valor real depositado
+ * difere do preço-tabela contabilizado no ponto de telemetria.
+ */
+function grid402_metrics_adjust_revenue(float $deltaUsdc): void {
+    if ($deltaUsdc <= 0.0) {
+        return;
+    }
+    $file = defined('GRID402_FILE_METRICS') ? GRID402_FILE_METRICS : (GRID402_PRIVATE_DIR . '/metrics.json');
+    if (!file_exists($file)) {
+        return;
+    }
+
+    $fp = fopen($file, 'c+');
+    if (!$fp) {
+        return;
+    }
+
+    if (flock($fp, LOCK_EX)) {
+        $size = filesize($file);
+        $payload = $size > 0 ? (string) fread($fp, $size) : '';
+        $metrics = ($payload !== '') ? (@json_decode($payload, true) ?: null) : null;
+        if (is_array($metrics)) {
+            $metrics['total_revenue_usdc'] = round((float)($metrics['total_revenue_usdc'] ?? 0.0) + $deltaUsdc, 4);
+            $today = gmdate('Y-m-d');
+            if (isset($metrics['daily'][$today]) && is_array($metrics['daily'][$today])) {
+                $metrics['daily'][$today]['usdc'] = round((float)($metrics['daily'][$today]['usdc'] ?? 0.0) + $deltaUsdc, 4);
+            }
+            ftruncate($fp, 0);
+            rewind($fp);
+            fwrite($fp, (string) json_encode($metrics, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            fflush($fp);
+        }
+        flock($fp, LOCK_UN);
+    }
+    fclose($fp);
+}
+
 function grid402_record_page_visit(?string $path = null, ?string $ip = null, ?string $ua = null): void {
     $file = GRID402_FILE_METRICS;
     $dir = dirname($file);
@@ -435,7 +474,7 @@ function grid402_record_page_visit(?string $path = null, ?string $ip = null, ?st
         $metrics['daily'][$today]['requests'] = (int)($metrics['daily'][$today]['requests'] ?? 0) + 1;
         $metrics['daily'][$today]['page_views'] = (int)($metrics['daily'][$today]['page_views'] ?? 0) + 1;
 
-        // Rotação determinística: manter apenas os 14 dias mais recentes
+        // RotaÃ§Ã£o determinÃ­stica: manter apenas os 14 dias mais recentes
         ksort($metrics['daily']);
         if (count($metrics['daily']) > 14) {
             $metrics['daily'] = array_slice($metrics['daily'], -14, 14, true);
@@ -454,7 +493,7 @@ function grid402_record_page_visit(?string $path = null, ?string $ip = null, ?st
             'timestamp' => $now,
             'path' => $path !== null ? substr(trim($path), 0, 180) : '/',
             'ip_masked' => grid402_mask_ip($ip ?? (string)($_SERVER['REMOTE_ADDR'] ?? '')),
-            'ua_masked' => $maxUa !== '' ? substr($maxUa, 0, 80) . '…' : '',
+            'ua_masked' => $maxUa !== '' ? substr($maxUa, 0, 80) . 'â€¦' : '',
         ]);
         if (count($metrics['recent_visits']) > 50) {
             $metrics['recent_visits'] = array_slice($metrics['recent_visits'], 0, 50);
@@ -471,7 +510,7 @@ function grid402_record_page_visit(?string $path = null, ?string $ip = null, ?st
 }
 
 /**
- * Obtém estatísticas de Passes de Sessão Web3 (ativos, créditos emitidos e restantes)
+ * ObtÃ©m estatÃ­sticas de Passes de SessÃ£o Web3 (ativos, crÃ©ditos emitidos e restantes)
  */
 function grid402_get_passes_stats(): array {
     $file = defined('GRID402_FILE_PASSES') ? GRID402_FILE_PASSES : (defined('GRID402_PRIVATE_DIR') ? GRID402_PRIVATE_DIR . '/session_passes.json' : __DIR__ . '/private_data/session_passes.json');
@@ -509,14 +548,14 @@ function grid402_get_passes_stats(): array {
 }
 
 /**
- * Computa indicadores analíticos avançados para o painel administrativo:
- * - ARPU (Ticket Médio em USDC e BRL)
- * - SLA Técnico (Taxa de HTTP 200 %)
- * - Taxa de Adoção de Sandbox (%)
- * - Histórico Diário ordenado dos últimos 14 dias (com preenchimento contínuo)
+ * Computa indicadores analÃ­ticos avanÃ§ados para o painel administrativo:
+ * - ARPU (Ticket MÃ©dio em USDC e BRL)
+ * - SLA TÃ©cnico (Taxa de HTTP 200 %)
+ * - Taxa de AdoÃ§Ã£o de Sandbox (%)
+ * - HistÃ³rico DiÃ¡rio ordenado dos Ãºltimos 14 dias (com preenchimento contÃ­nuo)
  * - Top Agentes / IPs Consumidores (anonimizados conforme LGPD)
- * - Rentabilidade Estimada por Micro-Serviço com base nos preços de tabela USDC
- * - Estatísticas de Passes de Sessão Web3 Ativos
+ * - Rentabilidade Estimada por Micro-ServiÃ§o com base nos preÃ§os de tabela USDC
+ * - EstatÃ­sticas de Passes de SessÃ£o Web3 Ativos
  */
 function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50): array {
     $totalRequests = (int)($metrics['total_requests'] ?? 0);
@@ -528,18 +567,18 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
     $recentEvents = is_array($metrics['recent_events'] ?? null) ? $metrics['recent_events'] : [];
     $rawDaily = is_array($metrics['daily'] ?? null) ? $metrics['daily'] : [];
 
-    // 1. ARPU (Ticket Médio por consulta paga)
+    // 1. ARPU (Ticket MÃ©dio por consulta paga)
     $arpuUsdc = $totalPaid > 0 ? round($totalRevenueUsdc / $totalPaid, 6) : 0.0;
     $arpuBrl = round($arpuUsdc * $usdRate, 4);
 
-    // 2. SLA Técnico (HTTP 200 %)
+    // 2. SLA TÃ©cnico (HTTP 200 %)
     $ok200 = (int)($statusCounts['200'] ?? 0);
     $technicalSuccessRate = $totalRequests > 0 ? round(($ok200 / $totalRequests) * 100, 1) : 100.0;
 
-    // 3. Taxa de Adoção Sandbox (%)
+    // 3. Taxa de AdoÃ§Ã£o Sandbox (%)
     $sandboxRate = $totalRequests > 0 ? round(($totalSandbox / $totalRequests) * 100, 1) : 0.0;
 
-    // 4. Histórico dos últimos 14 dias contínuo (preenchendo eventuais dias sem tráfego)
+    // 4. HistÃ³rico dos Ãºltimos 14 dias contÃ­nuo (preenchendo eventuais dias sem trÃ¡fego)
     $dailyHistory14d = [];
     $todayTs = strtotime(gmdate('Y-m-d'));
     for ($i = 13; $i >= 0; $i--) {
@@ -589,16 +628,16 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
         }
     }
 
-    // Ordena os IPs por maior total de requisições
+    // Ordena os IPs por maior total de requisiÃ§Ãµes
     uasort($ipAggregates, fn($a, $b) => $b['total'] <=> $a['total']);
     $topConsumers = [];
     $rank = 1;
     foreach ($ipAggregates as $ip => $data) {
-        // Encontra o serviço favorito deste IP
+        // Encontra o serviÃ§o favorito deste IP
         arsort($data['services']);
         $favService = key($data['services']) ?: 'forex';
         
-        // Perfil heurístico do consumidor
+        // Perfil heurÃ­stico do consumidor
         $profile = 'Agente IA';
         if ($data['paid'] > 0) {
             $profile = 'Agente Pagador (x402)';
@@ -624,32 +663,32 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
         }
     }
 
-    // 6. Rentabilidade Estimada por Micro-Serviço
+    // 6. Rentabilidade Estimada por Micro-ServiÃ§o
     $pricingTable = [
-        'notarize' => 0.0005,
-        'compliance' => 0.0030,
-        'ofac' => 0.0020,
-        'lei' => 0.0020,
-        'cnpj' => 0.0020,
-        'sanctions' => 0.0010,
-        'simples' => 0.0010,
+        'notarize' => 0.0050,
+        'compliance' => 0.0300,
+        'ofac' => 0.0200,
+        'lei' => 0.0200,
+        'cnpj' => 0.0200,
+        'sanctions' => 0.0100,
+        'simples' => 0.0100,
         'pass' => 2.0000,
-        'forex' => 0.0005,
-        'crypto' => 0.0005,
-        'indicators' => 0.0005,
-        'holidays' => 0.0005,
-        'workdays' => 0.0005,
-        'global-markets' => 0.0005,
-        'dns' => 0.0005,
-        'ssl' => 0.0005,
-        'asn' => 0.0005,
-        'cep' => 0.0005,
-        'summary' => 0.0005,
+        'forex' => 0.0050,
+        'crypto' => 0.0050,
+        'indicators' => 0.0050,
+        'holidays' => 0.0050,
+        'workdays' => 0.0050,
+        'global-markets' => 0.0050,
+        'dns' => 0.0050,
+        'ssl' => 0.0050,
+        'asn' => 0.0050,
+        'cep' => 0.0050,
+        'summary' => 0.0050,
     ];
 
     $serviceRevenue = [];
     foreach ($serviceCounts as $svcName => $count) {
-        $price = $pricingTable[$svcName] ?? 0.0005;
+        $price = $pricingTable[$svcName] ?? 0.0050;
         $serviceRevenue[$svcName] = [
             'service' => $svcName,
             'count' => (int)$count,

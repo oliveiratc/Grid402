@@ -83,7 +83,7 @@ $chatId = defined('GRID402_TELEGRAM_CHAT_ID') ? GRID402_TELEGRAM_CHAT_ID : '';
 if ($token !== '' and $chatId !== '') {
     echo "\n  Executando disparo real com credenciais configuradas...\n";
     $testTx = '0x' . str_repeat('a', 64);
-    $realResult = grid402_notify_telegram_purchase('cnpj', 0.0020, $testTx);
+    $realResult = grid402_notify_telegram_purchase('cnpj', 0.0200, $testTx);
     assertTest($realResult === true, 'Notificacao de teste enviada com sucesso ao Telegram do mantenedor');
 } else {
     echo "\n  Credenciais nao configuradas no ambiente de execucao; pulando disparo real.\n";

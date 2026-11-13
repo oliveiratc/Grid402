@@ -201,8 +201,8 @@ function grid402_service_workdays(array $params): array {
             'start_is_workday' => $startCheck['is_workday'],
             'end_is_workday' => $endCheck['is_workday'],
             'holidays_in_range' => $holidaysInRange,
-            'legal_license' => 'Domínio Público / Algoritmo Determinístico de Prazos Bancários (Lei nº 9.610/1998 Art. 8º, I e II)',
-            'tariff_usdc' => '0.0005'
+            'legal_license' => 'DomÃ­nio PÃºblico / Algoritmo DeterminÃ­stico de Prazos BancÃ¡rios (Lei nÂº 9.610/1998 Art. 8Âº, I e II)',
+            'tariff_usdc' => '0.0050'
         ];
     }
 
@@ -254,8 +254,8 @@ function grid402_service_workdays(array $params): array {
             'start_is_workday' => $startCheck['is_workday'],
             'target_is_workday' => true,
             'holidays_in_projection' => $holidaysInProjection,
-            'legal_license' => 'Domínio Público / Algoritmo Determinístico de Prazos Bancários (Lei nº 9.610/1998 Art. 8º, I e II)',
-            'tariff_usdc' => '0.0005'
+            'legal_license' => 'DomÃ­nio PÃºblico / Algoritmo DeterminÃ­stico de Prazos BancÃ¡rios (Lei nÂº 9.610/1998 Art. 8Âº, I e II)',
+            'tariff_usdc' => '0.0050'
         ];
     }
 
@@ -272,8 +272,8 @@ function grid402_service_workdays(array $params): array {
         'description' => $startCheck['description'],
         'holiday_name' => $startCheck['holiday_name'],
         'next_workday' => $nextWorkday,
-        'legal_license' => 'Domínio Público / Algoritmo Determinístico de Prazos Bancários (Lei nº 9.610/1998 Art. 8º, I e II)',
-        'tariff_usdc' => '0.0005'
+        'legal_license' => 'DomÃ­nio PÃºblico / Algoritmo DeterminÃ­stico de Prazos BancÃ¡rios (Lei nÂº 9.610/1998 Art. 8Âº, I e II)',
+        'tariff_usdc' => '0.0050'
     ];
 }
 

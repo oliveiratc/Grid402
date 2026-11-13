@@ -57,31 +57,31 @@ function grid402_issue_session_pass(string $txHash, int $rawUsdcUnits = 50000, b
         @mkdir($dir, 0775, true);
     }
 
-    // Calibração dos Tiers Web3 do Grid402:
-    // Starter: >= 2 USDC (2.000.000 raw) -> 4.000 reqs, 30 dias
-    // Pro:     >= 5 USDC (5.000.000 raw) -> 10.000 reqs, 30 dias
-    // Fleet:   >= 20 USDC (20.000.000 raw) -> 50.000 reqs (+10k bonus), 60 dias
+    // Calibração dos Tiers Web3 (pós-reajuste 10x de preços, com paridade de valor):
+    // Starter: >= 2 USDC (2.000.000 raw) -> 40.000 cr (400 reqs), 30 dias
+    // Pro:     >= 5 USDC (5.000.000 raw) -> 100.000 cr (1000 reqs), 30 dias
+    // Fleet:   >= 20 USDC (20.000.000 raw) -> 500.000 cr (5000 reqs), 60 dias
     $validityDays = 30;
     $tier = 'standard';
     if ($isSandbox) {
-        $credits = 5;
+        $credits = 500;
         $tier = 'sandbox';
         $validityDays = 1 / 24; // 1 hora
     } else {
         if ($rawUsdcUnits >= 20000000) {
-            $credits = max(50000, intdiv($rawUsdcUnits, 400));
+            $credits = max(500000, intdiv($rawUsdcUnits, 40));
             $tier = 'fleet';
             $validityDays = 60;
         } elseif ($rawUsdcUnits >= 5000000) {
-            $credits = intdiv($rawUsdcUnits, 500);
+            $credits = intdiv($rawUsdcUnits, 50);
             $tier = 'pro';
             $validityDays = 30;
         } elseif ($rawUsdcUnits >= 2000000) {
-            $credits = intdiv($rawUsdcUnits, 500);
+            $credits = intdiv($rawUsdcUnits, 50);
             $tier = 'starter';
             $validityDays = 30;
         } else {
-            $credits = max(10, intdiv($rawUsdcUnits, 500));
+            $credits = max(100, intdiv($rawUsdcUnits, 50));
             $tier = 'standard';
             $validityDays = 30;
         }
@@ -167,10 +167,10 @@ function grid402_issue_session_pass(string $txHash, int $rawUsdcUnits = 50000, b
         'usage_instructions' => [
             'header' => 'X-Payment: ' . $record['pass_token'],
             'credit_rates' => [
-                'standard_0.0005_usdc' => '1 credit (forex, crypto, dns, ssl, asn, cep, indicators, holidays, workdays, notarize, global-markets)',
-                'compliance_0.0010_usdc' => '2 credits (sanctions, simples)',
-                'corporate_0.0020_usdc' => '4 credits (cnpj, lei, ofac)',
-                'score360_0.0030_usdc' => '6 credits (compliance)',
+                'standard_0.0050_usdc' => '100 credits (forex, crypto, dns, ssl, asn, cep, indicators, holidays, workdays, notarize, global-markets)',
+                'compliance_0.0100_usdc' => '200 credits (sanctions, simples)',
+                'corporate_0.0200_usdc' => '400 credits (cnpj, lei, ofac)',
+                'score360_0.0300_usdc' => '600 credits (compliance)',
             ],
             'check_balance_url' => GRID402_CANONICAL_DOMAIN . '/api/v1/pass?status=' . $record['pass_token'],
         ],
@@ -238,7 +238,7 @@ function grid402_get_session_pass_status(string $token): array {
 /**
  * Valida e debita atomicamente créditos de um Session Pass em uma chamada de API (<15ms)
  */
-function grid402_consume_session_pass(string $token, int $requiredRawUnits = 500): array {
+function grid402_consume_session_pass(string $token, int $requiredRawUnits = 5000): array {
     $passId = grid402_pass_verify_token_format($token);
     if ($passId === null) {
         return [
@@ -248,7 +248,7 @@ function grid402_consume_session_pass(string $token, int $requiredRawUnits = 500
         ];
     }
 
-    $creditsNeeded = max(1, intdiv($requiredRawUnits, 500));
+    $creditsNeeded = max(1, intdiv($requiredRawUnits, 50));
     $file = defined('GRID402_FILE_PASSES') ? GRID402_FILE_PASSES : (GRID402_PRIVATE_DIR . '/session_passes.json');
     if (!file_exists($file)) {
         return [

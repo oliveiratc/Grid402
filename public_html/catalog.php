@@ -1,7 +1,7 @@
 <?php
 /**
- * Grid402 - Catálogo Único de Serviços
- * Preços, limites, exemplos e status operacional de todos os endpoints públicos.
+ * Grid402 - CatÃ¡logo Ãšnico de ServiÃ§os
+ * PreÃ§os, limites, exemplos e status operacional de todos os endpoints pÃºblicos.
  */
 
 declare(strict_types=1);
@@ -22,8 +22,8 @@ ksort($services);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Catálogo completo e sempre atualizado dos 22 microserviços da Grid402: preço, limites, exemplos e status.">
-    <title>Grid402 // Catálogo Completo de Serviços</title>
+    <meta name="description" content="CatÃ¡logo completo e sempre atualizado dos 22 microserviÃ§os da Grid402: preÃ§o, limites, exemplos e status.">
+    <title>Grid402 // CatÃ¡logo Completo de ServiÃ§os</title>
     <style>
         :root { --bg:#060B19; --surface:#0B132B; --border:#1E2C4F; --text:#F8FAFC; --muted:#94A3B8; --primary:#00F0FF; --ok:#10B981; }
         * { box-sizing:border-box; }
@@ -55,34 +55,34 @@ ksort($services);
 <body>
 <div class="container">
     <header>
-        <a href="/" style="color:#94A3B8;text-decoration:none;">← Grid402</a>
-        <h1>Catálogo completo de serviços</h1>
-        <p>Serviços, preços, limites e exemplos em uma única página. Consulta paga via <code>POST</code>/<code>GET</code> com <code>X-Payment</code>.</p>
+        <a href="/" style="color:#94A3B8;text-decoration:none;">â† Grid402</a>
+        <h1>CatÃ¡logo completo de serviÃ§os</h1>
+        <p>ServiÃ§os, preÃ§os, limites e exemplos em uma Ãºnica pÃ¡gina. Consulta paga via <code>POST</code>/<code>GET</code> com <code>X-Payment</code>.</p>
         <div class="meta">
             <span class="pill"><?php echo count($services); ?> endpoints ativos</span>
-            <span class="pill">Base Mainnet · chain 8453</span>
-            <span class="pill">USDC 0.0005 padrão</span>
-            <span class="pill">Sandbox grátis: <?php echo GRID402_SANDBOX_RATE_LIMIT; ?> consultas/hora por IP</span>
+            <span class="pill">Base Mainnet Â· chain 8453</span>
+            <span class="pill">USDC 0.0050 padrÃ£o</span>
+            <span class="pill">Sandbox grÃ¡tis: <?php echo GRID402_SANDBOX_RATE_LIMIT; ?> consultas/hora por IP</span>
         </div>
     </header>
 
-    <h2>Limites e autenticação</h2>
+    <h2>Limites e autenticaÃ§Ã£o</h2>
     <div class="grid">
-        <div class="card"><h3>x402 micropagamento</h3><p>Envie <code>PAYMENT-SIGNATURE</code> (Base64, EIP-3009, token faciltator) ou tx hash; o serviço responde em milissegundos.</p></div>
-        <div class="card"><h3>Session Pass</h3><p>Compre créditos em <a href="/pass" style="color:var(--primary)">/pass</a>; envie <code>X-Payment: pass_g402_...</code>. Uma adesão rende até 1.000 créditos.</p></div>
-        <div class="card"><h3>Sandbox</h3><p>Para testes e avaliação: <code>X-Payment: demo</code>. 30 consultas/hora por IP, sem cobrança on-chain.</p></div>
-        <div class="card"><h3>Rate limit e timeout</h3><p>Sandbox: <?php echo GRID402_SANDBOX_RATE_LIMIT; ?>/hora. Timeout geral: <?php echo GRID402_TIMEOUT_MS; ?> ms. Dados são fatos públicos; não substituem decisão de crédito.</p></div>
+        <div class="card"><h3>x402 micropagamento</h3><p>Envie <code>PAYMENT-SIGNATURE</code> (Base64, EIP-3009, token faciltator) ou tx hash; o serviÃ§o responde em milissegundos.</p></div>
+        <div class="card"><h3>Session Pass</h3><p>Compre crÃ©ditos em <a href="/pass" style="color:var(--primary)">/pass</a>; envie <code>X-Payment: pass_g402_...</code>. Uma adesÃ£o rende atÃ© 1.000 crÃ©ditos.</p></div>
+        <div class="card"><h3>Sandbox</h3><p>Para testes e avaliaÃ§Ã£o: <code>X-Payment: demo</code>. 30 consultas/hora por IP, sem cobranÃ§a on-chain.</p></div>
+        <div class="card"><h3>Rate limit e timeout</h3><p>Sandbox: <?php echo GRID402_SANDBOX_RATE_LIMIT; ?>/hora. Timeout geral: <?php echo GRID402_TIMEOUT_MS; ?> ms. Dados sÃ£o fatos pÃºblicos; nÃ£o substituem decisÃ£o de crÃ©dito.</p></div>
     </div>
 
-    <h2>Endpoints, preço, finalidade e exemplo</h2>
-    <input class="search" id="filter" type="text" placeholder="Filtrar por endpoint, nome ou categoria…" aria-label="Filtrar serviços">
+    <h2>Endpoints, preÃ§o, finalidade e exemplo</h2>
+    <input class="search" id="filter" type="text" placeholder="Filtrar por endpoint, nome ou categoriaâ€¦" aria-label="Filtrar serviÃ§os">
     <div class="table-wrap">
         <table id="catalog">
-            <thead><tr><th>Serviço</th><th>Categoria</th><th>Preço USDC</th><th>Status</th><th>Exemplo</th></tr></thead>
+            <thead><tr><th>ServiÃ§o</th><th>Categoria</th><th>PreÃ§o USDC</th><th>Status</th><th>Exemplo</th></tr></thead>
             <tbody>
             <?php foreach ($services as $id => $svc):
-                $price = isset($svc['price_usdc']) ? $svc['price_usdc'] : ($id === 'sanctions' || $id === 'simples' ? '0.0010' : (in_array($id, ['cnpj','lei','ofac'], true) ? '0.0020' : ($id === 'compliance' ? '0.0030' : ($id === 'pass' ? '0.0500' : ($id === 'verify' ? 'Gratuito' : GRID402_PRICE_DISPLAY)))));
-                $status = is_array($summaryServices[$id] ?? null) ? ($summaryServices[$id]['status'] ?? '—') : '—';
+                $price = isset($svc['price_usdc']) ? $svc['price_usdc'] : ($id === 'sanctions' || $id === 'simples' ? '0.0100' : (in_array($id, ['cnpj','lei','ofac'], true) ? '0.0200' : ($id === 'compliance' ? '0.0300' : ($id === 'pass' ? '0.5000' : ($id === 'verify' ? 'Gratuito' : GRID402_PRICE_DISPLAY)))));
+                $status = is_array($summaryServices[$id] ?? null) ? ($summaryServices[$id]['status'] ?? 'â€”') : 'â€”';
                 $example = '/api/v1/' . rawurlencode($id);
                 if ($id === 'forex') $example .= '?base=USD&quote=BRL';
                 elseif ($id === 'dns') $example .= '?domain=base.org&type=A';
@@ -108,9 +108,9 @@ ksort($services);
     </div>
 
     <h2>Estado dos dados</h2>
-    <p>Status marcado como UP: <?php echo htmlspecialchars($summaryAt ?: 'snapshot ainda não gerado; o serviço retorna 402 normalmente'); ?>. Dados on-chain são fatos públicos consultados em tempo real; cached feeds podem ter até 2 minutos de defasagem.</p>
-    <a class="cta" href="/trust">SLA, disponibilidade e metodologia →</a>
-    <a class="cta secondary" href="/agents">Guia para agentes →</a>
+    <p>Status marcado como UP: <?php echo htmlspecialchars($summaryAt ?: 'snapshot ainda nÃ£o gerado; o serviÃ§o retorna 402 normalmente'); ?>. Dados on-chain sÃ£o fatos pÃºblicos consultados em tempo real; cached feeds podem ter atÃ© 2 minutos de defasagem.</p>
+    <a class="cta" href="/trust">SLA, disponibilidade e metodologia â†’</a>
+    <a class="cta secondary" href="/agents">Guia para agentes â†’</a>
 </div>
 <script>
 const input=document.getElementById('filter');

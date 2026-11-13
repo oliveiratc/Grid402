@@ -31,16 +31,16 @@ const challengeMock = {
     error: 'PaymentRequired',
     message: 'Pagamento requerido',
     recipient_wallet: '0xa31c31069c43ac1c0075a93c325b0dcd7744356c',
-    price_usdc: '0.0005',
-    price_raw_units: 500,
+    price_usdc: '0.0050',
+    price_raw_units: 5000,
     network: 'Base',
     chain_id: 8453,
     token_contract: '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913',
 };
 const err = new PaymentRequiredError(challengeMock);
 assert.strictEqual(err.recipientWallet, challengeMock.recipient_wallet);
-assert.strictEqual(err.priceUsdc, '0.0005');
-assert.strictEqual(err.priceRawUnits, 500);
+assert.strictEqual(err.priceUsdc, '0.0050');
+assert.strictEqual(err.priceRawUnits, 5000);
 assert(err instanceof Grid402Error);
 console.log('✓ Tratamento de PaymentRequiredError e desafio x402 validado!');
 

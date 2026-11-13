@@ -10,7 +10,7 @@ assert(defined('GRID402_WALLET_ADDRESS'), 'GRID402_WALLET_ADDRESS deve estar def
 assert(defined('GRID402_BASE_RPC_URL'), 'GRID402_BASE_RPC_URL deve estar definida');
 assert(defined('GRID402_USDC_CONTRACT'), 'GRID402_USDC_CONTRACT deve estar definida');
 assert(GRID402_CHAIN_ID === 8453, 'GRID402_CHAIN_ID deve ser 8453');
-assert(GRID402_USDC_REQUIRED_RAW === 500, 'GRID402_USDC_REQUIRED_RAW deve ser 500 (0.0005 USDC)');
+assert(GRID402_USDC_REQUIRED_RAW === 5000, 'GRID402_USDC_REQUIRED_RAW deve ser 5000 (0.0050 USDC)');
 
 assert(defined('GRID402_TELEGRAM_BOT_TOKEN'), 'GRID402_TELEGRAM_BOT_TOKEN deve estar definida');
 assert(defined('GRID402_TELEGRAM_CHAT_ID'), 'GRID402_TELEGRAM_CHAT_ID deve estar definida');

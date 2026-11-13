@@ -10,7 +10,7 @@
       "email": "contato@grid402.online"
     },
     "license": {
-      "name": "Copyright (c) 2026 Grid402 Network Intelligence — All Rights Reserved (Software & Brand) / Public Domain Data Terms",
+      "name": "Copyright (c) 2026 Grid402 Network Intelligence â€” All Rights Reserved (Software & Brand) / Public Domain Data Terms",
       "url": "https://grid402.online/terms"
     }
   },
@@ -277,7 +277,7 @@
     "/api/v1/cnpj": {
       "get": {
         "summary": "Brazilian Federal Revenue Corporate CNPJ Lookup",
-        "description": "Retrieves public corporate registration data, status, CNAE economic activities, and address from Brazilian Receita Federal. Requires x402 micropayment of 0.0020 USDC on Base.",
+        "description": "Retrieves public corporate registration data, status, CNAE economic activities, and address from Brazilian Receita Federal. Requires x402 micropayment of 0.0200 USDC on Base.",
         "tags": ["CNPJ"],
         "security": [{ "x402Payment": [] }],
         "parameters": [
@@ -315,7 +315,7 @@
     "/api/v1/indicators": {
       "get": {
         "summary": "Official Brazilian Economic Indicators",
-        "description": "Returns official interest rates (Selic target, Selic daily, CDI annual, CDI daily) and inflation metrics (IPCA 12-month accumulated and monthly) from the Central Bank of Brazil (BCB) and IBGE. Settled via x402 on Base (0.0005 USDC). Free teaser preview available on 402 challenge.",
+        "description": "Returns official interest rates (Selic target, Selic daily, CDI annual, CDI daily) and inflation metrics (IPCA 12-month accumulated and monthly) from the Central Bank of Brazil (BCB) and IBGE. Settled via x402 on Base (0.0050 USDC). Free teaser preview available on 402 challenge.",
         "tags": ["Indicators"],
         "security": [{ "x402Payment": [] }],
         "responses": {
@@ -338,7 +338,7 @@
     "/api/v1/holidays": {
       "get": {
         "summary": "Brazilian National Holidays and Banking Calendar",
-        "description": "Returns full official schedule of Brazilian national holidays and non-banking days (ANBIMA and Febraban) for a given year (1900-2100). Computes mobile holidays deterministically using Meeus algorithm. Settled via x402 on Base (0.0005 USDC). Free teaser preview with next holiday available on 402 challenge.",
+        "description": "Returns full official schedule of Brazilian national holidays and non-banking days (ANBIMA and Febraban) for a given year (1900-2100). Computes mobile holidays deterministically using Meeus algorithm. Settled via x402 on Base (0.0050 USDC). Free teaser preview with next holiday available on 402 challenge.",
         "tags": ["Holidays"],
         "security": [{ "x402Payment": [] }],
         "parameters": [
@@ -378,7 +378,7 @@
     "/api/v1/workdays": {
       "get": {
         "summary": "ANBIMA Financial Workdays Calculator",
-        "description": "Calculates Brazilian banking workdays according to official ANBIMA convention. Supports 3 operation modes: date range counting (exclusive start, inclusive end), maturity date projection (+/- N workdays), and single-date workday verification. Settled via x402 on Base (0.0005 USDC) or free in Sandbox mode.",
+        "description": "Calculates Brazilian banking workdays according to official ANBIMA convention. Supports 3 operation modes: date range counting (exclusive start, inclusive end), maturity date projection (+/- N workdays), and single-date workday verification. Settled via x402 on Base (0.0050 USDC) or free in Sandbox mode.",
         "tags": ["Workdays"],
         "security": [{ "x402Payment": [] }],
         "parameters": [
@@ -560,7 +560,7 @@
     "/api/v1/lei": {
       "get": {
         "summary": "Global Corporate Identity via GLEIF LEI (CC0 1.0 Public Domain)",
-        "description": "Queries the official Global Legal Entity Identifier Foundation (GLEIF) registry across 200+ jurisdictions. Price: 0.0020 USDC (4 Session Pass credits).",
+        "description": "Queries the official Global Legal Entity Identifier Foundation (GLEIF) registry across 200+ jurisdictions. Price: 0.0200 USDC (4 Session Pass credits).",
         "tags": ["Global-LEI"],
         "security": [{ "x402Payment": [] }],
         "parameters": [
@@ -588,7 +588,7 @@
     "/api/v1/ofac": {
       "get": {
         "summary": "Global Sanctions (OFAC SDN / UN) & Web3 AML Wallet Inspector",
-        "description": "Cross-checks 0x EVM wallets, LEI codes, or entity names against US Treasury OFAC SDN and UN Consolidated Lists, plus live Base Mainnet wallet telemetry. Price: 0.0020 USDC (4 Session Pass credits).",
+        "description": "Cross-checks 0x EVM wallets, LEI codes, or entity names against US Treasury OFAC SDN and UN Consolidated Lists, plus live Base Mainnet wallet telemetry. Price: 0.0200 USDC (4 Session Pass credits).",
         "tags": ["Global-OFAC-AML"],
         "security": [{ "x402Payment": [] }],
         "parameters": [
@@ -616,7 +616,7 @@
     "/api/v1/notarize": {
       "get": {
         "summary": "M2M Cryptographic Timestamp & Proof-of-Existence",
-        "description": "Generates a deterministic SHA-256 hash and issues a UTC timestamp certificate signed with the Grid402 Oracle secp256k1 private key. Price: 0.0005 USDC (1 Session Pass credit).",
+        "description": "Generates a deterministic SHA-256 hash and issues a UTC timestamp certificate signed with the Grid402 Oracle secp256k1 private key. Price: 0.0050 USDC (1 Session Pass credit).",
         "tags": ["Notarization"],
         "security": [{ "x402Payment": [] }],
         "parameters": [
@@ -644,7 +644,7 @@
     "/api/v1/global-markets": {
       "get": {
         "summary": "World Financial Calendar (US/EU/UK/BR) & 30+ ECB FX Reference Rates",
-        "description": "Returns exchange settlement holiday status for US (NYSE/Fed), EU (TARGET2), UK (LSE), or BR (B3/ANBIMA) plus 30+ official European Central Bank reference rates. Price: 0.0005 USDC (1 Session Pass credit).",
+        "description": "Returns exchange settlement holiday status for US (NYSE/Fed), EU (TARGET2), UK (LSE), or BR (B3/ANBIMA) plus 30+ official European Central Bank reference rates. Price: 0.0050 USDC (1 Session Pass credit).",
         "tags": ["Global-Markets"],
         "security": [{ "x402Payment": [] }],
         "parameters": [
@@ -683,7 +683,7 @@
     "/api/v1/pass": {
       "get": {
         "summary": "x402 Prepaid Session Pass Issuance & Free Balance Check",
-        "description": "Issues a signed pass_g402_<id>_<hmac> token when paid via X-Payment (0.0500 USDC = 100 credits, 0.5000 USDC = 1,000 credits), or checks remaining credits for free via ?status=pass_g402_...",
+        "description": "Issues a signed pass_g402_<id>_<hmac> token when paid via X-Payment (0.5000 USDC = 100 credits, 0.5000 USDC = 1,000 credits), or checks remaining credits for free via ?status=pass_g402_...",
         "tags": ["Session-Pass"],
         "parameters": [
           {
@@ -789,7 +789,7 @@
     "/privacy": {
       "get": {
         "summary": "Privacy Policy (LGPD Compliance)",
-        "description": "Returns the privacy policy confirming zero PII collection and compliance with Brazilian LGPD (Lei nº 13.709/2018) and Marco Civil da Internet.",
+        "description": "Returns the privacy policy confirming zero PII collection and compliance with Brazilian LGPD (Lei nÂº 13.709/2018) and Marco Civil da Internet.",
         "tags": ["Legal"],
         "responses": {
           "200": {
@@ -805,7 +805,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-Payment",
-        "description": "Transaction hash (0x + 64 hex characters) on Base Mainnet (Chain ID 8453) transferring 0.0005 USDC (standard) or 0.0020 USDC (CNPJ) to 0xa31c31069c43ac1c0075a93c325b0dcd7744356c. For free testing and CI/CD, pass value 'demo' to simulate in Sandbox mode (up to 20 calls/hour per IP)."
+        "description": "Transaction hash (0x + 64 hex characters) on Base Mainnet (Chain ID 8453) transferring 0.0050 USDC (standard) or 0.0200 USDC (CNPJ) to 0xa31c31069c43ac1c0075a93c325b0dcd7744356c. For free testing and CI/CD, pass value 'demo' to simulate in Sandbox mode (up to 20 calls/hour per IP)."
       }
     },
     "responses": {
@@ -844,7 +844,7 @@
           "chain_id": { "type": "integer", "example": 8453 },
           "token": { "type": "string", "example": "USDC" },
           "token_contract": { "type": "string", "example": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" },
-          "price_usdc": { "type": "string", "example": "0.0005" },
+          "price_usdc": { "type": "string", "example": "0.0050" },
           "price_raw_units": { "type": "integer", "example": 500 },
           "recipient_wallet": { "type": "string", "example": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c" },
           "action_required": { "type": "string" },
@@ -855,7 +855,7 @@
         "type": "object",
         "properties": {
           "code": { "type": "string", "example": "USD" },
-          "name": { "type": "string", "example": "Dólar Americano/Real Brasileiro" },
+          "name": { "type": "string", "example": "DÃ³lar Americano/Real Brasileiro" },
           "bid": { "type": "number", "example": 5.421 },
           "ask": { "type": "number", "example": 5.423 },
           "high": { "type": "number", "example": 5.45 },
@@ -884,7 +884,7 @@
             }
           },
           "source": { "type": "string", "example": "Banco Central / Dados Abertos" },
-          "legal_license": { "type": "string", "example": "Fatos Econômicos e Cotações de Domínio Público (Lei nº 9.610/1998 Art. 8º, I e Decreto nº 8.777/2016)" },
+          "legal_license": { "type": "string", "example": "Fatos EconÃ´micos e CotaÃ§Ãµes de DomÃ­nio PÃºblico (Lei nÂº 9.610/1998 Art. 8Âº, I e Decreto nÂº 8.777/2016)" },
           "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
         },
         "required": ["service", "status", "base", "timestamp", "response_timestamp", "ttl_seconds", "rates", "legal_license", "_oracle_proof"]
@@ -934,7 +934,7 @@
         "properties": {
           "success": { "type": "boolean", "example": true },
           "cep": { "type": "string", "example": "01310-100" },
-          "cidade": { "type": "string", "example": "São Paulo" },
+          "cidade": { "type": "string", "example": "SÃ£o Paulo" },
           "uf": { "type": "string", "example": "SP" },
           "ibge": { "type": "string", "example": "3550308" }
         }
@@ -949,8 +949,8 @@
           "situacao_cadastral": { "type": "string", "example": "ATIVA" },
           "data_abertura": { "type": "string", "example": "01/08/1966" },
           "cnae_fiscal": { "type": "string", "example": "6422100" },
-          "cnae_fiscal_descricao": { "type": "string", "example": "Bancos múltiplos, com carteira comercial" },
-          "natureza_juridica": { "type": "string", "example": "Sociedade Anônima Aberta" },
+          "cnae_fiscal_descricao": { "type": "string", "example": "Bancos mÃºltiplos, com carteira comercial" },
+          "natureza_juridica": { "type": "string", "example": "Sociedade AnÃ´nima Aberta" },
           "uf": { "type": "string", "example": "DF" },
           "municipio": { "type": "string", "example": "BRASILIA" }
         }
@@ -1032,7 +1032,7 @@
               }
             }
           },
-          "tariff_usdc": { "type": "string", "example": "0.0005" },
+          "tariff_usdc": { "type": "string", "example": "0.0050" },
           "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
         }
       },
@@ -1049,7 +1049,7 @@
             "example": ["CEIS", "CNEP"]
           },
           "sanctions": { "type": "array", "items": { "type": "object" } },
-          "tariff_usdc": { "type": "string", "example": "0.0010" },
+          "tariff_usdc": { "type": "string", "example": "0.0100" },
           "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
         }
       },
@@ -1061,7 +1061,7 @@
           "optante_simples": { "type": "boolean", "example": false },
           "optante_simei": { "type": "boolean", "example": false },
           "regime_tributario": { "type": "string", "example": "NAO_OPTANTE" },
-          "tariff_usdc": { "type": "string", "example": "0.0010" },
+          "tariff_usdc": { "type": "string", "example": "0.0100" },
           "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
         }
       },
@@ -1074,7 +1074,7 @@
           "status": { "type": "string", "example": "APROVADO" },
           "flags": { "type": "array", "items": { "type": "string" } },
           "summary": { "type": "object" },
-          "tariff_usdc": { "type": "string", "example": "0.0030" },
+          "tariff_usdc": { "type": "string", "example": "0.0300" },
           "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
         }
       },
@@ -1130,8 +1130,8 @@
           "headquarters_address": { "type": "object" },
           "registration_details": { "type": "object" },
           "source": { "type": "string", "example": "Global Legal Entity Identifier Foundation (GLEIF)" },
-          "legal_license": { "type": "string", "example": "CC0 1.0 Universal (Public Domain Dedication — ISO 17442)" },
-          "data_protection_compliance": { "type": "string", "example": "GDPR Recital 14 & LGPD Art. 1º (Strictly Corporate Legal Entity Data — Zero Personal/Natural Person PII)" },
+          "legal_license": { "type": "string", "example": "CC0 1.0 Universal (Public Domain Dedication â€” ISO 17442)" },
+          "data_protection_compliance": { "type": "string", "example": "GDPR Recital 14 & LGPD Art. 1Âº (Strictly Corporate Legal Entity Data â€” Zero Personal/Natural Person PII)" },
           "timestamp": { "type": "string", "format": "date-time" },
           "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
         }
@@ -1150,7 +1150,7 @@
           "lists_checked": { "type": "array", "items": { "type": "string" } },
           "matches": { "type": "array", "items": { "type": "object" } },
           "web3_aml": { "type": "object", "nullable": true },
-          "legal_license": { "type": "string", "example": "Public Domain (17 U.S.C. § 105 - US Government Works & UN Open Data)" },
+          "legal_license": { "type": "string", "example": "Public Domain (17 U.S.C. Â§ 105 - US Government Works & UN Open Data)" },
           "data_protection_compliance": { "type": "string" },
           "timestamp": { "type": "string", "format": "date-time" },
           "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
@@ -1165,7 +1165,7 @@
           "input_mode": { "type": "string", "example": "raw_payload_hashed" },
           "input_sha256": { "type": "string", "example": "0x5465790576c0f4fbcc883c3dc4e9f41a7d655a31bce9101d98cfbdf0ea24eb2c" },
           "input_byte_length": { "type": "integer", "example": 24 },
-          "zero_retention_policy": { "type": "string", "example": "STRICT_STATELESS_HASH_ONLY (Raw content is hashed in RAM and immediately discarded — Zero PII stored)" },
+          "zero_retention_policy": { "type": "string", "example": "STRICT_STATELESS_HASH_ONLY (Raw content is hashed in RAM and immediately discarded â€” Zero PII stored)" },
           "notarized_at_utc": { "type": "string", "format": "date-time" },
           "unix_epoch": { "type": "integer" },
           "oracle_authority": { "type": "object" },

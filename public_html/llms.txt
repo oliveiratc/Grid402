@@ -4,12 +4,12 @@
 
 ## Core Documentation
 - [Full LLM Context](https://grid402.online/llms-full.txt): Documentacao exaustiva com schemas JSON e contratos de endpoints para modelos de linguagem
-- [Catálogo Completo de Serviços](https://grid402.online/catalog): Preço, limites, exemplos e status de todos os endpoints
-- [Trust Center](https://grid402.online/trust): SLA, disponibilidade histórica, metodologia e política de incidentes
-- [Agent Hub](https://grid402.online/agent-hub): Documentação e exemplos de integração para agentes autônomos
-- [Growth Program](https://grid402.online/growth): Starter, Builders, Referrals para agentes autônomos
-- [Builder Reputation](https://grid402.online/reputation): Reputação Pública de builders Grid402
-- [Payment Dashboard](https://grid402.online/payment-dashboard): Pay-per-Request vs Session Pass — visão de uma única tela
+- [CatÃ¡logo Completo de ServiÃ§os](https://grid402.online/catalog): PreÃ§o, limites, exemplos e status de todos os endpoints
+- [Trust Center](https://grid402.online/trust): SLA, disponibilidade histÃ³rica, metodologia e polÃ­tica de incidentes
+- [Agent Hub](https://grid402.online/agent-hub): DocumentaÃ§Ã£o e exemplos de integraÃ§Ã£o para agentes autÃ´nomos
+- [Growth Program](https://grid402.online/growth): Starter, Builders, Referrals para agentes autÃ´nomos
+- [Builder Reputation](https://grid402.online/reputation): ReputaÃ§Ã£o PÃºblica de builders Grid402
+- [Payment Dashboard](https://grid402.online/payment-dashboard): Pay-per-Request vs Session Pass â€” visÃ£o de uma Ãºnica tela
 - [Central de Agentes de IA](https://grid402.online/agents): Guia rapido de integracao para agentes autonomos, Claude Desktop, Python e cURL
 - [OpenAPI Specification](https://grid402.online/openapi.json): Especificacao completa e interativa da API no padrao OpenAPI 3.1
 - [MCP Server Card](https://grid402.online/.well-known/mcp/server-card.json): Ficha de descoberta de capacidades SEP-1649 para servidores MCP
@@ -43,7 +43,7 @@
 - [Global Sanctions (OFAC/UN) & Web3 AML API](https://grid402.online/api/v1/ofac?target=0x8589427373d6d84e98730d7795d8f6f8731fda16): Screening global em listas OFAC SDN (US Treasury) e ONU + inspecao AML on-chain de carteiras EVM na Base Mainnet
 - [M2M Cryptographic Timestamp & Notarization API](https://grid402.online/api/v1/notarize?content=Grid402-M2M-Contract-v1): Certificado criptografico de existencia e carimbo do tempo UTC assinado com ECDSA secp256k1 para contratos e logs de agentes
 - [World Markets Calendar & 30+ ECB FX Rates API](https://grid402.online/api/v1/global-markets?market=US&base=USD): Calendario de liquidacao de bolsas mundiais (US NYSE/Fed, EU TARGET2, UK LSE, BR B3) + 30+ moedas oficiais do Banco Central Europeu (ECB)
-- [x402 Prepaid Session Pass API](https://grid402.online/api/v1/pass): Emissao de passe pre-pago M2M (0.0500 USDC = 100 creditos, 0.5000 USDC = 1.000 creditos) para execucao em <15ms sem espera de bloco (`X-Payment: pass_g402_...`)
+- [x402 Prepaid Session Pass API](https://grid402.online/api/v1/pass): Emissao de passe pre-pago M2M (0.5000 USDC = 100 creditos, 0.5000 USDC = 1.000 creditos) para execucao em <15ms sem espera de bloco (`X-Payment: pass_g402_...`)
 
 ## SDKs and Agent Frameworks
 - [Python SDK (PyPI)](https://pypi.org/project/grid402/): Pacote oficial grid402 para Python com suporte a Pydantic e Coinbase AgentKit
@@ -53,10 +53,10 @@
 
 ## Micropayment Protocol Details
 - Rede e Chain ID: Base Mainnet (Chain ID 8453)
-- Tarifa Padrao por Requisicao: 0.0005 USDC (Sancoes e Simples: 0.0010 USDC, CNPJ, LEI e OFAC: 0.0020 USDC, Compliance 360: 0.0030 USDC)
+- Tarifa Padrao por Requisicao: 0.0050 USDC (Sancoes e Simples: 0.0100 USDC, CNPJ, LEI e OFAC: 0.0200 USDC, Compliance 360: 0.0300 USDC)
 - Formas de Liquidacao Suportadas:
   1) Protocolo x402 v2 padrao (M2M Gasless): Envie a autorizacao assinada EIP-3009 em base64 no cabecalho `PAYMENT-SIGNATURE` ou `X-Payment` (esquema `exact`). O Grid402 valida e liquida via facilitador retornando o recibo em `PAYMENT-RESPONSE`.
-  2) Session Pass Pre-Pago (<15ms): Adquira créditos em lote (2 USDC = 4.000 reqs, 5 USDC = 10.000 reqs, 20 USDC = 50.000 reqs) e reutilize o token `pass_g402_...` no cabecalho `X-Payment` sem latencia on-chain.
+  2) Session Pass Pre-Pago (<15ms): Adquira crÃ©ditos em lote (2 USDC = 4.000 reqs, 5 USDC = 10.000 reqs, 20 USDC = 50.000 reqs) e reutilize o token `pass_g402_...` no cabecalho `X-Payment` sem latencia on-chain.
   3) Transferencia Direta On-Chain: Envie o valor em USDC na Base para a carteira do oraculo e repita a chamada com `X-Payment: 0x<tx_hash>`.
 - [Base Mainnet Scanner](https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c): Carteira oraculo recebedora de micropagamentos (0xa31c31069c43ac1c0075a93c325b0dcd7744356c)
 - [USDC Contract on Base](https://basescan.org/token/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913): Contrato oficial de USDC na rede Base Mainnet (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
@@ -67,12 +67,12 @@
 - Endpoint de Verificacao: `POST /api/v1/verify` (ou `GET /api/v1/verify?payload=...`) valida sem estado qualquer resposta com assinatura em menos de 1 ms via motor OpenSSL em C (limite maximo de 64 KB). Retorna `valid: true/false`, `payload_hash`, `oracle_address`, `timestamp` e `verification_time_ms`.
 
 ## Data Protection & Open Data Legal Compliance (LGPD, GDPR, CCPA & Public Domain)
-- **Zero-PII Architecture (LGPD Art. 1º & GDPR Recital 14):** O Grid402 processa estritamente registros de Pessoas Juridicas (entidades corporativas), fatos macroeconomicos e telemetria de protocolos de rede. Nas consultas de CNPJ (`/api/v1/cnpj`, `/api/v1/compliance`), o sistema filtra e descarta na origem qualquer dado pessoal de pessoas fisicas (sem QSA/socios, sem CPF, sem telefones ou e-mails privados).
+- **Zero-PII Architecture (LGPD Art. 1Âº & GDPR Recital 14):** O Grid402 processa estritamente registros de Pessoas Juridicas (entidades corporativas), fatos macroeconomicos e telemetria de protocolos de rede. Nas consultas de CNPJ (`/api/v1/cnpj`, `/api/v1/compliance`), o sistema filtra e descarta na origem qualquer dado pessoal de pessoas fisicas (sem QSA/socios, sem CPF, sem telefones ou e-mails privados).
 - **Pseudonimizacao e Zero-Retention (LGPD Art. 13 & GDPR Art. 25):** Enderecos IP em metricas operacionais sao truncados (`xxx.xxx`), o controle de taxa de Sandbox utiliza hash criptografico `HMAC-SHA256` e o endpoint `/api/v1/notarize` processa dados exclusivamente em memoria RAM volatil para gerar o digest `SHA-256`, sem reter ou exibir o texto bruto (`zero_retention_policy: STRICT_STATELESS_HASH_ONLY`).
 - **Direito de Uso de Informacoes Publicas e Licencas Abertas (`legal_license` em cada JSON):**
   - `GLEIF LEI (/api/v1/lei)`: Licenca **CC0 1.0 Universal (Public Domain Dedication)**, padrao ISO 17442.
-  - `OFAC SDN & ONU (/api/v1/ofac)`: Dominio Publico Federal dos EUA (**17 U.S.C. § 105**) e Listas Consolidadas do Conselho de Seguranca da ONU.
-  - `Mercados Globais, Cambio e Cripto (/api/v1/global-markets, /api/v1/forex, /api/v1/crypto)`: Diretiva Europeia de Dados Abertos (**EU Directive 2019/1024 - ECB Reference Rates**), Decreto nº 8.777/2016 (BCB) e fatos economicos de mercado livres de copyright (**17 U.S.C. § 102(b)** e **Lei nº 9.610/1998 Art. 8º, I**).
-  - `Registros Corporativos, Fiscais e Calendarios (/api/v1/cnpj, /api/v1/sanctions, /api/v1/simples, /api/v1/compliance, /api/v1/indicators, /api/v1/holidays, /api/v1/workdays, /api/v1/cep)`: Lei de Acesso a Informacao (**Lei nº 12.527/2011 - LAI**), Politica Nacional de Dados Abertos (**Decreto nº 8.777/2016**), Lei Anticorrupcao (Lei nº 12.846/2013) e algoritmos matematicos de calendario (Lei nº 9.610/1998 Art. 8º, II e IV).
+  - `OFAC SDN & ONU (/api/v1/ofac)`: Dominio Publico Federal dos EUA (**17 U.S.C. Â§ 105**) e Listas Consolidadas do Conselho de Seguranca da ONU.
+  - `Mercados Globais, Cambio e Cripto (/api/v1/global-markets, /api/v1/forex, /api/v1/crypto)`: Diretiva Europeia de Dados Abertos (**EU Directive 2019/1024 - ECB Reference Rates**), Decreto nÂº 8.777/2016 (BCB) e fatos economicos de mercado livres de copyright (**17 U.S.C. Â§ 102(b)** e **Lei nÂº 9.610/1998 Art. 8Âº, I**).
+  - `Registros Corporativos, Fiscais e Calendarios (/api/v1/cnpj, /api/v1/sanctions, /api/v1/simples, /api/v1/compliance, /api/v1/indicators, /api/v1/holidays, /api/v1/workdays, /api/v1/cep)`: Lei de Acesso a Informacao (**Lei nÂº 12.527/2011 - LAI**), Politica Nacional de Dados Abertos (**Decreto nÂº 8.777/2016**), Lei Anticorrupcao (Lei nÂº 12.846/2013) e algoritmos matematicos de calendario (Lei nÂº 9.610/1998 Art. 8Âº, II e IV).
   - `Protocolos de Rede (/api/v1/dns, /api/v1/ssl, /api/v1/asn, /api/v1/notarize)`: Padroes abertos IETF (RFC 1035, RFC 5280, RFC 4271 e RFC 8785).
-- **Propriedade Intelectual e Direitos Reservados da Plataforma:** © 2026 Grid402 Network Intelligence. Todos os direitos reservados (Lei nº 9.609/1998, Lei nº 9.610/1998 e Convencao de Berna). O software da plataforma, motor de liquidacao HTTP 402, arquitetura de Session Pass, marca e interface sao de propriedade exclusiva do Grid402. Os dados tecnicos retornados pertencem ao dominio publico / fontes governamentais abertas.
+- **Propriedade Intelectual e Direitos Reservados da Plataforma:** Â© 2026 Grid402 Network Intelligence. Todos os direitos reservados (Lei nÂº 9.609/1998, Lei nÂº 9.610/1998 e Convencao de Berna). O software da plataforma, motor de liquidacao HTTP 402, arquitetura de Session Pass, marca e interface sao de propriedade exclusiva do Grid402. Os dados tecnicos retornados pertencem ao dominio publico / fontes governamentais abertas.

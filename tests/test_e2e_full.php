@@ -67,7 +67,7 @@ assert(file_exists($sitemapPath), "sitemap.xml não encontrado");
 $llmsContent = (string)file_get_contents($llmsPath);
 assert(str_contains($llmsContent, 'Grid402'), 'llms.txt deve conter Grid402');
 assert(str_contains($llmsContent, '8453'), 'llms.txt deve referenciar a chain Base (8453)');
-assert(str_contains($llmsContent, '0.0005'), 'llms.txt deve indicar preço de 0.0005 USDC');
+assert(str_contains($llmsContent, '0.0050'), 'llms.txt deve indicar preço de 0.0050 USDC');
 assert(str_contains($llmsContent, '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'), 'llms.txt deve conter contrato do USDC');
 assert(str_contains($llmsContent, '/api/v1/forex'), 'llms.txt deve documentar rota forex');
 assert(str_contains($llmsContent, '/api/v1/dns'), 'llms.txt deve documentar rota dns');
@@ -126,9 +126,8 @@ try {
     assert($nav['code'] === 200, "Navegador deve receber HTTP 200 (Recebeu: {$nav['code']})");
     assert(str_contains($nav['body'], '<!DOCTYPE html>'), "Deve conter HTML5");
     assert(str_contains($nav['body'], 'Grid402'), "Deve exibir Grid402");
-    assert(str_contains($nav['body'], 'Câmbio'), "Deve exibir serviço de Câmbio");
-    assert(str_contains($nav['body'], 'DNS Records'), "Deve exibir serviço de DNS");
-    assert(str_contains($nav['body'], 'id="playground"'), "Deve conter a seção de Playground");
+    assert(str_contains($nav['body'], 'crypto'), "Deve exibir o serviço de criptoativos");
+    assert(str_contains($nav['body'], 'DNS Records'), "Deve exibir serviço de DNS");    assert(str_contains($nav['body'], 'id="playground"'), "Deve conter a seção de Playground");
     assert(str_contains($nav['body'], 'href="#playground"'), "Deve conter link para Playground no menu");
     assert(str_contains($nav['body'], 'id="playground-audit-card"'), "Deve conter o Card de Auditoria Técnica");
     echo "     ✓ Landing Page dark-mode e Playground renderizados em {$nav['time_ms']} ms (HTTP 200)!\n";
@@ -150,7 +149,7 @@ try {
     assert($chalData['error'] === 'PaymentRequired', 'Erro deve ser PaymentRequired');
     assert($chalData['network'] === 'Base', 'Rede deve ser Base');
     assert($chalData['token'] === 'USDC', 'Token deve ser USDC');
-    assert($chalData['price_usdc'] === '0.0005', 'Preço deve ser 0.0005 USDC');
+    assert($chalData['price_usdc'] === '0.0050', 'Preço deve ser 0.0050 USDC');
     echo "     ✓ Desafio x402 emitido em {$chalReq['time_ms']} ms (HTTP 402)!\n";
 
     // 3.4. Agente tentando Replay Attack

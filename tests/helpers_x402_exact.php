@@ -16,6 +16,10 @@ function t_bootstrap(string $mode = 'settle', ?string $storageDir = null, array 
     }
     putenv('GRID402_STORAGE_DIR=' . $dir);
     putenv('GRID402_FACILITATOR_MODE=' . $mode);
+    // Testes homologam o profile CDP (paths /v2/x402/*) independentemente
+    // dos defaults de producao (PayAI /verify + /settle).
+    putenv('GRID402_FACILITATOR_VERIFY_PATH=/v2/x402/verify');
+    putenv('GRID402_FACILITATOR_SETTLE_PATH=/v2/x402/settle');
     foreach ($extraEnv as $k => $v) {
         putenv($k . '=' . $v);
     }

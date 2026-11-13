@@ -68,7 +68,7 @@ try {
     assertE2E($httpCode === 402, "Endpoint /api/v1/sanctions emite HTTP 402 Payment Required (Código recebido: {$httpCode})");
     $json402 = json_decode($res402 ?: '{}', true);
     assertE2E(isset($json402['price_usdc']), 'Desafio 402 contém campo price_usdc');
-    assertE2E($json402['price_usdc'] === '0.0010', 'Preço escalonado de 0.0010 USDC para sanções');
+    assertE2E($json402['price_usdc'] === '0.0100', 'Preço escalonado de 0.0100 USDC para sanções');
     assertE2E(isset($json402['preview']['tipo_consulta']), 'Prévia de dados presente no desafio 402');
 
     // 2. Teste Execução no Sandbox para /api/v1/sanctions
@@ -98,7 +98,7 @@ try {
     echo "\n[4/4] Testando Compliance Score 360 em /api/v1/compliance...\n";
     $resScore402 = file_get_contents("{$baseUrl}/api/v1/compliance?cnpj=00000000000191", false, $ctx402);
     $jsonScore402 = json_decode($resScore402 ?: '{}', true);
-    assertE2E(($jsonScore402['price_usdc'] ?? '') === '0.0030', 'Preço de 0.0030 USDC configurado para Compliance Score');
+    assertE2E(($jsonScore402['price_usdc'] ?? '') === '0.0300', 'Preço de 0.0300 USDC configurado para Compliance Score');
 
     $resScore = file_get_contents("{$baseUrl}/api/v1/compliance?cnpj=00000000000191", false, $ctxDemo);
     $jsonScore = json_decode($resScore ?: '{}', true);

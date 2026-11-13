@@ -57,7 +57,7 @@ try {
     $data402 = json_decode($resp402['body'], true);
     assert($data402['error'] === 'PaymentRequired', 'Erro deve ser PaymentRequired');
     assert($data402['network'] === 'Base', 'Rede deve ser Base');
-    assert($data402['price_usdc'] === '0.0005', 'Preço deve ser 0.0005 USDC');
+    assert($data402['price_usdc'] === '0.0050', 'Preço deve ser 0.0050 USDC');
     assert(isset($data402['recipient_wallet']), 'Carteira recebedora deve estar presente');
     echo "✓ Desafio HTTP 402 emitido em conformidade com o protocolo!\n";
 

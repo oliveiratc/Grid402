@@ -42,7 +42,7 @@ grid402_record_telemetry('ssl', 403, false, null, '189.40.50.2');
 
 // Grava 1 consulta paga de DNS com tx_hash
 $dummyTx = '0x' . bin2hex(random_bytes(32));
-grid402_record_telemetry('dns', 200, true, $dummyTx, '189.40.50.2', 0.0005);
+grid402_record_telemetry('dns', 200, true, $dummyTx, '189.40.50.2', 0.0050);
 
 // Grava 1 consulta sandbox
 grid402_record_telemetry('cep', 200, false, null, '127.0.0.1', 0.0, 'sandbox');
@@ -50,7 +50,7 @@ grid402_record_telemetry('cep', 200, false, null, '127.0.0.1', 0.0, 'sandbox');
 $m = grid402_get_metrics();
 assert($m['total_requests'] === 5, 'Total de requisições deve ser 5');
 assert($m['total_paid_requests'] === 1, 'Total de requisições pagas deve ser 1');
-assert($m['total_revenue_usdc'] === 0.0005, 'Faturamento total em USDC deve ser 0.0005');
+assert($m['total_revenue_usdc'] === 0.0050, 'Faturamento total em USDC deve ser 0.0050');
 assert($m['service_counts']['forex'] === 1, 'Consultas de forex deve ser 1');
 assert($m['service_counts']['dns'] === 2, 'Consultas de dns deve ser 2');
 assert($m['service_counts']['ssl'] === 1, 'Consultas de ssl deve ser 1');
@@ -80,12 +80,12 @@ assert(count($mAfter['recent_events']) === 100, 'Buffer circular deve reter exat
 // --- Teste 2.1: Origem do pagamento e categoria de falha na telemetria ---
 // Pagamento liquidado via facilitator (conta faturamento)
 $settlementHash = '0x' . bin2hex(random_bytes(32));
-grid402_record_telemetry('dns', 200, true, null, '189.40.50.9', 0.0005, 'paid', [
+grid402_record_telemetry('dns', 200, true, null, '189.40.50.9', 0.0050, 'paid', [
     'payment_source' => 'facilitator',
     'settlement_tx' => $settlementHash,
 ]);
 // Pagamento em modo verify_only (nao fatura)
-grid402_record_telemetry('cep', 200, true, null, '189.40.50.9', 0.0005, 'paid', [
+grid402_record_telemetry('cep', 200, true, null, '189.40.50.9', 0.0050, 'paid', [
     'payment_source' => 'facilitator_verify_only',
 ]);
 // Falha de pagamento (registra apenas categoria de falha)
@@ -100,7 +100,7 @@ assert(($mMeta['payment_sources']['facilitator'] ?? 0) === 1, 'Origem facilitato
 assert(($mMeta['payment_sources']['facilitator_verify_only'] ?? 0) === 1, 'Origem facilitator_verify_only deve contabilizar 1 evento');
 assert(($mMeta['failure_categories']['payment_rejected'] ?? 0) === 1, 'Falha payment_rejected deve contabilizar 1 evento');
 assert($mMeta['total_paid_requests'] === 2, 'Somente pagamentos liquidados devem contar como pagos (tx_hash + facilitator)');
-assert(abs($mMeta['total_revenue_usdc'] - 0.001) < 0.0000001, 'Receita deve somar apenas pagamentos liquidaveis (0.001 USDC)');
+assert(abs($mMeta['total_revenue_usdc'] - 0.010) < 0.0000001, 'Receita deve somar apenas pagamentos liquidaveis (0.010 USDC)');
 
 // Evento mais recente deve carregar a categoria de falha e nao uma origem de pagamento
 assert($mMeta['recent_events'][0]['failure_category'] === 'payment_rejected', 'Evento de falha deve carregar failure_category');
@@ -113,7 +113,7 @@ assert($mMeta['recent_events'][1]['is_paid'] === false, 'Evento verify_only nao 
 // --- Teste 2.2: Indicadores Analíticos Avançados (grid402_compute_admin_analytics) ---
 $analytics = grid402_compute_admin_analytics($mMeta, 5.50);
 assert(isset($analytics['arpu_usdc']), 'Analytics deve conter arpu_usdc');
-assert(abs($analytics['arpu_usdc'] - 0.0005) < 0.000001, 'ARPU com 0.001 USDC em 2 pagamentos deve ser 0.0005');
+assert(abs($analytics['arpu_usdc'] - 0.0050) < 0.000001, 'ARPU com 0.001 USDC em 2 pagamentos deve ser 0.0050');
 assert(isset($analytics['technical_success_rate']), 'Analytics deve conter technical_success_rate');
 assert(isset($analytics['sandbox_rate']), 'Analytics deve conter sandbox_rate');
 assert(count($analytics['daily_history_14d']) === 14, 'daily_history_14d deve conter exatamente 14 dias continuos');

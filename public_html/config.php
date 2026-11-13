@@ -1,19 +1,19 @@
 <?php
 /**
- * Grid402 - Configuração Central e Catálogo de Alvos
+ * Grid402 - ConfiguraÃ§Ã£o Central e CatÃ¡logo de Alvos
  * 
- * Oráculo M2M de Telemetria e Status de Serviços Críticos (Protocolo x402)
+ * OrÃ¡culo M2M de Telemetria e Status de ServiÃ§os CrÃ­ticos (Protocolo x402)
  */
 
 declare(strict_types=1);
 
-// Evitar execução se chamado diretamente pelo navegador
+// Evitar execuÃ§Ã£o se chamado diretamente pelo navegador
 if (!defined('GRID402_EXEC') && php_sapi_name() !== 'cli' && basename($_SERVER['PHP_SELF'] ?? '') === 'config.php') {
     http_response_code(403);
-    exit('Acesso direto proíbido.');
+    exit('Acesso direto proÃ­bido.');
 }
 
-// 1. Carregador de variáveis de ambiente (.env)
+// 1. Carregador de variÃ¡veis de ambiente (.env)
 function grid402_load_env(): void {
     static $loaded = false;
     if ($loaded) {
@@ -56,7 +56,7 @@ function grid402_load_env(): void {
 
 grid402_load_env();
 
-// Função auxiliar para leitura com fallback
+// FunÃ§Ã£o auxiliar para leitura com fallback
 function grid402_env(string $key, mixed $default = null): mixed {
     $val = getenv($key);
     if ($val !== false and $val !== '') {
@@ -66,7 +66,7 @@ function grid402_env(string $key, mixed $default = null): mixed {
 }
 
 /**
- * Validação defensiva do segredo de automação e reset
+ * ValidaÃ§Ã£o defensiva do segredo de automaÃ§Ã£o e reset
  */
 function grid402_is_default_secret(): bool {
     $secret = defined('GRID402_CRON_SECRET') ? GRID402_CRON_SECRET : (string) grid402_env('GRID402_CRON_SECRET', '');
@@ -77,7 +77,7 @@ function grid402_is_default_secret(): bool {
 }
 
 /**
- * Obtenção confiável do IP do cliente protegida contra spoofing de headers
+ * ObtenÃ§Ã£o confiÃ¡vel do IP do cliente protegida contra spoofing de headers
  */
 function grid402_get_trusted_client_ip(): string {
     $remote = (string)($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
@@ -108,7 +108,7 @@ function grid402_get_trusted_client_ip(): string {
 }
 
 /**
- * Escrita atômica em arquivo via arquivo temporário com fallback direto seguro
+ * Escrita atÃ´mica em arquivo via arquivo temporÃ¡rio com fallback direto seguro
  */
 if (!function_exists('grid402_atomic_write')) {
     function grid402_atomic_write(string $filePath, mixed $data): bool {
@@ -120,7 +120,7 @@ if (!function_exists('grid402_atomic_write')) {
         $content = is_array($data) ? (string) json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) : (string)$data;
         $tmp = $filePath . '.' . bin2hex(random_bytes(6)) . '.tmp';
 
-        // 1. Tentar escrita atômica via arquivo temporário + rename
+        // 1. Tentar escrita atÃ´mica via arquivo temporÃ¡rio + rename
         $written = @file_put_contents($tmp, $content, LOCK_EX);
         if ($written !== false) {
             if (@rename($tmp, $filePath)) {
@@ -141,7 +141,7 @@ if (!function_exists('grid402_atomic_write')) {
     }
 }
 
-// 2. Parâmetros x402 e Blockchain (Base / USDC)
+// 2. ParÃ¢metros x402 e Blockchain (Base / USDC)
 define('GRID402_WALLET_ADDRESS', strtolower((string) grid402_env('GRID402_WALLET_ADDRESS', '0xa31c31069c43ac1c0075a93c325b0dcd7744356c')));
 define('GRID402_BASE_RPC_URL', (string) grid402_env('GRID402_BASE_RPC_URL', 'https://mainnet.base.org'));
 define('GRID402_USDC_CONTRACT', strtolower((string) grid402_env('GRID402_USDC_CONTRACT', '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913')));
@@ -174,10 +174,10 @@ if ($grid402X402Network === 'base-sepolia') {
 unset($grid402X402Network);
 define('GRID402_SEPOLIA_USDC_CONTRACT', strtolower((string) grid402_env('GRID402_SEPOLIA_USDC_CONTRACT', '0x036cbd53842c5426634e7929541ec2318f3dcf7e')));
 define('GRID402_SANDBOX_RATE_LIMIT', (int) grid402_env('GRID402_SANDBOX_RATE_LIMIT', 30)); // 30 consultas gratuitas por hora por IP (converte para x402 pago)
-define('GRID402_USDC_REQUIRED_RAW', (int) grid402_env('GRID402_USDC_REQUIRED_RAW', 500)); // 0.000500 USDC
-define('GRID402_PRICE_DISPLAY', (string) grid402_env('GRID402_PRICE_DISPLAY', '0.0005'));
-define('GRID402_PRICE_CNPJ', (string) grid402_env('GRID402_PRICE_CNPJ', '0.0020'));
-define('GRID402_USDC_CNPJ_RAW', (int) grid402_env('GRID402_USDC_CNPJ_RAW', 2000)); // 0.002000 USDC
+define('GRID402_USDC_REQUIRED_RAW', (int) grid402_env('GRID402_USDC_REQUIRED_RAW', 5000)); // 0.005000 USDC
+define('GRID402_PRICE_DISPLAY', (string) grid402_env('GRID402_PRICE_DISPLAY', '0.0050'));
+define('GRID402_PRICE_CNPJ', (string) grid402_env('GRID402_PRICE_CNPJ', '0.0200'));
+define('GRID402_USDC_CNPJ_RAW', (int) grid402_env('GRID402_USDC_CNPJ_RAW', 20000)); // 0.020000 USDC
 define('GRID402_CRON_SECRET', (string) grid402_env('GRID402_CRON_SECRET', 'grid402_secret_token_change_me'));
 
 // 2.2. Notificacoes de Pagamento em Tempo Real no Telegram (Opcional)
@@ -188,7 +188,7 @@ define('GRID402_TELEGRAM_CHAT_ID', (string) grid402_env('GRID402_TELEGRAM_CHAT_I
 define('GRID402_CANONICAL_DOMAIN', (string) grid402_env('GRID402_CANONICAL_DOMAIN', 'https://grid402.online'));
 define('GRID402_CANONICAL_HOST', (string) grid402_env('GRID402_CANONICAL_HOST', 'grid402.online'));
 
-// 2.1. Parâmetros de Assinatura Criptográfica do Oráculo (Proof of Data)
+// 2.1. ParÃ¢metros de Assinatura CriptogrÃ¡fica do OrÃ¡culo (Proof of Data)
 // 1.6. Chave publica/privada do oraculo (Proof of Data). Em producao, DEFINIR via env (rotacao).
 // NUNCA usar a chave default em producao: ela esta publica no repo (testes apenas).
 define('GRID402_ORACLE_WALLET', strtolower((string) grid402_env('GRID402_ORACLE_WALLET', GRID402_WALLET_ADDRESS)));
@@ -201,11 +201,11 @@ if (GRID402_ORACLE_PRIVATE_KEY !== '') {
 }
 define('GRID402_ORACLE_ALGORITHM', 'secp256k1-sha256');
 
-// 3. Parâmetros de Performance e Timeout
+// 3. ParÃ¢metros de Performance e Timeout
 define('GRID402_TIMEOUT_MS', (int) grid402_env('GRID402_TIMEOUT_MS', 2800));
 define('GRID402_CONNECT_TIMEOUT_MS', (int) grid402_env('GRID402_CONNECT_TIMEOUT_MS', 1500));
 define('GRID402_USER_AGENT', (string) grid402_env('GRID402_PROBE_USER_AGENT', 'Grid402-Telemetry-Probe/1.0 (+https://grid402.online)'));
-define('GRID402_SSL_VERIFY', (bool) grid402_env('GRID402_SSL_VERIFY', false)); // false por padrão para compatibilidade com cadeias ICP-Brasil SEFAZ
+define('GRID402_SSL_VERIFY', (bool) grid402_env('GRID402_SSL_VERIFY', false)); // false por padrÃ£o para compatibilidade com cadeias ICP-Brasil SEFAZ
 
 // 4. Caminhos de Arquivos e Armazenamento Privado (Persistente e Zero-DB)
 function grid402_get_storage_dir(): string {
@@ -214,14 +214,14 @@ function grid402_get_storage_dir(): string {
         return $storageDir;
     }
 
-    // 0. Sobrescrita via variável de ambiente se configurada
+    // 0. Sobrescrita via variÃ¡vel de ambiente se configurada
     $envStorage = (string) grid402_env('GRID402_STORAGE_DIR', '');
     if ($envStorage !== '' && is_dir($envStorage) && is_writable($envStorage)) {
         $storageDir = rtrim($envStorage, '/\\');
         return $storageDir;
     }
 
-    // 1. Tentar diretório persistente fora do DocumentRoot (imune a deploys na Hostinger)
+    // 1. Tentar diretÃ³rio persistente fora do DocumentRoot (imune a deploys na Hostinger)
     $parentDir = dirname(__DIR__);
     $isLocalDev = (DIRECTORY_SEPARATOR === '\\') || str_contains(__DIR__, 'Projetos');
 
@@ -267,25 +267,27 @@ define('GRID402_FILE_PASSES', GRID402_PRIVATE_DIR . '/session_passes.json');
 define('GRID402_FILE_USED_NONCES', GRID402_PRIVATE_DIR . '/used_nonces.json');
 
 // Facilitador x402 (pagamentos `exact` / EIP-3009). Modos: disabled (padrao), verify_only, settle
-$grid402FacilitatorMode = strtolower(trim((string) grid402_env('GRID402_FACILITATOR_MODE', 'disabled')));
+// Decisão do mantenedor (2026-11-13): produção usa PayAI como facilitador padrão (via créditos
+// pré-pagos do merchant payTo; 1.000 créditos grátis para começar). CDP segue suportável via env.
+$grid402FacilitatorMode = strtolower(trim((string) grid402_env('GRID402_FACILITATOR_MODE', 'settle')));
 if (!in_array($grid402FacilitatorMode, ['disabled', 'verify_only', 'settle'], true)) {
-    $grid402FacilitatorMode = 'disabled';
+    $grid402FacilitatorMode = 'settle';
 }
 define('GRID402_FACILITATOR_MODE', $grid402FacilitatorMode);
 unset($grid402FacilitatorMode);
-define('GRID402_FACILITATOR_URL', rtrim((string) grid402_env('GRID402_FACILITATOR_URL', 'https://api.cdp.coinbase.com/platform'), '/'));
-define('GRID402_FACILITATOR_VERIFY_PATH', (string) grid402_env('GRID402_FACILITATOR_VERIFY_PATH', '/v2/x402/verify'));
-define('GRID402_FACILITATOR_SETTLE_PATH', (string) grid402_env('GRID402_FACILITATOR_SETTLE_PATH', '/v2/x402/settle'));
+define('GRID402_FACILITATOR_URL', rtrim((string) grid402_env('GRID402_FACILITATOR_URL', 'https://facilitator.payai.network'), '/'));
+define('GRID402_FACILITATOR_VERIFY_PATH', (string) grid402_env('GRID402_FACILITATOR_VERIFY_PATH', '/verify'));
+define('GRID402_FACILITATOR_SETTLE_PATH', (string) grid402_env('GRID402_FACILITATOR_SETTLE_PATH', '/settle'));
 define('GRID402_CDP_API_KEY_ID', (string) grid402_env('GRID402_CDP_API_KEY_ID', ''));
 define('GRID402_CDP_API_KEY_SECRET', (string) grid402_env('GRID402_CDP_API_KEY_SECRET', ''));
 
-// 5. Catálogo Oficial dos 6 Micro-Serviços Core de Dados Públicos e Rede
+// 5. CatÃ¡logo Oficial dos 6 Micro-ServiÃ§os Core de Dados PÃºblicos e Rede
 function grid402_get_utility_services(): array {
     return [
         'forex' => [
             'id' => 'forex',
-            'name' => 'Câmbio e Moedas',
-            'description' => 'Cotações em tempo real de USD, EUR, GBP para BRL com variação diária',
+            'name' => 'CÃ¢mbio e Moedas',
+            'description' => 'CotaÃ§Ãµes em tempo real de USD, EUR, GBP para BRL com variaÃ§Ã£o diÃ¡ria',
             'endpoint' => '/api/v1/forex',
             'category' => 'Mercado',
             'type' => 'cached',
@@ -293,7 +295,7 @@ function grid402_get_utility_services(): array {
         'crypto' => [
             'id' => 'crypto',
             'name' => 'Cripto Tickers',
-            'description' => 'Preços de mercado de BTC, ETH, SOL, USDC e BASE em USD e BRL',
+            'description' => 'PreÃ§os de mercado de BTC, ETH, SOL, USDC e BASE em USD e BRL',
             'endpoint' => '/api/v1/crypto',
             'category' => 'Mercado',
             'type' => 'cached',
@@ -301,7 +303,7 @@ function grid402_get_utility_services(): array {
         'dns' => [
             'id' => 'dns',
             'name' => 'DNS Records Lookup',
-            'description' => 'Resolução autoritativa de registros A, AAAA, MX, TXT, NS e CNAME',
+            'description' => 'ResoluÃ§Ã£o autoritativa de registros A, AAAA, MX, TXT, NS e CNAME',
             'endpoint' => '/api/v1/dns',
             'category' => 'Rede',
             'type' => 'on_demand',
@@ -309,7 +311,7 @@ function grid402_get_utility_services(): array {
         'ssl' => [
             'id' => 'ssl',
             'name' => 'Inspetor TLS/SSL',
-            'description' => 'Inspeção de cadeia X.509, emissor, SANs e dias até expiração na porta 443',
+            'description' => 'InspeÃ§Ã£o de cadeia X.509, emissor, SANs e dias atÃ© expiraÃ§Ã£o na porta 443',
             'endpoint' => '/api/v1/ssl',
             'category' => 'Rede',
             'type' => 'on_demand',
@@ -317,7 +319,7 @@ function grid402_get_utility_services(): array {
         'asn' => [
             'id' => 'asn',
             'name' => 'ASN e IP Info',
-            'description' => 'Metadados de roteamento BGP, número de ASN, bloco IP e país',
+            'description' => 'Metadados de roteamento BGP, nÃºmero de ASN, bloco IP e paÃ­s',
             'endpoint' => '/api/v1/asn',
             'category' => 'Rede',
             'type' => 'on_demand',
@@ -325,7 +327,7 @@ function grid402_get_utility_services(): array {
         'domain-audit' => [
             'id' => 'domain-audit',
             'name' => 'Domain Audit (DNS + SSL + ASN)',
-            'description' => 'Auditoria completa de domínio em 1 chamada: registros DNS, certificado TLS/SSL e roteamento ASN/BGP',
+            'description' => 'Auditoria completa de domÃ­nio em 1 chamada: registros DNS, certificado TLS/SSL e roteamento ASN/BGP',
             'endpoint' => '/api/v1/domain-audit',
             'category' => 'Rede',
             'type' => 'on_demand',
@@ -333,7 +335,7 @@ function grid402_get_utility_services(): array {
         'kyb-audit' => [
             'id' => 'kyb-audit',
             'name' => 'KYB & Compliance Audit (CNPJ + OFAC + LEI)',
-            'description' => 'Auditoria completa de entidade em 1 chamada: dados cadastrais CNPJ, triagem OFAC/sanções e registro LEI',
+            'description' => 'Auditoria completa de entidade em 1 chamada: dados cadastrais CNPJ, triagem OFAC/sanÃ§Ãµes e registro LEI',
             'endpoint' => '/api/v1/kyb-audit',
             'category' => 'Compliance',
             'type' => 'on_demand',
@@ -341,7 +343,7 @@ function grid402_get_utility_services(): array {
         'market-snapshot' => [
             'id' => 'market-snapshot',
             'name' => 'Market Snapshot (Forex + Crypto + Indicators)',
-            'description' => 'Snapshot consolidado de mercado em 1 chamada: câmbio Forex, criptoativos e indicadores econômicos',
+            'description' => 'Snapshot consolidado de mercado em 1 chamada: cÃ¢mbio Forex, criptoativos e indicadores econÃ´micos',
             'endpoint' => '/api/v1/market-snapshot',
             'category' => 'Financeiro',
             'type' => 'on_demand',
@@ -349,7 +351,7 @@ function grid402_get_utility_services(): array {
         'cep' => [
             'id' => 'cep',
             'name' => 'CEP e IBGE',
-            'description' => 'Resolução de logradouro, bairro, município, UF e código IBGE oficial',
+            'description' => 'ResoluÃ§Ã£o de logradouro, bairro, municÃ­pio, UF e cÃ³digo IBGE oficial',
             'endpoint' => '/api/v1/cep',
             'category' => 'Dados Abertos',
             'type' => 'on_demand',
@@ -357,7 +359,7 @@ function grid402_get_utility_services(): array {
         'cnpj' => [
             'id' => 'cnpj',
             'name' => 'Consulta Cadastral CNPJ',
-            'description' => 'Situação cadastral, razão social, CNAE, data de abertura e endereço da PJ',
+            'description' => 'SituaÃ§Ã£o cadastral, razÃ£o social, CNAE, data de abertura e endereÃ§o da PJ',
             'endpoint' => '/api/v1/cnpj',
             'category' => 'Corporativo',
             'type' => 'on_demand',
@@ -365,106 +367,106 @@ function grid402_get_utility_services(): array {
         ],
         'indicators' => [
             'id' => 'indicators',
-            'name' => 'Indicadores Econômicos',
-            'description' => 'Taxas oficiais Selic (meta e diária), CDI anual e diário, IPCA acumulado 12m e mensal (BCB e IBGE)',
+            'name' => 'Indicadores EconÃ´micos',
+            'description' => 'Taxas oficiais Selic (meta e diÃ¡ria), CDI anual e diÃ¡rio, IPCA acumulado 12m e mensal (BCB e IBGE)',
             'endpoint' => '/api/v1/indicators',
             'category' => 'Mercado',
             'type' => 'cached',
         ],
         'holidays' => [
             'id' => 'holidays',
-            'name' => 'Feriados e Calendário Bancário',
-            'description' => 'Feriados nacionais oficiais e dias sem expediente bancário (ANBIMA e Febraban) com cálculo determinístico',
+            'name' => 'Feriados e CalendÃ¡rio BancÃ¡rio',
+            'description' => 'Feriados nacionais oficiais e dias sem expediente bancÃ¡rio (ANBIMA e Febraban) com cÃ¡lculo determinÃ­stico',
             'endpoint' => '/api/v1/holidays',
             'category' => 'Dados Abertos',
             'type' => 'on_demand',
         ],
         'workdays' => [
             'id' => 'workdays',
-            'name' => 'Calculadora de Dias Úteis ANBIMA',
-            'description' => 'Cálculo de dias úteis bancários (contagem entre datas, projeção de prazos e checagem pontual) no padrão ANBIMA',
+            'name' => 'Calculadora de Dias Ãšteis ANBIMA',
+            'description' => 'CÃ¡lculo de dias Ãºteis bancÃ¡rios (contagem entre datas, projeÃ§Ã£o de prazos e checagem pontual) no padrÃ£o ANBIMA',
             'endpoint' => '/api/v1/workdays',
             'category' => 'Financeiro',
             'type' => 'on_demand',
         ],
         'sanctions' => [
             'id' => 'sanctions',
-            'name' => 'Sanções e Inidoneidade (CEIS/CNEP)',
-            'description' => 'Consulta cadastros oficiais da CGU (CEIS e CNEP) sobre punições e impedimentos de contratar',
+            'name' => 'SanÃ§Ãµes e Inidoneidade (CEIS/CNEP)',
+            'description' => 'Consulta cadastros oficiais da CGU (CEIS e CNEP) sobre puniÃ§Ãµes e impedimentos de contratar',
             'endpoint' => '/api/v1/sanctions',
             'category' => 'Compliance',
             'type' => 'on_demand',
-            'price_usdc' => '0.0010',
+            'price_usdc' => '0.0100',
         ],
         'simples' => [
             'id' => 'simples',
             'name' => 'Simples Nacional e MEI',
-            'description' => 'Consulta oficial de enquadramento tributário no Simples Nacional e SIMEI na Receita Federal',
+            'description' => 'Consulta oficial de enquadramento tributÃ¡rio no Simples Nacional e SIMEI na Receita Federal',
             'endpoint' => '/api/v1/simples',
             'category' => 'Fiscal',
             'type' => 'on_demand',
-            'price_usdc' => '0.0010',
+            'price_usdc' => '0.0100',
         ],
         'compliance' => [
             'id' => 'compliance',
             'name' => 'Compliance Score 360',
-            'description' => 'Score unificado de risco cadastral (0 a 100) cruzando Receita Federal, CGU e histórico societário',
+            'description' => 'Score unificado de risco cadastral (0 a 100) cruzando Receita Federal, CGU e histÃ³rico societÃ¡rio',
             'endpoint' => '/api/v1/compliance',
             'category' => 'Compliance',
             'type' => 'on_demand',
-            'price_usdc' => '0.0030',
+            'price_usdc' => '0.0300',
         ],
         'lei' => [
             'id' => 'lei',
             'name' => 'Identidade Corporativa Mundial (GLEIF LEI)',
-            'description' => 'Registro global ISO 17442 de empresas internacionais (jurisdição, status ativo, autoridade legal e endereço) via base CC0 da GLEIF',
+            'description' => 'Registro global ISO 17442 de empresas internacionais (jurisdiÃ§Ã£o, status ativo, autoridade legal e endereÃ§o) via base CC0 da GLEIF',
             'endpoint' => '/api/v1/lei',
             'category' => 'Global Corp',
             'type' => 'on_demand',
-            'price_usdc' => '0.0020',
+            'price_usdc' => '0.0200',
         ],
         'ofac' => [
             'id' => 'ofac',
-            'name' => 'Sanções Globais OFAC e AML Web3',
-            'description' => 'Verificação internacional contra listas de sanções OFAC SDN e ONU combinada com telemetria on-chain de carteiras EVM na Base',
+            'name' => 'SanÃ§Ãµes Globais OFAC e AML Web3',
+            'description' => 'VerificaÃ§Ã£o internacional contra listas de sanÃ§Ãµes OFAC SDN e ONU combinada com telemetria on-chain de carteiras EVM na Base',
             'endpoint' => '/api/v1/ofac',
             'category' => 'Global AML',
             'type' => 'on_demand',
-            'price_usdc' => '0.0020',
+            'price_usdc' => '0.0200',
         ],
         'notarize' => [
             'id' => 'notarize',
-            'name' => 'Notarização e Carimbo de Tempo M2M',
-            'description' => 'Certificado criptográfico de existência no tempo (SHA-256 + ECDSA secp256k1) para auditar decisões e contratos de agentes autônomos',
+            'name' => 'NotarizaÃ§Ã£o e Carimbo de Tempo M2M',
+            'description' => 'Certificado criptogrÃ¡fico de existÃªncia no tempo (SHA-256 + ECDSA secp256k1) para auditar decisÃµes e contratos de agentes autÃ´nomos',
             'endpoint' => '/api/v1/notarize',
-            'category' => 'Segurança',
+            'category' => 'SeguranÃ§a',
             'type' => 'on_demand',
-            'price_usdc' => '0.0005',
+            'price_usdc' => '0.0050',
         ],
         'global-markets' => [
             'id' => 'global-markets',
-            'name' => 'Calendário Mundial e Câmbio BCE (G10)',
-            'description' => 'Expediente bancário e feriados oficiais (NYSE/Fed, BCE/TARGET2, LSE, B3) e cotações de 30+ moedas do Banco Central Europeu',
+            'name' => 'CalendÃ¡rio Mundial e CÃ¢mbio BCE (G10)',
+            'description' => 'Expediente bancÃ¡rio e feriados oficiais (NYSE/Fed, BCE/TARGET2, LSE, B3) e cotaÃ§Ãµes de 30+ moedas do Banco Central Europeu',
             'endpoint' => '/api/v1/global-markets',
             'category' => 'Global FX',
             'type' => 'cached',
-            'price_usdc' => '0.0005',
+            'price_usdc' => '0.0050',
         ],
         'pass' => [
             'id' => 'pass',
-            'name' => 'x402 Prepaid Session Pass (Alta Frequência)',
-            'description' => 'Emissão de passe de sessão pré-pago assinado (100 a 1.000 créditos) para chamadas M2M instantâneas (<15ms) sem aguardar bloco',
+            'name' => 'x402 Prepaid Session Pass (Alta FrequÃªncia)',
+            'description' => 'EmissÃ£o de passe de sessÃ£o prÃ©-pago assinado (100 a 1.000 crÃ©ditos) para chamadas M2M instantÃ¢neas (<15ms) sem aguardar bloco',
             'endpoint' => '/api/v1/pass',
             'category' => 'M2M Turbo',
             'type' => 'on_demand',
-            'price_usdc' => '0.0500',
+            'price_usdc' => '0.5000',
         ],
         'verify' => [
             'id' => 'verify',
-            'name' => 'Verificador Criptográfico',
-            'description' => 'Validação matemática local e instantânea de assinatura ECDSA secp256k1 e prova de oráculo (_oracle_proof)',
+            'name' => 'Verificador CriptogrÃ¡fico',
+            'description' => 'ValidaÃ§Ã£o matemÃ¡tica local e instantÃ¢nea de assinatura ECDSA secp256k1 e prova de orÃ¡culo (_oracle_proof)',
             'endpoint' => '/api/v1/verify',
-            'category' => 'Segurança',
+            'category' => 'SeguranÃ§a',
             'type' => 'on_demand',
             'price_usdc' => 'Gratuito',
         ],
@@ -475,13 +477,13 @@ function grid402_get_services(): array {
     return grid402_get_utility_services();
 }
 
-// 6. Catálogo de Alvos Complementares / Monitoramento
+// 6. CatÃ¡logo de Alvos Complementares / Monitoramento
 function grid402_get_targets(): array {
     return [
         // --- SEFAZ (Autorizadores Fiscais) ---
         [
             'id' => 'sefaz_sp',
-            'name' => 'SEFAZ São Paulo',
+            'name' => 'SEFAZ SÃ£o Paulo',
             'category' => 'SEFAZ',
             'url' => 'https://nfe.fazenda.sp.gov.br/ws/nfeautorizacao4.asmx',
             'method' => 'GET',
@@ -573,7 +575,7 @@ function grid402_get_targets(): array {
         ],
         [
             'id' => 'openfinance_dir',
-            'name' => 'Diretório Open Finance Brasil',
+            'name' => 'DiretÃ³rio Open Finance Brasil',
             'category' => 'Bancos e PIX',
             'url' => 'https://data.directory.openbankingbrasil.org.br/participants',
             'method' => 'GET',
@@ -607,7 +609,7 @@ function grid402_get_targets(): array {
         ],
         [
             'id' => 'aws_sa_east',
-            'name' => 'AWS São Paulo (sa-east-1)',
+            'name' => 'AWS SÃ£o Paulo (sa-east-1)',
             'category' => 'Telecom e Infra',
             'url' => 'https://dynamodb.sa-east-1.amazonaws.com',
             'method' => 'GET',

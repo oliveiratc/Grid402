@@ -88,20 +88,20 @@ $passIssue = grid402_issue_session_pass($fakeTxHash, 50000, false);
 assert_true(($passIssue['status'] ?? '') === 'ACTIVE', 'Emissao de Session Pass para 50000 raw (0.0500 USDC) retorna status=ACTIVE');
 $passToken = (string) ($passIssue['pass_token'] ?? '');
 assert_true(str_starts_with($passToken, 'pass_g402_'), 'Token emitido segue formato pass_g402_<id>_<hmac>');
-assert_true(($passIssue['credits_total'] ?? 0) === 100, '50000 raw USDC emitem exatamente 100 creditos M2M');
+assert_true(($passIssue['credits_total'] ?? 0) === 1000, '50000 raw USDC emitem exatamente 1000 creditos M2M');
 
 // Consulta gratuita de saldo
 $passStatus = grid402_get_session_pass_status($passToken);
-assert_true(($passStatus['valid'] ?? false) === true && ($passStatus['credits_remaining'] ?? 0) === 100, 'Consulta gratuita de status confirma 100 creditos disponiveis');
+assert_true(($passStatus['valid'] ?? false) === true && ($passStatus['credits_remaining'] ?? 0) === 1000, 'Consulta gratuita de status confirma 1000 creditos disponiveis');
 
-// Consumo via grid402_validate_payment em servico de 0.0020 USDC (2000 raw = 4 creditos)
+// Consumo via grid402_validate_payment em servico de 0.0200 USDC (2000 raw = 40 creditos)
 $val2000 = grid402_validate_payment($passToken, 2000);
 assert_true(($val2000['valid'] ?? false) === true && ($val2000['session_pass'] ?? false) === true, 'grid402_validate_payment aprova Session Pass instantaneamente');
-assert_true(($val2000['credits_debited'] ?? 0) === 4 && ($val2000['credits_remaining'] ?? 0) === 96, 'Debito proporcional desconta 4 creditos (2000 raw) e restam 96 creditos');
+assert_true(($val2000['credits_debited'] ?? 0) === 40 && ($val2000['credits_remaining'] ?? 0) === 960, 'Debito proporcional desconta 40 creditos (2000 raw) e restam 960 creditos');
 
-// Consumo em servico de 0.0005 USDC (500 raw = 1 credito)
+// Consumo em servico de 0.0050 USDC (500 raw = 10 creditos)
 $val500 = grid402_validate_payment($passToken, 500);
-assert_true(($val500['valid'] ?? false) === true && ($val500['credits_remaining'] ?? 0) === 95, 'Debito de 1 credito (500 raw) deixa 95 creditos restantes');
+assert_true(($val500['valid'] ?? false) === true && ($val500['credits_remaining'] ?? 0) === 950, 'Debito de 10 creditos (500 raw) deixa 950 creditos restantes');
 
 // Rejeicao de token adulterado (HMAC invalido)
 $tamperedToken = substr($passToken, 0, -4) . 'ffff';
