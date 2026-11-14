@@ -442,31 +442,8 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
     </style>
 </head>
 <body>
+<?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '/agents', 'show_lang' => true]); ?>
     <div class="container">
-        <header>
-            <a href="/" class="brand">
-                <img src="/assets/logo-icon-transparent.png" alt="Grid402" width="38" height="38" style="display: block;">
-                <div>
-                    <div style="font-family: var(--font-heading); font-weight: 700; font-size: 1.35rem; line-height: 1.2; letter-spacing: -0.5px;">Grid<span style="color: var(--cyan);">402</span></div>
-                    <div class="brand-text" data-i18n="agents.brand.sub">Central Global de Agentes IA e MCP</div>
-                </div>
-            </a>
-            <nav>
-                <a href="/" data-i18n="agents.nav.home">Início</a>
-                <a href="/agents" class="active" data-i18n="nav.agents">Agentes IA</a>
-                <a href="/catalog">Catálogo</a>
-                <a href="/growth">Growth</a>
-                <a href="/payment-dashboard">Pagamentos</a>
-                <a href="/trust">Trust</a>
-                <a href="/llms.txt">llms.txt</a>
-                <a href="/openapi.json">OpenAPI</a>
-                <a href="/admin">Admin</a>
-                <div class="lang-switch" role="group" aria-label="Language selector">
-                    <button type="button" id="lang-btn-pt" class="lang-btn active" onclick="setLanguage('pt')">PT</button>
-                    <button type="button" id="lang-btn-en" class="lang-btn" onclick="setLanguage('en')">EN</button>
-                </div>
-            </nav>
-        </header>
 
         <section class="hero">
             <div class="badge" data-i18n="agents.hero.badge">x402 Global Autonomous Agent Hub • 22 Services</div>

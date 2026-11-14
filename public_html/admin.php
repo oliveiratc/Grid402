@@ -1491,32 +1491,25 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
     </style>
 </head>
 <body>
+    <?php require_once __DIR__ . '/includes/admin_nav.php'; grid402_render_admin_nav(['active' => 'overview', 'logout_url' => '/admin?action=logout']); ?>
     <div class="container">
         <header>
             <div class="logo-wrap">
-                <a href="/" style="display: flex; align-items: center; gap: 0.75rem; text-decoration: none; color: inherit;">
-                    <img src="/assets/logo-icon-transparent.png" alt="Grid402" width="36" height="36" style="display: block;">
-                    <span class="logo-title">Grid<span style="color: var(--accent);">402</span></span>
-                </a>
-                <span class="logo-badge">ADMIN</span>
-                <span style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500; margin-left: 0.5rem;">Monitoramento e Faturamento</span>
+                <span style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500;">Monitoramento e Faturamento</span>
             </div>
             <div class="user-nav">
                 <div class="live-indicator">
                     <span class="pulse-dot"></span>
                     <span id="live-timer-text">Ao Vivo (5s)</span>
                 </div>
-                <a href="/growth_admin" class="btn-outline" title="Abrir admin Growth">🌱 Growth Admin</a>
                 <a href="/admin?api=export_csv" class="btn-outline" title="Baixar histórico completo de consultas em CSV">📥 Exportar CSV</a>
                 <button type="button" class="btn-outline" onclick="openPasswordModal()">🔑 Alterar Senha</button>
                 <button type="button" class="btn-outline" onclick="fetchLiveStats(true)">🔄 Atualizar</button>
-                <a href="/" target="_blank" class="btn-outline">🌐 Ver Portal</a>
-                <a href="/admin?action=logout" class="btn-outline" style="color: var(--danger); border-color: rgba(239, 68, 68, 0.3);">Sair</a>
             </div>
         </header>
 
         <!-- KPI Cards Grid (8 Cards Executivos de Alta Fidelidade) -->
-        <div class="kpi-grid">
+        <div id="overview" class="kpi-grid">
             <div class="kpi-card">
                 <div class="kpi-title">Faturamento Total</div>
                 <div class="kpi-value" id="kpi-total-usdc">US$ <?php echo number_format($revenueUsdc, 4); ?></div>
@@ -1759,7 +1752,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
         </div>
 
         <!-- 2 Columns: Origem dos Pagamentos e Categorias de Falha -->
-        <div class="analytics-row">
+        <div id="passes" class="analytics-row">
             <div class="panel">
                 <div class="panel-title">Origem dos Pagamentos</div>
                 <div id="payment-source-bars-container">
@@ -1810,7 +1803,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
         </div>
 
         <!-- Feed de Consultas em Tempo Real (Buffer de 100 Eventos) -->
-        <div class="panel">
+        <div id="telemetry" class="panel">
             <div class="panel-title" style="flex-wrap: wrap; gap: 0.75rem;">
                 <div>
                     <span>Feed de Consultas Recentes (Buffer de 100 Eventos)</span>

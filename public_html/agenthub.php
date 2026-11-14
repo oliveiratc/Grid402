@@ -29,8 +29,8 @@ ksort($services);
     </style>
 </head>
 <body>
+<?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '']); ?>
 <main>
-    <p><a href="/">← Grid402</a> &nbsp;·&nbsp; <a href="/agents">Agentes IA existente</a> &nbsp;·&nbsp; <a href="/growth">Growth Program</a></p>
     <h1>GRID402 AGENT HUB</h1>
     <p>Central de integração para agentes autônomos: documentação, exemplos, preços e compatibilidade.</p>
 

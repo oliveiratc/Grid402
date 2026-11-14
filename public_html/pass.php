@@ -65,15 +65,8 @@ $isSandbox = grid402_mp_is_sandbox();
     </style>
 </head>
 <body>
+<?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '/pass', 'domain' => $domain]); ?>
 <div class="wrap">
-    <div class="topbar">
-        <a class="brand" href="<?php echo htmlspecialchars($domain, ENT_QUOTES, 'UTF-8'); ?>/">Grid<span>402</span></a>
-        <div style="font-size:.88rem;color:var(--muted);">
-            <a href="<?php echo htmlspecialchars($domain, ENT_QUOTES, 'UTF-8'); ?>/">Home</a> ·
-            <a href="<?php echo htmlspecialchars($domain, ENT_QUOTES, 'UTF-8'); ?>/catalog">Catálogo</a> ·
-            <a href="<?php echo htmlspecialchars($domain, ENT_QUOTES, 'UTF-8'); ?>/#topup">Checkout Web3 (USDC)</a>
-        </div>
-    </div>
 
     <h1>Comprar Session Pass <code>pass_g402_...</code></h1>
     <p>Pague uma vez em <strong>BRL (Pix ou Cartão via Mercado Pago)</strong> ou em <strong>USDC na rede Base</strong> e receba na hora um token com saldo de milhares de requisições (&lt;15ms), sem precisar assinar transação a cada chamada. Ideal para n8n, Make, Zapier, Python, Node e MCP.</p>

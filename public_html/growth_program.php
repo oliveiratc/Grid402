@@ -120,8 +120,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
+<?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '']); ?>
 <main>
-    <p><a href="/">← Grid402</a></p>
     <h1>GRID402 AGENT GROWTH PROGRAM</h1>
     <p>Programa de aquisição, ativação, recompra e retenção para agentes autônomos que usam o Grid402 sobre USDC + x402 na Base.</p>
 

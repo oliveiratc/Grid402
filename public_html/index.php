@@ -235,31 +235,8 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
     </style>
 </head>
 <body>
+    <?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => $canonicalPath, 'show_lang' => true]); ?>
     <div class="page-wrap">
-        <header>
-            <div>
-                <a href="/" style="display: flex; align-items: center; gap: 0.75rem; text-decoration: none;">
-                    <img src="/assets/logo-icon-transparent.png" alt="Grid402" width="34" height="34" style="border-radius: 6px;">
-                    <span style="font-family: var(--font-heading); font-weight: 700; font-size: 1.35rem; color: var(--text-main); letter-spacing: -0.5px;">Grid<span style="color: var(--accent);">402</span></span>
-                </a>
-            </div>
-            <nav class="nav-links">
-                <a href="/">Home</a>
-                <a href="/agents" <?php echo $canonicalPath === '/agents' ? 'class="active"' : ''; ?> data-i18n="nav.agents">Agentes IA</a>
-                <a href="/catalog" <?php echo $canonicalPath === '/catalog' ? 'class="active"' : ''; ?>>Catálogo</a>
-                <a href="/growth" <?php echo $canonicalPath === '/growth' ? 'class="active"' : ''; ?>>Growth</a>
-                <a href="/payment-dashboard" <?php echo $canonicalPath === '/payment-dashboard' ? 'class="active"' : ''; ?>>Pagamentos</a>
-                <a href="/trust" <?php echo $canonicalPath === '/trust' ? 'class="active"' : ''; ?>>Trust</a>
-                <a href="/about" <?php echo $canonicalPath === '/about' ? 'class="active"' : ''; ?> data-i18n="nav.about">Sobre</a>
-                <a href="/contact" <?php echo $canonicalPath === '/contact' ? 'class="active"' : ''; ?> data-i18n="nav.contact">Contato</a>
-                <a href="/terms" <?php echo $canonicalPath === '/terms' ? 'class="active"' : ''; ?> data-i18n="nav.terms">Termos</a>
-                <a href="/privacy" <?php echo $canonicalPath === '/privacy' ? 'class="active"' : ''; ?> data-i18n="nav.privacy">Privacidade</a>
-                <div class="lang-switch" role="group" aria-label="Language selector">
-                    <button type="button" id="lang-btn-pt" class="lang-btn active" onclick="setLanguage('pt')">PT</button>
-                    <button type="button" id="lang-btn-en" class="lang-btn" onclick="setLanguage('en')">EN</button>
-                </div>
-            </nav>
-        </header>
 
         <div id="inst-page-content">
             <h1><?php echo htmlspecialchars($h1); ?></h1>
@@ -2602,42 +2579,14 @@ grid402_log_public_visit('/');
     </style>
 </head>
 <body>
+    <?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '/', 'show_lang' => true]); ?>
     <div class="container">
-        <header>
-            <a href="/" class="logo-wrap">
-                <img src="/assets/logo-icon-transparent.png" alt="Grid402" width="38" height="38" style="display: block;">
-                <span class="logo-title">Grid<span style="color: var(--accent);">402</span></span>
-                <span class="logo-badge">x402</span>
-            </a>
-            <nav class="nav-links">
-                <a href="#services" data-i18n="nav.services">Serviços</a>
-                <a href="#topup" style="color: #00F0FF; font-weight: 700;" data-i18n="nav.topup">Abastecer Saldo</a>
-                <a href="#comparador" style="color: var(--accent); font-weight: 600;" data-i18n="nav.savings">Economia 98%</a>
-                <a href="#playground" data-i18n="nav.playground">Playground</a>
-                <a href="#console" data-i18n="nav.console">Console</a>
-                <a href="/agents" style="color: var(--accent); font-weight: 600;" data-i18n="nav.agents">Agentes IA</a>
-                <a href="/catalog" style="color: var(--accent); font-weight: 600;">Catálogo</a>
-                <a href="/growth" style="color: var(--accent); font-weight: 600;">Growth</a>
-                <a href="/payment-dashboard" style="color: var(--accent); font-weight: 600;">Pagamentos</a>
-                <a href="/trust" style="color: var(--accent); font-weight: 600;">Trust</a>
-                <a href="/about" data-i18n="nav.about">About</a>
-                <a href="/contact" data-i18n="nav.contact">Contact</a>
-                <a href="/terms" data-i18n="nav.terms">Terms</a>
-                <a href="/privacy" data-i18n="nav.privacy">Privacy</a>
-            </nav>
-            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-                <div class="lang-switcher-wrap" id="lang-switch-btn" title="Alternar idioma / Switch language">
-                    <span class="lang-globe-icon">🌐</span>
-                    <button type="button" class="lang-btn active" id="lang-btn-pt" onclick="setLanguage('pt')">PT</button>
-                    <span class="lang-divider">|</span>
-                    <button type="button" class="lang-btn" id="lang-btn-en" onclick="setLanguage('en')">EN</button>
-                </div>
-                <div class="badge-live">
-                    <span class="badge-pulse"></span>
-                    <span data-i18n-count="<?php echo count($servicesCatalog); ?>" id="badge-live-text">Base Mainnet (8453) • <?php echo count($servicesCatalog); ?>/<?php echo count($servicesCatalog); ?> Serviços Operantes</span>
-                </div>
+        <div style="display:flex;justify-content:flex-end;margin:0.75rem 0 0;">
+            <div class="badge-live">
+                <span class="badge-pulse"></span>
+                <span data-i18n-count="<?php echo count($servicesCatalog); ?>" id="badge-live-text">Base Mainnet (8453) • <?php echo count($servicesCatalog); ?>/<?php echo count($servicesCatalog); ?> Serviços Operantes</span>
             </div>
-        </header>
+        </div>
 
         <section class="hero">
             <div class="hero-tag" data-i18n="hero.tag">Hub de Micro-Serviços para Robôs e Agentes de IA</div>

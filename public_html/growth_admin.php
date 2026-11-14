@@ -116,8 +116,8 @@ $compare = grid402_onchain_stats_compare($onchain, $standardMetrics);
     </style>
 </head>
 <body>
+<?php require_once __DIR__ . '/includes/admin_nav.php'; grid402_render_admin_nav(['active' => 'growth', 'logout_url' => '/admin?action=logout']); ?>
 <div class="container">
-    <p><a href="/admin">← Voltar ao Admin</a></p>
     <h1>Growth Administration</h1>
     <?php if ($msg): ?><div class="panel ok"><?php echo htmlspecialchars($msg); ?></div><?php endif; ?>
     <?php if ($err): ?><div class="panel" style="border-color:#EF4444;color:#FECACA;"><?php echo htmlspecialchars($err); ?></div><?php endif; ?>

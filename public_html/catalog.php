@@ -53,9 +53,9 @@ ksort($services);
     </style>
 </head>
 <body>
+<?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '/catalog']); ?>
 <div class="container">
     <header>
-        <a href="/" style="color:#94A3B8;text-decoration:none;">← Grid402</a>
         <h1>Catálogo completo de serviços</h1>
         <p>Serviços, preços, limites e exemplos em uma única página. Consulta paga via <code>POST</code>/<code>GET</code> com <code>X-Payment</code>.</p>
         <div class="meta">

@@ -53,8 +53,8 @@ $servicesTotal = count(grid402_get_utility_services());
     </style>
 </head>
 <body>
+<?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '/trust']); ?>
 <div class="container">
-    <p><a href="/">← Grid402</a></p>
     <h1>Trust Center</h1>
     <p>Informação pública e verificável sobre disponibilidade, metodologia e política de incidentes da plataforma.</p>
 

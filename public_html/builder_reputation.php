@@ -35,6 +35,7 @@ usort($builders, function ($a, $b) {
     </style>
 </head>
 <body>
+<?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '']); ?>
 <main>
     <p><a href="/growth">← Growth Program</a></p>
     <h1>GRID402 On-Chain Reputation</h1>

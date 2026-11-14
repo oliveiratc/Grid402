@@ -32,8 +32,8 @@ $passesStats = grid402_get_passes_stats();
     </style>
 </head>
 <body>
+<?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '']); ?>
 <main>
-    <p><a href="/">← Grid402</a> &nbsp;·&nbsp; <a href="/catalog">Catálogo</a> &nbsp;·&nbsp; <a href="/growth">Growth Program</a></p>
     <h1>Payment Dashboard</h1>
     <p>Área de acompanhamento para pagamento x402 individual e Session Pass. Os dois produtos são distintos e aparecem aqui com regras separadas.</p>
 
