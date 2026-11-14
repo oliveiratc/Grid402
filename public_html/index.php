@@ -4357,7 +4357,8 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             try {
                 step('start (provider=' + (provider ? provider.constructor?.name : 'none') + ')');
                 const usdcContract = ('<?php echo GRID402_USDC_CONTRACT; ?>' || '').trim();
-                const recipient = '<?php echo GRID402_WALLET_ADDRESS; ?>'.toLowerCase().replace('0x', '');
+                const recipientRaw = '<?php echo GRID402_WALLET_ADDRESS; ?>'.trim().toLowerCase();
+                const recipient = recipientRaw.startsWith('0x') ? recipientRaw : ('0x' + recipientRaw);
                 step('contracts loaded: ' + usdcContract + ' / ' + recipient);
                 const now = Math.floor(Date.now() / 1000);
                 const validAfter = String(Math.max(0, now - 600));
