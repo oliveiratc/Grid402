@@ -17,8 +17,8 @@ from grid402.models import OracleVerificationResult, WorkdaysResponse
 DEFAULT_ENDPOINT = "https://grid402.online"
 GRID402_ORACLE_WALLET = "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90"
 DEFAULT_ORACLE_PUBKEY = """-----BEGIN PUBLIC KEY-----
-MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEZh7FI41OltM2/P7miW0L/D0OE6FzEQRk
-2YJoMPEXO/mKiZ6oSi5l9MCIvS/W7IoIpe3z1EV9rYVEsADOgHHkJw==
+MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEq8MF77hj4TAO3ktuRu5GPRdXQP9m9JhO
+c89Y7XGoNGECnG/UiuoqDB/Y7/2s9ww3J7zJ8mC83Zc/Kd0FeDutaQ==
 -----END PUBLIC KEY-----"""
 
 
@@ -39,7 +39,7 @@ def canonicalize_payload(data: Any) -> Any:
 def compute_data_hash(data: Any) -> str:
     """Calcula o hash SHA-256 em hexadecimal prefixado com 0x do payload normalizado."""
     clean = canonicalize_payload(data)
-    serialized = json.dumps(clean, separators=(",", ":"), sort_keys=True)
+    serialized = json.dumps(clean, separators=(",", ":"), sort_keys=True, ensure_ascii=False)
     digest = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
     return f"0x{digest}"
 
@@ -291,7 +291,8 @@ class Grid402Client:
         self,
         response: Any,
         expected_oracle_address: Optional[str] = None,
+        oracle_public_key: Optional[str] = None,
     ) -> OracleVerificationResult:
         """Valida a prova matematica de autenticidade emitida pelo oraculo Grid402."""
-        return verify_oracle_proof(response, expected_oracle_address=expected_oracle_address)
+        return verify_oracle_proof(response, expected_oracle_address=expected_oracle_address, oracle_public_key=oracle_public_key)
 

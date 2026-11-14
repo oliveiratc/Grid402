@@ -230,6 +230,11 @@ FuMG+zevhna+MX1NMJ1+yZ+hRANCAARmHsUjjU6W0zb8/uaJbQv8PQ4ToXMRBGTZ
 gmgw8Rc7+YqJnqhKLmX0wIi9L9bsigil7fPURX2thUSwAM6AceQn
 -----END PRIVATE KEY-----`;
 
+const TEST_ORACLE_PUBKEY = `-----BEGIN PUBLIC KEY-----
+MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEZh7FI41OltM2/P7miW0L/D0OE6FzEQRk
+2YJoMPEXO/mKiZ6oSi5l9MCIvS/W7IoIpe3z1EV9rYVEsADOgHHkJw==
+-----END PUBLIC KEY-----`;
+
 function generateMockSignedResponse(data, isSandbox = false) {
   const hash = computeDataHash(data);
   const timestamp = Math.floor(Date.now() / 1000);
@@ -263,7 +268,7 @@ test('Grid402Client - Validacao positiva de prova criptografica do oraculo', () 
   const sample = { status: 'success', service: 'workdays', workdays: 5 };
   const signed = generateMockSignedResponse(sample, false);
 
-  const result = client.verifyProof(signed);
+  const result = client.verifyProof(signed, null, TEST_ORACLE_PUBKEY);
   assert.equal(result.valid, true);
   assert.equal(result.oracleAddress, GRID402_ORACLE_WALLET.toLowerCase());
   assert.equal(result.sandbox, false);
@@ -276,7 +281,7 @@ test('Grid402Client - Rejeicao de payload adulterado (DataHashMismatch)', () => 
 
   signed.workdays = 6;
 
-  const result = client.verifyProof(signed);
+  const result = client.verifyProof(signed, null, TEST_ORACLE_PUBKEY);
   assert.equal(result.valid, false);
   assert.equal(result.error, 'DataHashMismatch');
 });
@@ -286,7 +291,7 @@ test('Grid402Client - Rejeicao de carteira de oraculo divergente', () => {
   const sample = { status: 'success', service: 'workdays', workdays: 5 };
   const signed = generateMockSignedResponse(sample, false);
 
-  const result = client.verifyProof(signed, '0x000000000000000000000000000000000000dead');
+  const result = client.verifyProof(signed, '0x000000000000000000000000000000000000dead', TEST_ORACLE_PUBKEY);
   assert.equal(result.valid, false);
   assert.equal(result.error, 'OracleAddressMismatch');
 });
@@ -298,7 +303,7 @@ test('Grid402Client - Rejeicao de assinatura forjada ou corrompida', () => {
 
   signed._oracle_proof.signature = '0x1234567890abcdef';
 
-  const result = client.verifyProof(signed);
+  const result = client.verifyProof(signed, null, TEST_ORACLE_PUBKEY);
   assert.equal(result.valid, false);
 });
 
@@ -307,7 +312,7 @@ test('Grid402Client - Validacao de prova em modo Sandbox', () => {
   const sample = { status: 'success', service: 'indicators', selic: '10.75' };
   const signed = generateMockSignedResponse(sample, true);
 
-  const result = client.verifyProof(signed);
+  const result = client.verifyProof(signed, null, TEST_ORACLE_PUBKEY);
   assert.equal(result.valid, true);
   assert.equal(result.sandbox, true);
 });

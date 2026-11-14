@@ -39,6 +39,11 @@ FuMG+zevhna+MX1NMJ1+yZ+hRANCAARmHsUjjU6W0zb8/uaJbQv8PQ4ToXMRBGTZ
 gmgw8Rc7+YqJnqhKLmX0wIi9L9bsigil7fPURX2thUSwAM6AceQn
 -----END PRIVATE KEY-----"""
 
+TEST_ORACLE_PUBKEY_PEM = """-----BEGIN PUBLIC KEY-----
+MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEZh7FI41OltM2/P7miW0L/D0OE6FzEQRk
+2YJoMPEXO/mKiZ6oSi5l9MCIvS/W7IoIpe3z1EV9rYVEsADOgHHkJw==
+-----END PUBLIC KEY-----"""
+
 
 def generate_signed_payload(data: dict, is_sandbox: bool = False) -> dict:
     import time
@@ -71,7 +76,7 @@ class TestGrid402SDK(unittest.TestCase):
 
     def test_version_and_exports(self) -> None:
         """Verifica versao semantica e exportacoes principais."""
-        self.assertEqual(__version__, "2.5.0")
+        self.assertEqual(__version__, "2.5.2")
         self.assertTrue(issubclass(Grid402PaymentRequiredError, Grid402Error))
 
     def test_pydantic_models(self) -> None:
@@ -302,7 +307,7 @@ class TestGrid402SDK(unittest.TestCase):
         data = {"status": "success", "service": "workdays", "workdays": 5}
         signed = generate_signed_payload(data, is_sandbox=False)
 
-        res = client.verify_proof(signed)
+        res = client.verify_proof(signed, oracle_public_key=TEST_ORACLE_PUBKEY_PEM)
         self.assertTrue(res.valid)
         self.assertEqual(res.oracle_address, GRID402_ORACLE_WALLET.lower())
         self.assertFalse(res.sandbox)
@@ -315,7 +320,7 @@ class TestGrid402SDK(unittest.TestCase):
 
         signed["workdays"] = 6
 
-        res = client.verify_proof(signed)
+        res = client.verify_proof(signed, oracle_public_key=TEST_ORACLE_PUBKEY_PEM)
         self.assertFalse(res.valid)
         self.assertEqual(res.error, "DataHashMismatch")
 
@@ -325,7 +330,7 @@ class TestGrid402SDK(unittest.TestCase):
         data = {"status": "success", "service": "workdays", "workdays": 5}
         signed = generate_signed_payload(data, is_sandbox=False)
 
-        res = client.verify_proof(signed, expected_oracle_address="0x000000000000000000000000000000000000dead")
+        res = client.verify_proof(signed, expected_oracle_address="0x000000000000000000000000000000000000dead", oracle_public_key=TEST_ORACLE_PUBKEY_PEM)
         self.assertFalse(res.valid)
         self.assertEqual(res.error, "OracleAddressMismatch")
 
@@ -337,7 +342,7 @@ class TestGrid402SDK(unittest.TestCase):
 
         signed["_oracle_proof"]["signature"] = "0x1234567890abcdef"
 
-        res = client.verify_proof(signed)
+        res = client.verify_proof(signed, oracle_public_key=TEST_ORACLE_PUBKEY_PEM)
         self.assertFalse(res.valid)
 
     def test_oracle_proof_sandbox_mode(self) -> None:
@@ -346,7 +351,7 @@ class TestGrid402SDK(unittest.TestCase):
         data = {"status": "success", "service": "indicators", "selic": "10.75"}
         signed = generate_signed_payload(data, is_sandbox=True)
 
-        res = client.verify_proof(signed)
+        res = client.verify_proof(signed, oracle_public_key=TEST_ORACLE_PUBKEY_PEM)
         self.assertTrue(res.valid)
         self.assertTrue(res.sandbox)
 
