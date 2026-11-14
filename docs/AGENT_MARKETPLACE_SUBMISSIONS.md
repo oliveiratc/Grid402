@@ -18,8 +18,8 @@ Este guia contem todas as informacoes, descricoes, metadados e tags prontos para
 - **Settlement Asset:** USDC (Token: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`)
 - **Payment Receiver:** `0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`
 - **Pricing:**
-  - Standard Calls: `0.0005 USDC` (Forex, Crypto, DNS, SSL, ASN, CEP, Indicators, Holidays, Workdays)
-  - CNPJ Corporate Registry: `0.0020 USDC`
+  - Standard Calls: `0.0050 USDC` (Forex, Crypto, DNS, SSL, ASN, CEP, Indicators, Holidays, Workdays)
+  - CNPJ Corporate Registry: `0.0200 USDC`
   - Summary e Oracle Verifier: `Free / 0.0000 USDC`
 - **Description (English):**
   > Grid402 is an ultra-low latency (<20ms), Zero-DB open data hub and cryptographic oracle designed for autonomous AI agents. It delivers verified Brazilian public datasets including Receita Federal CNPJ corporate registry, CEP postal geolocation, official Central Bank Selic rates, CDI, IPCA inflation indexes, ANBIMA banking holidays and workdays calculators. Every response is cryptographically attested with a deterministic secp256k1 ECDSA signature (_oracle_proof) that can be verified on-chain or off-chain.

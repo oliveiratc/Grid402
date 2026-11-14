@@ -15,5 +15,5 @@ startCommand:
         default: "https://grid402.online"
       GRID402_PRIVATE_KEY:
         type: string
-        description: "EVM private key on Base Mainnet for automated 0.0005 USDC x402 payment settlement (optional)"
+        description: "EVM private key on Base Mainnet for automated 0.0050 USDC x402 payment settlement (optional)"
 

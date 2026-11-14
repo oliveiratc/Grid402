@@ -4,7 +4,7 @@ Grid402 - Exemplo de Integração de Agente Autônomo de IA (Python)
 Este script demonstra como um agente autônomo M2M consulta o Grid402:
 1. Faz uma checagem preliminar gratuita (Circuit Breaker).
 2. Se necessário, solicita a telemetria detalhada via protocolo HTTP x402.
-3. Liquida os 0.0005 USDC na rede Base e consome o payload técnico completo.
+3. Liquida os 0.0050 USDC na rede Base e consome o payload técnico completo.
 """
 
 import os

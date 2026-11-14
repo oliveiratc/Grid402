@@ -140,16 +140,16 @@ if (verificacao.valid) {
 | Metodo | Descricao | Preco Base (USDC) |
 |---|---|---|
 | `getSummary()` | Resumo operacional consolidado e saude do hub | Gratuito |
-| `getForex(txHash?)` | Cotacoes cambiais de USD, EUR e GBP para BRL | 0.0005 |
-| `getCrypto(txHash?, symbol?)` | Precos spot de BTC, ETH, SOL e USDC | 0.0005 |
-| `getDns(domain, txHash?)` | Resolucao DNS com registros A, AAAA, MX, TXT, NS e CNAME | 0.0005 |
-| `getSsl(host, txHash?)` | Inspecao e auditoria de certificado TLS e SSL na porta 443 | 0.0005 |
-| `getAsn(ip?, txHash?)` | Inteligencia de roteamento BGP, bloco alocado e ASN | 0.0005 |
-| `getCep(code, txHash?)` | Consulta de logradouro postal brasileiro e codigo IBGE | 0.0005 |
-| `getCnpj(cnpj, txHash?)` | Dados cadastrais completos de PJ na Receita Federal | 0.0020 |
-| `getIndicators(txHash?)` | Indicadores macroeconomicos oficiais (Selic meta e diaria, CDI anual e IPCA) | 0.0005 |
-| `getHolidays(year?, txHash?)` | Calendario oficial de feriados nacionais e bancarios ANBIMA | 0.0005 |
-| `getWorkdays(params?, txHash?)` | Calculadora de dias uteis financeiros e projecao de vencimentos ANBIMA | 0.0005 |
+| `getForex(txHash?)` | Cotacoes cambiais de USD, EUR e GBP para BRL | 0.0050 |
+| `getCrypto(txHash?, symbol?)` | Precos spot de BTC, ETH, SOL e USDC | 0.0050 |
+| `getDns(domain, txHash?)` | Resolucao DNS com registros A, AAAA, MX, TXT, NS e CNAME | 0.0050 |
+| `getSsl(host, txHash?)` | Inspecao e auditoria de certificado TLS e SSL na porta 443 | 0.0050 |
+| `getAsn(ip?, txHash?)` | Inteligencia de roteamento BGP, bloco alocado e ASN | 0.0050 |
+| `getCep(code, txHash?)` | Consulta de logradouro postal brasileiro e codigo IBGE | 0.0050 |
+| `getCnpj(cnpj, txHash?)` | Dados cadastrais completos de PJ na Receita Federal | 0.0200 |
+| `getIndicators(txHash?)` | Indicadores macroeconomicos oficiais (Selic meta e diaria, CDI anual e IPCA) | 0.0050 |
+| `getHolidays(year?, txHash?)` | Calendario oficial de feriados nacionais e bancarios ANBIMA | 0.0050 |
+| `getWorkdays(params?, txHash?)` | Calculadora de dias uteis financeiros e projecao de vencimentos ANBIMA | 0.0050 |
 | `getSanctions(cnpj, txHash?)` | Consulta de sancoes administrativas ativas nos cadastros CEIS e CNEP (CGU) | 0.0010 |
 | `getSimples(cnpj, txHash?)` | Consulta de enquadramento tributario no Simples Nacional e SIMEI | 0.0010 |
 | `getCompliance(cnpj, txHash?)` | Dossiê consolidado de Compliance 360 com score de risco de 0 a 100 | 0.0030 |

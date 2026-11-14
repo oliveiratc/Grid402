@@ -101,7 +101,7 @@ def create_grid402_tool(base_url: Optional[str] = None, verify_ssl: Optional[boo
         Args:
             service: Nome do serviço ('summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep').
             target: Parâmetro alvo (ex: domínio para DNS/SSL, IP para ASN, CEP para CEP).
-            payment_tx_hash: Hash da transação on-chain (Base Mainnet) com US$ 0.0005 USDC caso requerido.
+            payment_tx_hash: Hash da transação on-chain (Base Mainnet) com US$ 0.0050 USDC caso requerido.
         """
         srv = (service or "").lower().strip()
         if srv == "summary":

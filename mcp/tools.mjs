@@ -27,7 +27,7 @@ export const MCP_TOOLS_DEFINITIONS = [
       properties: {
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet comprovando o pagamento de 0.0005 USDC caso não utilize liquidação automática.',
+          description: 'Hash opcional de transação na Base Mainnet comprovando o pagamento de 0.0050 USDC caso não utilize liquidação automática.',
         },
       },
       required: [],
@@ -41,7 +41,7 @@ export const MCP_TOOLS_DEFINITIONS = [
       properties: {
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet com 0.0005 USDC.',
+          description: 'Hash opcional de transação na Base Mainnet com 0.0050 USDC.',
         },
       },
       required: [],
@@ -59,7 +59,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet com 0.0005 USDC.',
+          description: 'Hash opcional de transação na Base Mainnet com 0.0050 USDC.',
         },
       },
       required: ['domain'],
@@ -77,7 +77,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet com 0.0005 USDC.',
+          description: 'Hash opcional de transação na Base Mainnet com 0.0050 USDC.',
         },
       },
       required: ['host'],
@@ -95,7 +95,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet com 0.0005 USDC.',
+          description: 'Hash opcional de transação na Base Mainnet com 0.0050 USDC.',
         },
       },
       required: [],
@@ -113,7 +113,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet com 0.0005 USDC.',
+          description: 'Hash opcional de transação na Base Mainnet com 0.0050 USDC.',
         },
       },
       required: ['code'],
@@ -121,7 +121,7 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_cnpj',
-    description: 'Consulta dados cadastrais públicos de Pessoa Jurídica da Receita Federal (razão social, nome fantasia, situação cadastral, CNAE, endereço e capital social). Requer 0.0020 USDC.',
+    description: 'Consulta dados cadastrais públicos de Pessoa Jurídica da Receita Federal (razão social, nome fantasia, situação cadastral, CNAE, endereço e capital social). Requer 0.0200 USDC.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -131,7 +131,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet com 0.0020 USDC.',
+          description: 'Hash opcional de transação na Base Mainnet com 0.0200 USDC.',
         },
       },
       required: ['cnpj'],
@@ -145,7 +145,7 @@ export const MCP_TOOLS_DEFINITIONS = [
       properties: {
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet comprovando o pagamento de 0.0005 USDC caso não utilize liquidação automática.',
+          description: 'Hash opcional de transação na Base Mainnet comprovando o pagamento de 0.0050 USDC caso não utilize liquidação automática.',
         },
       },
       required: [],
@@ -163,7 +163,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet comprovando o pagamento de 0.0005 USDC caso não utilize liquidação automática.',
+          description: 'Hash opcional de transação na Base Mainnet comprovando o pagamento de 0.0050 USDC caso não utilize liquidação automática.',
         },
       },
       required: [],
@@ -193,7 +193,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transacao na Base Mainnet comprovando o pagamento de 0.0005 USDC caso nao utilize liquidacao automatica.',
+          description: 'Hash opcional de transacao na Base Mainnet comprovando o pagamento de 0.0050 USDC caso nao utilize liquidacao automatica.',
         },
       },
       required: [],

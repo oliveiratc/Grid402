@@ -4,7 +4,7 @@
 - (c) Rewards: **mantida aprovação manual** em `/growth_admin`. Nenhuma emissão automática de créditos.
 - (a) Facilitador público: homologação com `x402.org/facilitator` (testnet, grátis, v2), produção **mantida com pagamento direto on-chain (tx_hash) e `GRID402_FACILITATOR_MODE=disabled`** — decisão do mantenedor em 2026-11-13 (sem fee ao serviço; agentes pagam com carteira própria). PayAI/CDP não foram habilitados.
 - (b) Bazaar: listing só pode ser afirmado após settlement com facilitador que suporte a extensão `bazaar`; até lá, apenas submissão manual a diretórios (já feita pelo mantenedor) + e-mail enviado à PayAI (aguardando resposta).
-  - Nota: mesmo com facilitator desabilitado, o catálogo do Bazaar (via PayAI) exige **settles via PayAI em Mainnet** para catalogar. Um caminho real de homologação Mainnet sem custo para o Grid402: o oráculo tem ~1.000 créditos grátis PayAI; um único settle de 0.0005 USDC por um agente/comprador real pode ser suficiente para indexação — decidir quando isso fizer sentido (o comprador paga; o Grid402 gasta 1 crédito grátis).
+  - Nota: mesmo com facilitator desabilitado, o catálogo do Bazaar (via PayAI) exige **settles via PayAI em Mainnet** para catalogar. Um caminho real de homologação Mainnet sem custo para o Grid402: o oráculo tem ~1.000 créditos grátis PayAI; um único settle de 0.0050 USDC por um agente/comprador real pode ser suficiente para indexação — decidir quando isso fizer sentido (o comprador paga; o Grid402 gasta 1 crédito grátis).
 
 ---
 
@@ -74,7 +74,7 @@ Se `verify_only`: HTTP 200 sem `transaction` (autorização validada, **não** l
 | x402.org facilitator | ❌ (testnet) | não | nenhuma | grátis, só Sepolia |
 | Dexter (`https://dexter.cash/facilitator`) | inconclusivo (404 no probe) | ? | nenhuma | — |
 
-**Atenção ao custo da PayAI:** com preço de endpoint de US$ 0.0005, uma taxa de settle de ~US$ 0.00166 torna cada chamada x402 exata deficitária (~3,3× a receita). Se ativar PayAI, revise preços ou concentre em Session Pass / volumes. A alternativa v2 sem conta e sem taxa confirmada hoje seria a CDP com cadastro (perfil C no `.env.example`) ou renegociação com um facilitador.
+**Atenção ao custo da PayAI:** a taxa de settle de ~US$ 0.00166 por chamada independente do valor (percentuais variam). Os preços atuais (0.0050–0.0300 USDC) já cobrem folgadamente a taxa. Se quiser, a CDP com cadastro (perfil C no `.env.example`) pode reduzir custos ou adicionar KYT/OFAC.
 
 **Recomendação:** teste em Sepolia primeiro (perfil Sepolia). Só depois escolha entre:
 - **PayAI** + revisão de preços (única opção v2 pública com `bazaar`);
@@ -121,7 +121,7 @@ Cron criado no Hostinger (conta `u637629962`, uid `2URlitBU3F`):
 - [ ] Resposta da PayAI ao e-mail de catalogação (aguardando)
 - [ ] Settle real em Mainnet com comprador habilitado (se/quando a PayAI confirmar indexação ou se feito para contagem de catálogo)
 - [ ] Cache do Hostinger purgado após mudança de env/build
-- [ ] Settle real em Mainnet com valor mínimo (0.0005 USDC) verificado via `PAYMENT-RESPONSE`
+- [ ] Settle real em Mainnet com valor mínimo (0.0050 USDC) verificado via `PAYMENT-RESPONSE`
 - [ ] Listing Bazaar confirmado (ou não) via `EXTENSION-RESPONSES`
 - [ ] Documentação atualizada com o resultado real
 

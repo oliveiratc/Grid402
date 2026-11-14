@@ -42,7 +42,7 @@ GRID402_CRON_SECRET=crie_um_token_secreto_longo_aqui_123456
 GRID402_BASE_RPC_URL=https://mainnet.base.org
 GRID402_USDC_CONTRACT=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
 GRID402_USDC_REQUIRED_RAW=500
-GRID402_PRICE_DISPLAY=0.0005
+GRID402_PRICE_DISPLAY=0.0050
 GRID402_TIMEOUT_MS=2800
 GRID402_CONNECT_TIMEOUT_MS=1500
 ```
@@ -81,7 +81,7 @@ No terminal da sua máquina:
 ```bash
 curl -i -H "Accept: application/json" https://grid402.online/telemetry
 ```
-*Deve retornar `HTTP/1.1 402 Payment Required` com o endereço da sua carteira e o valor de 0.0005 USDC.*
+*Deve retornar `HTTP/1.1 402 Payment Required` com o endereço da sua carteira e o valor de 0.0050 USDC.*
 
 ### D. Teste do Resumo Gratuito
 ```bash

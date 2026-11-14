@@ -4090,6 +4090,96 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             throw new Error('Nenhuma carteira Web3 detectada. Instale uma extensão como MetaMask ou Coinbase Wallet.');
         }
 
+        async function x402SignTransferAuthorization(provider, userAddress, amountRaw) {
+            const out = document.getElementById('console-output') || document.getElementById('playground-json-viewer');
+            const step = (m) => {
+                const el = document.getElementById('console-status-text') || document.getElementById('playground-http-status');
+                const o = document.getElementById('console-output') || document.getElementById('playground-json-viewer');
+                if (el) el.textContent = '[x402] ' + m;
+                if (o) o.textContent = (o.textContent ? o.textContent + '\n' : '') + '[x402] ' + m;
+                console.log('x402:', m);
+            };
+            try {
+                step('start (provider=' + (provider ? provider.constructor?.name : 'none') + ')');
+                const usdcContract = ('<?php echo GRID402_USDC_CONTRACT; ?>' || '').trim();
+                const recipient = '<?php echo GRID402_WALLET_ADDRESS; ?>'.toLowerCase().replace('0x', '');
+                step('contracts loaded: ' + usdcContract + ' / ' + recipient);
+                const now = Math.floor(Date.now() / 1000);
+                const validAfter = String(Math.max(0, now - 600));
+                const validBefore = String(now + 86400);
+                const nonceBytes = new Uint8Array(32);
+                crypto.getRandomValues(nonceBytes);
+                const nonce = '0x' + Array.from(nonceBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+                step('validAfter=' + validAfter + ' validBefore=' + validBefore);
+                const typedData = {
+                    domain: { name: 'USD Coin', version: '2', chainId: 8453, verifyingContract: usdcContract },
+                    types: {
+                        EIP712Domain: [
+                            { name: 'name', type: 'string' },
+                            { name: 'version', type: 'string' },
+                            { name: 'chainId', type: 'uint256' },
+                            { name: 'verifyingContract', type: 'address' },
+                        ],
+                        TransferWithAuthorization: [
+                            { name: 'from', type: 'address' },
+                            { name: 'to', type: 'address' },
+                            { name: 'value', type: 'uint256' },
+                            { name: 'validAfter', type: 'uint256' },
+                            { name: 'validBefore', type: 'uint256' },
+                            { name: 'nonce', type: 'bytes32' },
+                        ],
+                    },
+                    primaryType: 'TransferWithAuthorization',
+                    message: {
+                        from: userAddress.toLowerCase(),
+                        to: recipient.toLowerCase(),
+                        value: String(amountRaw),
+                        validAfter,
+                        validBefore,
+                        nonce,
+                    },
+                };
+                step('typedData built');
+                const payloadJson = JSON.stringify(typedData);
+                step('payloadJson len=' + payloadJson.length);
+                const signature = await provider.request({
+                    method: 'eth_signTypedData_v4',
+                    params: [userAddress, payloadJson],
+                });
+                step('signature received (' + String(signature).length + ' bytes)');
+                const envelope = {
+                    x402Version: 2,
+                    accepted: {
+                        scheme: 'exact',
+                        network: 'eip155:8453',
+                        asset: usdcContract,
+                        amount: String(amountRaw),
+                        maxTimeoutSeconds: 300,
+                        extra: { name: 'USD Coin', version: '2' },
+                    },
+                    payload: {
+                        signature,
+                        authorization: {
+                            from: userAddress.toLowerCase(),
+                            to: recipient.toLowerCase(),
+                            value: String(amountRaw),
+                            validAfter,
+                            validBefore,
+                            nonce,
+                        },
+                    },
+                };
+                const b64 = btoa(JSON.stringify(envelope));
+                step('btoa ok (' + b64.length + ' chars)');
+                return b64;
+            } catch (e) {
+                const errInfo = 'x402 err: ' + (e && e.name) + ' | ' + (e && e.message) + ' | stack=' + (e && e.stack ? e.stack.split('\n')[0] : '');
+                step(errInfo);
+                try { console.error('x402SignTransferAuthorization FAILED', e); } catch (_) {}
+                throw e;
+            }
+        }
+
         async function payPlaygroundWithWeb3(customProvider = null, customBtnId = null) {
             const btn = document.getElementById(customBtnId || 'btn-playground-web3-pay');
             const statusBadge = document.getElementById('playground-http-status');
@@ -4117,7 +4207,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     btn.textContent = 'Conectando carteira...';
                 }
 
-                const accounts = await provider.request({ method: 'eth_requestAccounts' });
+                const accounts = await provider.request({ method: 'eth_requestAccounts', params: [] });
                 if (!accounts || accounts.length === 0) {
                     throw new Error('Nenhuma conta conectada.');
                 }
@@ -4146,49 +4236,33 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     }
                 }
 
-                let amountRaw = 500;
+                let amountRaw = 5000;
                 let priceUsdc = '0.0050';
                 if (currentPlaygroundPreset === 'pass') {
-                    amountRaw = 50000;
+                    amountRaw = 500000;
                     priceUsdc = '0.5000';
                 } else if (currentPlaygroundPreset === 'compliance') {
-                    amountRaw = 3000;
+                    amountRaw = 30000;
                     priceUsdc = '0.0300';
                 } else if (currentPlaygroundPreset === 'sanctions' || currentPlaygroundPreset === 'simples') {
-                    amountRaw = 1000;
+                    amountRaw = 10000;
                     priceUsdc = '0.0100';
                 } else if (currentPlaygroundPreset === 'cnpj' || currentPlaygroundPreset === 'lei' || currentPlaygroundPreset === 'ofac') {
-                    amountRaw = 2000;
+                    amountRaw = 20000;
                     priceUsdc = '0.0200';
                 }
 
-                const recipient = '<?php echo GRID402_WALLET_ADDRESS; ?>'.toLowerCase().replace('0x', '');
-                const usdcContract = '<?php echo GRID402_USDC_CONTRACT; ?>';
-                const recipientPadded = recipient.padStart(64, '0');
-                const amountHex = amountRaw.toString(16).padStart(64, '0');
-                const txData = '0xa9059cbb' + recipientPadded + amountHex;
-
-                if (btn) btn.textContent = 'Assine ' + priceUsdc + ' USDC na carteira...';
-                const txHash = await provider.request({
-                    method: 'eth_sendTransaction',
-                    params: [{
-                        from: userAddress,
-                        to: usdcContract,
-                        data: txData,
-                    }],
-                });
-
-                if (statusBadge) statusBadge.textContent = 'Aguardando Bloco Base...';
-                if (viewer) viewer.textContent = '// Transacao enviada na Base Mainnet!\n// TxHash: ' + txHash + '\n// Aguardando 3.5s para confirmacao e liberacao da prova criptografica...';
-                if (btn) btn.textContent = 'Validando recibo on-chain...';
-
-                await new Promise(r => setTimeout(r, 3500));
+                if (btn) btn.textContent = 'Assine ' + priceUsdc + ' USDC na carteira (x402 EIP-712)...';
+                const xpay = await x402SignTransferAuthorization(provider, userAddress, amountRaw);
+                if (statusBadge) statusBadge.textContent = 'Liquidando via facilitador x402...';
+                if (viewer) viewer.textContent = '// Assinatura x402 (EIP-712) criada.\n// Enviando prova para o facilitador (verify + settle)...';
+                if (btn) btn.textContent = 'Liquidando via facilitador x402...';
 
                 const url = buildPlaygroundUrl();
                 const res = await fetch(url, {
                     headers: {
                         'Accept': 'application/json',
-                        'X-Payment': txHash
+                        'X-Payment': xpay
                     }
                 });
                 const unlockedData = await res.json();
@@ -4584,7 +4658,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 }
 
                 // 1. Solicita conexão de contas
-                const accounts = await provider.request({ method: 'eth_requestAccounts' });
+                const accounts = await provider.request({ method: 'eth_requestAccounts', params: [] });
                 if (!accounts || accounts.length === 0) {
                     throw new Error('Nenhuma conta foi conectada.');
                 }
@@ -4614,52 +4688,38 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     }
                 }
 
-                // 3. Monta a transação ERC-20 transfer(to, amount)
-                let amountRaw = 500;
+                // 3. Assina autorizacao x402 (EIP-712 TransferWithAuthorization)
+                let amountRaw = 5000;
                 let priceUsdc = '0.0050';
                 if (currentServiceAction === 'pass') {
-                    amountRaw = 50000;
+                    amountRaw = 500000;
                     priceUsdc = '0.5000';
                 } else if (currentServiceAction === 'compliance') {
-                    amountRaw = 3000;
+                    amountRaw = 30000;
                     priceUsdc = '0.0300';
                 } else if (currentServiceAction === 'sanctions' || currentServiceAction === 'simples') {
-                    amountRaw = 1000;
+                    amountRaw = 10000;
                     priceUsdc = '0.0100';
                 } else if (currentServiceAction === 'cnpj' || currentServiceAction === 'lei' || currentServiceAction === 'ofac') {
-                    amountRaw = 2000;
+                    amountRaw = 20000;
                     priceUsdc = '0.0200';
                 }
-                const recipient = '<?php echo GRID402_WALLET_ADDRESS; ?>'.toLowerCase().replace('0x', '');
-                const usdcContract = '<?php echo GRID402_USDC_CONTRACT; ?>';
 
-                // Function selector: transfer(address,uint256) -> 0xa9059cbb
-                const recipientPadded = recipient.padStart(64, '0');
-                const amountHex = amountRaw.toString(16).padStart(64, '0');
-                const data = '0xa9059cbb' + recipientPadded + amountHex;
+                if (btn) btn.textContent = `Aguardando assinatura de ${priceUsdc} USDC (x402 EIP-712)...`;
+                out.textContent = `Solicitando assinatura na carteira: ${priceUsdc} USDC na Base, liquidados pelo facilitador x402.`;
 
-                if (btn) btn.textContent = `Aguardando assinatura de ${priceUsdc} USDC...`;
-                out.textContent = `Solicitando aprovação na carteira para transferência de ${priceUsdc} USDC na Base para o oráculo...\nCarteira destino: 0x${recipient}`;
+                const xpay = await x402SignTransferAuthorization(provider, userAddress, amountRaw);
 
-                const txHash = await provider.request({
-                    method: 'eth_sendTransaction',
-                    params: [{
-                        from: userAddress,
-                        to: usdcContract,
-                        data: data,
-                    }],
-                });
+                document.getElementById('tx-input').value = xpay;
+                statusText.textContent = 'Assinatura x402 criada; liquidando via facilitador...';
+                out.textContent = `Assinatura x402 (EIP-712 TransferWithAuthorization) criada.\nPayload pronto para envio.\n\nLiquidando via facilitador x402...`;
 
-                document.getElementById('tx-input').value = txHash;
-                statusText.textContent = `Transação enviada: ${txHash.substring(0, 10)}... Aguardando confirmação no bloco Base...`;
-                out.textContent = `Transação enviada com sucesso na Base Mainnet!\nTx Hash: ${txHash}\nLink BaseScan: https://basescan.org/tx/${txHash}\n\nAguardando 3.5 segundos para propagação do recibo on-chain...`;
-
-                if (btn) btn.textContent = 'Desbloqueando dados...';
-                await new Promise(r => setTimeout(r, 3500));
+                if (btn) btn.textContent = 'Liquidando via facilitador x402...';
+                await new Promise(r => setTimeout(r, 1500));
 
                 await runConsole('paid');
             } catch (err) {
-                out.textContent = `Falha na transação Web3: ${err.message || err}`;
+                out.textContent = 'Falha na transação Web3: ' + ((err && err.name) || 'Error') + ' | ' + ((err && err.message) || String(err)) + '\n\nSTACK: ' + ((err && err.stack) || '').split('\n').slice(0, 3).join('\n');
                 statusText.textContent = 'Operação cancelada ou falhou';
             } finally {
                 if (btn) {
@@ -4752,7 +4812,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 if (statusMsg) statusMsg.textContent = 'Solicitando conexão com sua carteira Web3...';
 
                 // 1. Conexão de contas
-                const accounts = await provider.request({ method: 'eth_requestAccounts' });
+                const accounts = await provider.request({ method: 'eth_requestAccounts', params: [] });
                 if (!accounts || accounts.length === 0) {
                     throw new Error('Nenhuma conta foi conectada.');
                 }

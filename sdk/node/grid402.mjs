@@ -543,7 +543,7 @@ export class Grid402ActionProvider {
       // Se temos walletProvider e nao estamos em sandbox, auto-liquida on-chain na Base
       if (walletProvider) {
         if (!this.sandbox) {
-          const priceUsdc = challenge.price_usdc || '0.0005';
+          const priceUsdc = challenge.price_usdc || '0.0050';
           const recipient = challenge.recipient_wallet || GRID402_ORACLE_WALLET;
 
           try {

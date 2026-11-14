@@ -56,7 +56,7 @@ export class Grid402ActionProvider {
     if (res.status === 402) {
       if (walletProvider) {
         if (!this.sandbox) {
-          const priceDisplay = json.price_usdc || '0.0005';
+          const priceDisplay = json.price_usdc || '0.0050';
           const recipient = json.recipient_wallet || GRID402_ORACLE_WALLET;
 
           // Executa transferencia de USDC na Base usando a carteira do agente CDP

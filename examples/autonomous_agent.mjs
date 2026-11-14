@@ -106,12 +106,12 @@ async function main() {
   console.log('========================================================');
 
   try {
-    // Exemplo 1: Validação Corporativa de CNPJ (0.0020 USDC)
+    // Exemplo 1: Validação Corporativa de CNPJ (0.0200 USDC)
     const cnpjTarget = '00000000000191'; // Banco do Brasil SA
     const cnpjResult = await queryGrid402WithAutoPayment('/api/v1/cnpj', { cnpj: cnpjTarget });
     console.log(JSON.stringify(cnpjResult, null, 2));
 
-    // Exemplo 2: Auditoria de Certificado TLS/SSL (0.0005 USDC)
+    // Exemplo 2: Auditoria de Certificado TLS/SSL (0.0050 USDC)
     // const sslResult = await queryGrid402WithAutoPayment('/api/v1/ssl', { host: 'base.org' });
     // console.log(JSON.stringify(sslResult, null, 2));
 

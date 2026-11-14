@@ -29,7 +29,7 @@ async function main() {
             console.log(`     • Rede: ${challenge.network} (Chain: ${challenge.chain_id})`);
             console.log(`     • Preço: US$ ${challenge.price_usdc} USDC`);
             console.log(`     • Carteira Destino: ${challenge.recipient_wallet}`);
-            console.log('     • Instrução: Transferir 0.0005 USDC e reenviar com cabeçalho X-Payment: <tx_hash>');
+            console.log('     • Instrução: Transferir 0.0050 USDC e reenviar com cabeçalho X-Payment: <tx_hash>');
         }
     } catch (err) {
         console.error('Erro na chamada:', err.message);

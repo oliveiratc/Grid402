@@ -60,7 +60,7 @@ if client.is_healthy("forex"):
 ```
 
 ### 2. Consultas Técnicas via Micropagamento x402
-Cada consulta técnica custa **US$ 0.0005 USDC** liquidado diretamente na Base Mainnet.
+Cada consulta técnica custa **US$ 0.0050 USDC** liquidado diretamente na Base Mainnet.
 
 ```python
 from grid402 import Grid402Client, PaymentRequiredError

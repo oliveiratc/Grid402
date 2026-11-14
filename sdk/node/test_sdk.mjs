@@ -61,8 +61,8 @@ test('Grid402Client - Lancamento de PaymentRequiredError com Teaser Data', async
   const originalFetch = globalThis.fetch;
   const challengeBody = {
     error: 'PaymentRequired',
-    message: 'Pagamento obrigatorio de 0.0005 USDC na Base',
-    price_usdc: '0.0005',
+    message: 'Pagamento obrigatorio de 0.0050 USDC na Base',
+    price_usdc: '0.0050',
     recipient_wallet: '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90',
     network: 'Base',
     token: 'USDC',
@@ -82,7 +82,7 @@ test('Grid402Client - Lancamento de PaymentRequiredError com Teaser Data', async
       },
       (err) => {
         assert(err instanceof PaymentRequiredError);
-        assert.equal(err.priceUsdc, '0.0005');
+        assert.equal(err.priceUsdc, '0.0050');
         assert.equal(err.recipientWallet, '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90');
         assert.deepEqual(err.previewData, { amostra: true, empresa: 'BANCO DO BRASIL' });
         return true;
@@ -115,7 +115,7 @@ test('Grid402ActionProvider - Auto-liquidacao com Coinbase AgentKit wallet_provi
         ok: false,
         json: async () => ({
           error: 'PaymentRequired',
-          price_usdc: '0.0020',
+          price_usdc: '0.0200',
           recipient_wallet: '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90',
         }),
       };
@@ -136,7 +136,7 @@ test('Grid402ActionProvider - Auto-liquidacao com Coinbase AgentKit wallet_provi
     const res = await provider.queryCnpj('00000000000191', mockWalletProvider);
     assert.equal(res.razao_social, 'BANCO DO BRASIL SA');
     assert.equal(transferCalledWith.to, '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90');
-    assert.equal(transferCalledWith.amount, '0.0020');
+    assert.equal(transferCalledWith.amount, '0.0200');
     assert.equal(transferCalledWith.assetId, 'usdc');
     assert.equal(res._x402_settlement.tx_hash, '0xmocked_node_tx_hash_67890');
   } finally {

@@ -2,7 +2,7 @@
 
 Este modulo fornece a integracao oficial do **Grid402** com o ecossistema **Coinbase Developer Platform (CDP) AgentKit** na rede **Base**.
 
-Com este provedor, qualquer agente de IA (LangChain, CrewAI, AutoGen ou ElizaOS) dotado de uma carteira CDP na Base pode realizar consultas tecnicas e cadastrais enriquecidas, liquidando automaticamente as micro-tarifas x402 (0.0005 a 0.0020 USDC) diretamente on-chain.
+Com este provedor, qualquer agente de IA (LangChain, CrewAI, AutoGen ou ElizaOS) dotado de uma carteira CDP na Base pode realizar consultas tecnicas e cadastrais enriquecidas, liquidando automaticamente as micro-tarifas x402 (0.0050 a 0.0300 USDC) diretamente on-chain.
 
 ---
 
@@ -10,16 +10,16 @@ Com este provedor, qualquer agente de IA (LangChain, CrewAI, AutoGen ou ElizaOS)
 
 | Acao / Ferramenta | Descricao | Tarifa x402 (Base) |
 |---|---|---|
-| `query_cnpj` | Dados cadastrais completos da PJ na Receita Federal (Razao, CNAEs, Capital, Endereco) | 0.0020 USDC |
-| `query_cep` | Resolucao de CEP postal brasileiro e codigo IBGE | 0.0005 USDC |
-| `query_forex` | Cotacoes cambiais oficiais de USD, EUR e GBP para BRL | 0.0005 USDC |
-| `query_crypto` | Precos spot de mercado de BTC, ETH, SOL e USDC | 0.0005 USDC |
-| `query_dns` | Resolucao autoritativa de registros A, AAAA, MX, TXT, NS | 0.0005 USDC |
-| `query_ssl` | Inspecao e dias de validade de certificados TLS/SSL | 0.0005 USDC |
-| `query_asn` | Roteamento BGP, numero de ASN e organizacao titular de IP | 0.0005 USDC |
-| `query_indicators` | Indicadores macroeconomicos oficiais (Selic meta e diaria, CDI anual e IPCA) | 0.0005 USDC |
-| `query_holidays` | Calendario oficial de feriados nacionais e bancarios ANBIMA por ano | 0.0005 USDC |
-| `query_workdays` | Calculadora de dias uteis financeiros e projecao de vencimentos ANBIMA | 0.0005 USDC |
+| `query_cnpj` | Dados cadastrais completos da PJ na Receita Federal (Razao, CNAEs, Capital, Endereco) | 0.0200 USDC |
+| `query_cep` | Resolucao de CEP postal brasileiro e codigo IBGE | 0.0050 USDC |
+| `query_forex` | Cotacoes cambiais oficiais de USD, EUR e GBP para BRL | 0.0050 USDC |
+| `query_crypto` | Precos spot de mercado de BTC, ETH, SOL e USDC | 0.0050 USDC |
+| `query_dns` | Resolucao autoritativa de registros A, AAAA, MX, TXT, NS | 0.0050 USDC |
+| `query_ssl` | Inspecao e dias de validade de certificados TLS/SSL | 0.0050 USDC |
+| `query_asn` | Roteamento BGP, numero de ASN e organizacao titular de IP | 0.0050 USDC |
+| `query_indicators` | Indicadores macroeconomicos oficiais (Selic meta e diaria, CDI anual e IPCA) | 0.0050 USDC |
+| `query_holidays` | Calendario oficial de feriados nacionais e bancarios ANBIMA por ano | 0.0050 USDC |
+| `query_workdays` | Calculadora de dias uteis financeiros e projecao de vencimentos ANBIMA | 0.0050 USDC |
 | `verify_proof` | Validacao matematica de prova criptografica de oraculo (_oracle_proof) secp256k1 | Gratuito |
 
 ---
@@ -43,7 +43,7 @@ const grid402 = new Grid402ActionProvider({
   sandbox: false, // configure true para testar sem custos (cota de 20 req/h)
 });
 
-// 3. Executa a consulta com auto-liquidacao de 0.0020 USDC
+// 3. Executa a consulta com auto-liquidacao de 0.0200 USDC
 const empresa = await grid402.queryCnpj("00000000000191", walletProvider);
 
 console.log("Razao Social:", empresa.razao_social);

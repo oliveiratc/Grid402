@@ -18,7 +18,7 @@ Autonomous AI agents (ElizaOS, CrewAI, LangChain, Coinbase AgentKit) require acc
 Historically, traditional Web2 data providers force agents into human-centric models: mandatory credit card subscriptions, manual KYC onboarding, high minimum monthly commitments ($500+/mo), and brittle API keys.
 
 **Grid402 solves this fundamentally:**
-Grid402 is an autonomous, Zero-DB, high-performance public data and network intelligence oracle on **Base Mainnet**. Operating natively under the **HTTP x402 Payment Required** standard, it allows machine-to-machine (M2M) systems and AI agents to pay on-demand via micro-transactions in USDC ($0.0005 to $0.0020 per query) or via pre-paid batch **Session Passes** ($2 to $20 USDC) with instant sub-15ms latency.
+Grid402 is an autonomous, Zero-DB, high-performance public data and network intelligence oracle on **Base Mainnet**. Operating natively under the **HTTP x402 Payment Required** standard, it allows machine-to-machine (M2M) systems and AI agents to pay on-demand via micro-transactions in USDC ($0.0050 to $0.0200 per query) or via pre-paid batch **Session Passes** ($2 to $20 USDC) with instant sub-15ms latency.
 
 ---
 

@@ -1,7 +1,7 @@
 /**
  * Grid402 MCP Server - Módulo de Liquidação x402 On-Chain (Base Mainnet)
  * 
- * Permite pagamentos automáticos de US$ 0.0005 USDC via transferência ERC-20
+ * Permite pagamentos automáticos de US$ 0.0050 USDC via transferência ERC-20
  * quando uma chave privada é fornecida no ambiente do agente.
  */
 
@@ -15,7 +15,7 @@ export const BASE_RPC_URLS = [
 
 export const USDC_CONTRACT_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'.toLowerCase();
 export const GRID402_RECIPIENT_WALLET = '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90'.toLowerCase();
-export const REQUIRED_RAW_UNITS = 500n; // 0.000500 USDC (6 casas decimais)
+export const REQUIRED_RAW_UNITS = 5000n; // 0.0050 USDC (6 casas decimais)
 
 const ERC20_ABI = [
   'function transfer(address to, uint256 amount) returns (bool)',
@@ -40,7 +40,7 @@ export async function getBaseProvider(preferredRpc = null) {
 }
 
 /**
- * Executa a transferência de 0.0005 USDC na Base para liquidar o desafio x402
+ * Executa a transferência de 0.0050 USDC na Base para liquidar o desafio x402
  * 
  * @param {object} challenge Desafio retornado pelo Grid402 (HTTP 402)
  * @param {string} privateKey Chave privada hexadecimal da carteira pagadora
@@ -66,7 +66,7 @@ export async function settleX402Payment(challenge, privateKey, preferredRpc = nu
   try {
     const balance = await usdc.balanceOf(wallet.address);
     if (balance < rawUnits) {
-      throw new Error(`Saldo insuficiente de USDC na carteira ${wallet.address}. Requerido: 0.0005 USDC, Atual: ${ethers.formatUnits(balance, 6)} USDC.`);
+      throw new Error(`Saldo insuficiente de USDC na carteira ${wallet.address}. Requerido: 0.0050 USDC, Atual: ${ethers.formatUnits(balance, 6)} USDC.`);
     }
   } catch (err) {
     if (err.message.includes('Saldo insuficiente')) {
@@ -84,7 +84,7 @@ export async function settleX402Payment(challenge, privateKey, preferredRpc = nu
     blockNumber: receipt.blockNumber,
     from: wallet.address,
     to: recipient,
-    amountUsdc: '0.0005',
+    amountUsdc: '0.0050',
   };
 }
 

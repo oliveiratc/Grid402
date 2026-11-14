@@ -20,7 +20,7 @@ ServerSignature Off
     Header always set Referrer-Policy "strict-origin-when-cross-origin"
     Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
     Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" env=HTTPS
-    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://mainnet.base.org https://base.llamarpc.com https://1rpc.io/base https://sepolia.base.org; frame-ancestors 'self'; base-uri 'self'; form-action 'self';"
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://mainnet.base.org https://base.llamarpc.com https://1rpc.io/base https://sepolia.base.org https://www.walletlink.org https://*.walletlink.org wss://www.walletlink.org wss://*.walletlink.org; frame-ancestors 'self'; frame-src 'self' https://www.walletlink.org https://*.walletlink.org; base-uri 'self'; form-action 'self';"
 </IfModule>
 
 # CORS amplo isolado para arquivos públicos de descoberta e schemas M2M

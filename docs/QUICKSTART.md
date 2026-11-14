@@ -65,7 +65,7 @@ Modos suportados (em ordem de prioridade):
 # 1. Obtenha o desafio 402
 curl -i "https://grid402.online/api/v1/cnpj?cnpj=00000000000191"
 
-# 2. Envie 0.0020 USDC (CNPJ) na Base (Chain ID 8453) para a wallet oracle
+# 2. Envie 0.0200 USDC (CNPJ) na Base (Chain ID 8453) para a wallet oracle
 #    0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90
 
 # 3. Refaca a requisicao com o hash da transacao
