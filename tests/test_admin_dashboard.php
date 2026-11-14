@@ -158,7 +158,7 @@ if (!is_dir(GRID402_PRIVATE_DIR)) {
     @mkdir(GRID402_PRIVATE_DIR, 0755, true);
 }
 @file_put_contents($walletCacheFile, (string) json_encode([
-    'oracle_address' => defined('GRID402_WALLET_ADDRESS') ? GRID402_WALLET_ADDRESS : '0xa31c31069c43ac1c0075a93c325b0dcd7744356c',
+    'oracle_address' => defined('GRID402_WALLET_ADDRESS') ? GRID402_WALLET_ADDRESS : '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90',
     'usdc_balance' => 0.0,
     'eth_balance' => 0.0,
     'network' => 'Base Mainnet',

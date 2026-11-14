@@ -107,7 +107,7 @@ O provedor gerencia automaticamente o ciclo de vida HTTP 402, transferindo os mi
 
 ## 🛡️ Prova Criptografica de Oraculo (Proof of Data)
 
-Todas as ferramentas pagas e em sandbox retornam o bloco `_oracle_proof` com garantia matematica de integridade e assinatura ECDSA secp256k1 emitida pela carteira oficial do Grid402 (`0xa31c31069c43ac1c0075a93c325b0dcd7744356c`). Isso permite que agentes validem que os dados consumidos sao legitimos e nao sofreram alteracao durante o trânsito.
+Todas as ferramentas pagas e em sandbox retornam o bloco `_oracle_proof` com garantia matematica de integridade e assinatura ECDSA secp256k1 emitida pela carteira oficial do Grid402 (`0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`). Isso permite que agentes validem que os dados consumidos sao legitimos e nao sofreram alteracao durante o trânsito.
 
 ---
 

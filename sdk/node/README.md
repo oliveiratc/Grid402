@@ -111,7 +111,7 @@ console.log('Comprovante on-chain:', resultado._x402_settlement);
 
 ### 5. Verificacao Criptografica de Prova de Autenticidade (Proof of Data)
 
-Todas as respostas de dados pagas e em sandbox trazem uma prova matematica de oraculo (`_oracle_proof`) assinada via ECDSA secp256k1 pela carteira oficial do Grid402 (`0xa31c31069c43ac1c0075a93c325b0dcd7744356c`).
+Todas as respostas de dados pagas e em sandbox trazem uma prova matematica de oraculo (`_oracle_proof`) assinada via ECDSA secp256k1 pela carteira oficial do Grid402 (`0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`).
 
 O SDK permite verificar matematicamente a integridade dos dados e a autenticidade do emissor em menos de 5 milissegundos sem chamadas de rede adicionais:
 

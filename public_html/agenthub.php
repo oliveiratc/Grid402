@@ -13,7 +13,7 @@ ksort($services);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GRID402 Agent Hub</title>
-    <meta name="description" content="Central de integraÃ§Ã£o para agentes autÃ´nomos â€” HTTP x402, MCP, Coinbase AgentKit, Python SDK, TypeScript SDK.">
+    <meta name="description" content="Central de integração para agentes autônomos — HTTP x402, MCP, Coinbase AgentKit, Python SDK, TypeScript SDK.">
     <style>
         :root { --bg:#060B19; --surface:#0B132B; --border:#1E2C4F; --text:#F8FAFC; --muted:#94A3B8; --cyan:#00F0FF; --blue:#0052FF; }
         * { box-sizing:border-box; }
@@ -30,23 +30,23 @@ ksort($services);
 </head>
 <body>
 <main>
-    <p><a href="/">â† Grid402</a> &nbsp;Â·&nbsp; <a href="/agents">Agentes IA existente</a> &nbsp;Â·&nbsp; <a href="/growth">Growth Program</a></p>
+    <p><a href="/">← Grid402</a> &nbsp;·&nbsp; <a href="/agents">Agentes IA existente</a> &nbsp;·&nbsp; <a href="/growth">Growth Program</a></p>
     <h1>GRID402 AGENT HUB</h1>
-    <p>Central de integraÃ§Ã£o para agentes autÃ´nomos: documentaÃ§Ã£o, exemplos, preÃ§os e compatibilidade.</p>
+    <p>Central de integração para agentes autônomos: documentação, exemplos, preços e compatibilidade.</p>
 
-    <h2>CatÃ¡logo de serviÃ§os</h2>
+    <h2>Catálogo de serviços</h2>
     <div class="grid">
         <?php foreach ($services as $id => $svc): ?>
             <div class="card">
                 <h3><?php echo htmlspecialchars((string)($svc['name'] ?? $id)); ?></h3>
                 <p><?php echo htmlspecialchars((string)($svc['description'] ?? '')); ?></p>
                 <code><?php echo htmlspecialchars((string)($svc['endpoint'] ?? '/api/v1/' . $id)); ?></code>
-                <p><a href="/catalog">PreÃ§os e tarifas â†’</a></p>
+                <p><a href="/catalog">Preços e tarifas →</a></p>
             </div>
         <?php endforeach; ?>
     </div>
 
-    <h2>Exemplos de integraÃ§Ã£o</h2>
+    <h2>Exemplos de integração</h2>
 
     <div class="card">
         <h3>HTTP x402 (cURL)</h3>
@@ -73,15 +73,15 @@ while (budget > spent) {
   const q = await grid402.query('crypto');
   spent += 0.0050;
 }</pre>
-        <p>Agentes devem implementar orÃ§amento prÃ³prio; Grid402 nÃ£o autoriza movimentaÃ§Ã£o de fundos sem permissÃ£o explÃ­cita do mantenedor.</p>
+        <p>Agentes devem implementar orçamento próprio; Grid402 não autoriza movimentação de fundos sem permissão explícita do mantenedor.</p>
     </div>
 
-    <h2>Regras de produÃ§Ã£o</h2>
+    <h2>Regras de produção</h2>
     <ul>
-        <li>NÃ£o movimente fundos sem autorizaÃ§Ã£o on-chain compatÃ­vel com suas polÃ­ticas.</li>
+        <li>Não movimente fundos sem autorização on-chain compatível com suas políticas.</li>
         <li>Prefira <code>demo</code> para testes sandbox (30 consultas/h/IP).</li>
-        <li>Use Session Pass para reduzir latÃªncia e custo administrativo.</li>
-        <li>Valide <code>_oracle_proof</code> para respostas sensÃ­veis.</li>
+        <li>Use Session Pass para reduzir latência e custo administrativo.</li>
+        <li>Valide <code>_oracle_proof</code> para respostas sensíveis.</li>
     </ul>
 </main>
 </body>

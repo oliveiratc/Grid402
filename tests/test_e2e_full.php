@@ -221,7 +221,7 @@ try {
     assert(isset($workdaysData['_oracle_proof']), "Resposta de sucesso deve conter _oracle_proof");
     assert(!empty($workdaysData['_oracle_proof']['signature']), "Prova deve conter assinatura digital");
     assert($workdaysData['_oracle_proof']['sandbox'] === true, "Prova no sandbox deve indicar sandbox: true");
-    assert($workdaysData['_oracle_proof']['oracle_address'] === '0xa31c31069c43ac1c0075a93c325b0dcd7744356c', "Carteira deve ser a oficial");
+    assert($workdaysData['_oracle_proof']['oracle_address'] === '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90', "Carteira deve ser a oficial");
     require_once __DIR__ . '/../public_html/services/oracle_signer.php';
     $verifyRes = grid402_verify_oracle_proof($workdaysData);
     assert(!empty($verifyRes['valid']) && $verifyRes['valid'] === true, "A verificação da assinatura deve ser válida");

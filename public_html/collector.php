@@ -1,9 +1,9 @@
 <?php
 /**
- * Grid402 - Coletor e Sincronizador de Cache dos UtilitÃ¡rios PÃºblicos
+ * Grid402 - Coletor e Sincronizador de Cache dos Utilitários Públicos
  * 
- * ExecuÃ§Ã£o periÃ³dica via Cron Job hPanel ou HTTP autenticado (?token=CRON_SECRET).
- * Atualiza cotaÃ§Ãµes de CÃ¢mbio e Cripto e gera o resumo executivo gratuito (summary_free.json).
+ * Execução periódica via Cron Job hPanel ou HTTP autenticado (?token=CRON_SECRET).
+ * Atualiza cotações de Câmbio e Cripto e gera o resumo executivo gratuito (summary_free.json).
  */
 
 declare(strict_types=1);
@@ -13,7 +13,7 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/services/forex.php';
 require_once __DIR__ . '/services/crypto.php';
 
-// 1. VerificaÃ§Ã£o de AutorizaÃ§Ã£o
+// 1. Verificação de Autorização
 $isCli = (php_sapi_name() === 'cli');
 $isAuthorized = false;
 
@@ -43,12 +43,12 @@ if (!$isAuthorized) {
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode([
         'error' => 'Forbidden',
-        'message' => 'Acesso nÃ£o autorizado ao coletor de utilitÃ¡rios.',
+        'message' => 'Acesso não autorizado ao coletor de utilitários.',
     ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
     exit;
 }
 
-// 2. GravaÃ§Ã£o AtÃ´mica em JSON
+// 2. Gravação Atômica em JSON
 function grid402_atomic_write_json(string $filePath, array $data): bool {
     $dir = dirname($filePath);
     if (!is_dir($dir)) {
@@ -67,11 +67,11 @@ function grid402_atomic_write_json(string $filePath, array $data): bool {
     return rename($tmpFile, $filePath);
 }
 
-// 3. ExecuÃ§Ã£o das Coletas e ValidaÃ§Ãµes
+// 3. Execução das Coletas e Validações
 $startTime = microtime(true);
 $isoTimestamp = gmdate('Y-m-d\TH:i:s\Z');
 
-// Atualiza CÃ¢mbio e Cripto
+// Atualiza Câmbio e Cripto
 $forexData = grid402_service_forex(true);
 $cryptoData = grid402_service_crypto(true);
 
@@ -85,7 +85,7 @@ $solPrice = $cryptoData['tickers']['SOL']['price_usd'] ?? 180.0;
 
 $servicesSummary = [
     'forex' => [
-        'name' => 'CÃ¢mbio e Moedas',
+        'name' => 'Câmbio e Moedas',
         'status' => 'UP',
         'endpoint' => '/api/v1/forex',
         'category' => 'Mercado',
@@ -157,25 +157,25 @@ $servicesSummary = [
         'price_usdc' => GRID402_PRICE_CNPJ,
     ],
     'indicators' => [
-        'name' => 'Indicadores EconÃ´micos',
+        'name' => 'Indicadores Econômicos',
         'status' => 'UP',
         'endpoint' => '/api/v1/indicators',
         'category' => 'Mercado',
     ],
     'holidays' => [
-        'name' => 'Feriados e CalendÃ¡rio BancÃ¡rio',
+        'name' => 'Feriados e Calendário Bancário',
         'status' => 'UP',
         'endpoint' => '/api/v1/holidays',
         'category' => 'Dados Abertos',
     ],
     'workdays' => [
-        'name' => 'Calculadora de Dias Ãšteis ANBIMA',
+        'name' => 'Calculadora de Dias Úteis ANBIMA',
         'status' => 'UP',
         'endpoint' => '/api/v1/workdays',
         'category' => 'Financeiro',
     ],
     'sanctions' => [
-        'name' => 'SanÃ§Ãµes e Inidoneidade (CEIS/CNEP)',
+        'name' => 'Sanções e Inidoneidade (CEIS/CNEP)',
         'status' => 'UP',
         'endpoint' => '/api/v1/sanctions',
         'category' => 'Compliance',
@@ -196,10 +196,10 @@ $servicesSummary = [
         'price_usdc' => '0.0300',
     ],
     'verify' => [
-        'name' => 'Verificador CriptogrÃ¡fico',
+        'name' => 'Verificador Criptográfico',
         'status' => 'UP',
         'endpoint' => '/api/v1/verify',
-        'category' => 'SeguranÃ§a',
+        'category' => 'Segurança',
         'price_usdc' => 'Gratuito',
     ],
     'lei' => [
@@ -210,14 +210,14 @@ $servicesSummary = [
         'price_usdc' => '0.0200',
     ],
     'ofac' => [
-        'name' => 'SanÃ§Ãµes Globais (OFAC/ONU) e AML Web3',
+        'name' => 'Sanções Globais (OFAC/ONU) e AML Web3',
         'status' => 'UP',
         'endpoint' => '/api/v1/ofac',
         'category' => 'Global Compliance',
         'price_usdc' => '0.0200',
     ],
     'notarize' => [
-        'name' => 'Carimbo do Tempo e NotarizaÃ§Ã£o M2M',
+        'name' => 'Carimbo do Tempo e Notarização M2M',
         'status' => 'UP',
         'endpoint' => '/api/v1/notarize',
         'category' => 'Criptografia',
@@ -234,7 +234,7 @@ $servicesSummary = [
         'name' => 'x402 Prepaid Session Pass',
         'status' => 'UP',
         'endpoint' => '/api/v1/pass',
-        'category' => 'Alta FrequÃªncia',
+        'category' => 'Alta Frequência',
         'price_usdc' => '0.5000',
     ],
 ];
@@ -251,15 +251,15 @@ $summaryPayload = [
     'timestamp' => $isoTimestamp,
     'execution_time_ms' => $totalDurationMs,
     'services' => $servicesSummary,
-    'notice' => 'Consultas detalhadas e sob demanda requerem micropagamento de US$ ' . GRID402_PRICE_DISPLAY . ' em USDC na Base via cabeÃ§alho X-Payment. Consulte https://grid402.online/llms.txt',
+    'notice' => 'Consultas detalhadas e sob demanda requerem micropagamento de US$ ' . GRID402_PRICE_DISPLAY . ' em USDC na Base via cabeçalho X-Payment. Consulte https://grid402.online/llms.txt',
 ];
 
-// PersistÃªncia em summary_free.json
+// Persistência em summary_free.json
 grid402_atomic_write_json(GRID402_FILE_FREE, $summaryPayload);
 
-// SaÃ­da em CLI ou resposta HTTP
+// Saída em CLI ou resposta HTTP
 $svcCount = count($servicesSummary);
-$logMessage = "[Grid402 Collector] Hub sincronizado em {$totalDurationMs} ms. {$svcCount}/{$svcCount} serviÃ§os operantes.\n";
+$logMessage = "[Grid402 Collector] Hub sincronizado em {$totalDurationMs} ms. {$svcCount}/{$svcCount} serviços operantes.\n";
 
 if ($isCli) {
     echo $logMessage;

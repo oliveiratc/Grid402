@@ -60,7 +60,7 @@ assert_true(($ofacSanctioned['sanctioned'] ?? false) === true, 'Carteira Tornado
 assert_true(($ofacSanctioned['risk_level'] ?? '') === 'CRITICAL', 'Carteira sancionada recebe risk_level=CRITICAL');
 assert_true(($ofacSanctioned['compliance_decision'] ?? '') === 'BLOCK_TRANSACTION', 'Carteira sancionada recebe compliance_decision=BLOCK_TRANSACTION');
 
-$ofacClean = grid402_service_ofac('0xa31c31069c43ac1c0075a93c325b0dcd7744356c');
+$ofacClean = grid402_service_ofac('0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90');
 assert_true(($ofacClean['status'] ?? '') === 'UP', 'OFAC Lookup em carteira limpa na Base retorna status=UP');
 assert_true(($ofacClean['sanctioned'] ?? true) === false, 'Carteira limpa marcada como sanctioned=false');
 assert_true(($ofacClean['risk_level'] ?? '') === 'LOW', 'Carteira limpa recebe risk_level=LOW');

@@ -10,7 +10,7 @@
       "email": "contato@grid402.online"
     },
     "license": {
-      "name": "Copyright (c) 2026 Grid402 Network Intelligence â€” All Rights Reserved (Software & Brand) / Public Domain Data Terms",
+      "name": "Copyright (c) 2026 Grid402 Network Intelligence — All Rights Reserved (Software & Brand) / Public Domain Data Terms",
       "url": "https://grid402.online/terms"
     }
   },
@@ -789,7 +789,7 @@
     "/privacy": {
       "get": {
         "summary": "Privacy Policy (LGPD Compliance)",
-        "description": "Returns the privacy policy confirming zero PII collection and compliance with Brazilian LGPD (Lei nÂº 13.709/2018) and Marco Civil da Internet.",
+        "description": "Returns the privacy policy confirming zero PII collection and compliance with Brazilian LGPD (Lei nº 13.709/2018) and Marco Civil da Internet.",
         "tags": ["Legal"],
         "responses": {
           "200": {
@@ -855,7 +855,7 @@
         "type": "object",
         "properties": {
           "code": { "type": "string", "example": "USD" },
-          "name": { "type": "string", "example": "DÃ³lar Americano/Real Brasileiro" },
+          "name": { "type": "string", "example": "Dólar Americano/Real Brasileiro" },
           "bid": { "type": "number", "example": 5.421 },
           "ask": { "type": "number", "example": 5.423 },
           "high": { "type": "number", "example": 5.45 },
@@ -884,7 +884,7 @@
             }
           },
           "source": { "type": "string", "example": "Banco Central / Dados Abertos" },
-          "legal_license": { "type": "string", "example": "Fatos EconÃ´micos e CotaÃ§Ãµes de DomÃ­nio PÃºblico (Lei nÂº 9.610/1998 Art. 8Âº, I e Decreto nÂº 8.777/2016)" },
+          "legal_license": { "type": "string", "example": "Fatos Econômicos e Cotações de Domínio Público (Lei nº 9.610/1998 Art. 8º, I e Decreto nº 8.777/2016)" },
           "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
         },
         "required": ["service", "status", "base", "timestamp", "response_timestamp", "ttl_seconds", "rates", "legal_license", "_oracle_proof"]
@@ -934,7 +934,7 @@
         "properties": {
           "success": { "type": "boolean", "example": true },
           "cep": { "type": "string", "example": "01310-100" },
-          "cidade": { "type": "string", "example": "SÃ£o Paulo" },
+          "cidade": { "type": "string", "example": "São Paulo" },
           "uf": { "type": "string", "example": "SP" },
           "ibge": { "type": "string", "example": "3550308" }
         }
@@ -949,8 +949,8 @@
           "situacao_cadastral": { "type": "string", "example": "ATIVA" },
           "data_abertura": { "type": "string", "example": "01/08/1966" },
           "cnae_fiscal": { "type": "string", "example": "6422100" },
-          "cnae_fiscal_descricao": { "type": "string", "example": "Bancos mÃºltiplos, com carteira comercial" },
-          "natureza_juridica": { "type": "string", "example": "Sociedade AnÃ´nima Aberta" },
+          "cnae_fiscal_descricao": { "type": "string", "example": "Bancos múltiplos, com carteira comercial" },
+          "natureza_juridica": { "type": "string", "example": "Sociedade Anônima Aberta" },
           "uf": { "type": "string", "example": "DF" },
           "municipio": { "type": "string", "example": "BRASILIA" }
         }
@@ -1130,8 +1130,8 @@
           "headquarters_address": { "type": "object" },
           "registration_details": { "type": "object" },
           "source": { "type": "string", "example": "Global Legal Entity Identifier Foundation (GLEIF)" },
-          "legal_license": { "type": "string", "example": "CC0 1.0 Universal (Public Domain Dedication â€” ISO 17442)" },
-          "data_protection_compliance": { "type": "string", "example": "GDPR Recital 14 & LGPD Art. 1Âº (Strictly Corporate Legal Entity Data â€” Zero Personal/Natural Person PII)" },
+          "legal_license": { "type": "string", "example": "CC0 1.0 Universal (Public Domain Dedication — ISO 17442)" },
+          "data_protection_compliance": { "type": "string", "example": "GDPR Recital 14 & LGPD Art. 1º (Strictly Corporate Legal Entity Data — Zero Personal/Natural Person PII)" },
           "timestamp": { "type": "string", "format": "date-time" },
           "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
         }
@@ -1150,7 +1150,7 @@
           "lists_checked": { "type": "array", "items": { "type": "string" } },
           "matches": { "type": "array", "items": { "type": "object" } },
           "web3_aml": { "type": "object", "nullable": true },
-          "legal_license": { "type": "string", "example": "Public Domain (17 U.S.C. Â§ 105 - US Government Works & UN Open Data)" },
+          "legal_license": { "type": "string", "example": "Public Domain (17 U.S.C. § 105 - US Government Works & UN Open Data)" },
           "data_protection_compliance": { "type": "string" },
           "timestamp": { "type": "string", "format": "date-time" },
           "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
@@ -1165,7 +1165,7 @@
           "input_mode": { "type": "string", "example": "raw_payload_hashed" },
           "input_sha256": { "type": "string", "example": "0x5465790576c0f4fbcc883c3dc4e9f41a7d655a31bce9101d98cfbdf0ea24eb2c" },
           "input_byte_length": { "type": "integer", "example": 24 },
-          "zero_retention_policy": { "type": "string", "example": "STRICT_STATELESS_HASH_ONLY (Raw content is hashed in RAM and immediately discarded â€” Zero PII stored)" },
+          "zero_retention_policy": { "type": "string", "example": "STRICT_STATELESS_HASH_ONLY (Raw content is hashed in RAM and immediately discarded — Zero PII stored)" },
           "notarized_at_utc": { "type": "string", "format": "date-time" },
           "unix_epoch": { "type": "integer" },
           "oracle_authority": { "type": "object" },

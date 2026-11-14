@@ -30,7 +30,7 @@ console.log('✓ Todos os métodos dos 6 micro-serviços estão disponíveis!');
 const challengeMock = {
     error: 'PaymentRequired',
     message: 'Pagamento requerido',
-    recipient_wallet: '0xa31c31069c43ac1c0075a93c325b0dcd7744356c',
+    recipient_wallet: '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90',
     price_usdc: '0.0050',
     price_raw_units: 5000,
     network: 'Base',

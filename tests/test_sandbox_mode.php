@@ -43,8 +43,8 @@ assert_test(
 );
 
 assert_test(
-    "Cota horária defensiva definida em 3 consultas",
-    defined('GRID402_SANDBOX_RATE_LIMIT') && GRID402_SANDBOX_RATE_LIMIT === 3
+    "Cota horária defensiva definida em 30 consultas",
+    defined('GRID402_SANDBOX_RATE_LIMIT') && GRID402_SANDBOX_RATE_LIMIT === 30
 );
 
 // 2. Autenticação via Cabeçalho 'demo' e 'sandbox'
@@ -73,12 +73,12 @@ assert_test(
 );
 
 // 3. Teste de Rate Limit Defensivo por IP
-echo "\n[3] Testando Bloqueio por Cota de Rate Limit (Max 3 req/hora):\n";
+echo "\n[3] Testando Bloqueio por Cota de Rate Limit (Max 30 req/hora):\n";
 $spamIp = '10.200.50.' . rand(1, 254);
 
-// Consome as 3 chamadas permitidas
+// Consome as 30 chamadas permitidas
 $allowedCount = 0;
-for ($i = 1; $i <= 3; $i++) {
+for ($i = 1; $i <= 30; $i++) {
     $res = grid402_check_sandbox_rate_limit($spamIp);
     if ($res['allowed']) {
         $allowedCount++;
@@ -86,15 +86,15 @@ for ($i = 1; $i <= 3; $i++) {
 }
 
 assert_test(
-    "Permite exatamente 3 requisições consecutivas no intervalo de 1 hora",
-    $allowedCount === 3,
+    "Permite exatamente 30 requisições consecutivas no intervalo de 1 hora",
+    $allowedCount === 30,
     "Requisições autorizadas: {$allowedCount}"
 );
 
-// A 4ª requisição DEVE ser recusada
+// A 31ª requisição DEVE ser recusada
 $resExceeded = grid402_check_sandbox_rate_limit($spamIp);
 assert_test(
-    "4ª requisição é rejeitada pelo rate limit (allowed=false)",
+    "31ª requisição é rejeitada pelo rate limit (allowed=false)",
     $resExceeded['allowed'] === false && $resExceeded['remaining'] === 0
 );
 

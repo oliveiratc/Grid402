@@ -28,7 +28,7 @@ $txStarter = '0x' . bin2hex(random_bytes(32));
 $passStarter = grid402_issue_session_pass($txStarter, 2000000, false);
 assert_test($passStarter['status'] === 'ACTIVE', 'Starter Pass emitido com status ACTIVE');
 assert_test(($passStarter['tier'] ?? '') === 'starter', 'Starter Pass identificado com tier starter');
-assert_test(($passStarter['credits_total'] ?? 0) === 4000, 'Starter Pass possui 4.000 créditos (2 USDC)');
+assert_test(($passStarter['credits_total'] ?? 0) === 40000, 'Starter Pass possui 40.000 créditos (2 USDC)');
 assert_test(str_starts_with($passStarter['pass_token'] ?? '', 'pass_g402_live'), 'Starter Pass token com prefixo correto');
 
 // 2. Pro Tier (5 USDC -> 5.000.000 raw units)
@@ -36,14 +36,14 @@ $txPro = '0x' . bin2hex(random_bytes(32));
 $passPro = grid402_issue_session_pass($txPro, 5000000, false);
 assert_test($passPro['status'] === 'ACTIVE', 'Pro Pass emitido com status ACTIVE');
 assert_test(($passPro['tier'] ?? '') === 'pro', 'Pro Pass identificado com tier pro');
-assert_test(($passPro['credits_total'] ?? 0) === 10000, 'Pro Pass possui 10.000 créditos (5 USDC)');
+assert_test(($passPro['credits_total'] ?? 0) === 100000, 'Pro Pass possui 100.000 créditos (5 USDC)');
 
 // 3. Fleet Tier (20 USDC -> 20.000.000 raw units)
 $txFleet = '0x' . bin2hex(random_bytes(32));
 $passFleet = grid402_issue_session_pass($txFleet, 20000000, false);
 assert_test($passFleet['status'] === 'ACTIVE', 'Fleet Pass emitido com status ACTIVE');
 assert_test(($passFleet['tier'] ?? '') === 'fleet', 'Fleet Pass identificado com tier fleet');
-assert_test(($passFleet['credits_total'] ?? 0) === 50000, 'Fleet Pass possui 50.000 créditos (20 USDC + bônus)');
+assert_test(($passFleet['credits_total'] ?? 0) === 500000, 'Fleet Pass possui 500.000 créditos (20 USDC + bônus)');
 
 // Validade de 60 dias para o Fleet
 $now = time();
@@ -58,7 +58,7 @@ assert_test($passDup['pass_token'] === $passFleet['pass_token'], 'Rechamada com 
 // 5. Consulta de status
 $statusCheck = grid402_get_session_pass_status($passStarter['pass_token']);
 assert_test($statusCheck['valid'] === true, 'Consulta de status do Starter Pass retorna valid=true');
-assert_test($statusCheck['credits_remaining'] === 4000, 'Saldo intacto de 4.000 créditos confirmado');
+assert_test($statusCheck['credits_remaining'] === 40000, 'Saldo intacto de 40.000 créditos confirmado');
 
 echo "\n=== Resultado Final: {$passed} aprovados, {$failed} falhas ===\n";
 if ($failed > 0) {

@@ -19,7 +19,7 @@ print("[TEST SDK PYTHON] 3. Testando get_challenge()...")
 challenge = client.get_challenge()
 assert challenge["error"] == "PaymentRequired", "Deve retornar desafio de pagamento"
 assert challenge["price_usdc"] == "0.0050", "Preço deve ser 0.0050 USDC"
-assert challenge["recipient_wallet"] == "0xa31c31069c43ac1c0075a93c325b0dcd7744356c", "Carteira deve ser a oficial do Grid402"
+assert challenge["recipient_wallet"] == "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "Carteira deve ser a oficial do Grid402"
 print(f"  ✓ Desafio x402 validado! Carteira destino: {challenge['recipient_wallet']}")
 
 print("[TEST SDK PYTHON] 4. Testando guard() Circuit Breaker...")

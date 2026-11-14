@@ -72,7 +72,7 @@ try {
     assert_test($resLlms['code'] === 200, "Status HTTP 200 para /llms.txt", "Recebido: {$resLlms['code']}");
     assert_test(str_contains($resLlms['content_type'], 'text/plain'), "Content-Type text/plain para /llms.txt", "Recebido: {$resLlms['content_type']}");
     assert_test(str_contains($resLlms['body'], 'Grid402'), "Contem nome Grid402");
-    assert_test(str_contains($resLlms['body'], '0xa31c31069c43ac1c0075a93c325b0dcd7744356c'), "Contem carteira do oraculo");
+    assert_test(str_contains($resLlms['body'], '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90'), "Contem carteira do oraculo");
     assert_test(str_contains($resLlms['body'], '/agents'), "Contem link para /agents");
 
     // 2. Teste /llms-full.txt

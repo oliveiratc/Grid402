@@ -50,7 +50,7 @@ Existem 3 formas de liquidacao suportadas pelo Grid402:
    - O Grid402 liquida via facilitador e devolve HTTP 200 com o recibo de liquidacao no cabecalho `PAYMENT-RESPONSE`.
 
 2. **Session Pass de Alta Frequencia (<15ms, sem espera de bloco):**
-   - Compre crÃ©ditos prÃ©-pagos (Starter 2 USDC, Pro 5 USDC ou Fleet 20 USDC) no portal ou via `POST /api/v1/pass`.
+   - Compre créditos pré-pagos (Starter 2 USDC, Pro 5 USDC ou Fleet 20 USDC) no portal ou via `POST /api/v1/pass`.
    - Reenvie as consultas incluindo `X-Payment: pass_g402_...`.
 
 3. **Transferencia Direta On-Chain (Base Mainnet):**
@@ -183,7 +183,7 @@ Resposta de verificacao:
 - Rota: `GET /api/v1/compliance?cnpj={cnpj}`
 - Tarifa: 0.0300 USDC
 - Exemplo: `/api/v1/compliance?cnpj=00000000000191`
-- Descricao: DossiÃª unificado e calculo de score de risco cadastral e idoneidade (0 a 100) com classificacao de risco (BAIXO, MEDIO, ALTO, CRITICO).
+- Descricao: Dossiê unificado e calculo de score de risco cadastral e idoneidade (0 a 100) com classificacao de risco (BAIXO, MEDIO, ALTO, CRITICO).
 
 ---
 

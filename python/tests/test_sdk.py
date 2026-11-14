@@ -177,7 +177,7 @@ class TestGrid402SDK(unittest.TestCase):
 
         challenge_body = (
             b'{"status": 402, "message": "Payment Required", "price_usdc": "0.0005", '
-            b'"recipient_wallet": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c", '
+            b'"recipient_wallet": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", '
             b'"preview_data": {"sample": true}}'
         )
 
@@ -196,7 +196,7 @@ class TestGrid402SDK(unittest.TestCase):
 
             err = ctx.exception
             self.assertEqual(err.price_usdc, "0.0005")
-            self.assertEqual(err.recipient, "0xa31c31069c43ac1c0075a93c325b0dcd7744356c")
+            self.assertEqual(err.recipient, "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90")
             self.assertIsNotNone(err.preview_data)
             self.assertTrue(err.preview_data.get("sample"))
 
@@ -211,7 +211,7 @@ class TestGrid402SDK(unittest.TestCase):
 
         challenge_bytes = (
             b'{"price_usdc": "0.0020", '
-            b'"recipient_wallet": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c"}'
+            b'"recipient_wallet": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90"}'
         )
         success_bytes = b'{"razao_social": "BANCO DO BRASIL SA", "cnpj": "00000000000191"}'
 
@@ -233,7 +233,7 @@ class TestGrid402SDK(unittest.TestCase):
             res = provider.query_cnpj("00000000000191", wallet_provider=mock_wallet)
 
             mock_wallet.transfer.assert_called_once_with(
-                to="0xa31c31069c43ac1c0075a93c325b0dcd7744356c",
+                to="0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
                 amount="0.0020",
                 asset_id="usdc",
             )

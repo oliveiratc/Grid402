@@ -14,7 +14,7 @@ export const BASE_RPC_URLS = [
 ];
 
 export const USDC_CONTRACT_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'.toLowerCase();
-export const GRID402_RECIPIENT_WALLET = '0xa31c31069c43ac1c0075a93c325b0dcd7744356c'.toLowerCase();
+export const GRID402_RECIPIENT_WALLET = '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90'.toLowerCase();
 export const REQUIRED_RAW_UNITS = 500n; // 0.000500 USDC (6 casas decimais)
 
 const ERC20_ABI = [

@@ -202,7 +202,7 @@
     },
     {
       "name": "grid402_compliance",
-      "description": "DossiÃª unificado e score de risco e idoneidade cadastral 360 (0 a 100) cruzando Receita Federal e CGU.",
+      "description": "Dossiê unificado e score de risco e idoneidade cadastral 360 (0 a 100) cruzando Receita Federal e CGU.",
       "cost_usdc": "0.0300",
       "endpoint": "https://grid402.online/api/v1/compliance",
       "inputSchema": {
