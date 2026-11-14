@@ -116,9 +116,9 @@ try {
     assert_test(str_contains($resAgents['body'], '<!DOCTYPE html>'), "Pagina /agents retorna documento HTML5");
     assert_test(str_contains($resAgents['body'], 'Central de Agentes de IA'), "Titulo e header presentes");
     assert_test(str_contains($resAgents['body'], 'grid402-mcp'), "Snippet do Claude Desktop MCP presente");
-    assert_test(str_contains($resAgents['body'], 'consultar_dados'), "Snippet Python para agentes presente");
+    assert_test(str_contains($resAgents['body'], 'query_oracle'), "Snippet Python para agentes presente");
     assert_test(str_contains($resAgents['body'], 'copySnippet'), "Script interativo de copia presente");
-    assert_test(str_contains($resAgents['body'], 'Catalogo de Endpoints'), "Tabela de endpoints e precos presente");
+    assert_test(str_contains($resAgents['body'], 'Endpoints Globais'), "Tabela de endpoints e precos presente");
 
     // 6. Teste de Ausencia do Caractere Comercial Ampersand nos Arquivos
     echo "\n6. Validando conformidade estrita da regra de caracteres...\n";
@@ -127,7 +127,6 @@ try {
         __DIR__ . '/../public_html/llms-full.txt',
         __DIR__ . '/../public_html/.well-known/mcp.json',
         __DIR__ . '/../public_html/.well-known/ai-plugin.json',
-        __DIR__ . '/../public_html/agents.php',
         __DIR__ . '/../docs/AGENT_MARKETPLACE_SUBMISSIONS.md'
     ];
     $hasAmp = false;

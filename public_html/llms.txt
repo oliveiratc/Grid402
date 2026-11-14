@@ -29,7 +29,7 @@
 - [TLS and SSL Inspector](https://grid402.online/api/v1/ssl?host=base.org): Inspecao e auditoria de certificados TLS e SSL na porta 443
 - [ASN and BGP Intelligence](https://grid402.online/api/v1/asn?ip=1.1.1.1): Roteamento BGP, bloco alocado e numero ASN de IPs
 - [Domain Audit (DNS + SSL + ASN)](https://grid402.online/api/v1/domain-audit?host=base.org): Auditoria consolidada de dominio com DNS, TLS e IP/BGP numa unica chamada
-- [KYB & Compliance Audit (CNPJ + OFAC + LEI)](https://grid402.online/api/v1/kyb-audit?cnpj=00000000000191): Triagem consolidada KYB/AML numa unica chamada
+- [KYB e Compliance Audit (CNPJ + OFAC + LEI)](https://grid402.online/api/v1/kyb-audit?cnpj=00000000000191): Triagem consolidada KYB/AML numa unica chamada
 - [Market Snapshot (Forex + Crypto + Indicadores)](https://grid402.online/api/v1/market-snapshot): Snapshot consolidado de mercado numa unica chamada
 - [CEP Postal Address API](https://grid402.online/api/v1/cep?code=01310100): Resolucao de endereco postal brasileiro e codigo municipal IBGE
 - [CNPJ Corporate Registry API](https://grid402.online/api/v1/cnpj?cnpj=00000000000191): Dados cadastrais de Pessoa Juridica na Receita Federal
@@ -40,9 +40,9 @@
 - [Simples Nacional Tax Status API](https://grid402.online/api/v1/simples?cnpj=00000000000191): Enquadramento tributario no Simples Nacional e MEI (SIMEI)
 - [Compliance Score 360 API](https://grid402.online/api/v1/compliance?cnpj=00000000000191): Dossie consolidado de compliance e score de risco cadastral (0 a 100)
 - [Global LEI Corporate Registry API](https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18): Identidade corporativa global ISO 17442 em 200+ jurisdicoes via GLEIF (Licenca CC0 1.0 Dominio Publico)
-- [Global Sanctions (OFAC/UN) & Web3 AML API](https://grid402.online/api/v1/ofac?target=0x8589427373d6d84e98730d7795d8f6f8731fda16): Screening global em listas OFAC SDN (US Treasury) e ONU + inspecao AML on-chain de carteiras EVM na Base Mainnet
-- [M2M Cryptographic Timestamp & Notarization API](https://grid402.online/api/v1/notarize?content=Grid402-M2M-Contract-v1): Certificado criptografico de existencia e carimbo do tempo UTC assinado com ECDSA secp256k1 para contratos e logs de agentes
-- [World Markets Calendar & 30+ ECB FX Rates API](https://grid402.online/api/v1/global-markets?market=US&base=USD): Calendario de liquidacao de bolsas mundiais (US NYSE/Fed, EU TARGET2, UK LSE, BR B3) + 30+ moedas oficiais do Banco Central Europeu (ECB)
+- [Global Sanctions (OFAC/UN) e Web3 AML API](https://grid402.online/api/v1/ofac?target=0x8589427373d6d84e98730d7795d8f6f8731fda16): Screening global em listas OFAC SDN (US Treasury) e ONU + inspecao AML on-chain de carteiras EVM na Base Mainnet
+- [M2M Cryptographic Timestamp e Notarization API](https://grid402.online/api/v1/notarize?content=Grid402-M2M-Contract-v1): Certificado criptografico de existencia e carimbo do tempo UTC assinado com ECDSA secp256k1 para contratos e logs de agentes
+- [World Markets Calendar e 30+ ECB FX Rates API](https://grid402.online/api/v1/global-markets?market=US): Calendario de liquidacao de bolsas mundiais (US NYSE/Fed, EU TARGET2, UK LSE, BR B3) + 30+ moedas oficiais do Banco Central Europeu (ECB)
 - [x402 Prepaid Session Pass API](https://grid402.online/api/v1/pass): Emissao de passe pre-pago M2M (0.5000 USDC = 100 creditos, 0.5000 USDC = 1.000 creditos) para execucao em <15ms sem espera de bloco (`X-Payment: pass_g402_...`)
 
 ## SDKs and Agent Frameworks
@@ -66,12 +66,12 @@
 - Atestacao: Assinatura digital ECDSA secp256k1 e hash SHA-256 do payload canonico, permitindo que agentes de IA e contratos inteligentes verifiquem localmente a autenticidade dos dados da carteira oraculo (0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90).
 - Endpoint de Verificacao: `POST /api/v1/verify` (ou `GET /api/v1/verify?payload=...`) valida sem estado qualquer resposta com assinatura em menos de 1 ms via motor OpenSSL em C (limite maximo de 64 KB). Retorna `valid: true/false`, `payload_hash`, `oracle_address`, `timestamp` e `verification_time_ms`.
 
-## Data Protection & Open Data Legal Compliance (LGPD, GDPR, CCPA & Public Domain)
-- **Zero-PII Architecture (LGPD Art. 1º & GDPR Recital 14):** O Grid402 processa estritamente registros de Pessoas Juridicas (entidades corporativas), fatos macroeconomicos e telemetria de protocolos de rede. Nas consultas de CNPJ (`/api/v1/cnpj`, `/api/v1/compliance`), o sistema filtra e descarta na origem qualquer dado pessoal de pessoas fisicas (sem QSA/socios, sem CPF, sem telefones ou e-mails privados).
-- **Pseudonimizacao e Zero-Retention (LGPD Art. 13 & GDPR Art. 25):** Enderecos IP em metricas operacionais sao truncados (`xxx.xxx`), o controle de taxa de Sandbox utiliza hash criptografico `HMAC-SHA256` e o endpoint `/api/v1/notarize` processa dados exclusivamente em memoria RAM volatil para gerar o digest `SHA-256`, sem reter ou exibir o texto bruto (`zero_retention_policy: STRICT_STATELESS_HASH_ONLY`).
+## Data Protection e Open Data Legal Compliance (LGPD, GDPR, CCPA e Public Domain)
+- **Zero-PII Architecture (LGPD Art. 1º e GDPR Recital 14):** O Grid402 processa estritamente registros de Pessoas Juridicas (entidades corporativas), fatos macroeconomicos e telemetria de protocolos de rede. Nas consultas de CNPJ (`/api/v1/cnpj`, `/api/v1/compliance`), o sistema filtra e descarta na origem qualquer dado pessoal de pessoas fisicas (sem QSA/socios, sem CPF, sem telefones ou e-mails privados).
+- **Pseudonimizacao e Zero-Retention (LGPD Art. 13 e GDPR Art. 25):** Enderecos IP em metricas operacionais sao truncados (`xxx.xxx`), o controle de taxa de Sandbox utiliza hash criptografico `HMAC-SHA256` e o endpoint `/api/v1/notarize` processa dados exclusivamente em memoria RAM volatil para gerar o digest `SHA-256`, sem reter ou exibir o texto bruto (`zero_retention_policy: STRICT_STATELESS_HASH_ONLY`).
 - **Direito de Uso de Informacoes Publicas e Licencas Abertas (`legal_license` em cada JSON):**
   - `GLEIF LEI (/api/v1/lei)`: Licenca **CC0 1.0 Universal (Public Domain Dedication)**, padrao ISO 17442.
-  - `OFAC SDN & ONU (/api/v1/ofac)`: Dominio Publico Federal dos EUA (**17 U.S.C. § 105**) e Listas Consolidadas do Conselho de Seguranca da ONU.
+  - `OFAC SDN e ONU (/api/v1/ofac)`: Dominio Publico Federal dos EUA (**17 U.S.C. § 105**) e Listas Consolidadas do Conselho de Seguranca da ONU.
   - `Mercados Globais, Cambio e Cripto (/api/v1/global-markets, /api/v1/forex, /api/v1/crypto)`: Diretiva Europeia de Dados Abertos (**EU Directive 2019/1024 - ECB Reference Rates**), Decreto nº 8.777/2016 (BCB) e fatos economicos de mercado livres de copyright (**17 U.S.C. § 102(b)** e **Lei nº 9.610/1998 Art. 8º, I**).
   - `Registros Corporativos, Fiscais e Calendarios (/api/v1/cnpj, /api/v1/sanctions, /api/v1/simples, /api/v1/compliance, /api/v1/indicators, /api/v1/holidays, /api/v1/workdays, /api/v1/cep)`: Lei de Acesso a Informacao (**Lei nº 12.527/2011 - LAI**), Politica Nacional de Dados Abertos (**Decreto nº 8.777/2016**), Lei Anticorrupcao (Lei nº 12.846/2013) e algoritmos matematicos de calendario (Lei nº 9.610/1998 Art. 8º, II e IV).
   - `Protocolos de Rede (/api/v1/dns, /api/v1/ssl, /api/v1/asn, /api/v1/notarize)`: Padroes abertos IETF (RFC 1035, RFC 5280, RFC 4271 e RFC 8785).

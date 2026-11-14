@@ -650,7 +650,7 @@ function grid402_notify_telegram_purchase(string $service, float $priceUsdc, str
         'dns' => 'Utilitario DNS Avancado',
         'ssl' => 'Auditoria de Certificado SSL e TLS',
         'domain-audit' => 'Auditoria Completa de Domínio (DNS + SSL + ASN)',
-        'kyb-audit' => 'Auditoria KYB & Compliance (CNPJ + OFAC + LEI)',
+        'kyb-audit' => 'Auditoria KYB e Compliance (CNPJ + OFAC + LEI)',
         'market-snapshot' => 'Snapshot Consolidado de Mercado (Forex + Crypto + Indicadores)',
         'asn' => 'Roteamento BGP e ASN de Rede',
     ];

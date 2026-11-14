@@ -127,13 +127,14 @@ class PaymentRequiredError extends Grid402Error {
     this.name = 'PaymentRequiredError';
     this.challenge = challenge || {};
     this.recipientWallet = challenge?.recipient_wallet || GRID402_ORACLE_WALLET;
-    this.priceUsdc = challenge?.price_usdc || '0.0005';
+    this.priceUsdc = challenge?.price_usdc || '0.0050';
     this.network = challenge?.network || 'Base';
     this.chainId = challenge?.chain_id || 8453;
     this.token = challenge?.token || 'USDC';
     this.tokenContract = challenge?.token_contract || BASE_USDC_CONTRACT;
     this.previewData = challenge?.preview_data || null;
     this.paymentDetails = challenge?.payment_details || null;
+    this.priceRawUnits = challenge?.price_raw_units ?? (challenge?.price_usdc ? Math.round(Number(challenge.price_usdc) * 1e6) : 5000);
   }
 }
 
