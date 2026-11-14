@@ -37,7 +37,7 @@ Ele contém estritamente os arquivos de produção necessários:
 3. Cole as seguintes configurações preenchendo sua carteira e chave:
 
 ```ini
-GRID402_WALLET_ADDRESS=0xa31c31069c43ac1c0075a93c325b0dcd7744356c
+GRID402_WALLET_ADDRESS=0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90
 GRID402_CRON_SECRET=crie_um_token_secreto_longo_aqui_123456
 GRID402_BASE_RPC_URL=https://mainnet.base.org
 GRID402_USDC_CONTRACT=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913

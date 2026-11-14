@@ -5,7 +5,7 @@
 > **Canonical Domain:** [https://grid402.online](https://grid402.online)  
 > **Network:** Base Mainnet (Chain ID 8453)  
 > **Settlement Asset:** USDC (`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`)  
-> **Oracle Wallet:** `0xa31c31069c43ac1c0075a93c325b0dcd7744356c`  
+> **Oracle Wallet:** `0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`  
 > **License:** MIT (Core Software) / CC0 1.0 Universal (Open Data)  
 > **Contact:** `contato@grid402.online`
 
@@ -46,7 +46,7 @@ Grid402 is an autonomous, Zero-DB, high-performance public data and network inte
 ## 4. Grant Ask & Allocation Breakdown
 
 **Requested Grant:** **$10,000 to $25,000 USDC on Base**  
-**Oracle Receiving Wallet:** `0xa31c31069c43ac1c0075a93c325b0dcd7744356c`
+**Oracle Receiving Wallet:** `0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`
 
 ### Milestone Roadmap:
 - **Milestone 1 (Months 1–2): ElizaOS Ecosystem Liquidity & Free Agent Tier Subsidies**

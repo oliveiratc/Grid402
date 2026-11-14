@@ -75,7 +75,7 @@ function grid402_sign_data(array &$data, bool $isSandbox = false): void {
     $privKeyPem = (string)(getenv('GRID402_ORACLE_PRIVATE_KEY') ?: (defined('GRID402_ORACLE_PRIVATE_KEY') && GRID402_ORACLE_PRIVATE_KEY !== '' ? GRID402_ORACLE_PRIVATE_KEY : GRID402_DEFAULT_ORACLE_PRIVKEY));
     // .env guarda PEMs em linha unica com \n literal (parser nao suporta multilinha)
     $privKeyPem = (string) str_replace('\\n', "\n", $privKeyPem);
-    $oracleWallet = defined('GRID402_ORACLE_WALLET') ? GRID402_ORACLE_WALLET : '0xa31c31069c43ac1c0075a93c325b0dcd7744356c';
+    $oracleWallet = defined('GRID402_ORACLE_WALLET') ? GRID402_ORACLE_WALLET : '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90';
 
     $signatureHex = '';
     $pkey = openssl_pkey_get_private($privKeyPem);

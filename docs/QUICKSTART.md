@@ -66,7 +66,7 @@ Modos suportados (em ordem de prioridade):
 curl -i "https://grid402.online/api/v1/cnpj?cnpj=00000000000191"
 
 # 2. Envie 0.0020 USDC (CNPJ) na Base (Chain ID 8453) para a wallet oracle
-#    0xa31c31069c43ac1c0075a93c325b0dcd7744356c
+#    0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90
 
 # 3. Refaca a requisicao com o hash da transacao
 curl -s "https://grid402.online/api/v1/cnpj?cnpj=00000000000191" \

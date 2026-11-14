@@ -12,7 +12,7 @@
 
 ### ❌ Listing no Bazaar (PayAI) — NÃO CONFIRMADO
 Duas sessões de settle com a extensão `extensions.bazaar` corretamente formada (e, na segunda, `resource.url` absoluto https + `discoverable: true`) **não** geraram entrada em:
-- `GET https://facilitator.payai.network/discovery/resources?payTo=0xa31c31069c43ac1c0075a93c325b0dcd7744356c` → `{"items":[],"total":0}`
+- `GET https://facilitator.payai.network/discovery/resources?payTo=0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90` → `{"items":[],"total":0}`
 - Stats do recurso: `GET /discovery/resources/https%3A%2F%2Fgrid402.online%2Fapi%2Fv1%2Fcrypto/stats` → settlements `0` (o endpoint reconhece o recurso, mas não registra settle Sepolia).
 
 Conclusão razoável: o catálogo PayAI não indexa settles de teste (Sepolia) e/ou exige indexação assíncrona/Mainnet; a documentação pública do Bazaar diz explicitamente que catalogação é **detalhe de implementação do facilitador** e não é garantida por verify/settle bem-sucedido.
@@ -31,7 +31,7 @@ Conclusão razoável: o catálogo PayAI não indexa settles de teste (Sepolia) e
 
 **Passo 1 — Criar a conta merchant (grátis, único passo que depende de você):**
 1. Abra https://merchant.payai.network/onboarding (portal merchant; cadastro/login com seu e-mail).
-2. Vincule a carteira `0xa31c31069c43ac1c0075a93c325b0dcd7744356c` como payTo; siga o fluxo até ver os créditos livres (~1.000).
+2. Vincule a carteira `0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90` como payTo; siga o fluxo até ver os créditos livres (~1.000).
 3. Reporte aqui quando ativa — o portal mostra o estado (incluindo se há revisão pendente).
 
 **Passo 2 — Se o Bazaar não catalogar automaticamente com a conta ativa, enviar o e-mail reforçado (seção "Rascunho" abaixo) com as evidências de hoje:**
@@ -48,7 +48,7 @@ Conclusão razoável: o catálogo PayAI não indexa settles de teste (Sepolia) e
    $env:GRID402_TARGET_URL='https://grid402.online/api/v1/crypto'
    node examples/sepolia_x402_buyer.mjs
    ```
-3. Confira o catálogo de novo: `Invoke-RestMethod "https://facilitator.payai.network/discovery/resources?payTo=0xa31c31069c43ac1c0075a93c325b0dcd7744356c"`.
+3. Confira o catálogo de novo: `Invoke-RestMethod "https://facilitator.payai.network/discovery/resources?payTo=0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90"`.
 
 **Nota:** o portal merchant é client-side (sem conteúdo estático útil) — não há como inspeção remota revelar o fluxo; só seu e-mail e clique funcionam nele.
 
@@ -58,7 +58,7 @@ Conclusão razoável: o catálogo PayAI não indexa settles de teste (Sepolia) e
 >
 > Hi PayAI team,
 >
-> I operate Grid402 (https://grid402.online), an x402 pay-per-call hub of Brazilian public/economic data for autonomous agents — 22 endpoints across CNPJ, Simples Nacional, CEIS/CNEP sanctions, CEP/IBGE, ANBIMA banking calendars, forex, DNS/SSL/ASN. Base Mainnet, `payTo`: `0xa31c31069c43ac1c0075a93c325b0dcd7744356c`, `GRID402_FACILITATOR_MODE=settle` via your facilitator since 2026-11-13.
+> I operate Grid402 (https://grid402.online), an x402 pay-per-call hub of Brazilian public/economic data for autonomous agents — 22 endpoints across CNPJ, Simples Nacional, CEIS/CNEP sanctions, CEP/IBGE, ANBIMA banking calendars, forex, DNS/SSL/ASN. Base Mainnet, `payTo`: `0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`, `GRID402_FACILITATOR_MODE=settle` via your facilitator since 2026-11-13.
 >
 > Independent verification evidence (public):
 > - Third-party x402 linter (https://x402lint.sebastiaan-ba3.workers.dev): **PASS on 7/7 sampled endpoints** (/api/v1/crypto, /api/v1/cnpj, /api/v1/compliance, /api/v1/sanctions, /api/v1/forex, /api/v1/pass, /api/v1/workdays) — 0 errors, HTTP 402 with correct `accepts` (eip155:8453, asset 0x833589..., amount 5000, payTo a31c...).

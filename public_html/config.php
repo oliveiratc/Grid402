@@ -142,7 +142,7 @@ if (!function_exists('grid402_atomic_write')) {
 }
 
 // 2. ParÃ¢metros x402 e Blockchain (Base / USDC)
-define('GRID402_WALLET_ADDRESS', strtolower((string) grid402_env('GRID402_WALLET_ADDRESS', '0xa31c31069c43ac1c0075a93c325b0dcd7744356c')));
+define('GRID402_WALLET_ADDRESS', strtolower((string) grid402_env('GRID402_WALLET_ADDRESS', '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90')));
 define('GRID402_BASE_RPC_URL', (string) grid402_env('GRID402_BASE_RPC_URL', 'https://mainnet.base.org'));
 define('GRID402_USDC_CONTRACT', strtolower((string) grid402_env('GRID402_USDC_CONTRACT', '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913')));
 define('GRID402_CHAIN_ID', 8453); // Base Mainnet

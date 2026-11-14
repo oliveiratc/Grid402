@@ -10,7 +10,7 @@
     "network": "base-mainnet",
     "chain_id": 8453,
     "token": "USDC",
-    "recipient": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c"
+    "recipient": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90"
   },
   "tools": [
     {

@@ -1,4 +1,4 @@
-﻿# Grid402 // Guia de DivulgaÃ§Ã£o OrgÃ¢nica e DistribuiÃ§Ã£o M2M
+# Grid402 // Guia de DivulgaÃ§Ã£o OrgÃ¢nica e DistribuiÃ§Ã£o M2M
 
 Este guia reÃºne todos os materiais, comandos e templates prontos para vocÃª cadastrar e distribuir o **Grid402** de forma 100% orgÃ¢nica e passiva.
 
@@ -56,7 +56,7 @@ A rede Base (Coinbase) possui um diretÃ³rio oficial onde projetos pioneiros no
   - **Short Tagline:** High-performance public data & network utilities hub for autonomous AI agents powered by x402 micropayments on Base.
   - **Network:** Base Mainnet (Chain ID 8453)
   - **Token Contract:** `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` (USDC)
-  - **Oracle Wallet:** `0xa31c31069c43ac1c0075a93c325b0dcd7744356c`
+  - **Oracle Wallet:** `0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`
   - **Description:**
     > Grid402 is an autonomous open data and network utility hub tailored for AI agents, crawlers, and M2M automation pipelines. It provides high-speed, zero-PII queries across Foreign Exchange (USD/EUR/BRL), Spot Crypto Tickers, RFC 1035 DNS records, Port 443 TLS/SSL certificates, BGP/ASN routing, and Brazilian CEP/IBGE postal codes. Queries are settled via the HTTP 402 protocol at $0.0050 USDC per query, verified on-chain against Base Mainnet RPC with atomic anti-replay concurrency locks.
 

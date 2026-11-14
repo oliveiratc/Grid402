@@ -58,12 +58,12 @@
   1) Protocolo x402 v2 padrao (M2M Gasless): Envie a autorizacao assinada EIP-3009 em base64 no cabecalho `PAYMENT-SIGNATURE` ou `X-Payment` (esquema `exact`). O Grid402 valida e liquida via facilitador retornando o recibo em `PAYMENT-RESPONSE`.
   2) Session Pass Pre-Pago (<15ms): Adquira crÃ©ditos em lote (2 USDC = 4.000 reqs, 5 USDC = 10.000 reqs, 20 USDC = 50.000 reqs) e reutilize o token `pass_g402_...` no cabecalho `X-Payment` sem latencia on-chain.
   3) Transferencia Direta On-Chain: Envie o valor em USDC na Base para a carteira do oraculo e repita a chamada com `X-Payment: 0x<tx_hash>`.
-- [Base Mainnet Scanner](https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c): Carteira oraculo recebedora de micropagamentos (0xa31c31069c43ac1c0075a93c325b0dcd7744356c)
+- [Base Mainnet Scanner](https://basescan.org/address/0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90): Carteira oraculo recebedora de micropagamentos (0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90)
 - [USDC Contract on Base](https://basescan.org/token/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913): Contrato oficial de USDC na rede Base Mainnet (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
 
 ## Cryptographic Proof of Data (Verifiable Oracle)
 - Todas as respostas tecnicas liberadas com pagamento on-chain ou modo Sandbox incluem a chave `_oracle_proof`.
-- Atestacao: Assinatura digital ECDSA secp256k1 e hash SHA-256 do payload canonico, permitindo que agentes de IA e contratos inteligentes verifiquem localmente a autenticidade dos dados da carteira oraculo (0xa31c31069c43ac1c0075a93c325b0dcd7744356c).
+- Atestacao: Assinatura digital ECDSA secp256k1 e hash SHA-256 do payload canonico, permitindo que agentes de IA e contratos inteligentes verifiquem localmente a autenticidade dos dados da carteira oraculo (0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90).
 - Endpoint de Verificacao: `POST /api/v1/verify` (ou `GET /api/v1/verify?payload=...`) valida sem estado qualquer resposta com assinatura em menos de 1 ms via motor OpenSSL em C (limite maximo de 64 KB). Retorna `valid: true/false`, `payload_hash`, `oracle_address`, `timestamp` e `verification_time_ms`.
 
 ## Data Protection & Open Data Legal Compliance (LGPD, GDPR, CCPA & Public Domain)

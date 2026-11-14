@@ -4,7 +4,7 @@
 
 **Última atualização:** 12/11/2026
 **Owner:** Grid402 Network Intelligence
-**Wallet oracle:** `0xa31c31069c43ac1c0075a93c325b0dcd7744356c`
+**Wallet oracle:** `0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`
 **Domínio:** https://grid402.online
 
 ---

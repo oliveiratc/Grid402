@@ -40,7 +40,7 @@ python examples/autonomous_agent.py
 
 1. O agente faz a chamada HTTP padrão: `GET /api/v1/cnpj?cnpj=00000000000191`.
 2. O servidor valida a existência e responde com `HTTP 402 Payment Required`, informando:
-   - Carteira de destino do oráculo: `0xa31c31069c43ac1c0075a93c325b0dcd7744356c`
+   - Carteira de destino do oráculo: `0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`
    - Preço exato em USDC: `0.0020` (2000 unidades brutas)
    - Contrato do USDC na Base: `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`
 3. O agente assina e transmite a transferência ERC-20 na Base Mainnet.

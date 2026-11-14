@@ -9,7 +9,7 @@ Todas as consultas tecnicas e cadastrais sao monetizadas por chamada (pay-per-ca
 - Dominio Base: https://grid402.online
 - Rede Blockchain: Base Mainnet (EVM Chain ID 8453)
 - Moeda de Liquidacao: USDC (Contrato: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
-- Carteira Recebedora: 0xa31c31069c43ac1c0075a93c325b0dcd7744356c
+- Carteira Recebedora: 0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90
 - Padrao de Assinatura: ECDSA secp256k1 (SHA-256)
 
 ---
@@ -24,7 +24,7 @@ Content-Type: application/json; charset=utf-8
 Access-Control-Allow-Origin: *
 X-Accept-Payment: usdc-base
 X-Payment-Amount: 0.0050
-X-Payment-Receiver: 0xa31c31069c43ac1c0075a93c325b0dcd7744356c
+X-Payment-Receiver: 0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90
 X-Payment-Network: base-mainnet
 
 {
@@ -36,7 +36,7 @@ X-Payment-Network: base-mainnet
     "chain_id": 8453,
     "token": "USDC",
     "amount": "0.0050",
-    "recipient": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c"
+    "recipient": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90"
   }
 }
 ```
@@ -67,7 +67,7 @@ Cada resposta tarifada ou validada inclui um objeto `_oracle_proof`:
 {
   "_oracle_proof": {
     "version": "1.0",
-    "oracle_address": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c",
+    "oracle_address": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
     "timestamp_epoch": 1794140000,
     "algorithm": "secp256k1-sha256",
     "digest_sha256": "4a5e3f...",
@@ -90,7 +90,7 @@ Resposta de verificacao:
 {
   "status": "success",
   "valid": true,
-  "oracle_address": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c",
+  "oracle_address": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
   "digest_sha256": "4a5e3f...",
   "verification_time_ms": 0.42
 }

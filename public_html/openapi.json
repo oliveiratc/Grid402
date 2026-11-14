@@ -805,7 +805,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-Payment",
-        "description": "Transaction hash (0x + 64 hex characters) on Base Mainnet (Chain ID 8453) transferring 0.0050 USDC (standard) or 0.0200 USDC (CNPJ) to 0xa31c31069c43ac1c0075a93c325b0dcd7744356c. For free testing and CI/CD, pass value 'demo' to simulate in Sandbox mode (up to 20 calls/hour per IP)."
+        "description": "Transaction hash (0x + 64 hex characters) on Base Mainnet (Chain ID 8453) transferring 0.0050 USDC (standard) or 0.0200 USDC (CNPJ) to 0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90. For free testing and CI/CD, pass value 'demo' to simulate in Sandbox mode (up to 20 calls/hour per IP)."
       }
     },
     "responses": {
@@ -846,7 +846,7 @@
           "token_contract": { "type": "string", "example": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" },
           "price_usdc": { "type": "string", "example": "0.0050" },
           "price_raw_units": { "type": "integer", "example": 500 },
-          "recipient_wallet": { "type": "string", "example": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c" },
+          "recipient_wallet": { "type": "string", "example": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" },
           "action_required": { "type": "string" },
           "docs": { "type": "string", "example": "https://grid402.online/llms.txt" }
         }
@@ -1082,7 +1082,7 @@
         "type": "object",
         "description": "Cryptographic proof of data authenticity and non-repudiation signed by the official Grid402 Oracle",
         "properties": {
-          "oracle_address": { "type": "string", "example": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c" },
+          "oracle_address": { "type": "string", "example": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" },
           "timestamp": { "type": "integer", "example": 1794140000 },
           "data_hash": { "type": "string", "example": "0x4f8a12b3c4d5e6f7..." },
           "signature": { "type": "string", "example": "0x3045022100..." },
@@ -1096,7 +1096,7 @@
         "description": "Result of cryptographic verification of an oracle-signed response",
         "properties": {
           "valid": { "type": "boolean", "example": true },
-          "oracle_address": { "type": "string", "example": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c" },
+          "oracle_address": { "type": "string", "example": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" },
           "timestamp": { "type": "integer", "example": 1794163887 },
           "sandbox": { "type": "boolean", "example": true },
           "verification_time_ms": { "type": "number", "example": 0.38 },

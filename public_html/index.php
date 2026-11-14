@@ -163,7 +163,7 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
             "https://www.npmjs.com/package/grid402",
             "https://www.npmjs.com/package/grid402-mcp",
             "https://pypi.org/project/grid402/",
-            "https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c"
+            "https://basescan.org/address/0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90"
           ],
           "contactPoint": [
             {
@@ -308,7 +308,7 @@ if ($pageParam === 'about' || $requestPath === '/about') {
             <p><strong>OrganizaÃ§Ã£o:</strong> Grid402 Network Intelligence</p>
             <p><strong>Email de Suporte:</strong> <a href="mailto:contato@grid402.online">contato@grid402.online</a></p>
             <p><strong>Central TelefÃ´nica:</strong> <a href="tel:+5511958325848">+55 11 95832-5848</a></p>
-            <p><strong>Carteira OrÃ¡culo (Base):</strong> <a href="https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c" target="_blank" rel="noopener noreferrer">0xa31c31069c43ac1c0075a93c325b0dcd7744356c</a></p>
+            <p><strong>Carteira OrÃ¡culo (Base):</strong> <a href="https://basescan.org/address/0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" target="_blank" rel="noopener noreferrer">0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90</a></p>
         </div></div>';
         grid402_render_page_html('About Grid402 - Global M2M Open Data & Network Utilities Hub', 'Saiba mais sobre a infraestrutura global e os 22 serviÃ§os pÃºblicos do Grid402 para agentes de IA e desenvolvedores.', '/about', 'About Grid402', $aboutBody);
     } else {
@@ -319,7 +319,7 @@ if ($pageParam === 'about' || $requestPath === '/about') {
             'description' => 'Hub de micro-servicos publicos e oraculo de utilitarios de rede para agentes autonomos de IA sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.',
             'network' => 'Base Mainnet',
             'chain_id' => 8453,
-            'oracle_wallet' => '0xa31c31069c43ac1c0075a93c325b0dcd7744356c',
+            'oracle_wallet' => '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90',
             'copyright' => 'Copyright (c) ' . date('Y') . ' Grid402 Network Intelligence. Todos os direitos reservados / All rights reserved.',
             'license' => 'Proprietary Software & Brand (All Rights Reserved â€” Lei nÂº 9.609/1998 & Lei nÂº 9.610/1998). Returned data remains Public Domain / Open Government Data.',
             'sdks' => [
@@ -1223,7 +1223,7 @@ grid402_log_public_visit('/');
             "https://www.npmjs.com/package/grid402",
             "https://www.npmjs.com/package/grid402-mcp",
             "https://pypi.org/project/grid402/",
-            "https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c"
+            "https://basescan.org/address/0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90"
           ],
           "contactPoint": [
             {
@@ -2870,7 +2870,7 @@ grid402_log_public_visit('/');
                 <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
                     <div style="font-size: 0.82rem; color: #8FA2B9;">
                         EndereÃ§o da Oracle (Rede Base):<br>
-                        <code id="oracle-wallet-addr" style="color: #00F0FF; font-weight: 700; word-break: break-all;">0xa31c31069c43ac1c0075a93c325b0dcd7744356c</code>
+                        <code id="oracle-wallet-addr" style="color: #00F0FF; font-weight: 700; word-break: break-all;">0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90</code>
                     </div>
                     <button class="btn-sm btn-outline" onclick="copyOracleAddress()" id="btn-copy-oracle" style="border-color: rgba(0,240,255,0.4); color: #00F0FF; white-space: nowrap;">ðŸ“‹ Copiar EndereÃ§o</button>
                 </div>
@@ -3354,7 +3354,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                             <div>
                                 <div style="font-weight: 700; color: #fff; margin-bottom: 0.5rem; font-size: 0.9rem;" data-i18n="modal.web3.col1.title">ðŸ“± Pagar pelo Celular</div>
                                 <div style="background: #fff; padding: 8px; border-radius: 8px; display: inline-block; margin-bottom: 0.6rem;">
-                                    <img src="https://api.qrserver.com/v1/create-qr-code/?data=0xa31c31069c43ac1c0075a93c325b0dcd7744356c" alt="QR Code Carteira Oraculo" style="display: block; width: 130px; height: 130px;" />
+                                    <img src="https://api.qrserver.com/v1/create-qr-code/?data=0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" alt="QR Code Carteira Oraculo" style="display: block; width: 130px; height: 130px;" />
                                 </div>
                                 <div style="font-size: 0.75rem; color: var(--text-muted); line-height: 1.4;" data-i18n-html="modal.web3.col1.desc">
                                     Escaneie pelo app da MetaMask, Rainbow ou Coinbase Wallet e envie <strong><span id="web3-modal-price">0.0050</span> USDC</strong> na rede <strong>Base</strong>.
@@ -3463,7 +3463,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 </div>
                 <div class="contact-card">
                     <strong data-i18n="contact.oracle">Carteira Oraculo na Base</strong>
-                    <a href="https://basescan.org/address/0xa31c31069c43ac1c0075a93c325b0dcd7744356c" target="_blank" rel="noopener noreferrer">0xa31c...356c</a>
+                    <a href="https://basescan.org/address/0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" target="_blank" rel="noopener noreferrer">0xa31c...356c</a>
                 </div>
             </div>
         </section>
@@ -3514,7 +3514,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 endpoint: '/api/v1/ofac',
                 desc: 'Sancoes internacionais OFAC SDN e ONU combinadas com telemetria on-chain na Base Mainnet.',
                 params: [
-                    { key: 'address', label: 'Carteira EVM (0x...)', value: '0xa31c31069c43ac1c0075a93c325b0dcd7744356c' },
+                    { key: 'address', label: 'Carteira EVM (0x...)', value: '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90' },
                     { key: 'name', label: 'Ou Nome de Entidade', value: '' }
                 ]
             },
@@ -3965,7 +3965,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 if (s2Status) { s2Status.textContent = isEn ? 'Official (Base Mainnet)' : 'Oficial (Base Mainnet)'; s2Status.style.color = 'var(--primary)'; }
                 if (s2Meta) {
                     s2Meta.style.display = 'block';
-                    const addr = result.oracle_address || '0xa31c31069c43ac1c0075a93c325b0dcd7744356c';
+                    const addr = result.oracle_address || '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90';
                     s2Meta.innerHTML = (isEn ? 'Wallet: ' : 'Carteira: ') + '<a href="https://basescan.org/address/' + addr + '" target="_blank" rel="noopener noreferrer">' + addr + '</a> (BaseScan)';
                 }
 
@@ -4283,7 +4283,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             if (s2Meta) {
                 s2Meta.style.display = 'block';
                 const price = (data && data.price_usdc) ? data.price_usdc : '0.0050';
-                const dest = (data && data.payment_address) ? data.payment_address : '0xa31c31069c43ac1c0075a93c325b0dcd7744356c';
+                const dest = (data && data.payment_address) ? data.payment_address : '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90';
                 s2Meta.innerHTML = (isEn ? 'Price: ' : 'Preco: ') + price + ' USDC | ' + (isEn ? 'Recipient: ' : 'Destino: ') + '<a href="https://basescan.org/address/' + dest + '" target="_blank" rel="noopener noreferrer">' + dest + '</a>';
             }
 
@@ -4378,7 +4378,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 "holidays_in_interval": 0,
                 "sandbox": true,
                 "_oracle_proof": {
-                    "oracle_address": "0xa31c31069c43ac1c0075a93c325b0dcd7744356c",
+                    "oracle_address": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
                     "timestamp": 1794163887,
                     "data_hash": "0x92b36d33af465b9fc16f221db86d5640c40efd1a3d7c51b10d15d14a982fb9bc",
                     "signature": "0x3045022037e603a27809aca2cdc448e1ae1dc8342737bfa8a5486546c252f6328195730c022100e631fb55db5439c5ed52b76edceab4537536ae3f77aeeb593036f9ed61e12c1c",
@@ -4874,7 +4874,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
         }
 
         function copyOracleAddress() {
-            const addr = '0xa31c31069c43ac1c0075a93c325b0dcd7744356c';
+            const addr = '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90';
             navigator.clipboard.writeText(addr).then(() => {
                 const btn = document.getElementById('btn-copy-oracle');
                 if (btn) {
