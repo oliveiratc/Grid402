@@ -14,7 +14,7 @@ from grid402.exceptions import Grid402Error, Grid402PaymentRequiredError
 from grid402.models import OracleVerificationResult, WorkdaysResponse
 
 
-DEFAULT_ENDPOINT = "https://grid402.com.br"
+DEFAULT_ENDPOINT = "https://grid402.online"
 GRID402_ORACLE_WALLET = "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90"
 DEFAULT_ORACLE_PUBKEY = """-----BEGIN PUBLIC KEY-----
 MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEZh7FI41OltM2/P7miW0L/D0OE6FzEQRk

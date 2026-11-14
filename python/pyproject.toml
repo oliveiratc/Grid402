@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
 authors = [
-    { name = "Grid402 Team", email = "contato@grid402.com.br" },
+    { name = "Grid402 Team", email = "contato@grid402.online" },
 ]
 keywords = [
     "x402",
@@ -50,10 +50,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://grid402.com.br"
-Documentation = "https://grid402.com.br/docs"
-Repository = "https://github.com/thiagobg90/Grid402"
-Issues = "https://github.com/thiagobg90/Grid402/issues"
+Homepage = "https://grid402.online"
+Documentation = "https://grid402.online"
+Repository = "https://github.com/oliveiratc/Grid402"
+Issues = "https://github.com/oliveiratc/Grid402/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]

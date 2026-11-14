@@ -19,7 +19,7 @@ class Grid402PaymentRequiredError(Grid402Error):
 
     def __init__(self, challenge: Dict[str, Any], message: Optional[str] = None):
         self.challenge = challenge
-        self.price_usdc: str = challenge.get("price_usdc", "0.0005")
+        self.price_usdc: str = challenge.get("price_usdc", "0.0050")
         self.recipient: str = challenge.get("recipient_wallet", "")
         self.network: str = challenge.get("network", "Base")
         self.token: str = challenge.get("token", "USDC")

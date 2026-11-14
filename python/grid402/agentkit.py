@@ -101,7 +101,7 @@ class Grid402ActionProvider:
             if exc.code == 402:
                 # Se temos wallet_provider e nao estamos no sandbox, auto-liquida on-chain
                 if wallet_provider is not None and not self.sandbox:
-                    price_usdc = challenge.get("price_usdc", "0.0005")
+                    price_usdc = challenge.get("price_usdc", "0.0050")
                     recipient = challenge.get("recipient_wallet", GRID402_ORACLE_WALLET)
 
                     try:

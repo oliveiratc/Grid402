@@ -147,7 +147,7 @@ class TestGrid402SDK(unittest.TestCase):
             start_is_workday=True,
             target_is_workday=True,
             holidays_in_projection=[],
-            tariff_usdc="0.0005",
+            tariff_usdc="0.0050",
         )
         self.assertEqual(workdays_resp.workdays, 5)
         self.assertEqual(workdays_resp.target_date, "2026-11-13")
@@ -176,14 +176,14 @@ class TestGrid402SDK(unittest.TestCase):
         client = Grid402Client(sandbox=False, raise_for_payment=True)
 
         challenge_body = (
-            b'{"status": 402, "message": "Payment Required", "price_usdc": "0.0005", '
+            b'{"status": 402, "message": "Payment Required", "price_usdc": "0.0050", '
             b'"recipient_wallet": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", '
             b'"preview_data": {"sample": true}}'
         )
 
         import urllib.error
         http_error = urllib.error.HTTPError(
-            url="https://grid402.com.br/api/v1/forex",
+            url="https://grid402.online/api/v1/forex",
             code=402,
             msg="Payment Required",
             hdrs={},  # type: ignore
@@ -195,7 +195,7 @@ class TestGrid402SDK(unittest.TestCase):
                 client.get_forex()
 
             err = ctx.exception
-            self.assertEqual(err.price_usdc, "0.0005")
+            self.assertEqual(err.price_usdc, "0.0050")
             self.assertEqual(err.recipient, "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90")
             self.assertIsNotNone(err.preview_data)
             self.assertTrue(err.preview_data.get("sample"))
@@ -210,14 +210,14 @@ class TestGrid402SDK(unittest.TestCase):
         mock_wallet.transfer.return_value = mock_transfer
 
         challenge_bytes = (
-            b'{"price_usdc": "0.0020", '
+            b'{"price_usdc": "0.0200", '
             b'"recipient_wallet": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90"}'
         )
         success_bytes = b'{"razao_social": "BANCO DO BRASIL SA", "cnpj": "00000000000191"}'
 
         import urllib.error
         challenge_error = urllib.error.HTTPError(
-            url="https://grid402.com.br/api/v1/cnpj",
+            url="https://grid402.online/api/v1/cnpj",
             code=402,
             msg="Payment Required",
             hdrs={},  # type: ignore
@@ -234,7 +234,7 @@ class TestGrid402SDK(unittest.TestCase):
 
             mock_wallet.transfer.assert_called_once_with(
                 to="0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
-                amount="0.0020",
+                amount="0.0200",
                 asset_id="usdc",
             )
             self.assertEqual(res.get("razao_social"), "BANCO DO BRASIL SA")
@@ -273,7 +273,7 @@ class TestGrid402SDK(unittest.TestCase):
             b'{"status": "success", "service": "workdays", "mode": "projection", '
             b'"convention": "ANBIMA D+0 exclusivo", "start_date": "2026-11-06", '
             b'"target_date": "2026-11-13", "workdays": 5, "calendar_days": 7, '
-            b'"start_is_workday": true, "target_is_workday": true, "tariff_usdc": "0.0005"}'
+            b'"start_is_workday": true, "target_is_workday": true, "tariff_usdc": "0.0050"}'
         )
         mock_resp.__enter__.return_value = mock_resp
 
