@@ -11,16 +11,16 @@ Compatível nativamente com **Claude Desktop**, **Cursor**, **Smithery.ai**, **C
 | Ferramenta | Descrição | Modalidade | Custo |
 |---|---|---|---|
 | `grid402_summary` | Resumo consolidado de saúde dos serviços | Direto | Gratuito |
-| `grid402_forex` | Cotações em tempo real de USD, EUR e GBP para BRL | On-Demand | 0.0005 USDC |
-| `grid402_crypto` | Preços spot de BTC, ETH, SOL, USDC e BASE | On-Demand | 0.0005 USDC |
-| `grid402_dns` | Resolução autoritativa de DNS (A, AAAA, MX, TXT, NS, CNAME) | On-Demand | 0.0005 USDC |
-| `grid402_ssl` | Inspeção de validade, emissor e dias restantes de certificados TLS/SSL | On-Demand | 0.0005 USDC |
-| `grid402_asn` | Inteligência BGP, número ASN, organização e país de bloco IP | On-Demand | 0.0005 USDC |
-| `grid402_cep` | Consulta de endereço postal brasileiro e código IBGE oficial | On-Demand | 0.0005 USDC |
-| `grid402_cnpj` | Consulta cadastral de CNPJ da Receita Federal com status e CNAE | On-Demand | 0.0020 USDC |
-| `grid402_indicators` | Indicadores macroeconômicos oficiais (Selic meta e diária, CDI anual e IPCA) | On-Demand | 0.0005 USDC |
-| `grid402_holidays` | Calendário oficial de feriados nacionais e bancários ANBIMA por ano | On-Demand | 0.0005 USDC |
-| `grid402_workdays` | Calculadora de dias úteis financeiros e projeção de vencimentos ANBIMA | On-Demand | 0.0005 USDC |
+| `grid402_forex` | Cotações em tempo real de USD, EUR e GBP para BRL | On-Demand | 0.0050 USDC |
+| `grid402_crypto` | Preços spot de BTC, ETH, SOL, USDC e BASE | On-Demand | 0.0050 USDC |
+| `grid402_dns` | Resolução autoritativa de DNS (A, AAAA, MX, TXT, NS, CNAME) | On-Demand | 0.0050 USDC |
+| `grid402_ssl` | Inspeção de validade, emissor e dias restantes de certificados TLS/SSL | On-Demand | 0.0050 USDC |
+| `grid402_asn` | Inteligência BGP, número ASN, organização e país de bloco IP | On-Demand | 0.0050 USDC |
+| `grid402_cep` | Consulta de endereço postal brasileiro e código IBGE oficial | On-Demand | 0.0050 USDC |
+| `grid402_cnpj` | Consulta cadastral de CNPJ da Receita Federal com status e CNAE | On-Demand | 0.0200 USDC |
+| `grid402_indicators` | Indicadores macroeconômicos oficiais (Selic meta e diária, CDI anual e IPCA) | On-Demand | 0.0050 USDC |
+| `grid402_holidays` | Calendário oficial de feriados nacionais e bancários ANBIMA por ano | On-Demand | 0.0050 USDC |
+| `grid402_workdays` | Calculadora de dias úteis financeiros e projeção de vencimentos ANBIMA | On-Demand | 0.0050 USDC |
 | `grid402_verify` | Validação matemática de prova criptográfica de oráculo (_oracle_proof) secp256k1 | Direto | Gratuito |
 
 ---

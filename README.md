@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/oliveiratc/Grid402/actions/workflows/ci.yml/badge.svg)](https://github.com/oliveiratc/Grid402/actions)
 ![Network](https://img.shields.io/badge/Network-Base_Mainnet_(8453)-0052FF?logo=coinbase)
-![Payment](https://img.shields.io/badge/Payment-0.0005_a_0.0020_USDC-2775CA?logo=usd-coin)
+![Payment](https://img.shields.io/badge/Payment-0.0050_a_0.0300_USDC-2775CA?logo=usd-coin)
 ![Protocol](https://img.shields.io/badge/Protocol-HTTP_x402-00F0FF)
 ![Brand](https://img.shields.io/badge/Manual_da_Marca-Visual_Identity-0052FF)](MANUAL_DE_MARCA.md)
 ![PHP](https://img.shields.io/badge/PHP-8.1%20%7C%208.2%20%7C%208.3-777BB4?logo=php)
@@ -18,7 +18,7 @@
 
 ## ⚡ Destaques da Arquitetura
 
-* **Monetização Nativa via HTTP x402 (v2 Exact):** Cobrança por chamada (0.0005 a 0.0020 USDC) liquidada diretamente em USDC na rede Base (Chain ID 8453) via autorizações gasless EIP-3009 (`PAYMENT-SIGNATURE`), Session Passes pré-pagos ou transferências on-chain, sem necessidade de chaves de API estáticas.
+* **Monetização Nativa via HTTP x402 (v2 Exact):** Cobrança por chamada (0.0050 a 0.0300 USDC) liquidada diretamente em USDC na rede Base (Chain ID 8453) via autorizações gasless EIP-3009 (`PAYMENT-SIGNATURE`), Session Passes pré-pagos ou transferências on-chain, sem necessidade de chaves de API estáticas.
 * **Amostras Gratuitas no HTTP 402 (Teaser Data):** O desafio 402 inclui uma prévia segura dos dados públicos encontrados (ex: razão social, município e UF no CNPJ; logradouro e bairro no CEP; status TLS no SSL) antes da liquidação financeira.
 * **Modo Sandbox para Testes e CI/CD:** Permite simulação técnica via cabeçalho `X-Payment: demo` (cota defensiva por IP), facilitando desenvolvimento local e pipelines de homologação antes de operar em produção.
 * **Zero Banco de Dados (Zero-DB):** Arquitetura ultraleve baseada em arquivos JSON planos com travamento concorrente (`flock`) e escrita atômica (`grid402_atomic_write`), sem sobrecarga de conexões SQL.
@@ -33,13 +33,13 @@
 | Serviço | Rota da API | Custo M2M | Descrição Técnica |
 |---|---|---|---|
 | **Resumo Operacional** | `GET /status` | Gratuito | Saúde geral, latências médias e serviços operantes |
-| **Câmbio Comercial** | `GET /api/v1/forex` | 0.0005 USDC | Cotações em tempo real de USD, EUR e GBP para BRL |
-| **Preços Cripto** | `GET /api/v1/crypto` | 0.0005 USDC | Cotações spot e variação 24h de BTC, ETH, SOL, USDC e BASE |
-| **Resolução DNS** | `GET /api/v1/dns?domain=...` | 0.0005 USDC | Registros A, AAAA, MX, TXT, NS e CNAME com latência |
-| **Inspetor SSL/TLS** | `GET /api/v1/ssl?domain=...` | 0.0005 USDC | Emissor, validade, dias restantes e cipher suite |
-| **Inteligência ASN** | `GET /api/v1/asn?ip=...` | 0.0005 USDC | BGP, número ASN, organização detentora e país |
-| **Consulta Postal CEP** | `GET /api/v1/cep?code=...` | 0.0005 USDC | Logradouro, bairro, cidade, UF e código IBGE oficial |
-| **Consulta CNPJ** | `GET /api/v1/cnpj?cnpj=...` | 0.0020 USDC | Razão social, status cadastral, CNAE e dados da Receita Federal |
+| **Câmbio Comercial** | `GET /api/v1/forex` | 0.0050 USDC | Cotações em tempo real de USD, EUR e GBP para BRL |
+| **Preços Cripto** | `GET /api/v1/crypto` | 0.0050 USDC | Cotações spot e variação 24h de BTC, ETH, SOL, USDC e BASE |
+| **Resolução DNS** | `GET /api/v1/dns?domain=...` | 0.0050 USDC | Registros A, AAAA, MX, TXT, NS e CNAME com latência |
+| **Inspetor SSL/TLS** | `GET /api/v1/ssl?domain=...` | 0.0050 USDC | Emissor, validade, dias restantes e cipher suite |
+| **Inteligência ASN** | `GET /api/v1/asn?ip=...` | 0.0050 USDC | BGP, número ASN, organização detentora e país |
+| **Consulta Postal CEP** | `GET /api/v1/cep?code=...` | 0.0050 USDC | Logradouro, bairro, cidade, UF e código IBGE oficial |
+| **Consulta CNPJ** | `GET /api/v1/cnpj?cnpj=...` | 0.0200 USDC | Razão social, status cadastral, CNAE e dados da Receita Federal |
 
 ---
 
@@ -100,9 +100,9 @@ Para agentes e desenvolvedores que buscam alta frequência (abaixo de 15ms) sem 
 - Acesse a interface web em [https://grid402.online/#topup](https://grid402.online/#topup)
 - Conecte sua carteira (MetaMask, Coinbase Smart Wallet com Passkey, Rainbow) na rede Base
 - Selecione seu pacote:
-  - **Starter:** 2 USDC $\rightarrow$ 4.000 requisições (validade 30 dias)
-  - **Pro:** 5 USDC $\rightarrow$ 10.000 requisições (validade 30 dias)
-  - **Fleet:** 20 USDC $\rightarrow$ 50.000 requisições (+10k bônus, validade 60 dias)
+  - **Starter:** 2 USDC $\rightarrow$ 40.000 créditos (= 400 chamadas padrão, validade 30 dias)
+  - **Pro:** 5 USDC $\rightarrow$ 100.000 créditos (= 1.000 chamadas padrão, validade 30 dias)
+  - **Fleet:** 20 USDC $\rightarrow$ 500.000 créditos (= 5.000 chamadas padrão, validade 60 dias)
 - Receba instantaneamente seu token `pass_g402_live...` para usar no cabeçalho `X-Payment`.
 
 ### 5. Dossiê Institucional Base Grants e Coinbase CDP
@@ -145,7 +145,7 @@ curl "https://grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 ├── mcp/                               # Pacote oficial Model Context Protocol (grid402-mcp)
 │   ├── package.json                   # Configuração e dependências do servidor MCP
 │   ├── index.mjs                      # Ponto de entrada do protocolo MCP
-│   ├── tools.mjs                      # Implementação das 7 ferramentas e cliente HTTP x402
+│   ├── tools.mjs                      # Implementação das 15 ferramentas e cliente HTTP x402
 │   ├── test_mcp.mjs                   # Suíte de testes automatizados do MCP
 │   └── README.md                      # Documentação de configuração do servidor MCP
 ├── public_html/                       # Raiz pública servida na Hostinger
