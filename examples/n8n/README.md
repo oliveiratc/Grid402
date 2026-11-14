@@ -7,9 +7,9 @@ Template pronto para importar no **n8n** e consultar dados oficiais brasileiros 
 1. No n8n, crie um novo workflow e clique em **Menu (`...`) > Import from File**.
 2. Selecione o arquivo `grid402_cnpj_compliance_workflow.json`.
 3. Clique em **Test workflow**:
-   - Por padrão, o nó `Configurar Consulta` envia `X-Payment: demo` (modo Sandbox gratuito, até 3 chamadas/hora por IP).
+   - Por padrão, o nó `Configurar Consulta` envia `X-Payment: demo` (modo Sandbox gratuito, até 30 chamadas/hora por IP).
 4. Para rodar em **produção** (sem limite de sandbox, latência `<15ms`):
-   - Gere um Session Pass em `https://grid402.online/#topup` (ex: 4.000 consultas por 2 USDC).
+   - Gere um Session Pass em `https://grid402.online/#topup` (400 consultas padrao por 2 USDC).
    - Substitua `demo` no campo `x_payment` pelo seu token `pass_g402_...`.
 
 ## Casos de uso prontos para adaptar

@@ -9,7 +9,7 @@ curl -s -H "X-Payment: demo" \
   "https://grid402.online/api/v1/cnpj?cnpj=00000000000191"
 ```
 
-Resposta (amostra gratis + desafio 402). Cota: 3 req/hora por IP.
+Resposta (amostra gratis + desafio 402). Cota: 30 req/hora por IP.
 
 ## 2. Python — com Session Pass
 
@@ -56,7 +56,7 @@ Defina no config do cliente:
 
 Modos suportados (em ordem de prioridade):
 1. `GRID402_SESSION_PASS` (pass_g402_...) — recomendado.
-2. `GRID402_SANDBOX=true` — gratuito (3 req/hora).
+2. `GRID402_SANDBOX=true` — gratuito (30 req/hora).
 3. `GRID402_PRIVATE_KEY` — auto-liquidacao x402 on-chain.
 
 ## 5. x402 on-chain (sem Session Pass)
