@@ -487,7 +487,7 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
         <div class="features-grid">
             <div class="card">
                 <h2 data-i18n="agents.f1.title">Zero Cadastro Humano</h2>
-                <p data-i18n="agents.f1.desc">Não requer chaves estáticas de API, cartão de crédito ou login. Agentes de IA contratam serviços diretamente via carteira Web3 on-chain ou Passkey.</p>
+                <p data-i18n="agents.f1.desc">Não requer chaves estáticas de API, cartão de crédito ou login. Agentes de IA contratam serviços diretamente via carteira Web3 on-chain (MetaMask, Rabby, Coinbase Wallet e outras).</p>
             </div>
             <div class="card">
                 <h2 data-i18n="agents.f2.title">Oráculo Criptográfico</h2>

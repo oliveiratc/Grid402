@@ -2881,9 +2881,8 @@ grid402_log_public_visit('/');
                 </div>
             </div>
 
-            <!-- Alternativa Manual / Smart Wallet Passkey -->
+            <!-- Atalho para a documentação técnica -->
             <div style="display: flex; justify-content: center; align-items: center; gap: 1rem; flex-wrap: wrap; padding-top: 1rem; border-top: 1px solid var(--border);">
-                <button class="btn-sm btn-outline" style="border-color: rgba(255,255,255,0.2); color: #fff;" onclick="startWeb3TopupWithSmartWallet(5, 'pro')" id="btn-topup-passkey">🔑 Pagar via Passkey / Biometria (Coinbase Smart Wallet)</button>
                 <a href="#console" class="btn-sm btn-outline" style="border-color: rgba(255,255,255,0.2); color: #8FA2B9;" onclick="switchTab('console')">💻 Ver Console e Documentacao Tecnica</a>
             </div>
         </section>
@@ -2979,9 +2978,6 @@ grid402_log_public_visit('/');
                             <details style="margin-top:.6rem; border:1px solid var(--border); border-radius:8px; padding:.55rem .75rem; background:#0b132b;">
                                 <summary style="cursor:pointer; color:#00F0FF; font-weight:700;">Outras formas de desbloquear</summary>
                                 <div style="display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.7rem;">
-                                    <button type="button" id="btn-playground-smart-wallet" class="btn-sm btn-outline" onclick="payPlaygroundWithCoinbaseSmartWallet()" style="padding: 0.5rem .85rem; font-size: 0.78rem; border-color: #0052ff; background: rgba(0, 82, 255, 0.14); color: #fff; font-weight: 600;" data-i18n="playground.unlock.cta_smart_wallet">
-                                        🔑 Passkey / Biometria
-                                    </button>
                                     <button type="button" class="btn-sm btn-outline" onclick="openPlaygroundWeb3Modal()" style="padding: 0.5rem .85rem; font-size: 0.78rem;" data-i18n="playground.unlock.cta_qr">
                                         📱 QR / Celular
                                     </button>
@@ -3099,7 +3095,6 @@ grid402_log_public_visit('/');
                     <input type="text" id="tx-input" class="console-input" style="flex: 1; min-width: 260px;" placeholder="Cole seu Session Pass (pass_g402_...), hash de pagamento (0x...) ou assine via Web3" data-i18n-placeholder="console.input.placeholder">
                     <button type="button" class="btn-sm" onclick="runConsole('paid')" data-i18n="console.btn.send_payment">Enviar com X-Payment</button>
                     <button type="button" class="btn-sm btn-primary" id="btn-web3-pay" onclick="payWithWeb3Wallet()" data-i18n="console.btn.web3_pay">⚡ Pagar com Carteira Web3 (1 Clique)</button>
-                    <button type="button" class="btn-sm btn-outline" id="btn-console-smart-wallet" onclick="payConsoleWithCoinbaseSmartWallet()" style="border-color: #0052ff; background: rgba(0, 82, 255, 0.14); color: #fff; font-weight: 600;" data-i18n="console.btn.smart_wallet">🔑 Passkey / Biometria (Smart Wallet)</button>
                     <button type="button" class="btn-sm btn-outline" onclick="openWeb3Modal()" title="Abrir QR Code e instruções de pagamento" data-i18n="console.btn.web3_qr">📱 QR Code / Celular</button>
                     <button type="button" class="btn-sm btn-outline" onclick="runSandboxSimulation()" title="Simular pagamento gratuitamente no Modo Sandbox" data-i18n="console.btn.sandbox_demo">🧪 Simular Sandbox (demo)</button>
                 </div>
@@ -3122,9 +3117,6 @@ grid402_log_public_visit('/');
                     <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
                         <button class="btn btn-primary" onclick="payWithWeb3Wallet()" style="font-size: 0.85rem; padding: 0.5rem 1rem;" data-i18n="console.teaser.unlock_btn">
                             ⚡ Desbloquear Dados Completos com Web3
-                        </button>
-                        <button class="btn btn-outline" onclick="payConsoleWithCoinbaseSmartWallet()" style="font-size: 0.85rem; padding: 0.5rem 0.95rem; border-color: #0052ff; background: rgba(0, 82, 255, 0.14); color: #fff; font-weight: 600;" data-i18n="console.btn.smart_wallet">
-                            🔑 Passkey / Biometria (Smart Wallet)
                         </button>
                         <button class="btn btn-outline" onclick="openWeb3Modal()" style="font-size: 0.85rem; padding: 0.5rem 0.9rem;" data-i18n="console.btn.web3_qr">
                             📱 Pagar com QR Code / Celular
@@ -3362,21 +3354,21 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                             </div>
                         </div>
 
-                        <!-- Coluna 2: Coinbase Smart Wallet (Passkey) & Extensão no PC -->
+                        <!-- Coluna 2: carteiras Web3 no navegador (multi-carteira) -->
                         <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; display: flex; flex-direction: column; justify-content: space-between;">
                             <div>
-                                <div style="font-weight: 700; color: #fff; margin-bottom: 0.5rem; font-size: 0.9rem;" data-i18n="modal.web3.col2.title">🔑 Sem Extensão? Use Passkey</div>
+                                <div style="font-weight: 700; color: #fff; margin-bottom: 0.5rem; font-size: 0.9rem;" data-i18n="modal.web3.col2.title">🧩 Carteiras Web3 no navegador</div>
                                 <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 0.85rem; line-height: 1.45;" data-i18n="modal.web3.col2.desc">
-                                    Crie ou conecte uma <strong>Coinbase Smart Wallet</strong> em 5 segundos usando biometria/Passkey do celular ou computador, sem instalar extensão nem anotar seed phrase.
+                                    Funciona com MetaMask, Rabby, Coinbase Wallet, Brave, Rainbow e outras extensões compatíveis. Ao clicar em um botão Web3, a página pergunta qual carteira usar — sem custódia e sem seed phrase em lugar nenhum.
                                 </p>
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 8px;">
-                                <button type="button" id="btn-modal-smart-wallet" class="btn btn-primary" onclick="payModalWithCoinbaseSmartWallet()" style="justify-content: center; font-size: 0.83rem; padding: 0.6rem 0.8rem; background: #0052ff; color: #fff; border: none;" data-i18n="modal.web3.col2.btn.smart_wallet">
-                                    🔑 Conectar via Passkey (Smart Wallet)
-                                </button>
                                 <a href="https://metamask.io/download/" target="_blank" rel="noopener noreferrer" class="btn btn-outline" style="justify-content: center; font-size: 0.8rem; padding: 0.5rem 0.8rem; text-decoration: none;" data-i18n="modal.web3.col2.btn.install">
-                                    🦊 Ou Instalar Extensão MetaMask
+                                    🦊 Instalar Extensão MetaMask
                                 </a>
+                                <button type="button" class="btn btn-outline" onclick="location.reload()" style="justify-content: center; font-size: 0.8rem; padding: 0.5rem 0.8rem;" data-i18n="modal.web3.col2.btn.reload">
+                                    🔄 Já instalei, recarregar
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -3415,6 +3407,30 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                                 ⚡ Desbloquear Consulta
                             </button>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Seletor de Carteira Web3 (EIP-6963) -->
+        <div id="x402-wallet-overlay" class="modal-overlay" onclick="handleX402WalletOverlayClick(event)">
+            <div class="modal-card" style="max-width: 420px;">
+                <div class="modal-header">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 1.25rem;">👛</span>
+                        <span class="modal-title" data-i18n="wallet.chooser.title">Escolha sua carteira</span>
+                    </div>
+                    <button class="modal-close" onclick="x402CloseProviderChooser(null)">✕</button>
+                </div>
+                <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+                    <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1rem; line-height: 1.5;" data-i18n="wallet.chooser.desc">
+                        Mais de uma carteira Web3 foi detectada neste navegador. Escolha qual usar para assinar o pagamento x402 na Base.
+                    </p>
+                    <div id="x402-wallet-list" style="display: flex; flex-direction: column; gap: 10px;"></div>
+                    <div style="margin-top: 1rem; padding-top: 0.85rem; border-top: 1px dashed rgba(255, 255, 255, 0.1); display: flex; justify-content: flex-end;">
+                        <button type="button" class="btn btn-outline" onclick="x402ForgetWalletChoice()" style="font-size: 0.75rem; padding: 0.45rem 0.75rem;" data-i18n="wallet.chooser.forget">
+                            Esquecer carteira salva
+                        </button>
                     </div>
                 </div>
             </div>
@@ -4078,16 +4094,249 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             runPlaygroundQuery();
         }
 
-        let coinbaseSmartWalletProvider = null;
+        // --- Descoberta de carteiras (EIP-6963 + injeção legada) ---
+        const X402_WALLET_STORAGE_KEY = 'grid402_wallet_rdns';
+        const x402AnnouncedProviders = [];
 
-        async function getCoinbaseSmartWalletProvider() {
-            if (coinbaseSmartWalletProvider) {
-                return coinbaseSmartWalletProvider;
+        try {
+            window.addEventListener('eip6963:announceProvider', (event) => {
+                const detail = event && event.detail;
+                if (!detail || !detail.provider) return;
+                const info = detail.info || {};
+                const already = x402AnnouncedProviders.some((p) =>
+                    p.provider === detail.provider || (info.rdns && p.rdns === info.rdns)
+                );
+                if (already) return;
+                x402AnnouncedProviders.push({
+                    provider: detail.provider,
+                    rdns: info.rdns || '',
+                    name: info.name || 'Carteira Web3',
+                    icon: info.icon || '',
+                });
+            });
+        } catch (_) {}
+
+        function x402RequestAnnouncements() {
+            try {
+                window.dispatchEvent(new Event('eip6963:requestProvider'));
+            } catch (_) {}
+        }
+
+        function x402ProviderName(provider) {
+            if (!provider) return 'Carteira Web3';
+            try {
+                if (provider.isBraveWallet) return 'Brave Wallet';
+                if (provider.isCoinbaseWallet || provider.isCoinbaseBrowser) return 'Coinbase Wallet';
+                if (provider.isRabby) return 'Rabby';
+                if (provider.isTrust || provider.isTrustWallet) return 'Trust Wallet';
+                if (provider.isPhantom) return 'Phantom';
+                if (provider.isOkxWallet || provider.isOKExWallet) return 'OKX Wallet';
+                if (provider.isRainbow) return 'Rainbow';
+                if (provider.isFrame) return 'Frame';
+                if (provider.isMetaMask) return 'MetaMask';
+            } catch (_) {}
+            return 'Carteira Injetada';
+        }
+
+        function x402ProviderRdns(provider) {
+            if (!provider) return '';
+            try {
+                if (provider.isCoinbaseWallet || provider.isCoinbaseBrowser) return 'com.coinbase.wallet';
+                if (provider.isRabby) return 'io.rabby';
+                if (provider.isBraveWallet) return 'com.brave.wallet';
+                if (provider.isTrust || provider.isTrustWallet) return 'com.trustwallet.app';
+                if (provider.isPhantom) return 'app.phantom';
+                if (provider.isOkxWallet || provider.isOKExWallet) return 'com.okex.wallet';
+                if (provider.isRainbow) return 'me.rainbow';
+                if (provider.isMetaMask) return 'io.metamask';
+            } catch (_) {}
+            return '';
+        }
+
+        function x402DiscoverProviders() {
+            x402RequestAnnouncements();
+            const seen = [];
+            const list = [];
+            const push = (provider, name, rdns, icon) => {
+                if (!provider || typeof provider.request !== 'function') return;
+                if (seen.indexOf(provider) !== -1) return;
+                seen.push(provider);
+                list.push({
+                    provider,
+                    name: name || x402ProviderName(provider),
+                    rdns: rdns || x402ProviderRdns(provider),
+                    icon: icon || '',
+                });
+            };
+
+            x402AnnouncedProviders.forEach((entry) => push(entry.provider, entry.name, entry.rdns, entry.icon));
+
+            try {
+                const injected = window.ethereum;
+                if (injected) {
+                    if (Array.isArray(injected.providers) && injected.providers.length) {
+                        injected.providers.forEach((p) => push(p));
+                    } else {
+                        push(injected);
+                    }
+                }
+            } catch (_) {}
+
+            [
+                ['coinbaseWalletExtension', 'Coinbase Wallet', 'com.coinbase.wallet'],
+                ['rabby', 'Rabby', 'io.rabby'],
+                ['trustwallet', 'Trust Wallet', 'com.trustwallet.app'],
+                ['phantom', 'Phantom', 'app.phantom'],
+                ['okxwallet', 'OKX Wallet', 'com.okex.wallet'],
+                ['BraveWalletProvider', 'Brave Wallet', 'com.brave.wallet'],
+            ].forEach((item) => {
+                try {
+                    if (window[item[0]]) push(window[item[0]], item[1], item[2]);
+                } catch (_) {}
+            });
+
+            return list;
+        }
+
+        function x402GetProviderPreference() {
+            try {
+                return localStorage.getItem(X402_WALLET_STORAGE_KEY) || '';
+            } catch (_) {
+                return '';
             }
-            if (typeof window !== 'undefined' && window.ethereum) {
-                return window.ethereum;
+        }
+
+        function x402SetProviderPreference(rdns) {
+            try {
+                if (rdns) localStorage.setItem(X402_WALLET_STORAGE_KEY, rdns);
+                else localStorage.removeItem(X402_WALLET_STORAGE_KEY);
+            } catch (_) {}
+        }
+
+        function x402ClearProviderPreference() {
+            x402SetProviderPreference('');
+        }
+
+        let x402ChooserResolver = null;
+
+        function x402CloseProviderChooser(selection) {
+            const overlay = document.getElementById('x402-wallet-overlay');
+            if (overlay) overlay.classList.remove('active');
+            const resolver = x402ChooserResolver;
+            x402ChooserResolver = null;
+            if (resolver) resolver(selection || null);
+        }
+
+        function handleX402WalletOverlayClick(event) {
+            if (event.target && event.target.id === 'x402-wallet-overlay') {
+                x402CloseProviderChooser(null);
             }
-            throw new Error('Nenhuma carteira Web3 detectada. Instale uma extensão como MetaMask ou Coinbase Wallet.');
+        }
+
+        function x402ForgetWalletChoice() {
+            x402ClearProviderPreference();
+            const list = document.getElementById('x402-wallet-list');
+            if (list) list.setAttribute('data-forgotten', '1');
+        }
+
+        function x402ShowProviderChooser(providers) {
+            return new Promise((resolve) => {
+                const overlay = document.getElementById('x402-wallet-overlay');
+                const list = document.getElementById('x402-wallet-list');
+                if (!overlay || !list) {
+                    resolve(providers[0] || null);
+                    return;
+                }
+                if (x402ChooserResolver) {
+                    x402ChooserResolver(null);
+                    x402ChooserResolver = null;
+                }
+                x402ChooserResolver = resolve;
+                list.innerHTML = '';
+                list.removeAttribute('data-forgotten');
+
+                providers.forEach((entry) => {
+                    const option = document.createElement('button');
+                    option.type = 'button';
+                    option.style.cssText = 'display:flex;align-items:center;gap:12px;width:100%;padding:0.8rem 0.9rem;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:10px;cursor:pointer;text-align:left;color:#fff;font-size:0.88rem;font-weight:600;transition:border-color .15s ease, background .15s ease;';
+                    option.onmouseenter = () => {
+                        option.style.borderColor = 'var(--accent)';
+                        option.style.background = 'rgba(0,240,255,0.08)';
+                    };
+                    option.onmouseleave = () => {
+                        option.style.borderColor = 'var(--border)';
+                        option.style.background = 'rgba(255,255,255,0.04)';
+                    };
+                    option.onclick = () => {
+                        x402SetProviderPreference(entry.rdns);
+                        x402CloseProviderChooser(entry);
+                    };
+
+                    if (entry.icon) {
+                        const img = document.createElement('img');
+                        img.src = entry.icon;
+                        img.alt = '';
+                        img.width = 26;
+                        img.height = 26;
+                        img.style.cssText = 'border-radius:6px;flex:0 0 auto;';
+                        option.appendChild(img);
+                    } else {
+                        const fallback = document.createElement('span');
+                        fallback.textContent = '👛';
+                        fallback.style.cssText = 'font-size:1.2rem;line-height:1;flex:0 0 auto;';
+                        option.appendChild(fallback);
+                    }
+
+                    const label = document.createElement('span');
+                    label.textContent = entry.name;
+                    label.style.cssText = 'flex:1;';
+                    option.appendChild(label);
+
+                    const arrow = document.createElement('span');
+                    arrow.textContent = '→';
+                    arrow.style.cssText = 'color:var(--text-muted);flex:0 0 auto;';
+                    option.appendChild(arrow);
+
+                    list.appendChild(option);
+                });
+
+                overlay.classList.add('active');
+            });
+        }
+
+        async function x402ResolveProvider(options = {}) {
+            const forceChooser = options.forceChooser === true;
+            const allowChooser = options.allowChooser !== false;
+            const providers = x402DiscoverProviders();
+
+            if (!providers.length) {
+                const err = new Error('Nenhuma carteira Web3 detectada neste navegador.');
+                err.code = 'NO_PROVIDER';
+                throw err;
+            }
+
+            if (!forceChooser) {
+                const saved = x402GetProviderPreference();
+                if (saved) {
+                    const match = providers.find((p) => p.rdns === saved);
+                    if (match) return match;
+                }
+            }
+
+            if (providers.length === 1) {
+                x402SetProviderPreference(providers[0].rdns);
+                return providers[0];
+            }
+
+            if (!allowChooser) return providers[0];
+
+            const chosen = await x402ShowProviderChooser(providers);
+            if (!chosen) {
+                const err = new Error('Seleção de carteira cancelada.');
+                err.code = 'CHOOSER_CANCELLED';
+                throw err;
+            }
+            return chosen;
         }
 
         async function x402SignTransferAuthorization(provider, userAddress, amountRaw) {
@@ -4142,11 +4391,48 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 step('typedData built');
                 const payloadJson = JSON.stringify(typedData);
                 step('payloadJson len=' + payloadJson.length);
-                const signature = await provider.request({
-                    method: 'eth_signTypedData_v4',
-                    params: [userAddress, payloadJson],
-                });
-                step('signature received (' + String(signature).length + ' bytes)');
+
+                // Cadeia de compatibilidade: nem toda carteira aceita o mesmo formato.
+                const typedDataV3 = {
+                    domain: typedData.domain,
+                    types: { TransferWithAuthorization: typedData.types.TransferWithAuthorization },
+                    primaryType: 'TransferWithAuthorization',
+                    message: typedData.message,
+                };
+                const signAttempts = [
+                    { label: 'v4/json', method: 'eth_signTypedData_v4', params: [userAddress, payloadJson] },
+                    { label: 'v4/object', method: 'eth_signTypedData_v4', params: [userAddress, typedData] },
+                    { label: 'v3/json', method: 'eth_signTypedData_v3', params: [userAddress, JSON.stringify(typedDataV3)] },
+                    { label: 'v3/object', method: 'eth_signTypedData_v3', params: [userAddress, typedDataV3] },
+                ];
+                let signature = null;
+                let lastSignErr = null;
+                for (let i = 0; i < signAttempts.length; i += 1) {
+                    const attempt = signAttempts[i];
+                    try {
+                        step('sign try ' + attempt.label + ' (' + (i + 1) + '/' + signAttempts.length + ')');
+                        const result = await provider.request({ method: attempt.method, params: attempt.params });
+                        if (typeof result === 'string' && /^0x[0-9a-fA-F]{130,}$/.test(result)) {
+                            signature = result;
+                            step('signature received via ' + attempt.label + ' (' + result.length + ' chars)');
+                            break;
+                        }
+                        lastSignErr = new Error('Assinatura malformada retornada por ' + attempt.label);
+                        lastSignErr.code = 'BAD_SIGNATURE';
+                        step('sign ' + attempt.label + ' returned malformed signature');
+                    } catch (e) {
+                        lastSignErr = e;
+                        const code = e && e.code !== undefined ? e.code : (e && e.data ? e.data.code : undefined);
+                        const msg = e && e.message ? e.message : String(e);
+                        step('sign ' + attempt.label + ' failed: ' + code + ' | ' + msg);
+                        if (code === 4001 || code === 'ACTION_REJECTED') {
+                            throw e;
+                        }
+                    }
+                }
+                if (!signature) {
+                    throw lastSignErr || new Error('Nenhuma assinatura EIP-712 obtida da carteira.');
+                }
                 const envelope = {
                     x402Version: 2,
                     accepted: {
@@ -4173,7 +4459,14 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 step('btoa ok (' + b64.length + ' chars)');
                 return b64;
             } catch (e) {
-                const errInfo = 'x402 err: ' + (e && e.name) + ' | ' + (e && e.message) + ' | stack=' + (e && e.stack ? e.stack.split('\n')[0] : '');
+                let dataInfo = '';
+                try {
+                    if (e && e.data !== undefined) {
+                        const raw = typeof e.data === 'string' ? e.data : JSON.stringify(e.data);
+                        dataInfo = ' | data=' + String(raw).slice(0, 300);
+                    }
+                } catch (_) {}
+                const errInfo = 'x402 err: ' + (e && e.name) + ' | ' + (e && e.message) + ' | code=' + (e && e.code) + dataInfo + ' | stack=' + (e && e.stack ? e.stack.split('\n')[0] : '');
                 step(errInfo);
                 try { console.error('x402SignTransferAuthorization FAILED', e); } catch (_) {}
                 throw e;
@@ -4185,15 +4478,12 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             const statusBadge = document.getElementById('playground-http-status');
             const viewer = document.getElementById('playground-json-viewer');
 
-            let provider = customProvider || window.ethereum;
+            let provider = customProvider;
             if (!provider) {
                 try {
-                    if (btn) {
-                        btn.disabled = true;
-                        btn.textContent = 'Abrindo Passkey / Smart Wallet...';
-                    }
-                    provider = await getCoinbaseSmartWalletProvider();
+                    provider = await x402ResolveProvider();
                 } catch (e) {
+                    if (e && e.code === 'CHOOSER_CANCELLED') return;
                     if (btn) btn.disabled = false;
                     openPlaygroundWeb3Modal();
                     return;
@@ -4284,27 +4574,6 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 }
             } catch (err) {
                 if (statusBadge) statusBadge.textContent = 'Pagamento Cancelado';
-            } finally {
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = origText;
-                }
-            }
-        }
-
-        async function payPlaygroundWithCoinbaseSmartWallet() {
-            const btn = document.getElementById('btn-playground-smart-wallet');
-            const origText = btn ? btn.textContent : '🔑 Passkey / Biometria (Coinbase Smart Wallet)';
-            try {
-                if (btn) {
-                    btn.disabled = true;
-                    btn.textContent = 'Carregando Passkey SDK...';
-                }
-                const smartProvider = await getCoinbaseSmartWalletProvider();
-                await payPlaygroundWithWeb3(smartProvider, 'btn-playground-smart-wallet');
-            } catch (err) {
-                const statusBadge = document.getElementById('playground-http-status');
-                if (statusBadge) statusBadge.textContent = 'Erro ao iniciar Smart Wallet';
             } finally {
                 if (btn) {
                     btn.disabled = false;
@@ -4635,15 +4904,12 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             const statusText = document.getElementById('console-status-text');
             const out = document.getElementById('console-output');
 
-            let provider = customProvider || window.ethereum;
+            let provider = customProvider;
             if (!provider) {
                 try {
-                    if (btn) {
-                        btn.disabled = true;
-                        btn.textContent = 'Abrindo Passkey / Smart Wallet...';
-                    }
-                    provider = await getCoinbaseSmartWalletProvider();
+                    provider = await x402ResolveProvider();
                 } catch (e) {
+                    if (e && e.code === 'CHOOSER_CANCELLED') return;
                     if (btn) btn.disabled = false;
                     openWeb3Modal();
                     return;
@@ -4729,48 +4995,6 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             }
         }
 
-        async function payConsoleWithCoinbaseSmartWallet() {
-            const btn = document.getElementById('btn-console-smart-wallet');
-            const origText = btn ? btn.textContent : '🔑 Passkey / Biometria (Smart Wallet)';
-            try {
-                if (btn) {
-                    btn.disabled = true;
-                    btn.textContent = 'Carregando Passkey SDK...';
-                }
-                const smartProvider = await getCoinbaseSmartWalletProvider();
-                await payWithWeb3Wallet(smartProvider, 'btn-console-smart-wallet');
-            } catch (err) {
-                const statusText = document.getElementById('console-status-text');
-                if (statusText) statusText.textContent = 'Erro ao iniciar Smart Wallet';
-            } finally {
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = origText;
-                }
-            }
-        }
-
-        async function payModalWithCoinbaseSmartWallet() {
-            const btn = document.getElementById('btn-modal-smart-wallet');
-            const origText = btn ? btn.textContent : '🔑 Conectar via Passkey (Smart Wallet)';
-            try {
-                if (btn) {
-                    btn.disabled = true;
-                    btn.textContent = 'Abrindo Passkey / Biometria...';
-                }
-                const smartProvider = await getCoinbaseSmartWalletProvider();
-                closeWeb3Modal();
-                await payPlaygroundWithWeb3(smartProvider, 'btn-playground-smart-wallet');
-            } catch (err) {
-                alert('Erro ao conectar Coinbase Smart Wallet: ' + (err.message || err));
-            } finally {
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = origText;
-                }
-            }
-        }
-
         function copyBadgeMarkdown() {
             const codeBlock = document.getElementById('badge-markdown-code');
             navigator.clipboard.writeText(codeBlock.textContent).then(() => {
@@ -4792,15 +5016,20 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             if (statusBox) statusBox.style.display = 'block';
             if (successCard) successCard.style.display = 'none';
 
-            let provider = customProvider || window.ethereum;
+            let provider = customProvider;
             if (!provider) {
-                if (statusTitle) statusTitle.textContent = 'Carteira Web3 não detectada';
-                if (statusMsg) {
-                    statusMsg.innerHTML = 'Nenhuma extensão de carteira (MetaMask, Coinbase Wallet, Rabby) detectada neste navegador.<br><span style="color: #00F0FF; font-weight: 600;">Sem problemas!</span> Você pode transferir USDC diretamente pelo seu app (ou exchange) e ativar o passe colando o Hash na caixa logo abaixo.';
+                try {
+                    provider = await x402ResolveProvider();
+                } catch (e) {
+                    if (e && e.code === 'CHOOSER_CANCELLED') return;
+                    if (statusTitle) statusTitle.textContent = 'Carteira Web3 não detectada';
+                    if (statusMsg) {
+                        statusMsg.innerHTML = 'Nenhuma extensão de carteira (MetaMask, Coinbase Wallet, Rabby) detectada neste navegador.<br><span style="color: #00F0FF; font-weight: 600;">Sem problemas!</span> Você pode transferir USDC diretamente pelo seu app (ou exchange) e ativar o passe colando o Hash na caixa logo abaixo.';
+                    }
+                    const manualBox = document.getElementById('manual-topup-box');
+                    if (manualBox) manualBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
                 }
-                const manualBox = document.getElementById('manual-topup-box');
-                if (manualBox) manualBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                return;
             }
 
             try {
@@ -4900,35 +5129,6 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 if (btn) {
                     btn.disabled = false;
                     btn.textContent = origText;
-                }
-            }
-        }
-
-        async function startWeb3TopupWithSmartWallet(amountUsdc = 5, tierName = 'pro') {
-            const btn = document.getElementById('btn-topup-passkey');
-            const orig = btn ? btn.textContent : '';
-            try {
-                if (btn) {
-                    btn.disabled = true;
-                    btn.textContent = 'Conectando...';
-                }
-                const smartProvider = await getCoinbaseSmartWalletProvider();
-                await startWeb3Topup(amountUsdc, tierName, smartProvider);
-            } catch (err) {
-                const statusBox = document.getElementById('topup-status-box');
-                const statusTitle = document.getElementById('topup-status-title');
-                const statusMsg = document.getElementById('topup-status-msg');
-                if (statusBox) statusBox.style.display = 'block';
-                if (statusTitle) statusTitle.textContent = 'Carteira Web3 não encontrada';
-                if (statusMsg) {
-                    statusMsg.innerHTML = 'Para 1 clique no navegador, ative uma extensão Web3 (MetaMask, Coinbase Wallet ou Rabby).<br><span style="color:#00F0FF; font-weight:600;">Ou pague agora pelo app:</span> envie os USDC para o endereço da Oracle abaixo e cole o Hash!';
-                }
-                const manualBox = document.getElementById('manual-topup-box');
-                if (manualBox) manualBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            } finally {
-                if (btn) {
-                    btn.disabled = false;
-                    btn.textContent = orig;
                 }
             }
         }
@@ -5105,6 +5305,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
         function closeWeb3Modal() {
             document.getElementById('web3-modal-overlay').classList.remove('active');
+            if (typeof x402CloseProviderChooser === 'function') x402CloseProviderChooser(null);
         }
 
         function handleWeb3OverlayClick(e) {
@@ -5141,6 +5342,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             if (e.key === 'Escape') {
                 closeLegalModal();
                 closeWeb3Modal();
+                if (typeof x402CloseProviderChooser === 'function') x402CloseProviderChooser(null);
             }
         });
 

@@ -167,7 +167,6 @@ const GRID402_I18N = {
         'playground.unlock.badge': '🔒 DADOS COMPLETOS PROTEGIDOS (HTTP 402)',
         'playground.unlock.desc': 'A amostra gratuita acima foi validada. Desbloqueie agora os campos ocultos e a prova criptográfica ECDSA (_oracle_proof):',
         'playground.unlock.cta_web3': '⚡ Desbloquear com Carteira Web3 (1 Clique)',
-        'playground.unlock.cta_smart_wallet': '🔑 Passkey / Biometria (Coinbase Smart Wallet)',
         'playground.unlock.cta_qr': '📱 QR Code / Celular',
         'playground.unlock.cta_sandbox': '🧪 Ver Amostra Completa (Sandbox)',
 
@@ -202,7 +201,6 @@ const GRID402_I18N = {
         'console.act.pass': '⚡ Session Pass (/api/v1/pass)',
         'console.btn.send_payment': 'Enviar com X-Payment',
         'console.btn.web3_pay': '⚡ Pagar com Carteira Web3 (1 Clique)',
-        'console.btn.smart_wallet': '🔑 Passkey / Biometria (Smart Wallet)',
         'console.btn.web3_qr': '📱 QR Code / Celular',
         'console.btn.sandbox_demo': '🧪 Simular Sandbox (demo)',
         'console.input.placeholder': "Cole seu Session Pass (pass_g402_...), hash de pagamento (0x...) ou assine via Web3",
@@ -307,10 +305,9 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'modal.web3.no_wallet.desc': 'Para pagar com 1 clique direto na página, é necessário ter a extensão MetaMask, Rabby ou Coinbase Wallet instalada e ativa. Ou pague pelo celular via QR Code abaixo.',
         'modal.web3.col1.title': '📱 Pagar pelo Celular',
         'modal.web3.col1.desc': 'Escaneie pelo app da MetaMask, Rainbow ou Coinbase Wallet e envie <strong><span id="web3-modal-price">{price}</span> USDC</strong> na rede <strong>Base</strong>.',
-        'modal.web3.col2.title': '🔑 Sem Extensão? Use Passkey',
-        'modal.web3.col2.desc': 'Crie ou conecte uma Coinbase Smart Wallet em 5 segundos usando biometria/Passkey do celular ou computador, sem instalar extensão nem anotar seed phrase.',
-        'modal.web3.col2.btn.smart_wallet': '🔑 Conectar via Passkey (Smart Wallet)',
-        'modal.web3.col2.btn.install': '🦊 Ou Instalar Extensão MetaMask',
+        'modal.web3.col2.title': '🧩 Carteiras Web3 no navegador',
+        'modal.web3.col2.desc': 'Funciona com MetaMask, Rabby, Coinbase Wallet, Brave, Rainbow e outras extensões compatíveis. Ao clicar em um botão Web3, a página pergunta qual carteira usar — sem custódia e sem seed phrase em lugar nenhum.',
+        'modal.web3.col2.btn.install': '🦊 Instalar Extensão MetaMask',
         'modal.web3.col2.btn.reload': '🔄 Já instalei, recarregar',
         'modal.web3.network': 'Rede:',
         'modal.web3.token': 'Token:',
@@ -319,6 +316,11 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'modal.web3.confirm.title': 'Já enviou a transação?',
         'modal.web3.confirm.desc': 'Cole o Hash (Tx Hash) da transferência gerado na sua carteira para liberar os dados imediatamente:',
         'modal.web3.confirm.btn': 'Confirmar Pagamento e Desbloquear',
+
+        // Seletor de carteira (EIP-6963)
+        'wallet.chooser.title': 'Escolha sua carteira',
+        'wallet.chooser.desc': 'Detectamos mais de uma carteira Web3 neste navegador. Selecione qual deseja usar — sua escolha fica salva para os próximos pagamentos.',
+        'wallet.chooser.forget': 'Esquecer carteira salva',
 
         // Mensagens JS
         'msg.loading': 'Carregando requisição...',
@@ -341,7 +343,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'agents.hero.title': 'Infraestrutura Global de Dados e Utilitários M2M para Agentes de IA',
         'agents.hero.lead': 'O Grid402 permite que agentes autônomos de IA (Claude, Cursor, LangChain, CrewAI e Coinbase AgentKit) consultem 22 endpoints globais e brasileiros de domínio público via <strong>HTTP 402</strong> ou <strong>Session Pass pré-pago (&lt;15ms)</strong>, liquidando micropagamentos em USDC na rede Base com <strong>prova criptográfica ECDSA</strong>.',
         'agents.f1.title': 'Zero Cadastro Humano',
-        'agents.f1.desc': 'Não requer chaves estáticas de API, cartão de crédito ou login. Agentes de IA contratam serviços diretamente via carteira Web3 on-chain ou Passkey.',
+        'agents.f1.desc': 'Não requer chaves estáticas de API, cartão de crédito ou login. Agentes de IA contratam serviços diretamente via carteira Web3 on-chain (MetaMask, Rabby, Coinbase Wallet e outras).',
         'agents.f2.title': 'Oráculo Criptográfico',
         'agents.f2.desc': 'Cada resposta inclui assinatura digital ECDSA secp256k1 determinística (chave _oracle_proof), verificável sem estado em menos de 1 ms.',
         'agents.f3.title': 'x402 Session Pass (<15ms)',
@@ -590,7 +592,6 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'playground.unlock.badge': '🔒 FULL DATA PROTECTED (HTTP 402)',
         'playground.unlock.desc': 'The free sample above is verified. Unlock the hidden fields and ECDSA cryptographic proof (_oracle_proof) now:',
         'playground.unlock.cta_web3': '⚡ Unlock with Web3 Wallet (1-Click)',
-        'playground.unlock.cta_smart_wallet': '🔑 Passkey / Biometrics (Coinbase Smart Wallet)',
         'playground.unlock.cta_qr': '📱 Mobile QR Code',
         'playground.unlock.cta_sandbox': '🧪 View Full Sample (Sandbox)',
 
@@ -625,7 +626,6 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'console.act.pass': '⚡ Session Pass (/api/v1/pass)',
         'console.btn.send_payment': 'Send with X-Payment',
         'console.btn.web3_pay': '⚡ Pay with Web3 Wallet (1-Click)',
-        'console.btn.smart_wallet': '🔑 Passkey / Biometrics (Smart Wallet)',
         'console.btn.web3_qr': '📱 Mobile QR Code',
         'console.btn.sandbox_demo': '🧪 Simulate Sandbox (demo)',
         'console.input.placeholder': "Paste Session Pass (pass_g402_...), Base tx hash (0x...) or sign with Web3",
@@ -730,11 +730,10 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'modal.web3.no_wallet.desc': 'For 1-click on-page payment, install MetaMask, Rabby, or Coinbase Wallet. Alternatively, pay from your mobile device using the QR code below.',
         'modal.web3.col1.title': '📱 Pay via Mobile',
         'modal.web3.col1.desc': 'Scan with MetaMask, Rainbow, or Coinbase Wallet app and send <strong><span id="web3-modal-price">{price}</span> USDC</strong> on <strong>Base</strong>.',
-        'modal.web3.col2.title': '🔑 No Extension? Use Passkey',
-        'modal.web3.col2.desc': 'Create or connect a Coinbase Smart Wallet in 5 seconds using your phone or computer biometrics/Passkey, with zero browser extensions or seed phrases.',
-        'modal.web3.col2.btn.smart_wallet': '🔑 Connect via Passkey (Smart Wallet)',
-        'modal.web3.col2.btn.install': '🦊 Or Install MetaMask Extension',
-        'modal.web3.col2.btn.reload': '🔄 Reload Page',
+        'modal.web3.col2.title': '🧩 Browser Web3 Wallets',
+        'modal.web3.col2.desc': 'Works with MetaMask, Rabby, Coinbase Wallet, Brave, Rainbow and other compatible extensions. When you click a Web3 button, the page asks which wallet to use — non-custodial, no seed phrase anywhere.',
+        'modal.web3.col2.btn.install': '🦊 Install MetaMask Extension',
+        'modal.web3.col2.btn.reload': '🔄 Already installed, reload',
         'modal.web3.network': 'Network:',
         'modal.web3.token': 'Token:',
         'modal.web3.recipient': 'Destination Address (Oracle):',
@@ -742,6 +741,11 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'modal.web3.confirm.title': 'Already sent the transaction?',
         'modal.web3.confirm.desc': 'Paste the transaction hash (Tx Hash) from your wallet to unlock full data immediately:',
         'modal.web3.confirm.btn': 'Confirm Payment and Unlock',
+
+        // Wallet chooser (EIP-6963)
+        'wallet.chooser.title': 'Choose your wallet',
+        'wallet.chooser.desc': 'We detected more than one Web3 wallet in this browser. Pick the one you want to use — your choice is remembered for next payments.',
+        'wallet.chooser.forget': 'Forget saved wallet',
 
         // JS Messages
         'msg.loading': 'Loading request...',
@@ -764,7 +768,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'agents.hero.title': 'Global Open-Data and M2M Utility Infrastructure for AI Agents',
         'agents.hero.lead': 'Grid402 enables autonomous AI agents (Claude, Cursor, LangChain, CrewAI, and Coinbase AgentKit) to query 22 global and regional public-domain endpoints via <strong>HTTP 402</strong> or <strong>Prepaid Session Pass (&lt;15ms)</strong>, settling USDC micropayments on Base with <strong>ECDSA cryptographic proofs</strong>.',
         'agents.f1.title': 'Zero Human Signup',
-        'agents.f1.desc': 'No static API keys, credit cards, or accounts required. AI agents purchase oracle data autonomously via on-chain Web3 wallets or Passkeys.',
+        'agents.f1.desc': 'No static API keys, credit cards, or accounts required. AI agents purchase oracle data autonomously via on-chain Web3 wallets (MetaMask, Rabby, Coinbase Wallet and others).',
         'agents.f2.title': 'Cryptographic Oracle',
         'agents.f2.desc': 'Every response carries a deterministic secp256k1 ECDSA digital signature (_oracle_proof), verifiable statelessly in under 1 ms.',
         'agents.f3.title': 'x402 Session Pass (<15ms)',
