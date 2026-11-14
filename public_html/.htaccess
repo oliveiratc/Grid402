@@ -79,6 +79,9 @@ ServerSignature Off
     RewriteRule ^api/v1/workdays/?$ index.php?api=workdays [QSA,L]
     RewriteRule ^workdays/?$ index.php?api=workdays [QSA,L]
 
+    # Hosted MCP (streamable HTTP) publico e anonimo — /mcp
+    RewriteRule ^mcp/?$ mcp.php [QSA,L]
+
     # Central de Agentes de IA
     RewriteRule ^agents/?$ agents.php [QSA,L]
 
