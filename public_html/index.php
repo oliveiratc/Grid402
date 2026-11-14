@@ -4304,6 +4304,12 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             });
         }
 
+        function x402UnwrapProvider(entry) {
+            if (!entry) return entry;
+            if (typeof entry.request === 'function') return entry;
+            return entry.provider || entry;
+        }
+
         async function x402ResolveProvider(options = {}) {
             const forceChooser = options.forceChooser === true;
             const allowChooser = options.allowChooser !== false;
@@ -4319,16 +4325,16 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 const saved = x402GetProviderPreference();
                 if (saved) {
                     const match = providers.find((p) => p.rdns === saved);
-                    if (match) return match;
+                    if (match) return x402UnwrapProvider(match);
                 }
             }
 
             if (providers.length === 1) {
                 x402SetProviderPreference(providers[0].rdns);
-                return providers[0];
+                return x402UnwrapProvider(providers[0]);
             }
 
-            if (!allowChooser) return providers[0];
+            if (!allowChooser) return x402UnwrapProvider(providers[0]);
 
             const chosen = await x402ShowProviderChooser(providers);
             if (!chosen) {
@@ -4336,7 +4342,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 err.code = 'CHOOSER_CANCELLED';
                 throw err;
             }
-            return chosen;
+            return x402UnwrapProvider(chosen);
         }
 
         async function x402SignTransferAuthorization(provider, userAddress, amountRaw) {
