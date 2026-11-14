@@ -544,7 +544,7 @@ if ($apiParam === 'export_csv') {
     $usdRate = (float)($forex['rates']['USD']['bid'] ?? 5.50);
     $events = $metrics['recent_events'] ?? [];
 
-    $filename = 'grid402_telemetria_' . gmdate('Y-m-d') . '.csv';
+    $filename = 'grid402_telemetria_' . grid402_metrics_today() . '.csv';
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
     header('Cache-Control: no-cache, no-store, must-revalidate');
@@ -630,7 +630,7 @@ if ($apiParam === 'stats') {
     header('Cache-Control: no-cache, no-store, must-revalidate');
 
     $revenueUsdc = (float)($metrics['total_revenue_usdc'] ?? 0.0);
-    $today = gmdate('Y-m-d');
+    $today = grid402_metrics_today();
     $todayUsdc = (float)($metrics['daily'][$today]['usdc'] ?? 0.0);
     $totalPageViews = (int)($metrics['total_page_views'] ?? 0);
     $todayPageViews = (int)($metrics['daily'][$today]['page_views'] ?? 0);
@@ -867,7 +867,7 @@ $analytics = grid402_compute_admin_analytics($metrics, $usdRate);
 $revenueUsdc = (float)($metrics['total_revenue_usdc'] ?? 0.0);
 $revenueBrl = round($revenueUsdc * $usdRate, 2);
 
-$today = gmdate('Y-m-d');
+$today = grid402_metrics_today();
 $todayUsdc = (float)($metrics['daily'][$today]['usdc'] ?? 0.0);
 $todayBrl = round($todayUsdc * $usdRate, 2);
 

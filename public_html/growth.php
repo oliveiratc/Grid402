@@ -274,7 +274,7 @@ function grid402_growth_event(string $type, array $context = []): array {
 
         $p =& $data['profiles'][$actor];
         $p['last_seen_at'] = $now;
-        $day = gmdate('Y-m-d');
+        $day = grid402_metrics_today();
         if (!in_array($day, (array)($p['active_days'] ?? []), true)) {
             $p['active_days'] = array_values(array_unique(array_merge((array)($p['active_days'] ?? []), [$day])));
             $p['days_active'] = count($p['active_days']);
@@ -348,10 +348,10 @@ function grid402_growth_submit_reward_request(array $input, string $actorId): ar
             return ['error' => 'invalid_reward_type'];
         }
 
-        $today = gmdate('Y-m-d');
+        $today = grid402_metrics_today();
         $issuedToday = 0;
         foreach ((array)($data['rewards'] ?? []) as $r) {
-            if ((($r['status'] ?? '') === 'issued' || ($r['status'] ?? '') === 'pending') && gmdate('Y-m-d', strtotime((string)($r['created_at'] ?? 'now'))) === $today) {
+            if ((($r['status'] ?? '') === 'issued' || ($r['status'] ?? '') === 'pending') && grid402_metrics_day_of((string)($r['created_at'] ?? 'now')) === $today) {
                 $issuedToday++;
             }
         }
@@ -537,9 +537,9 @@ function grid402_growth_metrics(): array {
         foreach ((array)($p['services'] ?? []) as $svc => $count) {
             $paidServices[$svc] = (int)($paidServices[$svc] ?? 0) + (int)$count;
         }
-        $day = gmdate('Y-m-d', strtotime((string)($p['first_seen_at'] ?? 'now')));
+        $day = grid402_metrics_day_of((string)($p['first_seen_at'] ?? 'now'));
         $newByDay[$day] = (int)($newByDay[$day] ?? 0) + 1;
-        $activeDays[gmdate('Y-m-d', strtotime((string)($p['last_seen_at'] ?? 'now')))] = true;
+        $activeDays[grid402_metrics_day_of((string)($p['last_seen_at'] ?? 'now'))] = true;
     }
 
     $conversion = $walletsConnected > 0 ? round(($walletsPaying / $walletsConnected) * 100, 1) : 0.0;

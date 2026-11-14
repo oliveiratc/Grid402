@@ -14,6 +14,36 @@ if (!defined('GRID402_EXEC')) {
 require_once __DIR__ . '/config.php';
 
 /**
+ * Data do dia no fuso de Brasilia (America/Sao_Paulo) para os buckets
+ * diarios ('daily') das metricas do Grid402. O dia brasileiro zera as
+ * 00:00 BRT (= 03:00 UTC), entao os contadores "hoje" zeram nesse
+ * instante, alinhados com o relogio local do mantenedor.
+ */
+function grid402_metrics_today(): string {
+    static $today = null;
+    if ($today === null) {
+        $tz = new DateTimeZone('America/Sao_Paulo');
+        $today = (new DateTime('now', $tz))->format('Y-m-d');
+    }
+    return $today;
+}
+
+/**
+ * Data (BRT) de um timestamp arbitrario gravado em UTC
+ * (created_at, first_seen_at, last_seen_at).
+ */
+function grid402_metrics_day_of(string $ts): string {
+    $tz = new DateTimeZone('America/Sao_Paulo');
+    $dt = DateTime::createFromFormat(DateTime::ATOM, $ts);
+    if ($dt === false) {
+        $ts = trim($ts) !== '' ? $ts : 'now';
+        $dt = new DateTime($ts, $tz);
+    }
+    $dt->setTimezone($tz);
+    return $dt->format('Y-m-d');
+}
+
+/**
  * Mascara o IP do cliente para conformidade com a LGPD
  * IPv4: 189.40.122.50 -> 189.40.xxx.xxx
  * IPv6: 2001:0db8:85a3:0000:0000:8a2e:0370:7334 -> 2001:0db8:xxxx:xxxx
@@ -197,7 +227,7 @@ function grid402_record_telemetry(
         $metrics = grid402_normalize_metrics($metrics);
 
         $now = gmdate('Y-m-d\TH:i:s\Z');
-        $today = gmdate('Y-m-d');
+        $today = grid402_metrics_today();
         $statusStr = (string)$statusCode;
         $svc = strtolower(trim($service));
         if ($svc === '') {
@@ -426,7 +456,7 @@ function grid402_metrics_adjust_revenue(float $deltaUsdc): void {
         $metrics = ($payload !== '') ? (@json_decode($payload, true) ?: null) : null;
         if (is_array($metrics)) {
             $metrics['total_revenue_usdc'] = round((float)($metrics['total_revenue_usdc'] ?? 0.0) + $deltaUsdc, 4);
-            $today = gmdate('Y-m-d');
+            $today = grid402_metrics_today();
             if (isset($metrics['daily'][$today]) && is_array($metrics['daily'][$today])) {
                 $metrics['daily'][$today]['usdc'] = round((float)($metrics['daily'][$today]['usdc'] ?? 0.0) + $deltaUsdc, 4);
             }
@@ -462,7 +492,7 @@ function grid402_record_page_visit(?string $path = null, ?string $ip = null, ?st
         $metrics = grid402_normalize_metrics($metrics);
 
         $now = gmdate('Y-m-d\TH:i:s\Z');
-        $today = gmdate('Y-m-d');
+        $today = grid402_metrics_today();
 
         $metrics['updated_at'] = $now;
         $metrics['total_page_views'] = (int)($metrics['total_page_views'] ?? 0) + 1;
@@ -580,7 +610,7 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
 
     // 4. Histórico dos últimos 14 dias contínuo (preenchendo eventuais dias sem tráfego)
     $dailyHistory14d = [];
-    $todayTs = strtotime(gmdate('Y-m-d'));
+    $todayTs = strtotime(grid402_metrics_today());
     for ($i = 13; $i >= 0; $i--) {
         $dayStr = gmdate('Y-m-d', $todayTs - ($i * 86400));
         $dayData = $rawDaily[$dayStr] ?? ['requests' => 0, 'paid' => 0, 'usdc' => 0.0];
