@@ -467,6 +467,44 @@ if ($requestPath === '/agents' || $pageParam === 'agents') {
     exit;
 }
 
+// 1.3. Checkout Mercado Pago (Pix + Checkout Pro) para Session Pass
+if (str_starts_with($requestPath, '/api/v1/pass/mp-')) {
+    require_once __DIR__ . '/services/mercadopago.php';
+    $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    $rawBody = (string) @file_get_contents('php://input');
+    $jsonBody = @json_decode($rawBody, true);
+    $input = is_array($jsonBody) ? $jsonBody : $_POST;
+
+    if ($requestPath === '/api/v1/pass/mp-pix' && $method === 'POST') {
+        $res = grid402_mp_create_pix((string) ($input['tier'] ?? ''), (string) ($input['email'] ?? ''));
+    } elseif ($requestPath === '/api/v1/pass/mp-checkout' && $method === 'POST') {
+        $res = grid402_mp_create_checkout_pro((string) ($input['tier'] ?? ''), (string) ($input['email'] ?? ''));
+    } elseif ($requestPath === '/api/v1/pass/mp-webhook' && $method === 'POST') {
+        $reqHeaders = function_exists('getallheaders') ? (getallheaders() ?: []) : [];
+        if (empty($reqHeaders['x-signature']) && !empty($_SERVER['HTTP_X_SIGNATURE'])) {
+            $reqHeaders['x-signature'] = $_SERVER['HTTP_X_SIGNATURE'];
+        }
+        if (empty($reqHeaders['x-request-id']) && !empty($_SERVER['HTTP_X_REQUEST_ID'])) {
+            $reqHeaders['x-request-id'] = $_SERVER['HTTP_X_REQUEST_ID'];
+        }
+        $res = grid402_mp_handle_webhook($reqHeaders, $rawBody, $_GET);
+    } elseif ($requestPath === '/api/v1/pass/mp-status' && $method === 'GET') {
+        $orderId = (string) ($_GET['order_id'] ?? $_GET['mp_order'] ?? '');
+        $paymentHint = isset($_GET['payment_id']) ? (string) $_GET['payment_id'] : (isset($_GET['collection_id']) ? (string) $_GET['collection_id'] : null);
+        $res = grid402_mp_get_order_status($orderId, $paymentHint);
+    } elseif ($requestPath === '/api/v1/pass/mp-sandbox-approve' && $method === 'POST') {
+        $res = grid402_mp_sandbox_approve((string) ($input['order_id'] ?? ''));
+    } else {
+        $res = ['ok' => false, 'code' => 405, 'error' => 'MethodNotAllowed', 'message' => 'Rota ou metodo HTTP nao suportado para checkout Mercado Pago.'];
+    }
+
+    http_response_code((int) ($res['code'] ?? 200));
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo json_encode($res, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 // 2. Classificação de Rotas
 $isStatusRoute = ($requestPath === '/status' || $requestPath === '/api/v1/summary' || $requestPath === '/telemetry');
 $isHomeRoute = ($requestPath === '/' || $requestPath === '/index.php');
@@ -2761,10 +2799,11 @@ grid402_log_public_visit('/');
                 <div class="topup-card" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.75rem 1.5rem; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
                     <div>
                         <div style="font-size: 0.85rem; text-transform: uppercase; font-weight: 700; color: #8FA2B9; letter-spacing: 1px; margin-bottom: 0.5rem;" data-i18n="topup.starter.tag">Starter Pass</div>
-                        <div style="display: flex; align-items: baseline; gap: 0.35rem; margin-bottom: 0.75rem;">
+                        <div style="display: flex; align-items: baseline; gap: 0.35rem; margin-bottom: 0.2rem;">
                             <span style="font-size: 2.2rem; font-weight: 800; color: #fff;">2</span>
                             <span style="font-size: 1.1rem; font-weight: 700; color: #2775CA;">USDC</span>
                         </div>
+                        <div style="font-size: 0.82rem; color: #10B981; font-weight: 600; margin-bottom: 0.75rem;">ou R$ 12,00 via Pix / Cartão</div>
                         <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;" data-i18n="topup.starter.desc">Ideal para desenvolvedores individuais, testes rapidos e bots pontuais.</p>
                         <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; font-size: 0.88rem; color: #d1d5db; line-height: 1.8;">
                             <li>⚡ <strong style="color: #00F0FF;">4.000 créditos</strong> incluídos</li>
@@ -2773,7 +2812,10 @@ grid402_log_public_visit('/');
                             <li>🔒 Assinatura HMAC anti-fraude</li>
                         </ul>
                     </div>
-                    <button class="btn btn-outline" style="width: 100%; border-color: #2775CA; color: #fff;" onclick="startWeb3Topup(2, 'starter')" id="btn-topup-starter" data-i18n="topup.starter.btn">Comprar Starter (2 USDC)</button>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <button class="btn btn-outline" style="width: 100%; border-color: #2775CA; color: #fff;" onclick="startWeb3Topup(2, 'starter')" id="btn-topup-starter" data-i18n="topup.starter.btn">Comprar Starter (2 USDC)</button>
+                        <a href="/pass?tier=starter" class="btn btn-outline" style="width: 100%; border-color: #10B981; color: #10B981; text-align: center; text-decoration: none; font-size: 0.86rem;">Pagar em R$ 12 (Pix / Cartão)</a>
+                    </div>
                 </div>
 
                 <!-- Card 2: Pro (Mais Popular) -->
@@ -2781,10 +2823,11 @@ grid402_log_public_visit('/');
                     <div style="position: absolute; top: -12px; right: 20px; background: #0052FF; color: #fff; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.5px;" data-i18n="topup.pro.badge">Mais Escolhido</div>
                     <div>
                         <div style="font-size: 0.85rem; text-transform: uppercase; font-weight: 700; color: #00F0FF; letter-spacing: 1px; margin-bottom: 0.5rem;" data-i18n="topup.pro.tag">Pro / Agent Pass</div>
-                        <div style="display: flex; align-items: baseline; gap: 0.35rem; margin-bottom: 0.75rem;">
+                        <div style="display: flex; align-items: baseline; gap: 0.35rem; margin-bottom: 0.2rem;">
                             <span style="font-size: 2.2rem; font-weight: 800; color: #fff;">5</span>
                             <span style="font-size: 1.1rem; font-weight: 700; color: #2775CA;">USDC</span>
                         </div>
+                        <div style="font-size: 0.82rem; color: #10B981; font-weight: 600; margin-bottom: 0.75rem;">ou R$ 29,00 via Pix / Cartão</div>
                         <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;" data-i18n="topup.pro.desc">Para agentes autonomos de IA e esteiras de automacao continua.</p>
                         <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; font-size: 0.88rem; color: #d1d5db; line-height: 1.8;">
                             <li>⚡ <strong style="color: #00F0FF;">10.000 créditos</strong> incluídos</li>
@@ -2793,7 +2836,10 @@ grid402_log_public_visit('/');
                             <li>📊 Consulta de saldo em tempo real</li>
                         </ul>
                     </div>
-                    <button class="btn btn-primary" style="width: 100%; background: linear-gradient(135deg, #0052FF 0%, #00F0FF 100%); font-weight: 700;" onclick="startWeb3Topup(5, 'pro')" id="btn-topup-pro" data-i18n="topup.pro.btn">Comprar Pro (5 USDC)</button>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <button class="btn btn-primary" style="width: 100%; background: linear-gradient(135deg, #0052FF 0%, #00F0FF 100%); font-weight: 700;" onclick="startWeb3Topup(5, 'pro')" id="btn-topup-pro" data-i18n="topup.pro.btn">Comprar Pro (5 USDC)</button>
+                        <a href="/pass?tier=pro" class="btn btn-outline" style="width: 100%; border-color: #10B981; color: #10B981; text-align: center; text-decoration: none; font-size: 0.86rem;">Pagar em R$ 29 (Pix / Cartão)</a>
+                    </div>
                 </div>
 
                 <!-- Card 3: Fleet / Enterprise -->
@@ -2801,10 +2847,11 @@ grid402_log_public_visit('/');
                     <div style="position: absolute; top: -12px; right: 20px; background: rgba(0, 240, 255, 0.2); border: 1px solid #00F0FF; color: #00F0FF; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; padding: 3px 10px; border-radius: 20px;" data-i18n="topup.fleet.badge">+10.000 Bonus</div>
                     <div>
                         <div style="font-size: 0.85rem; text-transform: uppercase; font-weight: 700; color: #8FA2B9; letter-spacing: 1px; margin-bottom: 0.5rem;" data-i18n="topup.fleet.tag">Fleet / Enterprise</div>
-                        <div style="display: flex; align-items: baseline; gap: 0.35rem; margin-bottom: 0.75rem;">
+                        <div style="display: flex; align-items: baseline; gap: 0.35rem; margin-bottom: 0.2rem;">
                             <span style="font-size: 2.2rem; font-weight: 800; color: #fff;">20</span>
                             <span style="font-size: 1.1rem; font-weight: 700; color: #2775CA;">USDC</span>
                         </div>
+                        <div style="font-size: 0.82rem; color: #10B981; font-weight: 600; margin-bottom: 0.75rem;">ou R$ 115,00 via Pix / Cartão</div>
                         <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;" data-i18n="topup.fleet.desc">Frotas de agentes autonomos, sistemas ERP corporativos e alta demanda.</p>
                         <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; font-size: 0.88rem; color: #d1d5db; line-height: 1.8;">
                             <li>⚡ <strong style="color: #00F0FF;">50.000 créditos</strong> (+10k bônus)</li>
@@ -2813,7 +2860,10 @@ grid402_log_public_visit('/');
                             <li>💼 Suporte direto para frotas de IA</li>
                         </ul>
                     </div>
-                    <button class="btn btn-outline" style="width: 100%; border-color: #00F0FF; color: #00F0FF;" onclick="startWeb3Topup(20, 'fleet')" id="btn-topup-fleet" data-i18n="topup.fleet.btn">Comprar Fleet (20 USDC)</button>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <button class="btn btn-outline" style="width: 100%; border-color: #00F0FF; color: #00F0FF;" onclick="startWeb3Topup(20, 'fleet')" id="btn-topup-fleet" data-i18n="topup.fleet.btn">Comprar Fleet (20 USDC)</button>
+                        <a href="/pass?tier=fleet" class="btn btn-outline" style="width: 100%; border-color: #10B981; color: #10B981; text-align: center; text-decoration: none; font-size: 0.86rem;">Pagar em R$ 115 (Pix / Cartão)</a>
+                    </div>
                 </div>
             </div>
 

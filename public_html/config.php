@@ -265,6 +265,15 @@ define('GRID402_FILE_OFAC', GRID402_PRIVATE_DIR . '/ofac_cache.json');
 define('GRID402_FILE_GLOBAL_MARKETS', GRID402_PRIVATE_DIR . '/global_markets_cache.json');
 define('GRID402_FILE_PASSES', GRID402_PRIVATE_DIR . '/session_passes.json');
 define('GRID402_FILE_USED_NONCES', GRID402_PRIVATE_DIR . '/used_nonces.json');
+define('GRID402_FILE_MP_ORDERS', GRID402_PRIVATE_DIR . '/mp_orders.json');
+
+// Mercado Pago (Checkout Pix + Cartao para Session Pass)
+define('GRID402_MP_ACCESS_TOKEN', trim((string) grid402_env('GRID402_MP_ACCESS_TOKEN', '')));
+define('GRID402_MP_WEBHOOK_SECRET', trim((string) grid402_env('GRID402_MP_WEBHOOK_SECRET', '')));
+define('GRID402_MP_API_BASE', rtrim((string) grid402_env('GRID402_MP_API_BASE', 'https://api.mercadopago.com'), '/'));
+$grid402MpSandboxRaw = strtolower(trim((string) grid402_env('GRID402_MP_SANDBOX', 'false')));
+define('GRID402_MP_SANDBOX', in_array($grid402MpSandboxRaw, ['1', 'true', 'yes', 'on'], true));
+unset($grid402MpSandboxRaw);
 
 // Facilitador x402 (pagamentos `exact` / EIP-3009). Modos: disabled (padrao), verify_only, settle
 // Decisão do mantenedor (2026-11-13): produção usa PayAI como facilitador padrão (via créditos
