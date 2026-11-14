@@ -1,0 +1,124 @@
+# Grid402 // Hub de Utilitários de Rede e Dados Públicos (LiteSpeed / Apache)
+Options -Indexes
+ServerSignature Off
+
+# Proteção de arquivos sensíveis
+<FilesMatch "^\.(env|git)|config\.php$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Cabeçalhos Globais de Segurança e Hardening HTTP
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" env=HTTPS
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://mainnet.base.org https://base.llamarpc.com https://1rpc.io/base https://sepolia.base.org; frame-ancestors 'self'; base-uri 'self'; form-action 'self';"
+</IfModule>
+
+# CORS amplo isolado para arquivos públicos de descoberta e schemas M2M
+<FilesMatch "\.(json|txt|xml|svg)$">
+    <IfModule mod_headers.c>
+        Header set Access-Control-Allow-Origin "*"
+        Header set Access-Control-Allow-Methods "GET, OPTIONS"
+        Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Payment"
+        Header set Access-Control-Expose-Headers "WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Payment-Required, payment-required"
+    </IfModule>
+</FilesMatch>
+
+# Roteamento Amigável do Hub e Oráculo x402
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+
+    # 0. Redirecionamento Canonico de Dominio (301)
+    RewriteCond %{HTTP_HOST} ^orangered-jackal-900744\.hostingersite\.com$ [NC]
+    RewriteRule ^(.*)$ https://grid402.online/$1 [R=301,L]
+
+    RewriteCond %{HTTP_HOST} ^www\.grid402\.online$ [NC]
+    RewriteRule ^(.*)$ https://grid402.online/$1 [R=301,L]
+
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP_HOST} ^(www\.)?grid402\.online$ [NC]
+    RewriteRule ^(.*)$ https://grid402.online/$1 [R=301,L]
+
+    # Responder pre-flight OPTIONS imediatamente
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteRule ^(.*)$ $1 [R=204,L]
+
+    # Handler Dinamico para robots.txt com Content-Signal e Sitemap
+    RewriteRule ^robots\.txt$ robots.php [L]
+
+    # Rotas de Badges SVG
+    RewriteRule ^badge/([a-zA-Z0-9_\-]+)\.svg$ badge.php?target=$1 [QSA,L]
+    RewriteRule ^badge/([a-zA-Z0-9_\-]+)/?$ badge.php?target=$1 [QSA,L]
+
+    # Rotas da API v1
+    RewriteRule ^api/v1/summary/?$ index.php?api=summary [QSA,L]
+    RewriteRule ^api/v1/forex/?$ index.php?api=forex [QSA,L]
+    RewriteRule ^api/v1/crypto/?$ index.php?api=crypto [QSA,L]
+    RewriteRule ^api/v1/dns/?$ index.php?api=dns [QSA,L]
+    RewriteRule ^api/v1/ssl/?$ index.php?api=ssl [QSA,L]
+    RewriteRule ^api/v1/asn/?$ index.php?api=asn [QSA,L]
+    RewriteRule ^api/v1/domain-audit/?$ index.php?api=domain-audit [QSA,L]
+    RewriteRule ^api/v1/kyb-audit/?$ index.php?api=kyb-audit [QSA,L]
+    RewriteRule ^api/v1/market-snapshot/?$ index.php?api=market-snapshot [QSA,L]
+    # Web3 Top-Up: emissão de Session Pass a partir de txHash on-chain
+    RewriteRule ^api/v1/pass-emitir/?$ index.php?api=pass-emitir [QSA,L]
+    RewriteRule ^api/v1/cep/?$ index.php?api=cep [QSA,L]
+    RewriteRule ^api/v1/cnpj/?$ index.php?api=cnpj [QSA,L]
+    RewriteRule ^api/v1/indicators/?$ index.php?api=indicators [QSA,L]
+    RewriteRule ^api/v1/holidays/?$ index.php?api=holidays [QSA,L]
+    RewriteRule ^api/v1/workdays/?$ index.php?api=workdays [QSA,L]
+    RewriteRule ^workdays/?$ index.php?api=workdays [QSA,L]
+
+    # Hosted MCP (streamable HTTP) publico e anonimo — /mcp
+    RewriteRule ^mcp/?$ mcp.php [QSA,L]
+
+    # Central de Agentes de IA
+    RewriteRule ^agents/?$ agents.php [QSA,L]
+
+    # Catálogo único e Trust Center
+    RewriteRule ^catalog/?$ catalog.php [QSA,L]
+    RewriteRule ^docs/?$ catalog.php [QSA,L]
+    RewriteRule ^trust/?$ trust.php [QSA,L]
+
+    # Pagina de compra de Session Pass (linkavel na resposta HTTP 402)
+    RewriteRule ^pass/?$ pass.php [QSA,L]
+
+    # Web3 Agent Growth Program
+    RewriteRule ^growth/?$ growth_program.php [QSA,L]
+    RewriteRule ^builder/?$ builder_reputation.php [QSA,L]
+    RewriteRule ^reputation/?$ builder_reputation.php [QSA,L]
+    RewriteRule ^agenthub/?$ /agent-hub [R=301,L]
+    RewriteRule ^agent-hub/?$ agenthub.php [QSA,L]
+    RewriteRule ^payment-dashboard/?$ payment_dashboard.php [QSA,L]
+
+    # Painel Administrativo de Monitoramento e Faturamento
+    RewriteRule ^admin/?$ admin.php [QSA,L]
+    RewriteRule ^dashboard/?$ admin.php [QSA,L]
+    RewriteRule ^growth_admin/?$ growth_admin.php [QSA,L]
+
+    # Rotas Institucionais e Atalhos
+    RewriteRule ^status/?$ index.php?api=summary [QSA,L]
+    RewriteRule ^telemetry/?$ index.php?api=summary [QSA,L]
+    RewriteRule ^about/?$ index.php?page=about [QSA,L]
+    RewriteRule ^contact/?$ index.php?page=contact [QSA,L]
+    RewriteRule ^terms/?$ index.php?page=terms [QSA,L]
+    RewriteRule ^privacy/?$ index.php?page=privacy [QSA,L]
+
+    # Arquivos estáticos existentes (ex: llms.txt, collector.php)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Fallback
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>

@@ -1,0 +1,59 @@
+{
+  "x402Version": 2,
+  "name": "Grid402 Network Utilities",
+  "alias": "grid402",
+  "description": "22 micro-serviços de dados abertos e utilidades de rede pagos via HTTP 402 x402 em USDC na rede Base.",
+  "website": "https://grid402.online",
+  "resources": [
+    {
+      "resource": "https://grid402.online/api/v1/forex",
+      "type": "http",
+      "method": "GET",
+      "description": "Cotações USD/EUR/GBP para BRL",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/crypto",
+      "type": "http",
+      "method": "GET",
+      "description": "Cotações BTC, ETH, SOL, USDC, BASE",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/cnpj?cnpj=00000000000191",
+      "type": "http",
+      "method": "GET",
+      "description": "Consulta cadastral de CNPJ",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/domain-audit?host=base.org",
+      "type": "http",
+      "method": "GET",
+      "description": "Auditoria consolidada DNS + SSL + ASN",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/market-snapshot",
+      "type": "http",
+      "method": "GET",
+      "description": "Snapshot consolidado Forex + Cripto + Indicadores",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    }
+  ],
+  "discoverable": true,
+  "protocol": "x402",
+  "scheme": "exact",
+  "settlement": "EIP-3009",
+  "updated": "2026-11-13"
+}

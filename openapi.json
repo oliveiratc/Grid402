@@ -1,0 +1,1223 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Grid402 // Global M2M Open Data & Network Utilities Hub",
+    "version": "3.0.0",
+    "description": "High-performance autonomous M2M public data, global compliance (GLEIF LEI, OFAC SDN, Web3 AML), cryptographic notarization, world markets (ECB), and network utilities oracle designed for AI agents, crawlers, and automation pipelines. Settled via the x402 protocol with Base Mainnet USDC micropayments or Prepaid Session Passes (<15ms).",
+    "contact": {
+      "name": "Grid402 Support",
+      "url": "https://grid402.online",
+      "email": "contato@grid402.online"
+    },
+    "license": {
+      "name": "Copyright (c) 2026 Grid402 Network Intelligence — All Rights Reserved (Software & Brand) / Public Domain Data Terms",
+      "url": "https://grid402.online/terms"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://grid402.online",
+      "description": "Hostinger Cloud Production / Canonical Domain"
+    },
+    {
+      "url": "https://www.grid402.online",
+      "description": "Alternative Production with WWW"
+    },
+    {
+      "url": "https://orangered-jackal-900744.hostingersite.com",
+      "description": "Legacy Staging Host (301 Redirect to Canonical)"
+    },
+    {
+      "url": "http://localhost:8000",
+      "description": "Local Development Server"
+    }
+  ],
+  "tags": [
+    { "name": "Free", "description": "Free discovery and aggregated status (No payment required)" },
+    { "name": "Forex", "description": "Real-time foreign exchange rates (USD, EUR, GBP to BRL)" },
+    { "name": "Crypto", "description": "Spot crypto market tickers (BTC, ETH, SOL, USDC, BASE)" },
+    { "name": "DNS", "description": "Authoritative RFC 1035 DNS records resolution" },
+    { "name": "SSL", "description": "Port 443 TLS/SSL certificate inspector and X.509 chain analyzer" },
+    { "name": "ASN", "description": "BGP routing metadata, ASN number, organization and country" },
+    { "name": "CEP", "description": "Brazilian postal resolution and official municipal IBGE code" },
+    { "name": "CNPJ", "description": "Brazilian Federal Revenue corporate registration data and CNAE" },
+    { "name": "Indicators", "description": "Official Brazilian economic indicators (Selic, CDI, and IPCA)" },
+    { "name": "Holidays", "description": "National holidays and banking calendar (ANBIMA and Febraban)" },
+    { "name": "Verification", "description": "Stateless cryptographic oracle proof verification" },
+    { "name": "Global-LEI", "description": "Global Corporate Identity (ISO 17442) across 200+ jurisdictions via GLEIF (CC0 1.0 Public Domain)" },
+    { "name": "Global-OFAC-AML", "description": "Global Sanctions (OFAC SDN / UN) and Base Mainnet EVM wallet AML inspection" },
+    { "name": "Notarization", "description": "M2M Cryptographic Timestamp and Proof-of-Existence signed with ECDSA secp256k1" },
+    { "name": "Global-Markets", "description": "World Exchange Settlement Calendar (US, EU, UK, BR) and 30+ ECB FX Reference Rates" },
+    { "name": "Session-Pass", "description": "x402 Prepaid Session Pass for high-frequency sub-15ms M2M calls" },
+    { "name": "Legal", "description": "Terms of Service and LGPD privacy policy" }
+  ],
+  "paths": {
+    "/api/v1/summary": {
+      "get": {
+        "summary": "Consolidated Hub Status e Market Summary (Free)",
+        "description": "Returns operational health and latest cached sample metrics across all 6 micro-services. Zero payment required.",
+        "tags": ["Free"],
+        "responses": {
+          "200": {
+            "description": "Hub operational status and service catalog",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/forex": {
+      "get": {
+        "summary": "Foreign Exchange Rates (USD, EUR, GBP to BRL)",
+        "description": "Returns real-time bid, ask, and daily percentage change for major fiat currencies to BRL. Requires x402 micropayment on Base.",
+        "tags": ["Forex"],
+        "security": [{ "x402Payment": [] }],
+        "responses": {
+          "200": {
+            "description": "Forex rates returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForexResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "description": "Payment Required via x402 Protocol",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/X402Challenge"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Replay Attack Detected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/crypto": {
+      "get": {
+        "summary": "Spot Cryptocurrency Tickers",
+        "description": "Returns spot prices in USD for BTC, ETH, SOL, USDC, and Base ecosystem tokens with 24h variation. Requires x402 micropayment on Base.",
+        "tags": ["Crypto"],
+        "security": [{ "x402Payment": [] }],
+        "responses": {
+          "200": {
+            "description": "Crypto tickers returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CryptoResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
+    "/api/v1/dns": {
+      "get": {
+        "summary": "DNS Records Resolution",
+        "description": "Resolves authoritative DNS records (A, AAAA, MX, TXT, NS, CNAME) for any valid domain name. Requires x402 micropayment on Base.",
+        "tags": ["DNS"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "query",
+            "required": true,
+            "description": "Target domain name to resolve (e.g., github.com)",
+            "schema": {
+              "type": "string",
+              "example": "github.com"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "DNS records successfully resolved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DnsResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
+    "/api/v1/ssl": {
+      "get": {
+        "summary": "TLS/SSL Certificate Inspector",
+        "description": "Performs a direct TLS handshake on port 443 to extract X.509 certificate validity, issuer, SANs, and remaining days. Requires x402 micropayment on Base.",
+        "tags": ["SSL"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "host",
+            "in": "query",
+            "required": true,
+            "description": "Hostname to inspect on port 443 (e.g., base.org)",
+            "schema": {
+              "type": "string",
+              "example": "base.org"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "TLS inspection report returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SslResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
+    "/api/v1/asn": {
+      "get": {
+        "summary": "BGP ASN e IP Intelligence",
+        "description": "Resolves Autonomous System Number (ASN), BGP organization, and country for a given IP address. Requires x402 micropayment on Base.",
+        "tags": ["ASN"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "ip",
+            "in": "query",
+            "required": false,
+            "description": "IPv4 or IPv6 address to lookup (default: caller IP)",
+            "schema": {
+              "type": "string",
+              "example": "1.1.1.1"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ASN and routing metadata returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AsnResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
+    "/api/v1/cep": {
+      "get": {
+        "summary": "Brazilian CEP e IBGE Municipal Code",
+        "description": "Resolves public street, neighborhood, city, state, and official IBGE municipal code from an 8-digit Brazilian postal code (CEP). Requires x402 micropayment on Base.",
+        "tags": ["CEP"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "description": "8-digit Brazilian postal code (CEP)",
+            "schema": {
+              "type": "string",
+              "example": "01310100"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Address and IBGE code returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CepResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
+    "/api/v1/cnpj": {
+      "get": {
+        "summary": "Brazilian Federal Revenue Corporate CNPJ Lookup",
+        "description": "Retrieves public corporate registration data, status, CNAE economic activities, and address from Brazilian Receita Federal. Requires x402 micropayment of 0.0200 USDC on Base.",
+        "tags": ["CNPJ"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "cnpj",
+            "in": "query",
+            "required": true,
+            "description": "14-digit Brazilian CNPJ number (with or without formatting)",
+            "schema": {
+              "type": "string",
+              "example": "00000000000191"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Corporate registration data returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CnpjResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid CNPJ format or checksum failure"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
+    "/api/v1/indicators": {
+      "get": {
+        "summary": "Official Brazilian Economic Indicators",
+        "description": "Returns official interest rates (Selic target, Selic daily, CDI annual, CDI daily) and inflation metrics (IPCA 12-month accumulated and monthly) from the Central Bank of Brazil (BCB) and IBGE. Settled via x402 on Base (0.0050 USDC). Free teaser preview available on 402 challenge.",
+        "tags": ["Indicators"],
+        "security": [{ "x402Payment": [] }],
+        "responses": {
+          "200": {
+            "description": "Economic indicators returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndicatorsResponse"
+                }
+              }
+            }
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
+    "/api/v1/holidays": {
+      "get": {
+        "summary": "Brazilian National Holidays and Banking Calendar",
+        "description": "Returns full official schedule of Brazilian national holidays and non-banking days (ANBIMA and Febraban) for a given year (1900-2100). Computes mobile holidays deterministically using Meeus algorithm. Settled via x402 on Base (0.0050 USDC). Free teaser preview with next holiday available on 402 challenge.",
+        "tags": ["Holidays"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "description": "Four-digit calendar year (e.g., 2026). Defaults to current year.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1900,
+              "maximum": 2100,
+              "example": 2026
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Calendar of holidays returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HolidaysResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid year parameter (must be between 1900 and 2100)"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
+    "/api/v1/workdays": {
+      "get": {
+        "summary": "ANBIMA Financial Workdays Calculator",
+        "description": "Calculates Brazilian banking workdays according to official ANBIMA convention. Supports 3 operation modes: date range counting (exclusive start, inclusive end), maturity date projection (+/- N workdays), and single-date workday verification. Settled via x402 on Base (0.0050 USDC) or free in Sandbox mode.",
+        "tags": ["Workdays"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "start_date",
+            "in": "query",
+            "description": "Initial reference date in ISO 8601 format (YYYY-MM-DD). Defaults to today.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-12-24"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "description": "End date in ISO 8601 format (YYYY-MM-DD) for interval counting mode.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-12-28"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "description": "Number of workdays to add (positive) or subtract (negative) for projection mode (max 5000).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "example": 5
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "description": "Single date in ISO 8601 format (YYYY-MM-DD) for single-date check mode.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-12-25"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workdays calculation returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkdaysResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid date format, range or displacement exceeding limits"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
+    "/api/v1/sanctions": {
+      "get": {
+        "summary": "Administrative Sanctions and Debarment (CEIS and CNEP)",
+        "description": "Checks administrative sanctions, debarments, and temporary suspensions in the official CGU registries (CEIS and CNEP) for a Brazilian CNPJ.",
+        "tags": ["Compliance"],
+        "parameters": [
+          {
+            "name": "cnpj",
+            "in": "query",
+            "required": true,
+            "description": "14-digit Brazilian company tax ID (CNPJ)",
+            "schema": {
+              "type": "string",
+              "example": "00000000000191"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sanctions check evaluated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SanctionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or malformed CNPJ"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
+    "/api/v1/simples": {
+      "get": {
+        "summary": "Simples Nacional and MEI Tax Status",
+        "description": "Queries official opt-in and historical enrollment in Simples Nacional and SIMEI (MEI) special tax regimes from Federal Revenue.",
+        "tags": ["Fiscal"],
+        "parameters": [
+          {
+            "name": "cnpj",
+            "in": "query",
+            "required": true,
+            "description": "14-digit Brazilian company tax ID (CNPJ)",
+            "schema": {
+              "type": "string",
+              "example": "00000000000191"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Simples Nacional tax status retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimplesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or malformed CNPJ"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
+    "/api/v1/compliance": {
+      "get": {
+        "summary": "Compliance Score 360 and Entity Risk Assessment",
+        "description": "Evaluates unified cadastral risk, legal sanity, tax regime, and active administrative sanctions for a Brazilian company, generating an integrity score from 0 to 100 with risk tier classification.",
+        "tags": ["Compliance"],
+        "parameters": [
+          {
+            "name": "cnpj",
+            "in": "query",
+            "required": true,
+            "description": "14-digit Brazilian company tax ID (CNPJ)",
+            "schema": {
+              "type": "string",
+              "example": "00000000000191"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Compliance score 360 calculated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComplianceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or malformed CNPJ"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          }
+        }
+      }
+    },
+    "/api/v1/lei": {
+      "get": {
+        "summary": "Global Corporate Identity via GLEIF LEI (CC0 1.0 Public Domain)",
+        "description": "Queries the official Global Legal Entity Identifier Foundation (GLEIF) registry across 200+ jurisdictions. Price: 0.0200 USDC (4 Session Pass credits).",
+        "tags": ["Global-LEI"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "lei",
+            "in": "query",
+            "required": true,
+            "description": "20-character ISO 17442 LEI code or legal entity name",
+            "schema": { "type": "string", "example": "5493006MHB84DD0ZWV18" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verified LEI corporate identity record with ECDSA oracle proof",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/LeiResponse" }
+              }
+            }
+          },
+          "402": { "$ref": "#/components/responses/PaymentRequired" }
+        }
+      }
+    },
+    "/api/v1/ofac": {
+      "get": {
+        "summary": "Global Sanctions (OFAC SDN / UN) & Web3 AML Wallet Inspector",
+        "description": "Cross-checks 0x EVM wallets, LEI codes, or entity names against US Treasury OFAC SDN and UN Consolidated Lists, plus live Base Mainnet wallet telemetry. Price: 0.0200 USDC (4 Session Pass credits).",
+        "tags": ["Global-OFAC-AML"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "target",
+            "in": "query",
+            "required": true,
+            "description": "0x EVM wallet address, LEI code, or entity name",
+            "schema": { "type": "string", "example": "0x8589427373d6d84e98730d7795d8f6f8731fda16" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sanctions screening and Base Mainnet AML risk report",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OfacResponse" }
+              }
+            }
+          },
+          "402": { "$ref": "#/components/responses/PaymentRequired" }
+        }
+      }
+    },
+    "/api/v1/notarize": {
+      "get": {
+        "summary": "M2M Cryptographic Timestamp & Proof-of-Existence",
+        "description": "Generates a deterministic SHA-256 hash and issues a UTC timestamp certificate signed with the Grid402 Oracle secp256k1 private key. Price: 0.0050 USDC (1 Session Pass credit).",
+        "tags": ["Notarization"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "content",
+            "in": "query",
+            "required": true,
+            "description": "Arbitrary string or 64-char SHA-256 hex digest to notarize",
+            "schema": { "type": "string", "example": "Grid402-M2M-Contract-v1" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Signed timestamp and notarization certificate",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NotarizeResponse" }
+              }
+            }
+          },
+          "402": { "$ref": "#/components/responses/PaymentRequired" }
+        }
+      }
+    },
+    "/api/v1/global-markets": {
+      "get": {
+        "summary": "World Financial Calendar (US/EU/UK/BR) & 30+ ECB FX Reference Rates",
+        "description": "Returns exchange settlement holiday status for US (NYSE/Fed), EU (TARGET2), UK (LSE), or BR (B3/ANBIMA) plus 30+ official European Central Bank reference rates. Price: 0.0050 USDC (1 Session Pass credit).",
+        "tags": ["Global-Markets"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "market",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "default": "US", "enum": ["US", "EU", "UK", "BR"] }
+          },
+          {
+            "name": "base",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "default": "USD" }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "example": "2026-07-03" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Global market settlement calendar and 30+ ECB FX rates",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GlobalMarketsResponse" }
+              }
+            }
+          },
+          "402": { "$ref": "#/components/responses/PaymentRequired" }
+        }
+      }
+    },
+    "/api/v1/pass": {
+      "get": {
+        "summary": "x402 Prepaid Session Pass Issuance & Free Balance Check",
+        "description": "Issues a signed pass_g402_<id>_<hmac> token when paid via X-Payment (0.5000 USDC = 100 credits, 0.5000 USDC = 1,000 credits), or checks remaining credits for free via ?status=pass_g402_...",
+        "tags": ["Session-Pass"],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "description": "Optional pass_g402_... token to inspect remaining credits for free",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Issued session pass or active balance status",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SessionPassResponse" }
+              }
+            }
+          },
+          "402": { "$ref": "#/components/responses/PaymentRequired" }
+        }
+      }
+    },
+    "/api/v1/verify": {
+      "post": {
+        "summary": "Stateless Oracle Proof Verification",
+        "description": "Verifies the ECDSA secp256k1 cryptographic signature and canonical SHA-256 data hash of a response payload previously emitted by the Grid402 Oracle. Stateless, zero-DB, memory execution in less than 1 ms. Max payload size 64 KB.",
+        "tags": ["Verification"],
+        "requestBody": {
+          "required": true,
+          "description": "Arbitrary Grid402 response JSON containing the _oracle_proof block",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Verification evaluated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or malformed JSON payload"
+          },
+          "413": {
+            "description": "Payload exceeds maximum limit of 64 KB"
+          }
+        }
+      },
+      "get": {
+        "summary": "Stateless Oracle Proof Verification (Query Param)",
+        "description": "Convenience GET endpoint accepting a URL-encoded JSON string in the payload query parameter.",
+        "tags": ["Verification"],
+        "parameters": [
+          {
+            "name": "payload",
+            "in": "query",
+            "description": "URL-encoded JSON response string containing _oracle_proof",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Verification evaluated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or malformed JSON payload"
+          }
+        }
+      }
+    },
+    "/terms": {
+      "get": {
+        "summary": "Terms of Service e AS-IS Disclaimer",
+        "description": "Returns terms of service, liability limitations, and network parameters.",
+        "tags": ["Legal"],
+        "responses": {
+          "200": {
+            "description": "Terms of service JSON document"
+          }
+        }
+      }
+    },
+    "/privacy": {
+      "get": {
+        "summary": "Privacy Policy (LGPD Compliance)",
+        "description": "Returns the privacy policy confirming zero PII collection and compliance with Brazilian LGPD (Lei nº 13.709/2018) and Marco Civil da Internet.",
+        "tags": ["Legal"],
+        "responses": {
+          "200": {
+            "description": "Privacy policy JSON document"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "x402Payment": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Payment",
+        "description": "Transaction hash (0x + 64 hex characters) on Base Mainnet (Chain ID 8453) transferring 0.0050 USDC (standard) or 0.0200 USDC (CNPJ) to 0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90. For free testing and CI/CD, pass value 'demo' to simulate in Sandbox mode (up to 20 calls/hour per IP)."
+      }
+    },
+    "responses": {
+      "PaymentRequired": {
+        "description": "Payment Required via x402 Protocol (Base Mainnet)",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/X402Challenge"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "SummaryResponse": {
+        "type": "object",
+        "properties": {
+          "protocol": { "type": "string", "example": "x402" },
+          "hub": { "type": "string", "example": "Grid402" },
+          "network": { "type": "string", "example": "Base" },
+          "chain_id": { "type": "integer", "example": 8453 },
+          "status": { "type": "string", "example": "OPERATIONAL" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "services": { "type": "object" },
+          "notice": { "type": "string" }
+        }
+      },
+      "X402Challenge": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string", "example": "PaymentRequired" },
+          "message": { "type": "string" },
+          "protocol": { "type": "string", "example": "x402" },
+          "network": { "type": "string", "example": "Base" },
+          "chain_id": { "type": "integer", "example": 8453 },
+          "token": { "type": "string", "example": "USDC" },
+          "token_contract": { "type": "string", "example": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" },
+          "price_usdc": { "type": "string", "example": "0.0050" },
+          "price_raw_units": { "type": "integer", "example": 500 },
+          "recipient_wallet": { "type": "string", "example": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" },
+          "action_required": { "type": "string" },
+          "docs": { "type": "string", "example": "https://grid402.online/llms.txt" }
+        }
+      },
+      "ForexRateItem": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "example": "USD" },
+          "name": { "type": "string", "example": "Dólar Americano/Real Brasileiro" },
+          "bid": { "type": "number", "example": 5.421 },
+          "ask": { "type": "number", "example": 5.423 },
+          "high": { "type": "number", "example": 5.45 },
+          "low": { "type": "number", "example": 5.39 },
+          "pctChange": { "type": "number", "example": 0.25 },
+          "quote_timestamp": { "type": "string", "format": "date-time", "description": "Exact upstream market quote timestamp (ISO 8601 UTC)", "example": "2026-11-11T10:40:00Z" },
+          "timestamp": { "type": "string", "format": "date-time", "example": "2026-11-11T10:40:00Z" }
+        },
+        "required": ["code", "name", "bid", "ask", "quote_timestamp", "timestamp"]
+      },
+      "ForexResponse": {
+        "type": "object",
+        "properties": {
+          "service": { "type": "string", "example": "forex" },
+          "status": { "type": "string", "example": "UP" },
+          "base": { "type": "string", "example": "BRL" },
+          "timestamp": { "type": "string", "format": "date-time", "example": "2026-11-11T10:40:05Z" },
+          "response_timestamp": { "type": "string", "format": "date-time", "description": "Oracle response generation timestamp (ISO 8601 UTC)", "example": "2026-11-11T10:40:05Z" },
+          "ttl_seconds": { "type": "integer", "description": "Cache freshness TTL in seconds", "example": 60 },
+          "rates": {
+            "type": "object",
+            "properties": {
+              "USD": { "$ref": "#/components/schemas/ForexRateItem" },
+              "EUR": { "$ref": "#/components/schemas/ForexRateItem" },
+              "GBP": { "$ref": "#/components/schemas/ForexRateItem" }
+            }
+          },
+          "source": { "type": "string", "example": "Banco Central / Dados Abertos" },
+          "legal_license": { "type": "string", "example": "Fatos Econômicos e Cotações de Domínio Público (Lei nº 9.610/1998 Art. 8º, I e Decreto nº 8.777/2016)" },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
+        },
+        "required": ["service", "status", "base", "timestamp", "response_timestamp", "ttl_seconds", "rates", "legal_license", "_oracle_proof"]
+      },
+      "CryptoResponse": {
+        "type": "object",
+        "properties": {
+          "service": { "type": "string", "example": "crypto" },
+          "status": { "type": "string", "example": "UP" },
+          "network": { "type": "string", "example": "Base" },
+          "chain_id": { "type": "integer", "example": 8453 },
+          "timestamp": { "type": "string", "format": "date-time", "example": "2026-11-11T10:40:05Z" },
+          "ttl_seconds": { "type": "integer", "example": 60 },
+          "tickers": { "type": "object" },
+          "legal_license": { "type": "string" },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
+        },
+        "required": ["service", "status", "timestamp", "ttl_seconds", "tickers", "_oracle_proof"]
+      },
+      "DnsResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "domain": { "type": "string", "example": "github.com" },
+          "records": { "type": "object" }
+        }
+      },
+      "SslResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "host": { "type": "string", "example": "base.org" },
+          "certificate": { "type": "object" }
+        }
+      },
+      "AsnResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "ip": { "type": "string", "example": "1.1.1.1" },
+          "asn": { "type": "string", "example": "AS13335" },
+          "org": { "type": "string", "example": "Cloudflare, Inc." }
+        }
+      },
+      "CepResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "cep": { "type": "string", "example": "01310-100" },
+          "cidade": { "type": "string", "example": "São Paulo" },
+          "uf": { "type": "string", "example": "SP" },
+          "ibge": { "type": "string", "example": "3550308" }
+        }
+      },
+      "CnpjResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "cnpj": { "type": "string", "example": "00000000000191" },
+          "razao_social": { "type": "string", "example": "BANCO DO BRASIL SA" },
+          "nome_fantasia": { "type": "string", "example": "DIRECAO GERAL" },
+          "situacao_cadastral": { "type": "string", "example": "ATIVA" },
+          "data_abertura": { "type": "string", "example": "01/08/1966" },
+          "cnae_fiscal": { "type": "string", "example": "6422100" },
+          "cnae_fiscal_descricao": { "type": "string", "example": "Bancos múltiplos, com carteira comercial" },
+          "natureza_juridica": { "type": "string", "example": "Sociedade Anônima Aberta" },
+          "uf": { "type": "string", "example": "DF" },
+          "municipio": { "type": "string", "example": "BRASILIA" }
+        }
+      },
+      "IndicatorsResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "success" },
+          "service": { "type": "string", "example": "indicators" },
+          "timestamp": { "type": "string", "example": "2026-11-08T11:50:40Z" },
+          "indicators": {
+            "type": "object",
+            "properties": {
+              "selic_target": { "type": "number", "example": 13.75 },
+              "selic_daily": { "type": "number", "example": 13.65 },
+              "cdi_annual": { "type": "number", "example": 13.65 },
+              "cdi_daily": { "type": "number", "example": 0.0508 },
+              "ipca_12m": { "type": "number", "example": 4.58 },
+              "ipca_monthly": { "type": "number", "example": 0.44 },
+              "reference_date": { "type": "string", "example": "2026-11-08" },
+              "ipca_reference_month": { "type": "string", "example": "2026-10" }
+            }
+          },
+          "source": { "type": "string", "example": "Banco Central do Brasil e IBGE" },
+          "cached": { "type": "boolean", "example": true }
+        }
+      },
+      "HolidayItem": {
+        "type": "object",
+        "properties": {
+          "date": { "type": "string", "example": "2026-01-01" },
+          "name": { "type": "string", "example": "Confraternizacao Universal" },
+          "type": { "type": "string", "example": "national" },
+          "day_of_week": { "type": "string", "example": "Quinta-feira" },
+          "is_banking_holiday": { "type": "boolean", "example": true }
+        }
+      },
+      "HolidaysResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "success" },
+          "service": { "type": "string", "example": "holidays" },
+          "year": { "type": "integer", "example": 2026 },
+          "total_holidays": { "type": "integer", "example": 15 },
+          "holidays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HolidayItem"
+            }
+          },
+          "source": { "type": "string", "example": "Calendario Nacional e ANBIMA / Febraban" },
+          "cached": { "type": "boolean", "example": true }
+        }
+      },
+      "WorkdaysResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "example": "success" },
+          "service": { "type": "string", "example": "workdays" },
+          "mode": { "type": "string", "example": "range" },
+          "convention": { "type": "string", "example": "ANBIMA (exclusive start, inclusive end)" },
+          "start_date": { "type": "string", "example": "2026-12-24" },
+          "end_date": { "type": "string", "example": "2026-12-28" },
+          "target_date": { "type": "string", "example": "2026-11-13" },
+          "workdays": { "type": "integer", "example": 1 },
+          "calendar_days": { "type": "integer", "example": 4 },
+          "is_workday": { "type": "boolean", "example": true },
+          "day_type": { "type": "string", "example": "workday" },
+          "description": { "type": "string", "example": "Dia util bancario" },
+          "holiday_name": { "type": "string", "nullable": true, "example": null },
+          "next_workday": { "type": "string", "example": "2026-12-28" },
+          "holidays_in_range": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": { "type": "string", "example": "2026-12-25" },
+                "name": { "type": "string", "example": "Natal" }
+              }
+            }
+          },
+          "tariff_usdc": { "type": "string", "example": "0.0050" },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
+        }
+      },
+      "SanctionsResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "cnpj": { "type": "string", "example": "00.000.000/0001-91" },
+          "has_sanctions": { "type": "boolean", "example": false },
+          "total_sanctions": { "type": "integer", "example": 0 },
+          "cadastros_consultados": {
+            "type": "array",
+            "items": { "type": "string" },
+            "example": ["CEIS", "CNEP"]
+          },
+          "sanctions": { "type": "array", "items": { "type": "object" } },
+          "tariff_usdc": { "type": "string", "example": "0.0100" },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
+        }
+      },
+      "SimplesResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "cnpj": { "type": "string", "example": "00.000.000/0001-91" },
+          "optante_simples": { "type": "boolean", "example": false },
+          "optante_simei": { "type": "boolean", "example": false },
+          "regime_tributario": { "type": "string", "example": "NAO_OPTANTE" },
+          "tariff_usdc": { "type": "string", "example": "0.0100" },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
+        }
+      },
+      "ComplianceResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": true },
+          "cnpj": { "type": "string", "example": "00.000.000/0001-91" },
+          "score": { "type": "integer", "example": 100 },
+          "status": { "type": "string", "example": "APROVADO" },
+          "flags": { "type": "array", "items": { "type": "string" } },
+          "summary": { "type": "object" },
+          "tariff_usdc": { "type": "string", "example": "0.0300" },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
+        }
+      },
+      "OracleProof": {
+        "type": "object",
+        "description": "Cryptographic proof of data authenticity and non-repudiation signed by the official Grid402 Oracle",
+        "properties": {
+          "oracle_address": { "type": "string", "example": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" },
+          "timestamp": { "type": "integer", "example": 1794140000 },
+          "data_hash": { "type": "string", "example": "0x4f8a12b3c4d5e6f7..." },
+          "signature": { "type": "string", "example": "0x3045022100..." },
+          "algorithm": { "type": "string", "example": "secp256k1-sha256" },
+          "sandbox": { "type": "boolean", "example": false }
+        },
+        "required": ["oracle_address", "timestamp", "data_hash", "signature", "algorithm", "sandbox"]
+      },
+      "VerifyResponse": {
+        "type": "object",
+        "description": "Result of cryptographic verification of an oracle-signed response",
+        "properties": {
+          "valid": { "type": "boolean", "example": true },
+          "oracle_address": { "type": "string", "example": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" },
+          "timestamp": { "type": "integer", "example": 1794163887 },
+          "sandbox": { "type": "boolean", "example": true },
+          "verification_time_ms": { "type": "number", "example": 0.38 },
+          "hub": { "type": "string", "example": "Grid402" },
+          "status": { "type": "string", "example": "AUTHENTIC_ORACLE_DATA" },
+          "error": { "type": "string", "example": "DataHashMismatch" },
+          "expected_hash": { "type": "string", "example": "0xd93ff92161897e911b85afed59a209170e4ae04d449bf4213dca7dba1f1fcaad" },
+          "received_hash": { "type": "string", "example": "0x92b36d33af465b9fc16f221db86d5640c40efd1a3d7c51b10d15d14a982fb9bc" }
+        },
+        "required": ["valid", "verification_time_ms", "hub", "status"]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      },
+      "LeiResponse": {
+        "type": "object",
+        "properties": {
+          "service": { "type": "string", "example": "lei" },
+          "status": { "type": "string", "example": "UP" },
+          "lei": { "type": "string", "example": "5493006MHB84DD0ZWV18" },
+          "legal_name": { "type": "string", "example": "Alphabet Inc." },
+          "jurisdiction": { "type": "string", "example": "US-DE" },
+          "entity_status": { "type": "string", "example": "ACTIVE" },
+          "entity_category": { "type": "string", "example": "GENERAL" },
+          "registration_status": { "type": "string", "example": "ISSUED" },
+          "legal_address": { "type": "object" },
+          "headquarters_address": { "type": "object" },
+          "registration_details": { "type": "object" },
+          "source": { "type": "string", "example": "Global Legal Entity Identifier Foundation (GLEIF)" },
+          "legal_license": { "type": "string", "example": "CC0 1.0 Universal (Public Domain Dedication — ISO 17442)" },
+          "data_protection_compliance": { "type": "string", "example": "GDPR Recital 14 & LGPD Art. 1º (Strictly Corporate Legal Entity Data — Zero Personal/Natural Person PII)" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
+        }
+      },
+      "OfacResponse": {
+        "type": "object",
+        "properties": {
+          "service": { "type": "string", "example": "ofac" },
+          "status": { "type": "string", "example": "UP" },
+          "target": { "type": "string", "example": "0x8589427373d6d84e98730d7795d8f6f8731fda16" },
+          "target_type": { "type": "string", "example": "evm_wallet" },
+          "sanctioned": { "type": "boolean", "example": true },
+          "risk_score": { "type": "integer", "example": 100 },
+          "risk_level": { "type": "string", "example": "CRITICAL" },
+          "compliance_decision": { "type": "string", "example": "BLOCK_TRANSACTION" },
+          "lists_checked": { "type": "array", "items": { "type": "string" } },
+          "matches": { "type": "array", "items": { "type": "object" } },
+          "web3_aml": { "type": "object", "nullable": true },
+          "legal_license": { "type": "string", "example": "Public Domain (17 U.S.C. § 105 - US Government Works & UN Open Data)" },
+          "data_protection_compliance": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
+        }
+      },
+      "NotarizeResponse": {
+        "type": "object",
+        "properties": {
+          "service": { "type": "string", "example": "notarize" },
+          "status": { "type": "string", "example": "NOTARIZED" },
+          "certificate_id": { "type": "string", "example": "G402-CERT-417470D1BB733EF1" },
+          "input_mode": { "type": "string", "example": "raw_payload_hashed" },
+          "input_sha256": { "type": "string", "example": "0x5465790576c0f4fbcc883c3dc4e9f41a7d655a31bce9101d98cfbdf0ea24eb2c" },
+          "input_byte_length": { "type": "integer", "example": 24 },
+          "zero_retention_policy": { "type": "string", "example": "STRICT_STATELESS_HASH_ONLY (Raw content is hashed in RAM and immediately discarded — Zero PII stored)" },
+          "notarized_at_utc": { "type": "string", "format": "date-time" },
+          "unix_epoch": { "type": "integer" },
+          "oracle_authority": { "type": "object" },
+          "legal_license": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
+        }
+      },
+      "GlobalMarketsResponse": {
+        "type": "object",
+        "properties": {
+          "service": { "type": "string", "example": "global-markets" },
+          "status": { "type": "string", "example": "UP" },
+          "market_calendar": {
+            "type": "object",
+            "properties": {
+              "market_code": { "type": "string", "example": "US" },
+              "exchange_name": { "type": "string", "example": "NYSE / NASDAQ / Federal Reserve Wire" },
+              "date": { "type": "string", "example": "2026-07-03" },
+              "is_settlement_workday": { "type": "boolean", "example": false },
+              "holiday_name": { "type": "string", "nullable": true },
+              "next_settlement_workday": { "type": "string", "example": "2026-07-06" }
+            }
+          },
+          "ecb_fx_reference": {
+            "type": "object",
+            "properties": {
+              "base_currency": { "type": "string", "example": "USD" },
+              "reference_date": { "type": "string" },
+              "currencies_count": { "type": "integer", "example": 31 },
+              "rates": { "type": "object" }
+            }
+          },
+          "legal_license": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
+        }
+      },
+      "SessionPassResponse": {
+        "type": "object",
+        "properties": {
+          "service": { "type": "string", "example": "pass" },
+          "status": { "type": "string", "example": "ACTIVE" },
+          "session_pass": { "type": "string", "example": "pass_g402_a1b2c3d4e5f6_9f8e7d6c5b4a" },
+          "credits_total": { "type": "integer", "example": 100 },
+          "credits_remaining": { "type": "integer", "example": 100 },
+          "expires_at": { "type": "string", "format": "date-time" },
+          "usage_header": { "type": "string", "example": "X-Payment: pass_g402_..." },
+          "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }
+        }
+      }
+    }
+  }
+}
+

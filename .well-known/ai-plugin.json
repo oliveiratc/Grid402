@@ -1,0 +1,19 @@
+{
+  "schema_version": "v1",
+  "name_for_model": "grid402_brazil_data",
+  "name_for_human": "Grid402 Brasil Data e Oraculo",
+  "description_for_model": "Microservicos de dados publicos brasileiros (CNPJ da Receita Federal, CEP, Selic, CDI, PTAX, Feriados ANBIMA) sob o protocolo x402 com prova de oraculo criptografico.",
+  "description_for_human": "Hub de dados abertos brasileiros e oraculo criptografico para agentes de IA sob protocolo HTTP 402 com liquidacao em USDC na rede Base.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "https://grid402.online/openapi.json",
+    "is_user_authenticated": false
+  },
+  "logo_url": "https://grid402.online/assets/logo-icon-transparent.png",
+  "contact_email": "contato@grid402.online",
+  "legal_info_url": "https://grid402.online/terms"
+}
+

@@ -1,0 +1,95 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/server-card/v1.json",
+  "name": "grid402-mcp",
+  "version": "1.8.0",
+  "description": "Grid402 MCP Server - Hub de micro-servicos publicos e utilitarios de rede (Forex, Cripto, DNS, SSL, ASN, CEP, CNPJ, Indicadores, Feriados, Dias Uteis, Compliance, Sancoes e Simples) sob o protocolo x402 na Base.",
+  "homepage": "https://grid402.online",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oliveiratc/Grid402"
+  },
+  "endpoint": "https://grid402.online",
+  "transport": {
+    "type": "stdio",
+    "command": "npx",
+    "args": [
+      "-y",
+      "grid402-mcp"
+    ]
+  },
+  "capabilities": {
+    "tools": {
+      "listChanged": false
+    },
+    "resources": {
+      "subscribe": false,
+      "listChanged": false
+    },
+    "prompts": {
+      "listChanged": false
+    }
+  },
+  "tools": [
+    {
+      "name": "grid402_summary",
+      "description": "Consulta o resumo consolidado de saude e disponibilidade dos micro-servicos do Grid402 (gratuito)."
+    },
+    {
+      "name": "grid402_forex",
+      "description": "Consulta cotacoes fiduciarias oficiais em tempo real de USD, EUR e GBP para BRL."
+    },
+    {
+      "name": "grid402_crypto",
+      "description": "Consulta precos de mercado spot de BTC, ETH, SOL, USDC e BASE."
+    },
+    {
+      "name": "grid402_dns",
+      "description": "Executa resolucao autoritativa de registros DNS A, AAAA, MX, TXT, NS e CNAME."
+    },
+    {
+      "name": "grid402_ssl",
+      "description": "Inspeciona e valida o certificado TLS e SSL na porta 443 de um host."
+    },
+    {
+      "name": "grid402_asn",
+      "description": "Consulta inteligencia de rede BGP, bloco alocado e numero ASN de qualquer IP."
+    },
+    {
+      "name": "grid402_cep",
+      "description": "Consulta endereco postal brasileiro e codigo municipal IBGE por CEP."
+    },
+    {
+      "name": "grid402_cnpj",
+      "description": "Consulta dados cadastrais de Pessoa Juridica na Receita Federal."
+    },
+    {
+      "name": "grid402_indicators",
+      "description": "Consulta taxas oficiais Selic meta e diaria, CDI anual e diario, IPCA 12m e mensal do Banco Central e IBGE."
+    },
+    {
+      "name": "grid402_holidays",
+      "description": "Consulta o calendario oficial de feriados nacionais e dias sem expediente bancario ANBIMA e Febraban."
+    },
+    {
+      "name": "grid402_workdays",
+      "description": "Calcula a contagem de dias uteis bancarios da ANBIMA entre duas datas no Brasil."
+    },
+    {
+      "name": "grid402_sanctions",
+      "description": "Consulta sancoes administrativas ativas e inidoneidade nos cadastros federais CEIS e CNEP (CGU)."
+    },
+    {
+      "name": "grid402_simples",
+      "description": "Consulta o enquadramento tributario oficial no Simples Nacional e MEI (SIMEI) na Receita Federal."
+    },
+    {
+      "name": "grid402_compliance",
+      "description": "Dossiê unificado e score de risco e idoneidade cadastral 360 (0 a 100) cruzando Receita Federal e CGU."
+    },
+    {
+      "name": "grid402_verify",
+      "description": "Valida sem estado a assinatura criptografica secp256k1 de oraculo do Grid402 (gratuito)."
+    }
+  ]
+}
+
