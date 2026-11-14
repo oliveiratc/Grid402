@@ -4447,6 +4447,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                         network: 'eip155:8453',
                         asset: usdcContract,
                         amount: String(amountRaw),
+                        payTo: recipient.toLowerCase(),
                         maxTimeoutSeconds: 300,
                         extra: { name: 'USD Coin', version: '2' },
                     },
