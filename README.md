@@ -32,14 +32,30 @@
 
 | Serviço | Rota da API | Custo M2M | Descrição Técnica |
 |---|---|---|---|
-| **Resumo Operacional** | `GET /status` | Gratuito | Saúde geral, latências médias e serviços operantes |
-| **Câmbio Comercial** | `GET /api/v1/forex` | 0.0050 USDC | Cotações em tempo real de USD, EUR e GBP para BRL |
-| **Preços Cripto** | `GET /api/v1/crypto` | 0.0050 USDC | Cotações spot e variação 24h de BTC, ETH, SOL, USDC e BASE |
-| **Resolução DNS** | `GET /api/v1/dns?domain=...` | 0.0050 USDC | Registros A, AAAA, MX, TXT, NS e CNAME com latência |
-| **Inspetor SSL/TLS** | `GET /api/v1/ssl?domain=...` | 0.0050 USDC | Emissor, validade, dias restantes e cipher suite |
-| **Inteligência ASN** | `GET /api/v1/asn?ip=...` | 0.0050 USDC | BGP, número ASN, organização detentora e país |
-| **Consulta Postal CEP** | `GET /api/v1/cep?code=...` | 0.0050 USDC | Logradouro, bairro, cidade, UF e código IBGE oficial |
-| **Consulta CNPJ** | `GET /api/v1/cnpj?cnpj=...` | 0.0200 USDC | Razão social, status cadastral, CNAE e dados da Receita Federal |
+| **Resumo Operacional** | `GET /status` | Gratuito | Saúde geral, latências médias, uptime 30d e 22 serviços operantes |
+| **Câmbio Comercial** | `GET /api/v1/forex` | 0.0050 USDC (1 crédito) | Cotações em tempo real de USD, EUR e GBP para BRL |
+| **Preços Cripto** | `GET /api/v1/crypto` | 0.0050 USDC (1 crédito) | Cotações spot e variação 24h de BTC, ETH, SOL, USDC e BASE |
+| **Resolução DNS** | `GET /api/v1/dns?domain=...` | 0.0050 USDC (1 crédito) | Registros A, AAAA, MX, TXT, NS e CNAME com latência |
+| **Inspetor SSL/TLS** | `GET /api/v1/ssl?host=...` | 0.0050 USDC (1 crédito) | Emissor, validade, dias restantes e cipher suite |
+| **Inteligência ASN** | `GET /api/v1/asn?ip=...` | 0.0050 USDC (1 crédito) | BGP, número ASN, organização detentora e país |
+| **Auditoria de Domínio** | `GET /api/v1/domain-audit?domain=...` | 0.0150 USDC (3 créditos) | Bundle consolidado DNS + TLS/SSL + BGP/ASN em chamada única |
+| **Dossiê KYB Audit** | `GET /api/v1/kyb-audit?cnpj=...` | 0.0200 USDC (4 créditos) | Dossiê corporativo unificado: CNPJ + Simples + Sanções + Score 360 |
+| **Market Snapshot** | `GET /api/v1/market-snapshot` | 0.0150 USDC (3 créditos) | Panorama macro e financeiro: Câmbio + Cripto + Selic/CDI/IPCA + ANBIMA |
+| **Consulta Postal CEP** | `GET /api/v1/cep?code=...` | 0.0050 USDC (1 crédito) | Logradouro, bairro, cidade, UF e código IBGE oficial |
+| **Consulta CNPJ** | `GET /api/v1/cnpj?cnpj=...` | 0.0200 USDC (4 créditos) | Razão social, status cadastral, CNAE e dados da Receita Federal |
+| **Indicadores BCB/IBGE** | `GET /api/v1/indicators` | 0.0050 USDC (1 crédito) | Taxas oficiais Selic, CDI e IPCA acumulado 12m |
+| **Feriados Nacionais** | `GET /api/v1/holidays?year=...` | 0.0050 USDC (1 crédito) | Calendário nacional e bancário ANBIMA/Febraban |
+| **Dias Úteis ANBIMA** | `GET /api/v1/workdays` | 0.0050 USDC (1 crédito) | Contagem e projeção de vencimentos D+N bancários |
+| **Sanções CEIS/CNEP** | `GET /api/v1/sanctions?cnpj=...` | 0.0100 USDC (2 créditos) | Checagem de inidoneidade e punições administrativas na CGU |
+| **Simples Nacional e MEI** | `GET /api/v1/simples?cnpj=...` | 0.0100 USDC (2 créditos) | Enquadramento tributário Simples Nacional e SIMEI |
+| **Compliance Score 360** | `GET /api/v1/compliance?cnpj=...` | 0.0300 USDC (6 créditos) | Score de risco corporativo de 0 a 100 cruzando RF e CGU |
+| **Identidade Global LEI** | `GET /api/v1/lei?lei=...` | 0.0200 USDC (4 créditos) | Registro corporativo global ISO 17442 via GLEIF (200+ jurisdições) |
+| **Sanções OFAC e AML** | `GET /api/v1/ofac?target=...` | 0.0200 USDC (4 créditos) | Triagem OFAC SDN, ONU e risco AML Web3 na Base Mainnet |
+| **Notarização SHA-256** | `GET /api/v1/notarize?content=...` | 0.0050 USDC (1 crédito) | Carimbo do tempo criptográfico e prova de existência ECDSA |
+| **Mercados Globais e BCE** | `GET /api/v1/global-markets` | 0.0050 USDC (1 crédito) | Calendário US/EU/UK/BR e 30+ taxas de câmbio do BCE |
+| **Session Pass x402** | `GET /api/v1/pass` | 2 / 5 / 20 USDC | Emissão de passe pré-pago de sub-15ms (400 / 1.000 / 6.000 créditos) |
+| **Saldo do Session Pass** | `GET /api/v1/pass/balance` | Gratuito | Consulta gratuita de créditos restantes, validade e Spend Controls |
+| **Verificador de Prova** | `POST /api/v1/verify` | Gratuito | Verificação matemática stateless da assinatura `_oracle_proof` |
 
 ---
 
@@ -99,11 +115,11 @@ Exemplos detalhados e guia de instalação disponíveis em [`integrations/elizao
 Para agentes e desenvolvedores que buscam alta frequência (abaixo de 15ms) sem o custo e atrito de assinar 1 transação a cada `GET`:
 - Acesse a interface web em [https://grid402.online/#topup](https://grid402.online/#topup)
 - Conecte sua carteira (MetaMask, Coinbase Smart Wallet com Passkey, Rainbow) na rede Base
-- Selecione seu pacote:
-  - **Starter:** 2 USDC $\rightarrow$ 40.000 créditos (= 400 chamadas padrão, validade 30 dias)
-  - **Pro:** 5 USDC $\rightarrow$ 100.000 créditos (= 1.000 chamadas padrão, validade 30 dias)
-  - **Fleet:** 20 USDC $\rightarrow$ 500.000 créditos (= 5.000 chamadas padrão, validade 60 dias)
-- Receba instantaneamente seu token `pass_g402_live...` para usar no cabeçalho `X-Payment`.
+- Selecione seu pacote (`1 crédito = 0.0050 USDC` / 1 chamada padrão):
+  - **Starter:** 2 USDC / R$ 12 $\rightarrow$ 400 créditos (= 400 chamadas padrão, validade 30 dias)
+  - **Pro:** 5 USDC / R$ 29 $\rightarrow$ 1.000 créditos (= 1.000 chamadas padrão, validade 30 dias)
+  - **Fleet:** 20 USDC / R$ 115 $\rightarrow$ 6.000 créditos (5.000 + 1.000 bônus = 6.000 chamadas padrão, validade 60 dias)
+- Receba instantaneamente seu token `pass_g402_live...` para usar no cabeçalho `X-Payment`, consulte o saldo gratuitamente em `GET /api/v1/pass/balance` e envie `Idempotency-Key: <uuid>` para retentativas seguras sem débito duplicado.
 
 ### 5. Dossiê Institucional Base Grants e Coinbase CDP
 

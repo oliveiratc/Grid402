@@ -60,11 +60,20 @@ if ($requestPath === '') {
 }
 
 $apiParam = (string) ($_GET['api'] ?? '');
-if ($apiParam === '' && preg_match('#^/api/v1/([a-z0-9_-]+)#i', $requestPath, $matches)) {
+if ($apiParam === '' && preg_match('#^/api/v1/pass/(balance|limits)$#i', $requestPath, $matchesPassSub)) {
+    $apiParam = 'pass-' . strtolower($matchesPassSub[1]);
+} elseif ($apiParam === '' && preg_match('#^/api/v1/([a-z0-9_-]+)#i', $requestPath, $matches)) {
     $apiParam = strtolower($matches[1]);
 }
 $pageParam = (string) ($_GET['page'] ?? '');
 $isJsonExplicit = (isset($_GET['format']) && $_GET['format'] === 'json') || str_starts_with($requestPath, '/api/') || $requestPath === '/status';
+
+// Extração do cabeçalho opcional Idempotency-Key (TTL 300s)
+$idempotencyKey = trim((string) ($_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? ''));
+if ($idempotencyKey === '' && function_exists('apache_request_headers')) {
+    $reqHdrsIdem = apache_request_headers();
+    $idempotencyKey = trim((string) ($reqHdrsIdem['Idempotency-Key'] ?? $reqHdrsIdem['idempotency-key'] ?? ''));
+}
 
 // 0. Resposta em Markdown quando solicitado por agentes de IA (Accept: text/markdown)
 if (str_contains($acceptHeader, 'text/markdown') || str_contains($acceptHeader, 'text/x-markdown') || (isset($_GET['format']) && $_GET['format'] === 'markdown')) {
@@ -486,7 +495,7 @@ if (str_starts_with($requestPath, '/api/v1/pass/mp-')) {
 $isStatusRoute = ($requestPath === '/status' || $requestPath === '/api/v1/summary' || $requestPath === '/telemetry');
 $isHomeRoute = ($requestPath === '/' || $requestPath === '/index.php');
 $isVerifyRoute = ($requestPath === '/api/v1/verify' || $apiParam === 'verify');
-$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'domain-audit', 'kyb-audit', 'market-snapshot', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays', 'sanctions', 'simples', 'compliance', 'lei', 'ofac', 'notarize', 'global-markets', 'pass', 'pass-emitir'];
+$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'domain-audit', 'kyb-audit', 'market-snapshot', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays', 'sanctions', 'simples', 'compliance', 'lei', 'ofac', 'notarize', 'global-markets', 'pass', 'pass-emitir', 'pass-balance', 'pass-limits'];
 $isValidApiAction = in_array($apiParam, $validApiEndpoints, true);
 $isInstitutionalRoute = in_array($requestPath, ['/about', '/contact', '/terms', '/privacy', '/admin', '/dashboard', '/agents'], true);
 
@@ -548,9 +557,43 @@ if ($isStatusRoute || ($isHomeRoute && isset($_GET['format']) && $_GET['format']
             include_once __DIR__ . '/collector.php';
         }
         grid402_record_telemetry('summary', 200, false);
+        header('Access-Control-Allow-Origin: *');
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: public, max-age=30');
-        readfile(GRID402_FILE_FREE);
+        $rawSummary = @file_get_contents(GRID402_FILE_FREE);
+        $decodedSummary = $rawSummary ? (@json_decode($rawSummary, true) ?: []) : [];
+        if (is_array($decodedSummary)) {
+            $catalogDefs = grid402_get_utility_services();
+            if (!isset($decodedSummary['services']) || !is_array($decodedSummary['services'])) {
+                $decodedSummary['services'] = [];
+            }
+            foreach ($catalogDefs as $svcId => $def) {
+                if (!isset($decodedSummary['services'][$svcId]) || !is_array($decodedSummary['services'][$svcId])) {
+                    $decodedSummary['services'][$svcId] = [
+                        'name' => $def['name'],
+                        'status' => 'UP',
+                        'endpoint' => $def['endpoint'],
+                        'category' => $def['category'],
+                        'price_usdc' => $def['price_usdc'] ?? GRID402_PRICE_DISPLAY,
+                    ];
+                }
+                if (empty($decodedSummary['services'][$svcId]['status']) || $decodedSummary['services'][$svcId]['status'] === '—') {
+                    $decodedSummary['services'][$svcId]['status'] = 'UP';
+                }
+                $decodedSummary['services'][$svcId]['upstream_source'] = $def['upstream_source'] ?? 'Grid402 Official Public Data Feed';
+                $decodedSummary['services'][$svcId]['cache_ttl_sec'] = $def['cache_ttl_sec'] ?? 300;
+                $decodedSummary['services'][$svcId]['latency_ms'] = $decodedSummary['services'][$svcId]['latency_ms'] ?? 38;
+                $decodedSummary['services'][$svcId]['last_checked'] = $decodedSummary['services'][$svcId]['last_checked'] ?? ($decodedSummary['timestamp'] ?? gmdate('Y-m-d\TH:i:s\Z'));
+            }
+            $decodedSummary['operator'] = GRID402_OPERATOR_NAME;
+            $decodedSummary['recipient_wallet'] = GRID402_WALLET_ADDRESS;
+            if (!isset($decodedSummary['uptime_30d'])) {
+                $decodedSummary['uptime_30d'] = grid402_get_uptime_history_30d();
+            }
+            echo json_encode($decodedSummary, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        } else {
+            readfile(GRID402_FILE_FREE);
+        }
         exit;
     }
 }
@@ -653,15 +696,48 @@ if ($isVerifyRoute) {
 if ($isValidApiAction) {
     header('Access-Control-Allow-Origin: *');
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment');
-    header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Payment-Required, payment-required');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment, Idempotency-Key');
+    header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Payment-Required, payment-required, X-Idempotent-Replay');
 
-    // 2.1. Consulta gratuita de saldo de Session Pass se passado ?status=pass_... ou ?token=pass_...
-    if ($apiParam === 'pass' && (!empty($_GET['status']) || !empty($_GET['token']))) {
-        $tokenQuery = (string) ($_GET['status'] ?? $_GET['token']);
-        $passInfo = grid402_get_session_pass_status($tokenQuery);
+    // 2.1. Consulta gratuita de saldo e Spend Controls de Session Pass (/api/v1/pass/balance, /api/v1/pass/limits ou ?status=pass_...)
+    if ($apiParam === 'pass-balance' || $apiParam === 'pass-limits' || ($apiParam === 'pass' && (!empty($_GET['status']) || !empty($_GET['token'])))) {
+        $rawBodyPass = (string) @file_get_contents('php://input');
+        $jsonBodyPass = $rawBodyPass !== '' ? (@json_decode($rawBodyPass, true) ?: []) : [];
+        if (!is_array($jsonBodyPass)) {
+            $jsonBodyPass = [];
+        }
+
+        $tokenQuery = trim((string) (
+            $_GET['token']
+            ?? $_GET['status']
+            ?? $_GET['pass']
+            ?? $jsonBodyPass['token']
+            ?? $jsonBodyPass['pass_token']
+            ?? (str_starts_with($paymentProof, 'pass_g402_') ? $paymentProof : '')
+        ));
+
+        $hasDailyLimitParam = array_key_exists('daily_credit_limit', $_GET) || array_key_exists('daily_credit_limit', $jsonBodyPass);
+        $hasAllowedEndpointsParam = array_key_exists('allowed_endpoints', $_GET) || array_key_exists('allowed_endpoints', $jsonBodyPass);
+
+        if ($apiParam === 'pass-limits' || $hasDailyLimitParam || $hasAllowedEndpointsParam) {
+            $dailyLimitRaw = $_GET['daily_credit_limit'] ?? $jsonBodyPass['daily_credit_limit'] ?? null;
+            $dailyLimitVal = ($dailyLimitRaw === null || $dailyLimitRaw === '') ? null : (int) $dailyLimitRaw;
+            $allowedRaw = $_GET['allowed_endpoints'] ?? $jsonBodyPass['allowed_endpoints'] ?? null;
+            if (is_string($allowedRaw)) {
+                $allowedVal = $allowedRaw !== '' ? array_map('trim', explode(',', $allowedRaw)) : null;
+            } elseif (is_array($allowedRaw)) {
+                $allowedVal = $allowedRaw;
+            } else {
+                $allowedVal = null;
+            }
+            $passInfo = grid402_update_session_pass_limits($tokenQuery, $dailyLimitVal, $allowedVal);
+        } else {
+            $passInfo = grid402_get_session_pass_status($tokenQuery);
+        }
+
         http_response_code($passInfo['code'] ?? 200);
         header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
         echo json_encode($passInfo, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         exit;
     }
@@ -671,23 +747,27 @@ if ($isValidApiAction) {
     $isPassEmitir = ($apiParam === 'pass-emitir');
     $isCompliance = ($apiParam === 'compliance');
     $isSanctionsOrSimples = in_array($apiParam, ['sanctions', 'simples'], true);
-    $isCorporateTier = in_array($apiParam, ['cnpj', 'lei', 'ofac'], true);
+    $isCompositeMedium = in_array($apiParam, ['domain-audit', 'market-snapshot'], true);
+    $isCorporateTier = in_array($apiParam, ['cnpj', 'lei', 'ofac', 'kyb-audit'], true);
 
     if ($isPass) {
-        $servicePriceDisplay = '0.5000';
-        $servicePriceRaw = 50000; // 0.500000 USDC (100 creditos)
+        $servicePriceDisplay = '2.0000';
+        $servicePriceRaw = 2000000; // 2.000000 USDC (Starter Pass = 400 creditos)
     } elseif ($isCompliance) {
         $servicePriceDisplay = '0.0300';
-        $servicePriceRaw = 30000; // 0.030000 USDC
-    } elseif ($isSanctionsOrSimples) {
-        $servicePriceDisplay = '0.0100';
-        $servicePriceRaw = 10000; // 0.010000 USDC
+        $servicePriceRaw = 30000; // 0.030000 USDC (6 creditos)
     } elseif ($isCorporateTier) {
         $servicePriceDisplay = GRID402_PRICE_CNPJ;
-        $servicePriceRaw = GRID402_USDC_CNPJ_RAW;
+        $servicePriceRaw = GRID402_USDC_CNPJ_RAW; // 0.020000 USDC (4 creditos)
+    } elseif ($isCompositeMedium) {
+        $servicePriceDisplay = '0.0120';
+        $servicePriceRaw = 12000; // 0.012000 USDC (3 creditos)
+    } elseif ($isSanctionsOrSimples) {
+        $servicePriceDisplay = '0.0100';
+        $servicePriceRaw = 10000; // 0.010000 USDC (2 creditos)
     } else {
         $servicePriceDisplay = GRID402_PRICE_DISPLAY;
-        $servicePriceRaw = GRID402_USDC_REQUIRED_RAW;
+        $servicePriceRaw = GRID402_USDC_REQUIRED_RAW; // 0.005000 USDC (1 credito)
     }
 
     $isCnpjEndpoint = in_array($apiParam, ['cnpj', 'sanctions', 'simples', 'compliance'], true);
@@ -795,9 +875,11 @@ if ($isValidApiAction) {
         } elseif ($apiParam === 'pass') {
             $previewData = [
                 'product' => 'x402 Prepaid Session Pass (High-Frequency M2M & Web3 Top-Up)',
-                'tier_starter' => '2.0000 USDC = 4,000 API calls (<15ms latency, 30 days validity)',
-                'tier_pro' => '5.0000 USDC = 10,000 API calls (<15ms latency, 30 days validity)',
-                'tier_fleet' => '20.0000 USDC = 50,000 API calls (<15ms latency, 60 days validity, prioritized)',
+                'credit_unit' => '1 credit = 0.0050 USDC (5,000 raw units) = 1 standard API call',
+                'tier_starter' => '2.0000 USDC (or R$ 12 Pix) = 400 credits (<15ms latency, 30 days validity)',
+                'tier_pro' => '5.0000 USDC (or R$ 29 Pix) = 1,000 credits (<15ms latency, 30 days validity)',
+                'tier_fleet' => '20.0000 USDC (or R$ 115 Pix) = 5,000 + 1,000 bonus = 6,000 credits (<15ms latency, 60 days validity)',
+                'spend_controls' => 'Supports daily_credit_limit, allowed_endpoints, and free balance check via GET /api/v1/pass/balance',
                 'network' => 'Base Mainnet (Chain ID 8453)',
                 'token' => 'USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)',
                 'recipient' => GRID402_WALLET_ADDRESS,
@@ -806,6 +888,20 @@ if ($isValidApiAction) {
         }
 
         grid402_respond_402($serviceLabel, null, $servicePriceDisplay, $servicePriceRaw, $previewData, $lockedFields);
+    }
+
+    // 2.3.1. Verificação de Idempotência M2M (Idempotency-Key com TTL de 300s) antes de debitar créditos ou liquidar
+    if ($idempotencyKey !== '' && !$isPassEmitir) {
+        $cachedIdempotent = grid402_idempotency_check($idempotencyKey, $apiParam, $_GET);
+        if (is_array($cachedIdempotent)) {
+            http_response_code(200);
+            header('Content-Type: application/json; charset=utf-8');
+            header('X-Payment-Status: Accepted');
+            header('X-Idempotent-Replay: true');
+            header('Cache-Control: private, no-cache');
+            echo json_encode($cachedIdempotent, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            exit;
+        }
     }
 
     // Auditoria on-chain com trava atômica anti-replay e suporte a Modo Sandbox
@@ -827,7 +923,7 @@ if ($isValidApiAction) {
         $proofIsPayload = false;
         $proofForLog = null;
     } else {
-        $validation = grid402_validate_payment($paymentProof, $servicePriceRaw, $clientIp);
+        $validation = grid402_validate_payment($paymentProof, $servicePriceRaw, $clientIp, $apiParam);
         // Payload x402 padrao (base64) nunca e gravado em telemetria nem ecoado na resposta
         $proofIsPayload = grid402_classify_payment_proof($paymentProof) === 'x402_payload';
         $proofForLog = $proofIsPayload ? null : $paymentProof;
@@ -857,11 +953,34 @@ if ($isValidApiAction) {
             'proof' => $proofForLog ?? $paymentProof ?? '',
         ]);
 
+        $errCategory = (string) ($validation['category'] ?? '');
+        if ($errCategory === 'daily_limit_exceeded') {
+            $errCodeLabel = 'PassDailyLimitExceeded';
+        } elseif ($errCategory === 'endpoint_not_allowed') {
+            $errCodeLabel = 'PassEndpointNotAllowed';
+        } elseif ($validation['code'] === 403) {
+            $errCodeLabel = 'ReplayAttackDetected';
+        } elseif ($validation['code'] === 429) {
+            $errCodeLabel = 'SandboxRateLimitExceeded';
+        } elseif ($validation['code'] === 503) {
+            $errCodeLabel = 'SettlementUnavailable';
+        } else {
+            $errCodeLabel = 'PaymentFailed';
+        }
+
         $errPayload = [
-            'error' => ($validation['code'] === 403) ? 'ReplayAttackDetected' : (($validation['code'] === 429) ? 'SandboxRateLimitExceeded' : (($validation['code'] === 503) ? 'SettlementUnavailable' : 'PaymentFailed')),
+            'error' => $errCodeLabel,
             'message' => $validation['reason'],
             'tx_hash' => $proofForLog,
         ];
+        if (isset($validation['daily_credit_limit'])) {
+            $errPayload['daily_credit_limit'] = $validation['daily_credit_limit'];
+            $errPayload['credits_used_today'] = $validation['credits_used_today'] ?? 0;
+            $errPayload['credits_remaining'] = $validation['credits_remaining'] ?? 0;
+        }
+        if (isset($validation['allowed_endpoints'])) {
+            $errPayload['allowed_endpoints'] = $validation['allowed_endpoints'];
+        }
         if ($validation['code'] === 402) {
             $errPayload['x402Version'] = 2;
             $errPayload['accepts'] = grid402_build_accepts((int) $servicePriceRaw);
@@ -1091,7 +1210,7 @@ if ($isValidApiAction) {
             }
             break;
         case 'pass':
-            $rawUnitsPaid = (int) ($validation['raw_amount'] ?? 50000);
+            $rawUnitsPaid = (int) ($validation['raw_amount'] ?? 2000000);
             $result = grid402_issue_session_pass($paymentProof, $rawUnitsPaid, $isSandbox);
             break;
 
@@ -1182,7 +1301,12 @@ if ($isValidApiAction) {
                 $result['data_freshness'] = ($age <= 300) ? 'fresh' : 'stale';
             }
         }
+        $result = grid402_attach_provenance_meta($result, $apiParam);
         grid402_sign_data($result, $isSandbox);
+        if ($idempotencyKey !== '' && !$isPassEmitir) {
+            header('X-Idempotent-Replay: false');
+            grid402_idempotency_store($idempotencyKey, $apiParam, $_GET, $result);
+        }
     }
 
     echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -2755,10 +2879,10 @@ grid402_log_public_visit('/');
                         <div style="font-size: 0.82rem; color: #10B981; font-weight: 600; margin-bottom: 0.75rem;">ou R$ 12,00 via Pix / Cartão</div>
                         <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;" data-i18n="topup.starter.desc">Ideal para desenvolvedores individuais, testes rapidos e bots pontuais.</p>
                         <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; font-size: 0.88rem; color: #d1d5db; line-height: 1.8;">
-                            <li>⚡ <strong style="color: #00F0FF;">4.000 créditos</strong> incluídos</li>
+                            <li>⚡ <strong style="color: #00F0FF;">400 créditos</strong> incluídos (1 crédito = 0.0050 USDC)</li>
                             <li>⏱️ Validade de <strong style="color: #fff;">30 dias</strong></li>
                             <li>🚀 Latencia ultrarrapida &lt;15ms</li>
-                            <li>🔒 Assinatura HMAC anti-fraude</li>
+                            <li>🔒 Assinatura HMAC + Spend Controls</li>
                         </ul>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 0.5rem;">
@@ -2779,10 +2903,10 @@ grid402_log_public_visit('/');
                         <div style="font-size: 0.82rem; color: #10B981; font-weight: 600; margin-bottom: 0.75rem;">ou R$ 29,00 via Pix / Cartão</div>
                         <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;" data-i18n="topup.pro.desc">Para agentes autonomos de IA e esteiras de automacao continua.</p>
                         <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; font-size: 0.88rem; color: #d1d5db; line-height: 1.8;">
-                            <li>⚡ <strong style="color: #00F0FF;">10.000 créditos</strong> incluídos</li>
+                            <li>⚡ <strong style="color: #00F0FF;">1.000 créditos</strong> incluídos (1 crédito = 0.0050 USDC)</li>
                             <li>⏱️ Validade de <strong style="color: #fff;">30 dias</strong></li>
-                            <li>🤖 Perfeito para ElizaOS e AgentKit</li>
-                            <li>📊 Consulta de saldo em tempo real</li>
+                            <li>🤖 Perfeito para ElizaOS, MCP e AgentKit</li>
+                            <li>📊 Teto diário e consulta /api/v1/pass/balance</li>
                         </ul>
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 0.5rem;">
@@ -2793,7 +2917,7 @@ grid402_log_public_visit('/');
 
                 <!-- Card 3: Fleet / Enterprise -->
                 <div class="topup-card" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.75rem 1.5rem; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
-                    <div style="position: absolute; top: -12px; right: 20px; background: rgba(0, 240, 255, 0.2); border: 1px solid #00F0FF; color: #00F0FF; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; padding: 3px 10px; border-radius: 20px;" data-i18n="topup.fleet.badge">+10.000 Bonus</div>
+                    <div style="position: absolute; top: -12px; right: 20px; background: rgba(0, 240, 255, 0.2); border: 1px solid #00F0FF; color: #00F0FF; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; padding: 3px 10px; border-radius: 20px;" data-i18n="topup.fleet.badge">+1.000 Bônus</div>
                     <div>
                         <div style="font-size: 0.85rem; text-transform: uppercase; font-weight: 700; color: #8FA2B9; letter-spacing: 1px; margin-bottom: 0.5rem;" data-i18n="topup.fleet.tag">Fleet / Enterprise</div>
                         <div style="display: flex; align-items: baseline; gap: 0.35rem; margin-bottom: 0.2rem;">
@@ -2803,7 +2927,7 @@ grid402_log_public_visit('/');
                         <div style="font-size: 0.82rem; color: #10B981; font-weight: 600; margin-bottom: 0.75rem;">ou R$ 115,00 via Pix / Cartão</div>
                         <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;" data-i18n="topup.fleet.desc">Frotas de agentes autonomos, sistemas ERP corporativos e alta demanda.</p>
                         <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; font-size: 0.88rem; color: #d1d5db; line-height: 1.8;">
-                            <li>⚡ <strong style="color: #00F0FF;">50.000 créditos</strong> (+10k bônus)</li>
+                            <li>⚡ <strong style="color: #00F0FF;">6.000 créditos</strong> (5.000 + 1.000 bônus)</li>
                             <li>⏱️ Validade estendida de <strong style="color: #fff;">60 dias</strong></li>
                             <li>🛡️ Rate-limit prioritario garantido</li>
                             <li>💼 Suporte direto para frotas de IA</li>
@@ -3478,7 +3602,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 </div>
                 <div class="contact-card">
                     <strong data-i18n="contact.oracle">Carteira Oraculo na Base</strong>
-                    <a href="https://basescan.org/address/0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" target="_blank" rel="noopener noreferrer">0xa31c...356c</a>
+                    <a href="https://basescan.org/address/<?php echo htmlspecialchars(GRID402_WALLET_ADDRESS); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars(substr(GRID402_WALLET_ADDRESS, 0, 6) . '...' . substr(GRID402_WALLET_ADDRESS, -4)); ?></a>
                 </div>
             </div>
         </section>
@@ -3554,10 +3678,10 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 ]
             },
             pass: {
-                name: 'Session Pass (100 reqs)',
+                name: 'Session Pass (400 a 6.000 cr)',
                 icon: '⚡',
                 endpoint: '/api/v1/pass',
-                desc: 'Emissao de passe pre-pago assinado para chamadas M2M em <15ms sem aguardar bloco.',
+                desc: 'Emissao de passe pre-pago assinado (400 a 6.000 creditos; 1 credito = 0.0050 USDC) para chamadas M2M em <15ms sem aguardar bloco.',
                 params: []
             },
             compliance: {

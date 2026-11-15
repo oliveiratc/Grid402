@@ -57,31 +57,33 @@ function grid402_issue_session_pass(string $txHash, int $rawUsdcUnits = 50000, b
         @mkdir($dir, 0775, true);
     }
 
-    // Calibração dos Tiers Web3 (pós-reajuste 10x de preços, com paridade de valor):
-    // Starter: >= 2 USDC (2.000.000 raw) -> 40.000 cr (400 reqs), 30 dias
-    // Pro:     >= 5 USDC (5.000.000 raw) -> 100.000 cr (1000 reqs), 30 dias
-    // Fleet:   >= 20 USDC (20.000.000 raw) -> 500.000 cr (5000 reqs), 60 dias
+    // Calibração Oficial dos Tiers Session Pass (1 crédito = 0.0050 USDC = 5.000 raw units):
+    // Starter: >= 2 USDC (2.000.000 raw) -> 400 créditos (400 reqs padrão), 30 dias
+    // Pro:     >= 5 USDC (5.000.000 raw) -> 1.000 créditos (1.000 reqs padrão), 30 dias
+    // Fleet:   >= 20 USDC (20.000.000 raw) -> 6.000 créditos (5.000 + 1.000 bônus), 60 dias
     $validityDays = 30;
     $tier = 'standard';
     if ($isSandbox) {
-        $credits = 500;
+        $credits = 100;
         $tier = 'sandbox';
         $validityDays = 1 / 24; // 1 hora
     } else {
         if ($rawUsdcUnits >= 20000000) {
-            $credits = max(500000, intdiv($rawUsdcUnits, 40));
+            $baseCredits = intdiv($rawUsdcUnits, 5000);
+            $bonusCredits = intdiv($baseCredits, 5); // +20% bônus (20 USDC -> 4.000 + 2.000 ou 5.000 + 1.000 = 6.000)
+            $credits = max(6000, $baseCredits + max(1000, $bonusCredits));
             $tier = 'fleet';
             $validityDays = 60;
         } elseif ($rawUsdcUnits >= 5000000) {
-            $credits = intdiv($rawUsdcUnits, 50);
+            $credits = intdiv($rawUsdcUnits, 5000);
             $tier = 'pro';
             $validityDays = 30;
         } elseif ($rawUsdcUnits >= 2000000) {
-            $credits = intdiv($rawUsdcUnits, 50);
+            $credits = intdiv($rawUsdcUnits, 5000);
             $tier = 'starter';
             $validityDays = 30;
         } else {
-            $credits = max(100, intdiv($rawUsdcUnits, 50));
+            $credits = max(1, intdiv($rawUsdcUnits, 5000));
             $tier = 'standard';
             $validityDays = 30;
         }
@@ -125,8 +127,13 @@ function grid402_issue_session_pass(string $txHash, int $rawUsdcUnits = 50000, b
                 'mode' => $isSandbox ? 'sandbox' : 'production',
                 'tx_hash' => $cleanTx,
                 'usdc_deposited' => $usdcAmount,
+                'credit_scale' => 'v2_5000',
                 'credits_total' => $credits,
                 'credits_remaining' => $credits,
+                'credits_used_today' => 0,
+                'usage_day_utc' => gmdate('Y-m-d', $now),
+                'daily_credit_limit' => null,
+                'allowed_endpoints' => [],
                 'issued_at' => gmdate('Y-m-d\TH:i:s\Z', $now),
                 'expires_at' => gmdate('Y-m-d\TH:i:s\Z', $expiresAt),
                 'expires_epoch' => $expiresAt,
@@ -167,23 +174,45 @@ function grid402_issue_session_pass(string $txHash, int $rawUsdcUnits = 50000, b
         'usage_instructions' => [
             'header' => 'X-Payment: ' . $record['pass_token'],
             'credit_rates' => [
-                'standard_0.0050_usdc' => '100 credits (forex, crypto, dns, ssl, asn, cep, indicators, holidays, workdays, notarize, global-markets)',
-                'compliance_0.0100_usdc' => '200 credits (sanctions, simples)',
-                'corporate_0.0200_usdc' => '400 credits (cnpj, lei, ofac)',
-                'score360_0.0300_usdc' => '600 credits (compliance)',
+                'standard_0.0050_usdc' => '1 credit (forex, crypto, dns, ssl, asn, cep, indicators, holidays, workdays, notarize, global-markets, domain-audit, market-snapshot)',
+                'compliance_0.0100_usdc' => '2 credits (sanctions, simples)',
+                'corporate_0.0200_usdc' => '4 credits (cnpj, lei, ofac, kyb-audit)',
+                'score360_0.0300_usdc' => '6 credits (compliance)',
             ],
-            'check_balance_url' => GRID402_CANONICAL_DOMAIN . '/api/v1/pass?status=' . $record['pass_token'],
+            'check_balance_url' => GRID402_CANONICAL_DOMAIN . '/api/v1/pass/balance',
         ],
     ];
 }
 
 /**
- * Consulta gratuitamente o status e saldo de um Session Pass existente
+ * Normaliza um registro de passe legado (escala 100x) para a escala oficial v2 (1 crédito = 0.0050 USDC)
+ */
+function grid402_normalize_pass_entry(array $entry): array {
+    if (($entry['credit_scale'] ?? '') !== 'v2_5000') {
+        $total = (int)($entry['credits_total'] ?? 0);
+        $rem = (int)($entry['credits_remaining'] ?? 0);
+        if ($total >= 4000) {
+            $entry['credits_total'] = max(1, intdiv($total, 100));
+            $entry['credits_remaining'] = max(0, intdiv($rem, 100));
+        }
+        $entry['credit_scale'] = 'v2_5000';
+    }
+    $todayUtc = gmdate('Y-m-d');
+    if (($entry['usage_day_utc'] ?? '') !== $todayUtc) {
+        $entry['usage_day_utc'] = $todayUtc;
+        $entry['credits_used_today'] = 0;
+    }
+    return $entry;
+}
+
+/**
+ * Consulta gratuitamente o status, saldo e limites de gasto (Spend Controls) de um Session Pass existente
  */
 function grid402_get_session_pass_status(string $token): array {
     $passId = grid402_pass_verify_token_format($token);
     if ($passId === null) {
         return [
+            'ok' => false,
             'valid' => false,
             'code' => 400,
             'error' => 'InvalidPassTokenFormat',
@@ -194,6 +223,7 @@ function grid402_get_session_pass_status(string $token): array {
     $file = defined('GRID402_FILE_PASSES') ? GRID402_FILE_PASSES : (GRID402_PRIVATE_DIR . '/session_passes.json');
     if (!file_exists($file)) {
         return [
+            'ok' => false,
             'valid' => false,
             'code' => 404,
             'error' => 'PassNotFound',
@@ -205,6 +235,7 @@ function grid402_get_session_pass_status(string $token): array {
     $store = $content ? (@json_decode($content, true) ?: []) : [];
     if (!isset($store[$passId])) {
         return [
+            'ok' => false,
             'valid' => false,
             'code' => 404,
             'error' => 'PassNotFound',
@@ -212,12 +243,13 @@ function grid402_get_session_pass_status(string $token): array {
         ];
     }
 
-    $entry = $store[$passId];
+    $entry = grid402_normalize_pass_entry($store[$passId]);
     $now = time();
     $isExpired = $now > (int)($entry['expires_epoch'] ?? 0);
     $remaining = (int)($entry['credits_remaining'] ?? 0);
 
     return [
+        'ok' => true,
         'valid' => true,
         'service' => 'pass',
         'tier' => $entry['tier'] ?? 'standard',
@@ -227,6 +259,9 @@ function grid402_get_session_pass_status(string $token): array {
         'mode' => $entry['mode'] ?? 'production',
         'credits_total' => (int)($entry['credits_total'] ?? 0),
         'credits_remaining' => $remaining,
+        'credits_used_today' => (int)($entry['credits_used_today'] ?? 0),
+        'daily_credit_limit' => isset($entry['daily_credit_limit']) && $entry['daily_credit_limit'] !== null ? (int)$entry['daily_credit_limit'] : null,
+        'allowed_endpoints' => is_array($entry['allowed_endpoints'] ?? null) ? array_values($entry['allowed_endpoints']) : [],
         'usage_count' => (int)($entry['usage_count'] ?? 0),
         'issued_at' => $entry['issued_at'] ?? null,
         'expires_at' => $entry['expires_at'] ?? null,
@@ -236,9 +271,80 @@ function grid402_get_session_pass_status(string $token): array {
 }
 
 /**
+ * Configura controles de gasto (Spend Controls: daily_credit_limit e allowed_endpoints) de um Session Pass
+ */
+function grid402_update_session_pass_limits(string $token, ?int $dailyCreditLimit, ?array $allowedEndpoints = null): array {
+    $passId = grid402_pass_verify_token_format($token);
+    if ($passId === null) {
+        return [
+            'ok' => false,
+            'valid' => false,
+            'code' => 400,
+            'error' => 'InvalidPassTokenFormat',
+            'message' => 'Token de Session Pass inválido.',
+        ];
+    }
+
+    $file = defined('GRID402_FILE_PASSES') ? GRID402_FILE_PASSES : (GRID402_PRIVATE_DIR . '/session_passes.json');
+    if (!file_exists($file)) {
+        return [
+            'ok' => false,
+            'valid' => false,
+            'code' => 404,
+            'error' => 'PassNotFound',
+            'message' => 'Passe de sessão não encontrado.',
+        ];
+    }
+
+    $fp = fopen($file, 'c+');
+    if (!$fp) {
+        return ['ok' => false, 'valid' => false, 'code' => 500, 'error' => 'StorageError', 'message' => 'Falha ao acessar armazenamento de passes.'];
+    }
+
+    $updated = null;
+    if (flock($fp, LOCK_EX)) {
+        $size = filesize($file);
+        $rawContent = ($size > 0) ? (string) fread($fp, $size) : '';
+        $store = ($rawContent !== '') ? (@json_decode($rawContent, true) ?: []) : [];
+
+        if (isset($store[$passId])) {
+            $entry = grid402_normalize_pass_entry($store[$passId]);
+            if ($dailyCreditLimit !== null) {
+                $entry['daily_credit_limit'] = $dailyCreditLimit > 0 ? $dailyCreditLimit : null;
+            }
+            if ($allowedEndpoints !== null) {
+                $cleanList = [];
+                foreach ($allowedEndpoints as $ep) {
+                    $epClean = strtolower(trim((string)$ep));
+                    if ($epClean !== '') {
+                        $cleanList[] = $epClean;
+                    }
+                }
+                $entry['allowed_endpoints'] = array_values(array_unique($cleanList));
+            }
+            $store[$passId] = $entry;
+
+            ftruncate($fp, 0);
+            rewind($fp);
+            fwrite($fp, (string) json_encode($store, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            fflush($fp);
+            $updated = $entry;
+        }
+        flock($fp, LOCK_UN);
+    }
+    fclose($fp);
+
+    if ($updated === null) {
+        return ['ok' => false, 'valid' => false, 'code' => 404, 'error' => 'PassNotFound', 'message' => 'Passe não encontrado.'];
+    }
+
+    return grid402_get_session_pass_status($token);
+}
+
+/**
  * Valida e debita atomicamente créditos de um Session Pass em uma chamada de API (<15ms)
  */
-function grid402_consume_session_pass(string $token, int $requiredRawUnits = 5000): array {
+function grid402_consume_session_pass(string $token, int $requiredRawUnits = 5000, ?string $endpointId = null): array {
     $passId = grid402_pass_verify_token_format($token);
     if ($passId === null) {
         return [
@@ -248,7 +354,8 @@ function grid402_consume_session_pass(string $token, int $requiredRawUnits = 500
         ];
     }
 
-    $creditsNeeded = max(1, intdiv($requiredRawUnits, 50));
+    // 1 crédito = 0.0050 USDC = 5000 raw units
+    $creditsNeeded = max(1, intdiv($requiredRawUnits, 5000));
     $file = defined('GRID402_FILE_PASSES') ? GRID402_FILE_PASSES : (GRID402_PRIVATE_DIR . '/session_passes.json');
     if (!file_exists($file)) {
         return [
@@ -285,16 +392,36 @@ function grid402_consume_session_pass(string $token, int $requiredRawUnits = 500
                 'reason' => 'Passe de sessão não encontrado ou já expurgado.',
             ];
         } else {
-            $entry = $store[$passId];
+            $entry = grid402_normalize_pass_entry($store[$passId]);
             $now = time();
             $expiresEpoch = (int)($entry['expires_epoch'] ?? 0);
             $remaining = (int)($entry['credits_remaining'] ?? 0);
+            $usedToday = (int)($entry['credits_used_today'] ?? 0);
+            $dailyLimit = isset($entry['daily_credit_limit']) && $entry['daily_credit_limit'] !== null ? (int)$entry['daily_credit_limit'] : null;
+            $allowedEndpoints = is_array($entry['allowed_endpoints'] ?? null) ? $entry['allowed_endpoints'] : [];
 
             if ($now > $expiresEpoch) {
                 $result = [
                     'valid' => false,
                     'code' => 402,
                     'reason' => 'Este Session Pass expirou em ' . ($entry['expires_at'] ?? 'data anterior') . '. Recarregue em /api/v1/pass.',
+                ];
+            } elseif (!empty($allowedEndpoints) && $endpointId !== null && $endpointId !== '' && !in_array(strtolower($endpointId), $allowedEndpoints, true)) {
+                $result = [
+                    'valid' => false,
+                    'code' => 403,
+                    'category' => 'endpoint_restricted',
+                    'error' => 'PassEndpointRestricted',
+                    'reason' => "Este Session Pass possui Spend Control ativo e não está autorizado para o endpoint '{$endpointId}'.",
+                ];
+            } elseif ($dailyLimit !== null && $dailyLimit > 0 && ($usedToday + $creditsNeeded) > $dailyLimit) {
+                $result = [
+                    'valid' => false,
+                    'code' => 429,
+                    'category' => 'daily_limit_exceeded',
+                    'error' => 'PassDailyLimitExceeded',
+                    'retry_after' => max(60, strtotime('tomorrow 00:00:00 UTC') - $now),
+                    'reason' => "Limite diário de gasto (Spend Control) atingido para este Session Pass: usados {$usedToday}/{$dailyLimit} crédito(s) hoje (UTC).",
                 ];
             } elseif ($remaining < $creditsNeeded) {
                 $result = [
@@ -304,6 +431,7 @@ function grid402_consume_session_pass(string $token, int $requiredRawUnits = 500
                 ];
             } else {
                 $entry['credits_remaining'] = $remaining - $creditsNeeded;
+                $entry['credits_used_today'] = $usedToday + $creditsNeeded;
                 $entry['usage_count'] = (int)($entry['usage_count'] ?? 0) + 1;
                 $entry['last_used_at'] = gmdate('Y-m-d\TH:i:s\Z', $now);
                 $store[$passId] = $entry;
@@ -322,6 +450,8 @@ function grid402_consume_session_pass(string $token, int $requiredRawUnits = 500
                     'pass_id' => $passId,
                     'credits_debited' => $creditsNeeded,
                     'credits_remaining' => $entry['credits_remaining'],
+                    'credits_used_today' => $entry['credits_used_today'],
+                    'daily_credit_limit' => $dailyLimit,
                     'code' => 200,
                     'reason' => 'Autenticado instantaneamente via x402 Prepaid Session Pass.',
                 ];

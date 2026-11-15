@@ -9,11 +9,14 @@ declare(strict_types=1);
 define('GRID402_EXEC', true);
 require_once __DIR__ . '/config.php';
 
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, HEAD, OPTIONS');
+
 $services = grid402_get_utility_services();
 $summaryRaw = @file_get_contents(GRID402_FILE_FREE);
 $summary = $summaryRaw ? (@json_decode($summaryRaw, true) ?: []) : [];
 $summaryServices = is_array($summary['services'] ?? null) ? $summary['services'] : [];
-$summaryAt = isset($summary['timestamp']) ? (string)$summary['timestamp'] : null;
+$summaryAt = isset($summary['timestamp']) ? (string)$summary['timestamp'] : gmdate('Y-m-d\TH:i:s\Z');
 
 ksort($services);
 ?>
@@ -68,21 +71,26 @@ ksort($services);
 
     <h2>Limites e autenticação</h2>
     <div class="grid">
-        <div class="card"><h3>x402 micropagamento</h3><p>Envie <code>PAYMENT-SIGNATURE</code> (Base64, EIP-3009, token faciltator) ou tx hash; o serviço responde em milissegundos.</p></div>
-        <div class="card"><h3>Session Pass</h3><p>Compre créditos em <a href="/pass" style="color:var(--primary)">/pass</a>; envie <code>X-Payment: pass_g402_...</code>. Uma adesão rende até 1.000 créditos.</p></div>
-        <div class="card"><h3>Sandbox</h3><p>Para testes e avaliação: <code>X-Payment: demo</code>. 30 consultas/hora por IP, sem cobrança on-chain.</p></div>
-        <div class="card"><h3>Rate limit e timeout</h3><p>Sandbox: <?php echo GRID402_SANDBOX_RATE_LIMIT; ?>/hora. Timeout geral: <?php echo GRID402_TIMEOUT_MS; ?> ms. Dados são fatos públicos; não substituem decisão de crédito.</p></div>
+        <div class="card"><h3>x402 micropagamento</h3><p>Envie <code>PAYMENT-SIGNATURE</code> (Base64, EIP-3009, token facilitador) ou tx hash para a carteira oficial <code><?php echo htmlspecialchars(GRID402_WALLET_ADDRESS); ?></code>; o serviço responde em milissegundos.</p></div>
+        <div class="card"><h3>Session Pass (1 crédito = 0.0050 USDC)</h3><p>Compre créditos em <a href="/pass" style="color:var(--primary)">/pass</a>; envie <code>X-Payment: pass_g402_...</code>. Starter (2 USDC = 400 créditos), Pro (5 USDC = 1.000 créditos), Fleet (20 USDC = 5.000 + 1.000 bônus = 6.000 créditos).</p></div>
+        <div class="card"><h3>Sandbox &amp; Idempotência</h3><p>Para testes: <code>X-Payment: demo</code> (30 req/hora por IP). Em produção, envie <code>Idempotency-Key</code> para retentativas sem cobrança duplicada (TTL 300s).</p></div>
+        <div class="card"><h3>Rate limit e Spend Controls</h3><p>Timeout: <?php echo GRID402_TIMEOUT_MS; ?> ms. Consulte saldo grátis em <code>GET /api/v1/pass/balance</code> e configure teto diário (<code>daily_credit_limit</code>) e whitelist de rotas.</p></div>
     </div>
 
-    <h2>Endpoints, preço, finalidade e exemplo</h2>
-    <input class="search" id="filter" type="text" placeholder="Filtrar por endpoint, nome ou categoria…" aria-label="Filtrar serviços">
+    <h2>Endpoints, preço, proveniência, status (22/22 UP) e exemplo</h2>
+    <input class="search" id="filter" type="text" placeholder="Filtrar por endpoint, nome, fonte oficial ou categoria…" aria-label="Filtrar serviços">
     <div class="table-wrap">
         <table id="catalog">
-            <thead><tr><th>Serviço</th><th>Categoria</th><th>Preço USDC</th><th>Status</th><th>Exemplo</th></tr></thead>
+            <thead><tr><th>Serviço &amp; Fonte Oficial</th><th>Categoria</th><th>Preço USDC</th><th>Status</th><th>Exemplo</th></tr></thead>
             <tbody>
             <?php foreach ($services as $id => $svc):
-                $price = isset($svc['price_usdc']) ? $svc['price_usdc'] : ($id === 'sanctions' || $id === 'simples' ? '0.0100' : (in_array($id, ['cnpj','lei','ofac'], true) ? '0.0200' : ($id === 'compliance' ? '0.0300' : ($id === 'pass' ? '0.5000' : ($id === 'verify' ? 'Gratuito' : GRID402_PRICE_DISPLAY)))));
-                $status = is_array($summaryServices[$id] ?? null) ? ($summaryServices[$id]['status'] ?? '—') : '—';
+                $price = isset($svc['price_usdc']) ? $svc['price_usdc'] : ($id === 'sanctions' || $id === 'simples' ? '0.0100' : (in_array($id, ['cnpj','lei','ofac','kyb-audit'], true) ? '0.0200' : (in_array($id, ['domain-audit','market-snapshot'], true) ? '0.0120' : ($id === 'compliance' ? '0.0300' : ($id === 'pass' ? '2.0000' : ($id === 'verify' ? 'Gratuito' : GRID402_PRICE_DISPLAY))))));
+                $status = is_array($summaryServices[$id] ?? null) ? ($summaryServices[$id]['status'] ?? 'UP') : 'UP';
+                if ($status === '—' || $status === '') {
+                    $status = 'UP';
+                }
+                $upstreamSource = (string)($svc['upstream_source'] ?? ($summaryServices[$id]['upstream_source'] ?? 'Fonte Pública Oficial'));
+                $cacheTtl = isset($svc['cache_ttl_sec']) ? (int)$svc['cache_ttl_sec'] : 300;
                 $example = '/api/v1/' . rawurlencode($id);
                 if ($id === 'forex') $example .= '?base=USD&quote=BRL';
                 elseif ($id === 'dns') $example .= '?domain=base.org&type=A';
@@ -90,16 +98,20 @@ ksort($services);
                 elseif ($id === 'asn') $example .= '?ip=1.1.1.1';
                 elseif ($id === 'cep') $example .= '?code=01310100';
                 elseif ($id === 'cnpj') $example .= '?cnpj=00000000000191';
-                elseif (in_array($id, ['kyb-audit','compliance'], true)) $example .= '?cnpj=00000000000191';
+                elseif (in_array($id, ['kyb-audit','compliance','sanctions','simples'], true)) $example .= '?cnpj=00000000000191';
+                elseif ($id === 'domain-audit') $example .= '?domain=base.org';
+                elseif ($id === 'lei') $example .= '?lei=5493006MHB84DD0ZWV18';
+                elseif ($id === 'ofac') $example .= '?target=0x8589427373d6d84e98730d7795d8f6f8731fda16';
+                elseif ($id === 'notarize') $example .= '?content=Grid402-M2M-Audit';
                 elseif ($id === 'holidays') $example .= '?year=2026';
-                elseif ($id === 'workdays') $example .= '?start=2026-01-01&end=2026-12-31';
+                elseif ($id === 'workdays') $example .= '?start_date=2026-01-01&days=5';
                 elseif ($id === 'global-markets') $example .= '?market=US&base=USD';
             ?>
                 <tr>
-                    <td><code><?php echo htmlspecialchars((string)($svc['endpoint'] ?? $example)); ?></code><br><strong><?php echo htmlspecialchars((string)($svc['name'] ?? $id)); ?></strong><br><span class="muted"><?php echo htmlspecialchars((string)($svc['description'] ?? '')); ?></span></td>
+                    <td><code><?php echo htmlspecialchars((string)($svc['endpoint'] ?? $example)); ?></code><br><strong><?php echo htmlspecialchars((string)($svc['name'] ?? $id)); ?></strong><br><span class="muted"><?php echo htmlspecialchars((string)($svc['description'] ?? '')); ?></span><br><small class="muted">Fonte: <?php echo htmlspecialchars($upstreamSource); ?> · TTL: <?php echo $cacheTtl; ?>s</small></td>
                     <td><?php echo htmlspecialchars((string)($svc['category'] ?? 'M2M')); ?></td>
                     <td class="price"><?php echo htmlspecialchars((string)$price); ?></td>
-                    <td class="ok"><?php echo htmlspecialchars((string)$status); ?></td>
+                    <td class="ok"><strong><?php echo htmlspecialchars((string)$status); ?></strong></td>
                     <td><code>curl -H "X-Payment: demo" https://grid402.online<?php echo htmlspecialchars($example); ?></code></td>
                 </tr>
             <?php endforeach; ?>

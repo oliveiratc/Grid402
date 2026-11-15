@@ -303,7 +303,7 @@ function grid402_mark_transaction_used(string $txHash): bool {
  * 
  * Retorna array ['valid' => bool, 'reason' => string, 'code' => int]
  */
-function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null, ?string $clientIp = null): array {
+function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null, ?string $clientIp = null, ?string $endpointId = null): array {
     // Payload x402 padrao (base64) e sensivel a maiusculas: classifica antes de normalizar
     if (grid402_classify_payment_proof($txHash) === 'x402_payload') {
         $resourceUrl = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '';
@@ -316,7 +316,7 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
     // 0. Verificacao instantanea de Passe de Sessao Pre-pago (pass_g402_...)
     if (str_starts_with($txHash, 'pass_g402_')) {
         require_once __DIR__ . '/services/pass.php';
-        return grid402_consume_session_pass($txHash, $requiredRawUnits ?? GRID402_USDC_REQUIRED_RAW);
+        return grid402_consume_session_pass($txHash, $requiredRawUnits ?? GRID402_USDC_REQUIRED_RAW, $endpointId);
     }
 
     // 1. Verificacao de Modo Sandbox simulado via cabecalho ('demo' ou 'sandbox')

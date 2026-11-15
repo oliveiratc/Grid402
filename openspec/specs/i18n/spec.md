@@ -1,9 +1,12 @@
 # Spec: Internacionalização e Seletor de Idioma (i18n)
 
+## Purpose
+Define o sistema de internacionalização bilíngue (Português e Inglês) da interface pública do Grid402 com detecção de idioma, alternância instantânea no DOM e persistência de preferência do usuário.
+
 ## Requirements
 
 ### Requirement: Seletor de Idioma no Cabeçalho (REQ-I18N-001)
-O cabeçalho da interface pública DEVE conter um seletor acessível permitindo alternar entre Português (`PT`) e Inglês (`EN`), indicando visualmente o idioma ativo e disparando a tradução imediata no DOM sem recarregar a página.
+O cabeçalho da interface pública SHALL conter um seletor acessível permitindo alternar entre Português (`PT`) e Inglês (`EN`), indicando visualmente o idioma ativo e disparando a tradução imediata no DOM sem recarregar a página.
 
 #### Scenario: Alternância para Inglês
 - GIVEN que o usuário está na interface pública do Grid402
@@ -18,7 +21,7 @@ O cabeçalho da interface pública DEVE conter um seletor acessível permitindo 
 ---
 
 ### Requirement: Persistência de Preferência (REQ-I18N-002)
-A preferência de idioma do usuário DEVE ser armazenada em `localStorage` sob a chave `grid402_lang` e restaurada automaticamente em novos acessos, mantendo Português (`pt`) como idioma padrão inicial.
+A preferência de idioma do usuário SHALL ser armazenada em `localStorage` sob a chave `grid402_lang` e restaurada automaticamente em novos acessos, mantendo Português (`pt`) como idioma padrão inicial.
 
 #### Scenario: Primeiro acesso sem preferência salva
 - GIVEN que um usuário novo acessa o site pela primeira vez sem `grid402_lang` definido
@@ -33,7 +36,7 @@ A preferência de idioma do usuário DEVE ser armazenada em `localStorage` sob a
 ---
 
 ### Requirement: Cobertura Completa de Conteúdo, Modais e Card de Conversão x402 (REQ-I18N-003)
-Todos os textos estáticos e dinâmicos da interface pública (Hero, 14 micro-serviços, Calculadora de ROI, Playground, Card de Desbloqueio Web3 x402, Console, Modais e Rodapé) DEVEM possuir versão em português e inglês, sem uso do caractere `&` literal em textos descritivos.
+Todos os textos estáticos e dinâmicos da interface pública (Hero, micro-serviços, Calculadora de ROI, Playground, Card de Desbloqueio Web3 x402, Console, Modais e Rodapé) SHALL possuir versão em português e inglês, sem uso do caractere `&` literal em textos descritivos.
 
 #### Scenario: Abertura de modais e desafio 402 em Inglês
 - GIVEN que o idioma ativo é Inglês (`en`)

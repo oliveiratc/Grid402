@@ -1,15 +1,20 @@
 # robots.txt para Grid402 // Hub de Utilitarios de Rede e Dados Publicos (Protocolo x402)
-# Permissao explicita para Crawlers de Busca, Agentes de IA e Robos Autonomos
-
-Content-Signal: search=yes, ai-train=no
+# Permissao explicita para Crawlers de Busca, Agentes de IA e Robos Autonomos (RFC 9309)
 
 User-agent: *
 Allow: /
 Allow: /status
+Allow: /catalog
+Allow: /trust
+Allow: /pass
+Allow: /agents
 Allow: /api/v1/
 Allow: /llms.txt
+Allow: /llms-full.txt
 Allow: /openapi.json
+Allow: /.well-known/security.txt
 Allow: /.well-known/mcp/server-card.json
+Allow: /.well-known/x402.json
 Allow: /badge/
 Allow: /terms
 Allow: /privacy
@@ -17,14 +22,29 @@ Allow: /about
 Allow: /contact
 Disallow: /private_data/
 
-# Agentes de IA e Modelos de Linguagem (LLM Crawlers)
+# Agentes de IA e Modelos de Linguagem (LLM Crawlers e Web Browsing Tools)
 User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
 Allow: /
 
 User-agent: ClaudeBot
 Allow: /
 
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
 User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
 Allow: /
 
 User-agent: Google-Extended

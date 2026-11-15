@@ -79,6 +79,33 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'grid402_compliance':
         service = 'compliance';
         break;
+      case 'grid402_domain_audit':
+        service = 'domain-audit';
+        break;
+      case 'grid402_kyb_audit':
+        service = 'kyb-audit';
+        break;
+      case 'grid402_market_snapshot':
+        service = 'market-snapshot';
+        break;
+      case 'grid402_lei':
+        service = 'lei';
+        break;
+      case 'grid402_ofac':
+        service = 'ofac';
+        break;
+      case 'grid402_notarize':
+        service = 'notarize';
+        break;
+      case 'grid402_global_markets':
+        service = 'global-markets';
+        break;
+      case 'grid402_pass':
+        service = 'pass';
+        break;
+      case 'grid402_pass_balance':
+        service = 'pass-balance';
+        break;
       case 'grid402_verify':
         service = 'verify';
         break;

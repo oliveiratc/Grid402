@@ -33,13 +33,19 @@ require_once __DIR__ . '/services/indicators.php';
 require_once __DIR__ . '/services/holidays.php';
 require_once __DIR__ . '/services/workdays.php';
 require_once __DIR__ . '/services/compliance.php';
+require_once __DIR__ . '/services/domain_audit.php';
+require_once __DIR__ . '/services/kyb_audit.php';
+require_once __DIR__ . '/services/market_snapshot.php';
 require_once __DIR__ . '/services/lei.php';
 require_once __DIR__ . '/services/ofac.php';
+require_once __DIR__ . '/services/notarize.php';
+require_once __DIR__ . '/services/global_markets.php';
+require_once __DIR__ . '/services/pass.php';
 require_once __DIR__ . '/services/oracle_signer.php';
 
 const MCP_PROTOCOL_VERSION = '2024-11-05';
 const MCP_SERVER_NAME = 'grid402-mcp';
-const MCP_SERVER_VERSION = '1.8.2';
+const MCP_SERVER_VERSION = '1.9.0';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, no-store, must-revalidate');
@@ -171,20 +177,29 @@ function mcp_content_text(array $payload): array {
 
 function mcp_tools_definitions(): array {
     return [
-        ['name' => 'grid402_summary', 'description' => 'Resumo consolidado de saude e disponibilidade dos servicos Grid402 (gratuito).', 'inputSchema' => ['type' => 'object', 'properties' => (object) [], 'required' => []]],
-        ['name' => 'grid402_forex', 'description' => 'Quote rates USD, EUR, GBP to BRL (0.0050 USDC).', 'inputSchema' => ['type' => 'object', 'properties' => ['payment_tx_hash' => ['type' => 'string', 'description' => 'Optional txHash on Base Mainnet proving payment.']], 'required' => []]],
-        ['name' => 'grid402_crypto', 'description' => 'Spot prices BTC, ETH, SOL, USDC, BASE (0.0050 USDC).', 'inputSchema' => ['type' => 'object', 'properties' => ['payment_tx_hash' => ['type' => 'string']], 'required' => []]],
-        ['name' => 'grid402_dns', 'description' => 'Authoritative DNS A, AAAA, MX, TXT, NS, CNAME lookup (0.0050 USDC).', 'inputSchema' => ['type' => 'object', 'properties' => ['domain' => ['type' => 'string']], 'required' => ['domain']]],
-        ['name' => 'grid402_ssl', 'description' => 'Inspect TLS/SSL certificate on port 443 (0.0050 USDC).', 'inputSchema' => ['type' => 'object', 'properties' => ['host' => ['type' => 'string']], 'required' => ['host']]],
-        ['name' => 'grid402_asn', 'description' => 'BGP routing intelligence: ASN, IP block, provider/org, country (0.0050 USDC).', 'inputSchema' => ['type' => 'object', 'properties' => ['ip' => ['type' => 'string']], 'required' => []]],
-        ['name' => 'grid402_cep', 'description' => 'Brazilian CEP: street, neighborhood, municipality, UF, IBGE code (0.0050 USDC).', 'inputSchema' => ['type' => 'object', 'properties' => ['code' => ['type' => 'string', 'description' => 'CEP, ex: 01310100']], 'required' => ['code']]],
-        ['name' => 'grid402_cnpj', 'description' => 'Brazilian CNPJ situacao cadastral, razao social, CNAE, regime (0.0200 USDC).', 'inputSchema' => ['type' => 'object', 'properties' => ['cnpj' => ['type' => 'string']], 'required' => ['cnpj']]],
-        ['name' => 'grid402_indicators', 'description' => 'Selic Meta/Diaria, CDI, IPCA 12m (0.0050 USDC).', 'inputSchema' => ['type' => 'object', 'properties' => (object) [], 'required' => []]],
-        ['name' => 'grid402_holidays', 'description' => 'ANBIMA banking holidays / no-banking-business calendar for a year (0.0050 USDC).', 'inputSchema' => ['type' => 'object', 'properties' => ['year' => ['type' => 'integer']], 'required' => []]],
-        ['name' => 'grid402_workdays', 'description' => 'ANBIMA business-day count and projection between dates (0.0050 USDC).', 'inputSchema' => ['type' => 'object', 'properties' => ['start_date' => ['type' => 'string'], 'end_date' => ['type' => 'string'], 'days' => ['type' => 'integer']], 'required' => []]],
-        ['name' => 'grid402_sanctions', 'description' => 'CEIS/CNEP sanctions lookup by CNPJ (CGU) (0.0100 USDC).', 'inputSchema' => ['type' => 'object', 'properties' => ['cnpj' => ['type' => 'string']], 'required' => ['cnpj']]],
-        ['name' => 'grid402_simples', 'description' => 'Simples Nacional / SIMEI (MEI) enquadramento (0.0100 USDC).', 'inputSchema' => ['type' => 'object', 'properties' => ['cnpj' => ['type' => 'string']], 'required' => ['cnpj']]],
-        ['name' => 'grid402_compliance', 'description' => 'Compliance 360 score (RF + CGU + corporate history), 0-100 (0.0300 USDC).', 'inputSchema' => ['type' => 'object', 'properties' => ['cnpj' => ['type' => 'string']], 'required' => ['cnpj']]],
+        ['name' => 'grid402_summary', 'description' => 'Resumo consolidado de saude e disponibilidade dos 22 servicos Grid402 (gratuito).', 'inputSchema' => ['type' => 'object', 'properties' => (object) [], 'required' => []]],
+        ['name' => 'grid402_forex', 'description' => 'Quote rates USD, EUR, GBP to BRL (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['payment_tx_hash' => ['type' => 'string', 'description' => 'Optional txHash on Base Mainnet proving payment.']], 'required' => []]],
+        ['name' => 'grid402_crypto', 'description' => 'Spot prices BTC, ETH, SOL, USDC, BASE (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['payment_tx_hash' => ['type' => 'string']], 'required' => []]],
+        ['name' => 'grid402_dns', 'description' => 'Authoritative DNS A, AAAA, MX, TXT, NS, CNAME lookup (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['domain' => ['type' => 'string']], 'required' => ['domain']]],
+        ['name' => 'grid402_ssl', 'description' => 'Inspect TLS/SSL certificate on port 443 (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['host' => ['type' => 'string']], 'required' => ['host']]],
+        ['name' => 'grid402_asn', 'description' => 'BGP routing intelligence: ASN, IP block, provider/org, country (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['ip' => ['type' => 'string']], 'required' => []]],
+        ['name' => 'grid402_domain_audit', 'description' => 'Consolidated Domain Audit bundle (DNS + TLS/SSL + BGP/ASN) (0.0150 USDC / 3 credits).', 'inputSchema' => ['type' => 'object', 'properties' => ['domain' => ['type' => 'string']], 'required' => ['domain']]],
+        ['name' => 'grid402_kyb_audit', 'description' => 'Consolidated Corporate KYB Dossier (CNPJ + Simples + Sanctions + Compliance 360) (0.0200 USDC / 4 credits).', 'inputSchema' => ['type' => 'object', 'properties' => ['cnpj' => ['type' => 'string']], 'required' => ['cnpj']]],
+        ['name' => 'grid402_market_snapshot', 'description' => 'Consolidated Financial and Macro Snapshot (Forex + Crypto + Selic/CDI/IPCA + ANBIMA) (0.0150 USDC / 3 credits).', 'inputSchema' => ['type' => 'object', 'properties' => (object) [], 'required' => []]],
+        ['name' => 'grid402_cep', 'description' => 'Brazilian CEP: street, neighborhood, municipality, UF, IBGE code (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['code' => ['type' => 'string', 'description' => 'CEP, ex: 01310100']], 'required' => ['code']]],
+        ['name' => 'grid402_cnpj', 'description' => 'Brazilian CNPJ situacao cadastral, razao social, CNAE, regime (0.0200 USDC / 4 credits).', 'inputSchema' => ['type' => 'object', 'properties' => ['cnpj' => ['type' => 'string']], 'required' => ['cnpj']]],
+        ['name' => 'grid402_indicators', 'description' => 'Selic Meta/Diaria, CDI, IPCA 12m (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => (object) [], 'required' => []]],
+        ['name' => 'grid402_holidays', 'description' => 'ANBIMA banking holidays / no-banking-business calendar for a year (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['year' => ['type' => 'integer']], 'required' => []]],
+        ['name' => 'grid402_workdays', 'description' => 'ANBIMA business-day count and projection between dates (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['start_date' => ['type' => 'string'], 'end_date' => ['type' => 'string'], 'days' => ['type' => 'integer']], 'required' => []]],
+        ['name' => 'grid402_sanctions', 'description' => 'CEIS/CNEP sanctions lookup by CNPJ (CGU) (0.0100 USDC / 2 credits).', 'inputSchema' => ['type' => 'object', 'properties' => ['cnpj' => ['type' => 'string']], 'required' => ['cnpj']]],
+        ['name' => 'grid402_simples', 'description' => 'Simples Nacional / SIMEI (MEI) enquadramento (0.0100 USDC / 2 credits).', 'inputSchema' => ['type' => 'object', 'properties' => ['cnpj' => ['type' => 'string']], 'required' => ['cnpj']]],
+        ['name' => 'grid402_compliance', 'description' => 'Compliance 360 score (RF + CGU + corporate history), 0-100 (0.0300 USDC / 6 credits).', 'inputSchema' => ['type' => 'object', 'properties' => ['cnpj' => ['type' => 'string']], 'required' => ['cnpj']]],
+        ['name' => 'grid402_lei', 'description' => 'Global Corporate Identity (ISO 17442) via GLEIF across 200+ jurisdictions (0.0200 USDC / 4 credits).', 'inputSchema' => ['type' => 'object', 'properties' => ['lei' => ['type' => 'string']], 'required' => ['lei']]],
+        ['name' => 'grid402_ofac', 'description' => 'Global Sanctions (OFAC SDN / UN) and Base Mainnet EVM wallet AML inspection (0.0200 USDC / 4 credits).', 'inputSchema' => ['type' => 'object', 'properties' => ['target' => ['type' => 'string']], 'required' => ['target']]],
+        ['name' => 'grid402_notarize', 'description' => 'M2M Cryptographic Timestamp and SHA-256 Proof-of-Existence signed with ECDSA secp256k1 (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['content' => ['type' => 'string']], 'required' => ['content']]],
+        ['name' => 'grid402_global_markets', 'description' => 'World Exchange Settlement Calendar (US, EU, UK, BR) and 30+ ECB FX Reference Rates (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['market' => ['type' => 'string'], 'base' => ['type' => 'string'], 'date' => ['type' => 'string']], 'required' => []]],
+        ['name' => 'grid402_pass', 'description' => 'x402 Prepaid Session Pass issuance (Starter 2 USDC = 400 credits, Pro 5 USDC = 1,000 credits, Fleet 20 USDC = 6,000 credits) or status check.', 'inputSchema' => ['type' => 'object', 'properties' => ['status' => ['type' => 'string']], 'required' => []]],
+        ['name' => 'grid402_pass_balance', 'description' => 'Free Session Pass balance and Spend Controls telemetry (free).', 'inputSchema' => ['type' => 'object', 'properties' => ['token' => ['type' => 'string']], 'required' => ['token']]],
         ['name' => 'grid402_verify', 'description' => 'Stateless verification of an _oracle_proof ECDSA signature (free).', 'inputSchema' => ['type' => 'object', 'properties' => ['payload' => ['type' => 'object', 'description' => 'JSON object with the _oracle_proof block to verify']], 'required' => ['payload']]],
     ];
 }
@@ -232,12 +247,21 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
         mcp_result($responseId, mcp_content_text(array_merge($verification, ['verification_time_ms' => $elapsedMs, 'status' => !empty($verification['valid']) ? 'AUTHENTIC_ORACLE_DATA' : 'VERIFICATION_FAILED'])));
     }
 
+    if ($tool === 'grid402_pass_balance') {
+        $token = trim((string)($arguments['token'] ?? ''));
+        $statusRes = grid402_get_session_pass_status($token);
+        mcp_result($responseId, mcp_content_text($statusRes));
+    }
+
     $map = [
         'grid402_forex' => ['forex', null, 5000],
         'grid402_crypto' => ['crypto', null, 5000],
         'grid402_dns' => ['dns', 'domain', 5000],
         'grid402_ssl' => ['ssl', 'host', 5000],
         'grid402_asn' => ['asn', 'ip', 5000],
+        'grid402_domain_audit' => ['domain-audit', 'domain', 15000],
+        'grid402_kyb_audit' => ['kyb-audit', 'cnpj', 20000],
+        'grid402_market_snapshot' => ['market-snapshot', null, 15000],
         'grid402_cep' => ['cep', 'code', 5000],
         'grid402_cnpj' => ['cnpj', 'cnpj', 20000],
         'grid402_indicators' => ['indicators', null, 5000],
@@ -246,6 +270,11 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
         'grid402_sanctions' => ['sanctions', 'cnpj', 10000],
         'grid402_simples' => ['simples', 'cnpj', 10000],
         'grid402_compliance' => ['compliance', 'cnpj', 30000],
+        'grid402_lei' => ['lei', 'lei', 20000],
+        'grid402_ofac' => ['ofac', 'target', 20000],
+        'grid402_notarize' => ['notarize', 'content', 5000],
+        'grid402_global_markets' => ['global-markets', null, 5000],
+        'grid402_pass' => ['pass', null, 2000000],
     ];
     if (!isset($map[$tool])) {
         mcp_error($responseId, -32602, 'UnknownTool', ['tool' => $tool]);
@@ -294,6 +323,18 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
         'sanctions' => grid402_service_sanctions((string)$arguments['cnpj']),
         'simples' => grid402_service_simples((string)$arguments['cnpj']),
         'compliance' => grid402_service_compliance((string)$arguments['cnpj']),
+        'domain-audit' => grid402_service_domain_audit((string)$arguments['domain']),
+        'kyb-audit' => grid402_service_kyb_audit((string)$arguments['cnpj']),
+        'market-snapshot' => grid402_service_market_snapshot(),
+        'lei' => grid402_service_lei((string)$arguments['lei']),
+        'ofac' => grid402_service_ofac((string)$arguments['target']),
+        'notarize' => grid402_service_notarize((string)$arguments['content']),
+        'global-markets' => grid402_service_global_markets(
+            isset($arguments['market']) ? (string)$arguments['market'] : null,
+            isset($arguments['base']) ? (string)$arguments['base'] : null,
+            isset($arguments['date']) ? (string)$arguments['date'] : null
+        ),
+        'pass' => !empty($arguments['status']) ? grid402_get_session_pass_status((string)$arguments['status']) : grid402_issue_session_pass('mcp_' . bin2hex(random_bytes(8)), (int)$rawCost),
         default => ['code' => 500, 'error' => 'ToolDispatchMissing'],
     };
     mcp_result($responseId, mcp_content_text(is_array($result) ? $result : ['result' => $result]));

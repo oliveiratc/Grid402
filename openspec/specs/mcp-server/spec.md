@@ -14,12 +14,12 @@ O servidor MCP SHALL responder a requisições JSON-RPC de inicialização e lis
 - **THEN** o servidor SHALL retornar 8 ferramentas registradas (`grid402_summary`, `grid402_forex`, `grid402_crypto`, `grid402_dns`, `grid402_ssl`, `grid402_asn`, `grid402_cep`, `grid402_cnpj`) com seus respectivos schemas.
 
 ### Requirement: Execução de Consulta Gratuita
-O servidor MCP SHALL executar consultas gratuitas sem exigir chave de carteira.
+O servidor MCP SHALL executar consultas gratuitas (`grid402_summary`, `grid402_verify` e `grid402_pass_balance`) sem exigir chave privada de carteira.
 
 #### Scenario: Execução da ferramenta summary
 - GIVEN o servidor MCP conectado ao endpoint do Grid402
 - WHEN o cliente invoca `grid402_summary`
-- THEN o servidor SHALL retornar status 200 OK com o resumo consolidado de saúde dos 6 micro-serviços.
+- THEN o servidor SHALL retornar status 200 OK com o resumo consolidado de saúde dos 22 serviços do catálogo.
 
 ### Requirement: Liquidação Automática com Chave Privada
 Quando uma chave privada for informada na variável de ambiente `GRID402_PRIVATE_KEY` e a rota exigir pagamento x402, o servidor SHALL transferir 0.0005 USDC na Base Mainnet, obter o hash da transação e refazer a consulta com o cabeçalho `X-Payment`.
@@ -126,3 +126,11 @@ O pacote `grid402-mcp` SHALL ser atualizado para a versao `1.6.0` empacotando as
 - GIVEN o servidor MCP em execucao via `node index.mjs`
 - WHEN o cliente envia uma requisicao `tools/list`
 - THEN o servidor SHALL retornar 12 ferramentas registradas, incluindo `grid402_indicators`, `grid402_holidays`, `grid402_workdays` e `grid402_verify`.
+
+### Requirement: Ferramentas MCP para Catálogo Completo de Compliance, Mercados e Governança M2M
+O servidor MCP (`grid402-mcp`) SHALL expor definições formais de ferramentas em `mcp/tools.mjs` cobrindo todo o catálogo do Grid402 (incluindo `grid402_simples`, `grid402_sanctions`, `grid402_compliance`, `grid402_kyb`, `grid402_lei`, `grid402_ofac`, `grid402_domain_audit`, `grid402_global_markets`, `grid402_market_snapshot`, `grid402_notarize` e `grid402_pass_balance`), com descrições fidedignas e preços alinhados (`0.0050 a 0.0300 USDC`).
+
+#### Scenario: Listagem completa de ferramentas no servidor MCP
+- **GIVEN** o servidor MCP inicializado via `node mcp/index.mjs`
+- **WHEN** um cliente MCP envia `tools/list`
+- **THEN** o servidor SHALL retornar todas as ferramentas correspondentes aos serviços do catálogo sem descrições truncadas ou trocadas (ex.: `grid402_ssl` descrita exclusivamente como inspeção TLS/SSL e `grid402_cep` como consulta postal).

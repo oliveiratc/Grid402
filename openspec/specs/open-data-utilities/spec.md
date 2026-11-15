@@ -72,11 +72,11 @@ O sistema SHALL resolver endereços postais públicos brasileiros e código IBGE
 - **THEN** o sistema retorna HTTP 402 com chave `preview` contendo `cep`, `cidade` e `uf`, e chave `locked_fields` listando `bairro`, `logradouro`, `complemento`, `ddd` e `ibge`
 
 ### Requirement: Free tier summary aggregation
-O sistema SHALL disponibilizar um resumo público consolidado de status dos utilitários sem exigir autenticação ou pagamento.
+O sistema SHALL disponibilizar um resumo público consolidado de status operacional cobrindo todos os **22 serviços** do catálogo em `/status` e `/catalog` sem exigir autenticação ou pagamento, incluindo o histórico de disponibilidade dos últimos 30 dias (`uptime_30d`).
 
 #### Scenario: Querying free utilities summary
-- **WHEN** um cliente consulta `/api/v1/summary` ou `/status` com `Accept: application/json`
-- **THEN** o sistema retorna HTTP 200 com o status operacional dos 6 utilitários e dados agregados de cotação
+- **WHEN** um cliente consulta `/api/v1/summary`, `/status` ou `/catalog` com `Accept: application/json` ou via navegador
+- **THEN** o sistema retorna HTTP 200 exibindo o status operacional verificado (`"UP"`) para todos os 22 serviços do catálogo, dados agregados de cotação e o resumo de disponibilidade histórica de 30 dias.
 
 ### Requirement: Consulta Cadastral de CNPJ da Pessoa Jurídica
 O sistema SHALL disponibilizar a consulta de situação cadastral e atributos públicos da Pessoa Jurídica a partir de um número de CNPJ de 14 dígitos, fornecendo amostra parcial no desafio 402 para estímulo de conversão.
@@ -212,3 +212,11 @@ O sistema SHALL calcular um score consolidado de conformidade e integridade empr
 - **GIVEN** um CNPJ com sanção punitiva ou situação inativa
 - **WHEN** uma requisição é enviada para `/api/v1/compliance?cnpj=<cnpj>` com autorização válida
 - **THEN** o sistema retorna HTTP 200 com `score` inferior a 50, `status: "REJEITADO"` e apontamentos específicos no array de flags
+
+### Requirement: Metadados de Proveniência e Frescor nas Respostas (`_meta`)
+O sistema SHALL incluir em todas as respostas HTTP 200 dos serviços de dados um objeto estruturado `_meta` contendo `upstream_source` (fonte oficial de origem), `fetched_at` (timestamp ISO 8601 da coleta), `cache_ttl_sec` (tempo de vida configurado do cache) e `operator`, assinado conjuntamente pelo bloco `_oracle_proof`.
+
+#### Scenario: Resposta paga inclui bloco _meta assinado
+- **GIVEN** uma requisição paga ou em modo sandbox para qualquer serviço de dados (ex.: `/api/v1/cnpj` ou `/api/v1/forex`)
+- **WHEN** o servidor entrega a resposta com HTTP 200
+- **THEN** o JSON retornado SHALL conter a chave `_meta` com `upstream_source`, `fetched_at` e `cache_ttl_sec`, e a verificação em `/api/v1/verify` SHALL validar a integridade do payload completo incluindo `_meta`.

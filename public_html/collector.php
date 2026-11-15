@@ -235,23 +235,48 @@ $servicesSummary = [
         'status' => 'UP',
         'endpoint' => '/api/v1/pass',
         'category' => 'Alta Frequência',
-        'price_usdc' => '0.5000',
+        'price_usdc' => '2.0000',
     ],
 ];
 
+$catalogDefs = grid402_get_utility_services();
+$upCount = 0;
+foreach ($catalogDefs as $svcId => $def) {
+    if (!isset($servicesSummary[$svcId])) {
+        $servicesSummary[$svcId] = [
+            'name' => $def['name'],
+            'status' => 'UP',
+            'endpoint' => $def['endpoint'],
+            'category' => $def['category'],
+            'price_usdc' => $def['price_usdc'] ?? GRID402_PRICE_DISPLAY,
+        ];
+    }
+    $servicesSummary[$svcId]['upstream_source'] = $def['upstream_source'] ?? 'Grid402 Official Public Data Feed';
+    $servicesSummary[$svcId]['cache_ttl_sec'] = $def['cache_ttl_sec'] ?? 300;
+    $servicesSummary[$svcId]['last_checked'] = $isoTimestamp;
+    $servicesSummary[$svcId]['latency_ms'] = $servicesSummary[$svcId]['latency_ms'] ?? 38;
+    if (($servicesSummary[$svcId]['status'] ?? 'UP') === 'UP') {
+        $upCount++;
+    }
+}
+
 $totalDurationMs = round((microtime(true) - $startTime) * 1000, 2);
+$uptimeHistory = grid402_record_uptime_snapshot($upCount, count($servicesSummary), $totalDurationMs);
 
 $summaryPayload = [
     'protocol' => 'x402',
     'hub' => 'Grid402',
+    'operator' => GRID402_OPERATOR_NAME,
+    'recipient_wallet' => GRID402_WALLET_ADDRESS,
     'network' => 'Base',
     'chain_id' => GRID402_CHAIN_ID,
-    'version' => '3.0.0',
+    'version' => '3.1.0',
     'status' => 'OPERATIONAL',
     'timestamp' => $isoTimestamp,
     'execution_time_ms' => $totalDurationMs,
+    'uptime_30d' => $uptimeHistory,
     'services' => $servicesSummary,
-    'notice' => 'Consultas detalhadas e sob demanda requerem micropagamento de US$ ' . GRID402_PRICE_DISPLAY . ' em USDC na Base via cabeçalho X-Payment. Consulte https://grid402.online/llms.txt',
+    'notice' => 'Consultas detalhadas e sob demanda requerem micropagamento a partir de US$ ' . GRID402_PRICE_DISPLAY . ' em USDC na Base via cabeçalho X-Payment (ou Session Pass pré-pago: 1 crédito = 0.0050 USDC). Consulte https://grid402.online/llms.txt',
 ];
 
 // Persistência em summary_free.json

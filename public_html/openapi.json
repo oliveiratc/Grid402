@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Grid402 // Global M2M Open Data & Network Utilities Hub",
-    "version": "3.0.0",
+    "version": "3.1.0",
     "description": "High-performance autonomous M2M public data, global compliance (GLEIF LEI, OFAC SDN, Web3 AML), cryptographic notarization, world markets (ECB), and network utilities oracle designed for AI agents, crawlers, and automation pipelines. Settled via the x402 protocol with Base Mainnet USDC micropayments or Prepaid Session Passes (<15ms).",
     "contact": {
       "name": "Grid402 Support",
@@ -55,7 +55,7 @@
     "/api/v1/summary": {
       "get": {
         "summary": "Consolidated Hub Status e Market Summary (Free)",
-        "description": "Returns operational health and latest cached sample metrics across all 6 micro-services. Zero payment required.",
+        "description": "Returns operational health and latest cached sample metrics across all 22 micro-services. Zero payment required.",
         "tags": ["Free"],
         "responses": {
           "200": {
@@ -683,7 +683,7 @@
     "/api/v1/pass": {
       "get": {
         "summary": "x402 Prepaid Session Pass Issuance & Free Balance Check",
-        "description": "Issues a signed pass_g402_<id>_<hmac> token when paid via X-Payment (0.5000 USDC = 100 credits, 0.5000 USDC = 1,000 credits), or checks remaining credits for free via ?status=pass_g402_...",
+        "description": "Issues a signed pass_g402_<id>_<hmac> token when paid via X-Payment (Starter 2.0000 USDC = 400 credits, Pro 5.0000 USDC = 1,000 credits, Fleet 20.0000 USDC = 6,000 credits; 1 credit = 0.0050 USDC), or checks remaining credits for free via ?status=pass_g402_...",
         "tags": ["Session-Pass"],
         "parameters": [
           {
@@ -703,6 +703,84 @@
               }
             }
           },
+          "402": { "$ref": "#/components/responses/PaymentRequired" }
+        }
+      }
+    },
+    "/api/v1/pass/balance": {
+      "get": {
+        "summary": "Session Pass Balance & Spend Controls Telemetry (Free)",
+        "description": "Returns remaining credits, expiration timestamp, and active M2M Spend Controls (daily_credit_limit, credits_used_today, allowed_endpoints) for a Session Pass token at zero cost.",
+        "tags": ["Session-Pass", "Free"],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "description": "Session Pass token (pass_g402_...) or pass via X-Payment header",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session Pass balance and spend control telemetry",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SessionPassResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/domain-audit": {
+      "get": {
+        "summary": "Consolidated Domain Infrastructure Bundle (DNS + SSL + ASN)",
+        "description": "Single-call domain audit bundling authoritative DNS records, port 443 TLS/SSL certificate inspection, and BGP ASN routing intelligence. Price: 0.0150 USDC (3 Session Pass credits).",
+        "tags": ["DNS", "SSL", "ASN"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "domain",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "example": "base.org" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Consolidated domain audit report with ECDSA oracle proof" },
+          "402": { "$ref": "#/components/responses/PaymentRequired" }
+        }
+      }
+    },
+    "/api/v1/kyb-audit": {
+      "get": {
+        "summary": "Consolidated Corporate KYB Dossier (CNPJ + Simples + Sanctions + Score 360)",
+        "description": "Single-call corporate due diligence dossier combining Receita Federal CNPJ registration, Simples Nacional/MEI regime, CGU CEIS/CNEP sanctions, and Compliance Score 360. Price: 0.0200 USDC (4 Session Pass credits).",
+        "tags": ["CNPJ", "Compliance"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "cnpj",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "example": "00000000000191" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Consolidated KYB dossier with ECDSA oracle proof" },
+          "402": { "$ref": "#/components/responses/PaymentRequired" }
+        }
+      }
+    },
+    "/api/v1/market-snapshot": {
+      "get": {
+        "summary": "Consolidated Macro & Financial Snapshot (Forex + Crypto + BCB + ANBIMA)",
+        "description": "Single-call financial snapshot combining fiat FX rates, spot crypto tickers, BCB/IBGE Selic/CDI/IPCA indicators, and ANBIMA banking workday status. Price: 0.0150 USDC (3 Session Pass credits).",
+        "tags": ["Forex", "Crypto", "Indicators"],
+        "security": [{ "x402Payment": [] }],
+        "responses": {
+          "200": { "description": "Consolidated market snapshot with ECDSA oracle proof" },
           "402": { "$ref": "#/components/responses/PaymentRequired" }
         }
       }
@@ -845,7 +923,7 @@
           "token": { "type": "string", "example": "USDC" },
           "token_contract": { "type": "string", "example": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" },
           "price_usdc": { "type": "string", "example": "0.0050" },
-          "price_raw_units": { "type": "integer", "example": 500 },
+          "price_raw_units": { "type": "integer", "example": 5000 },
           "recipient_wallet": { "type": "string", "example": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" },
           "action_required": { "type": "string" },
           "docs": { "type": "string", "example": "https://grid402.online/llms.txt" }
@@ -1210,8 +1288,11 @@
           "service": { "type": "string", "example": "pass" },
           "status": { "type": "string", "example": "ACTIVE" },
           "session_pass": { "type": "string", "example": "pass_g402_a1b2c3d4e5f6_9f8e7d6c5b4a" },
-          "credits_total": { "type": "integer", "example": 100 },
-          "credits_remaining": { "type": "integer", "example": 100 },
+          "credits_total": { "type": "integer", "example": 400 },
+          "credits_remaining": { "type": "integer", "example": 400 },
+          "daily_credit_limit": { "type": "integer", "nullable": true, "example": 100 },
+          "credits_used_today": { "type": "integer", "example": 12 },
+          "allowed_endpoints": { "type": "array", "nullable": true, "items": { "type": "string" } },
           "expires_at": { "type": "string", "format": "date-time" },
           "usage_header": { "type": "string", "example": "X-Payment: pass_g402_..." },
           "_oracle_proof": { "$ref": "#/components/schemas/OracleProof" }

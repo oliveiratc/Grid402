@@ -124,14 +124,14 @@ $isSandbox = grid402_mp_is_sandbox();
                 <div class="tag"><?php echo htmlspecialchars($pkg['label'], ENT_QUOTES, 'UTF-8'); ?></div>
                 <div class="price">R$ <?php echo number_format((float) $pkg['amount_brl'], 2, ',', '.'); ?></div>
                 <div class="price-sub">ou <?php echo (int) ($pkg['raw_usdc_units'] / 1000000); ?> USDC na Base</div>
-                <div class="credits"><?php echo number_format((int) $pkg['credits'], 0, '', '.'); ?> requisições</div>
+                <div class="credits"><?php echo number_format((int) $pkg['credits'], 0, '', '.'); ?> créditos (<?php echo number_format((int) $pkg['credits'], 0, '', '.'); ?> req padrão)</div>
                 <p class="desc">
                     <?php if ($tier === 'starter'): ?>
-                        Ideal para desenvolvedores individuais, testes rápidos e bots pontuais. Validade 30 dias.
+                        Ideal para desenvolvedores individuais, testes rápidos e bots pontuais (1 crédito = 0.0050 USDC). Validade 30 dias.
                     <?php elseif ($tier === 'pro'): ?>
-                        Para agentes autônomos de IA e esteiras de automação contínua. Mais escolhido. Validade 30 dias.
+                        Para agentes autônomos de IA e esteiras de automação contínua (1 crédito = 0.0050 USDC). Mais escolhido. Validade 30 dias.
                     <?php else: ?>
-                        Frotas de agentes, sistemas ERP corporativos e alta demanda (inclui 10.000 bônus). Validade 60 dias.
+                        Frotas de agentes, sistemas ERP corporativos e alta demanda (5.000 + 1.000 bônus = 6.000 créditos). Validade 60 dias.
                     <?php endif; ?>
                 </p>
             </div>

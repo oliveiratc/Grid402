@@ -1,0 +1,6 @@
+Contact: mailto:contato@grid402.online
+Contact: https://github.com/oliveiratc/Grid402/security
+Expires: 2027-12-31T23:59:59.000Z
+Preferred-Languages: pt-BR, en
+Canonical: https://grid402.online/.well-known/security.txt
+Policy: https://grid402.online/trust

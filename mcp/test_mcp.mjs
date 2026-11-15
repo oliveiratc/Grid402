@@ -10,8 +10,8 @@ async function runTests() {
   console.log('=== Testando Servidor MCP Grid402 ===\n');
 
   // 1. Validação de Schemas das Ferramentas
-  console.log('[1/6] Validando registro e schemas das 15 ferramentas MCP...');
-  assert.strictEqual(MCP_TOOLS_DEFINITIONS.length, 15, 'Deve conter exatamente 15 ferramentas registradas');
+  console.log('[1/6] Validando registro e schemas das 24 ferramentas MCP...');
+  assert.strictEqual(MCP_TOOLS_DEFINITIONS.length, 24, 'Deve conter exatamente 24 ferramentas registradas');
 
   const toolNames = MCP_TOOLS_DEFINITIONS.map(t => t.name);
   const expectedTools = [
@@ -21,6 +21,9 @@ async function runTests() {
     'grid402_dns',
     'grid402_ssl',
     'grid402_asn',
+    'grid402_domain_audit',
+    'grid402_kyb_audit',
+    'grid402_market_snapshot',
     'grid402_cep',
     'grid402_cnpj',
     'grid402_indicators',
@@ -29,13 +32,19 @@ async function runTests() {
     'grid402_sanctions',
     'grid402_simples',
     'grid402_compliance',
+    'grid402_lei',
+    'grid402_ofac',
+    'grid402_notarize',
+    'grid402_global_markets',
+    'grid402_pass',
+    'grid402_pass_balance',
     'grid402_verify',
   ];
 
   for (const expected of expectedTools) {
     assert.ok(toolNames.includes(expected), `Ferramenta ${expected} deve estar presente`);
   }
-  console.log('  ✓ Todas as 15 ferramentas MCP validadas com sucesso!');
+  console.log('  ✓ Todas as 24 ferramentas MCP validadas com sucesso!');
 
   // 2. Teste de Consulta Gratuita (summary)
   console.log('\n[2/5] Testando consulta à ferramenta gratuita grid402_summary...');

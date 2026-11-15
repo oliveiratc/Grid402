@@ -41,7 +41,7 @@ const GRID402_I18N = {
         'topup.pro.tag': 'Pro / Agent Pass',
         'topup.pro.desc': 'Para agentes autônomos de IA e esteiras de automação contínua.',
         'topup.pro.btn': 'Comprar Pro (5 USDC)',
-        'topup.fleet.badge': '+10.000 Bônus',
+        'topup.fleet.badge': '+1.000 Bônus',
         'topup.fleet.tag': 'Fleet / Enterprise',
         'topup.fleet.desc': 'Frotas de agentes autônomos, sistemas ERP corporativos e alta demanda.',
         'topup.fleet.btn': 'Comprar Fleet (20 USDC)',
@@ -103,7 +103,7 @@ const GRID402_I18N = {
         'svc.global-markets.desc': 'Calendário de liquidação de bolsas (US NYSE/Fed, EU TARGET2, UK LSE, BR B3) + 30+ moedas oficiais do Banco Central Europeu',
         'svc.pass.name': 'x402 Prepaid Session Pass',
         'svc.pass.category': 'Alta Frequência',
-        'svc.pass.desc': 'Compre 100 a 1.000 créditos pré-pagos em 1 transação USDC na Base e execute chamadas em <15ms sem aguardar blocos',
+        'svc.pass.desc': 'Compre 400 a 6.000 créditos pré-pagos (1 crédito = 0.0050 USDC) em 1 transação USDC na Base e execute chamadas em <15ms sem aguardar blocos',
 
         // ROI Comparador
         'roi.tag': 'Redução Real de Custos para Startups e Agentes',
@@ -347,7 +347,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'agents.f2.title': 'Oráculo Criptográfico',
         'agents.f2.desc': 'Cada resposta inclui assinatura digital ECDSA secp256k1 determinística (chave _oracle_proof), verificável sem estado em menos de 1 ms.',
         'agents.f3.title': 'x402 Session Pass (<15ms)',
-        'agents.f3.desc': 'Compre 100 a 1.000 créditos em uma única transação USDC na Base e execute chamadas M2M de alta frequência em menos de 15ms sem aguardar blocos.',
+        'agents.f3.desc': 'Compre 400 a 6.000 créditos (1 crédito = 0.0050 USDC) em uma única transação USDC na Base e execute chamadas M2M de alta frequência em menos de 15ms sem aguardar blocos.',
         'agents.s1.title': '1. Integração com Model Context Protocol (MCP)',
         'agents.s1.sub': 'Adicione todas as 22 ferramentas globais e brasileiras ao Claude Desktop ou Cursor com 1 clique.',
         'agents.s2.title': '2. Código Python para Agentes Autônomos',
@@ -466,7 +466,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'topup.pro.tag': 'Pro / Agent Pass',
         'topup.pro.desc': 'For autonomous AI agents and continuous automation pipelines.',
         'topup.pro.btn': 'Buy Pro (5 USDC)',
-        'topup.fleet.badge': '+10,000 Bonus',
+        'topup.fleet.badge': '+1,000 Bonus',
         'topup.fleet.tag': 'Fleet / Enterprise',
         'topup.fleet.desc': 'Autonomous agent fleets, enterprise ERPs, and heavy-duty pipelines.',
         'topup.fleet.btn': 'Buy Fleet (20 USDC)',
@@ -528,7 +528,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'svc.global-markets.desc': 'Global exchange settlement calendar (US NYSE/Fed, EU TARGET2, UK LSE, BR B3) + 30+ official ECB reference currencies',
         'svc.pass.name': 'x402 Prepaid Session Pass',
         'svc.pass.category': 'High Frequency',
-        'svc.pass.desc': 'Purchase 100 to 1,000 prepaid credits in 1 USDC transaction on Base and execute sub-15ms calls with zero block wait',
+        'svc.pass.desc': 'Purchase 400 to 6,000 prepaid credits (1 credit = 0.0050 USDC) in 1 USDC transaction on Base and execute sub-15ms calls with zero block wait',
 
         // ROI Comparator
         'roi.tag': 'Real Cost Reduction for Startups and Autonomous Agents',
@@ -772,7 +772,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'agents.f2.title': 'Cryptographic Oracle',
         'agents.f2.desc': 'Every response carries a deterministic secp256k1 ECDSA digital signature (_oracle_proof), verifiable statelessly in under 1 ms.',
         'agents.f3.title': 'x402 Session Pass (<15ms)',
-        'agents.f3.desc': 'Purchase 100 to 1,000 prepaid credits in a single Base USDC transaction and execute high-frequency M2M calls in under 15ms with zero block wait.',
+        'agents.f3.desc': 'Purchase 400 to 6,000 prepaid credits (1 credit = 0.0050 USDC) in a single Base USDC transaction and execute high-frequency M2M calls in under 15ms with zero block wait.',
         'agents.s1.title': '1. Model Context Protocol (MCP) Integration',
         'agents.s1.sub': 'Add all 22 global and regional oracle tools to Claude Desktop or Cursor in 1 click.',
         'agents.s2.title': '2. Python Code for Autonomous Agents',
@@ -890,7 +890,7 @@ const playgroundPresets_en = {
     },
     pass: {
         name: 'x402 Session Pass',
-        desc: 'Prepaid M2M credit pass (100 to 1,000 calls) for sub-15ms execution with zero block wait.',
+        desc: 'Prepaid M2M credit pass (400 to 6,000 credits; 1 credit = 0.0050 USDC) for sub-15ms execution with zero block wait.',
         params: [
             { key: 'status', label: 'Check Existing Pass (optional)', value: '' }
         ]

@@ -1,10 +1,15 @@
-name: CI - Grid402 Test Suite
+name: CI - Grid402 Test Suite & Provenance
 
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
+
+permissions:
+  contents: read
+  id-token: write
 
 jobs:
   test-php:
@@ -47,6 +52,12 @@ jobs:
       - name: Run Master E2E Full Battery
         run: php tests/test_e2e_full.php
 
+      - name: Verify Zero-DB Storage Integrity
+        run: php scripts/verify_storage_integrity.php
+
+      - name: Run Platform Maturity & M2M Controls Suite
+        run: php tests/test_maturity_and_m2m_controls.php
+
   test-sdks:
     name: Client SDKs Tests
     runs-on: ubuntu-latest
@@ -71,4 +82,31 @@ jobs:
 
       - name: Test Node.js SDK
         run: node sdk/node/test_sdk.mjs
+
+  publish-provenance:
+    name: Supply-Chain Provenance Attestation (npm & PyPI OIDC)
+    runs-on: ubuntu-latest
+    needs: [test-php, test-sdks]
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js with Registry OIDC Provenance
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Publish npm packages with SLSA Provenance
+        if: env.NODE_AUTH_TOKEN != ''
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm publish ./mcp --provenance --access public
+          npm publish ./sdk/node --provenance --access public
+          npm publish ./integrations/elizaos --provenance --access public
 

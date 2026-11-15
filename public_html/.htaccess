@@ -28,8 +28,8 @@ ServerSignature Off
     <IfModule mod_headers.c>
         Header set Access-Control-Allow-Origin "*"
         Header set Access-Control-Allow-Methods "GET, OPTIONS"
-        Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Payment"
-        Header set Access-Control-Expose-Headers "WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Payment-Required, payment-required"
+        Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Payment, Idempotency-Key"
+        Header set Access-Control-Expose-Headers "WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Payment-Required, payment-required, X-Idempotent-Replay"
     </IfModule>
 </FilesMatch>
 
@@ -70,8 +70,9 @@ ServerSignature Off
     RewriteRule ^api/v1/domain-audit/?$ index.php?api=domain-audit [QSA,L]
     RewriteRule ^api/v1/kyb-audit/?$ index.php?api=kyb-audit [QSA,L]
     RewriteRule ^api/v1/market-snapshot/?$ index.php?api=market-snapshot [QSA,L]
-    # Web3 Top-Up e Checkout Mercado Pago para Session Pass
+    # Web3 Top-Up, Spend Controls e Checkout Mercado Pago para Session Pass
     RewriteRule ^api/v1/pass-emitir/?$ index.php?api=pass-emitir [QSA,L]
+    RewriteRule ^api/v1/pass/(balance|limits)/?$ index.php?api=pass-$1 [QSA,L]
     RewriteRule ^api/v1/pass/mp-(pix|checkout|webhook|status|sandbox-approve)/?$ index.php [QSA,L]
     RewriteRule ^api/v1/cep/?$ index.php?api=cep [QSA,L]
     RewriteRule ^api/v1/cnpj/?$ index.php?api=cnpj [QSA,L]

@@ -43,7 +43,8 @@
 - [Global Sanctions (OFAC/UN) e Web3 AML API](https://grid402.online/api/v1/ofac?target=0x8589427373d6d84e98730d7795d8f6f8731fda16): Screening global em listas OFAC SDN (US Treasury) e ONU + inspecao AML on-chain de carteiras EVM na Base Mainnet
 - [M2M Cryptographic Timestamp e Notarization API](https://grid402.online/api/v1/notarize?content=Grid402-M2M-Contract-v1): Certificado criptografico de existencia e carimbo do tempo UTC assinado com ECDSA secp256k1 para contratos e logs de agentes
 - [World Markets Calendar e 30+ ECB FX Rates API](https://grid402.online/api/v1/global-markets?market=US): Calendario de liquidacao de bolsas mundiais (US NYSE/Fed, EU TARGET2, UK LSE, BR B3) + 30+ moedas oficiais do Banco Central Europeu (ECB)
-- [x402 Prepaid Session Pass API](https://grid402.online/api/v1/pass): Emissao de passe pre-pago M2M (0.5000 USDC = 100 creditos, 0.5000 USDC = 1.000 creditos) para execucao em <15ms sem espera de bloco (`X-Payment: pass_g402_...`)
+- [x402 Prepaid Session Pass API](https://grid402.online/api/v1/pass): Emissao de passe pre-pago M2M (1 credito = 0.0050 USDC: Starter 2 USDC = 400 creditos, Pro 5 USDC = 1.000 creditos, Fleet 20 USDC = 5.000 + 1.000 bonus = 6.000 creditos) para execucao em <15ms sem espera de bloco (`X-Payment: pass_g402_...`)
+- [Session Pass Balance & Spend Controls API](https://grid402.online/api/v1/pass/balance): Consulta gratuita de saldo (`remaining_credits`, `daily_credit_limit`, `credits_used_today`, `allowed_endpoints`, `expires_at`) e configuracao de controles de gasto por passe (`POST /api/v1/pass/limits`)
 
 ## SDKs and Agent Frameworks
 - [Python SDK (PyPI)](https://pypi.org/project/grid402/): Pacote oficial grid402 para Python com suporte a Pydantic e Coinbase AgentKit
@@ -53,11 +54,13 @@
 
 ## Micropayment Protocol Details
 - Rede e Chain ID: Base Mainnet (Chain ID 8453)
-- Tarifa Padrao por Requisicao: 0.0050 USDC (Sancoes e Simples: 0.0100 USDC, CNPJ, LEI e OFAC: 0.0200 USDC, Compliance 360: 0.0300 USDC)
+- Tarifa Padrao por Requisicao: 0.0050 USDC = 1 credito (Sancoes e Simples: 0.0100 USDC = 2 creditos, Domain Audit e Market Snapshot: 0.0120 USDC = 3 creditos, CNPJ, LEI, OFAC e KYB Audit: 0.0200 USDC = 4 creditos, Compliance 360: 0.0300 USDC = 6 creditos)
 - Formas de Liquidacao Suportadas:
   1) Protocolo x402 v2 padrao (M2M Gasless): Envie a autorizacao assinada EIP-3009 em base64 no cabecalho `PAYMENT-SIGNATURE` ou `X-Payment` (esquema `exact`). O Grid402 valida e liquida via facilitador retornando o recibo em `PAYMENT-RESPONSE`.
-  2) Session Pass Pre-Pago (<15ms): Adquira créditos em lote (2 USDC = 4.000 reqs, 5 USDC = 10.000 reqs, 20 USDC = 50.000 reqs) e reutilize o token `pass_g402_...` no cabecalho `X-Payment` sem latencia on-chain.
-  3) Transferencia Direta On-Chain: Envie o valor em USDC na Base para a carteira do oraculo e repita a chamada com `X-Payment: 0x<tx_hash>`.
+  2) Session Pass Pre-Pago (<15ms, `1 credito = 0.0050 USDC`): Adquira creditos em lote (Starter 2 USDC = 400 creditos, Pro 5 USDC = 1.000 creditos, Fleet 20 USDC = 5.000 + 1.000 bonus = 6.000 creditos) e reutilize o token `pass_g402_...` no cabecalho `X-Payment` sem latencia on-chain. Suporta teto diario (`daily_credit_limit`), whitelist de rotas (`allowed_endpoints`) e consulta gratuita de saldo em `GET /api/v1/pass/balance`.
+  3) Transferencia Direta On-Chain: Envie o valor em USDC na Base para a carteira do oraculo (`0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`) e repita a chamada com `X-Payment: 0x<tx_hash>`.
+- Idempotencia Financeira M2M (`Idempotency-Key`): Envie `Idempotency-Key: <uuid>` nas rotas pagas `/api/v1/*` (TTL 300s) para garantir que retentativas de rede devolvam a mesma resposta assinada (`X-Idempotent-Replay: true`) sem debitar creditos duplicados.
+- Proveniencia e Auditoria (`_meta` + `_oracle_proof`): Toda resposta HTTP 200 paga inclui o bloco `_meta` (`upstream_source`, `fetched_at`, `cache_ttl_sec`, `operator`, `oracle_wallet`) assinado dentro do digest canonico ECDSA secp256k1.
 - [Base Mainnet Scanner](https://basescan.org/address/0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90): Carteira oraculo recebedora de micropagamentos (0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90)
 - [USDC Contract on Base](https://basescan.org/token/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913): Contrato oficial de USDC na rede Base Mainnet (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
 
