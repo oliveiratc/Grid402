@@ -19,7 +19,7 @@ $isSandbox = grid402_mp_is_sandbox();
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grid402 // Comprar Session Pass (Pix, Cartão ou USDC)</title>
+    <title>Grid402 // Buy Session Pass (Pix, Card or USDC)</title>
     <style>
         :root { --bg:#060B19; --surface:#0B132B; --border:#1E2C4F; --text:#F8FAFC; --muted:#94A3B8; --cyan:#00F0FF; --blue:#0052FF; --green:#10B981; --warn:#F59E0B; }
         * { box-sizing:border-box; }
@@ -65,89 +65,89 @@ $isSandbox = grid402_mp_is_sandbox();
     </style>
 </head>
 <body>
-<?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '/pass', 'domain' => $domain]); ?>
+<?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '/pass', 'domain' => $domain, 'show_lang' => true]); ?>
 <div class="wrap">
 
-    <h1>Comprar Session Pass <code>pass_g402_...</code></h1>
-    <p>Pague uma vez em <strong>BRL (Pix ou Cartão via Mercado Pago)</strong> ou em <strong>USDC na rede Base</strong> e receba na hora um token com saldo de milhares de requisições (&lt;15ms), sem precisar assinar transação a cada chamada. Ideal para n8n, Make, Zapier, Python, Node e MCP.</p>
+    <h1 data-i18n-html="pass.title">Buy Session Pass <code>pass_g402_...</code></h1>
+    <p data-i18n-html="pass.subtitle">Pay once in <strong>BRL (Pix or Card via Mercado Pago)</strong> or in <strong>USDC on the Base network</strong> and instantly receive a token loaded with thousands of requests (&lt;15ms), without signing a transaction on every call. Ideal for n8n, Make, Zapier, Python, Node, and MCP.</p>
 
     <?php if ($isSandbox): ?>
-    <div class="note" style="border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.08);">
-        <strong>Modo Sandbox Mercado Pago ativo:</strong> pagamentos gerados aqui são simulados para testes e não realizam cobrança real.
+    <div class="note" style="border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.08);" data-i18n-html="pass.sandbox_note">
+        <strong>Mercado Pago Sandbox Mode active:</strong> payments generated here are simulated for testing and do not perform real charges.
     </div>
     <?php endif; ?>
 
     <div class="email-row">
-        <label for="mp-email" style="font-size:.9rem;color:var(--muted);">E-mail para recibo (opcional):</label>
-        <input type="email" id="mp-email" class="input" placeholder="dev@suaempresa.com.br" autocomplete="email" />
+        <label for="mp-email" style="font-size:.9rem;color:var(--muted);" data-i18n="pass.email.label">Email for receipt (optional):</label>
+        <input type="email" id="mp-email" class="input" placeholder="dev@yourcompany.com" data-i18n-placeholder="pass.email.placeholder" autocomplete="email" />
     </div>
 
     <!-- Painel Pix / Checkout Status -->
     <div id="mp-status-panel" class="panel" role="region" aria-live="polite">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:.75rem;flex-wrap:wrap;">
-            <strong id="mp-panel-title" style="font-size:1.1rem;">Pagamento Mercado Pago</strong>
-            <span id="mp-status-pill" class="status-pill">Aguardando pagamento...</span>
+            <strong id="mp-panel-title" style="font-size:1.1rem;" data-i18n="pass.panel.title">Mercado Pago Payment</strong>
+            <span id="mp-status-pill" class="status-pill" data-i18n="pass.panel.waiting">Awaiting payment...</span>
         </div>
         <p id="mp-panel-msg" style="margin:.5rem 0 0;font-size:.9rem;"></p>
 
         <div id="mp-pix-area" class="pix-layout" style="display:none;">
-            <div class="qr-box"><img id="mp-qr-img" src="" alt="QR Code Pix para pagamento do Session Pass Grid402" /></div>
+            <div class="qr-box"><img id="mp-qr-img" src="" alt="Pix QR Code for Grid402 Session Pass payment" /></div>
             <div class="pix-info">
-                <div style="font-size:.88rem;color:var(--muted);">Código Pix Copia e Cola:</div>
+                <div style="font-size:.88rem;color:var(--muted);" data-i18n="pass.pix.code_label">Pix Copy and Paste Code:</div>
                 <div class="copy-row">
-                    <input type="text" id="mp-pix-code" class="input" readonly aria-label="Código Pix Copia e Cola" />
-                    <button type="button" class="btn btn-pix" style="width:auto;padding:.68rem 1rem;" onclick="copyText('mp-pix-code', this)">Copiar Pix</button>
+                    <input type="text" id="mp-pix-code" class="input" readonly aria-label="Pix Copy and Paste Code" />
+                    <button type="button" class="btn btn-pix" style="width:auto;padding:.68rem 1rem;" onclick="copyText('mp-pix-code', this)" data-i18n="pass.pix.copy_btn">Copy Pix</button>
                 </div>
-                <div style="font-size:.82rem;color:var(--muted);">Após pagar no aplicativo do seu banco, o token <code>pass_g402_...</code> aparecerá aqui automaticamente em alguns segundos. Não feche esta aba.</div>
+                <div style="font-size:.82rem;color:var(--muted);" data-i18n-html="pass.pix.instructions">After paying in your bank app, your <code>pass_g402_...</code> token will appear here automatically in a few seconds. Do not close this tab.</div>
                 <div id="mp-sandbox-actions" style="display:none;margin-top:.85rem;">
-                    <button type="button" id="btn-mp-sandbox-approve" class="btn btn-card" style="width:auto;" onclick="approveSandboxOrder()">Simular Aprovação Pix (Sandbox)</button>
+                    <button type="button" id="btn-mp-sandbox-approve" class="btn btn-card" style="width:auto;" onclick="approveSandboxOrder()" data-i18n="pass.pix.sandbox_approve">Simulate Pix Approval (Sandbox)</button>
                 </div>
             </div>
         </div>
 
         <div id="mp-success-area" style="display:none;margin-top:1rem;">
-            <div style="font-size:.9rem;color:var(--green);font-weight:700;">Session Pass emitido com sucesso!</div>
+            <div style="font-size:.9rem;color:var(--green);font-weight:700;" data-i18n="pass.success.title">Session Pass issued successfully!</div>
             <div id="mp-token-value" class="token-box"></div>
             <div style="display:flex;gap:.75rem;margin-top:.75rem;flex-wrap:wrap;align-items:center;">
-                <button type="button" class="btn btn-pix" style="width:auto;" onclick="copyToken(this)">Copiar Token</button>
+                <button type="button" class="btn btn-pix" style="width:auto;" onclick="copyToken(this)" data-i18n="pass.success.copy_btn">Copy Token</button>
                 <span id="mp-token-meta" style="font-size:.88rem;color:var(--muted);"></span>
             </div>
             <pre id="mp-token-snippet" style="margin-top:1rem;"></pre>
         </div>
     </div>
 
-    <h2>Pacotes</h2>
+    <h2 data-i18n="pass.packages.title">Packages</h2>
     <div class="grid">
         <?php foreach ($packages as $tier => $pkg): ?>
         <div class="card <?php echo $tier === 'pro' ? 'featured' : ''; ?>">
             <div>
                 <div class="tag"><?php echo htmlspecialchars($pkg['label'], ENT_QUOTES, 'UTF-8'); ?></div>
                 <div class="price">R$ <?php echo number_format((float) $pkg['amount_brl'], 2, ',', '.'); ?></div>
-                <div class="price-sub">ou <?php echo (int) ($pkg['raw_usdc_units'] / 1000000); ?> USDC na Base</div>
-                <div class="credits"><?php echo number_format((int) $pkg['credits'], 0, '', '.'); ?> créditos (<?php echo number_format((int) $pkg['credits'], 0, '', '.'); ?> req padrão)</div>
-                <p class="desc">
+                <div class="price-sub" data-i18n="pass.pkg.<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>.sub">or <?php echo (int) ($pkg['raw_usdc_units'] / 1000000); ?> USDC on Base</div>
+                <div class="credits" data-i18n="pass.pkg.<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>.credits"><?php echo number_format((int) $pkg['credits'], 0, '.', ','); ?> credits (<?php echo number_format((int) $pkg['credits'], 0, '.', ','); ?> standard req)</div>
+                <p class="desc" data-i18n="pass.pkg.<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>.desc">
                     <?php if ($tier === 'starter'): ?>
-                        Ideal para desenvolvedores individuais, testes rápidos e bots pontuais (1 crédito = 0.0050 USDC). Validade 30 dias.
+                        Ideal for individual developers, quick tests, and spot bots (1 credit = 0.0050 USDC). Valid for 30 days.
                     <?php elseif ($tier === 'pro'): ?>
-                        Para agentes autônomos de IA e esteiras de automação contínua (1 crédito = 0.0050 USDC). Mais escolhido. Validade 30 dias.
+                        For autonomous AI agents and continuous automation pipelines (1 credit = 0.0050 USDC). Most popular. Valid for 30 days.
                     <?php else: ?>
-                        Frotas de agentes, sistemas ERP corporativos e alta demanda (5.000 + 1.000 bônus = 6.000 créditos). Validade 60 dias.
+                        Agent fleets, corporate ERP systems, and high demand (5,000 + 1,000 bonus = 6,000 credits). Valid for 60 days.
                     <?php endif; ?>
                 </p>
             </div>
             <div class="actions">
-                <button type="button" class="btn btn-pix" onclick="startMpPix('<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>', this)">Pagar com Pix (R$ <?php echo number_format((float) $pkg['amount_brl'], 0, ',', '.'); ?>)</button>
-                <button type="button" class="btn btn-card" onclick="startMpCheckoutPro('<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>', this)">Pagar com Cartão (Mercado Pago)</button>
-                <a class="btn btn-outline" href="<?php echo htmlspecialchars($domain, ENT_QUOTES, 'UTF-8'); ?>/#topup">Pagar com USDC (Web3)</a>
+                <button type="button" class="btn btn-pix" onclick="startMpPix('<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>', this)" data-i18n="pass.pkg.<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>.btn_pix">Pay with Pix (R$ <?php echo number_format((float) $pkg['amount_brl'], 0, ',', '.'); ?>)</button>
+                <button type="button" class="btn btn-card" onclick="startMpCheckoutPro('<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>', this)" data-i18n="pass.btn.card">Pay with Card (Mercado Pago)</button>
+                <a class="btn btn-outline" href="<?php echo htmlspecialchars($domain, ENT_QUOTES, 'UTF-8'); ?>/#topup" data-i18n="pass.btn.usdc">Pay with USDC (Web3)</a>
             </div>
         </div>
         <?php endforeach; ?>
     </div>
 
-    <h2>Como usar o token</h2>
-    <pre>curl -s -H "X-Payment: pass_g402_SEU_TOKEN_AQUI" \
+    <h2 data-i18n="pass.howto.title">How to use the token</h2>
+    <pre>curl -s -H "X-Payment: pass_g402_YOUR_TOKEN_HERE" \
   "https://grid402.online/api/v1/cnpj?cnpj=00000000000191"</pre>
-    <p>Ou defina <code>GRID402_SESSION_PASS=pass_g402_...</code> no servidor MCP (<code>grid402-mcp</code>) ou nas credenciais do n8n.</p>
+    <p data-i18n-html="pass.howto.desc">Or set <code>GRID402_SESSION_PASS=pass_g402_...</code> in the MCP server (<code>grid402-mcp</code>) or in your n8n credentials.</p>
 </div>
 
 <script>
@@ -299,5 +299,6 @@ function copyToken(btn) {
     startPolling(mpOrder);
 })();
 </script>
+<script src="/assets/js/i18n.js?v=3.2.0"></script>
 </body>
 </html>

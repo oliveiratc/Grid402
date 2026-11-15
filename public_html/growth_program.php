@@ -99,7 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GRID402 AGENT GROWTH PROGRAM</title>
-    <meta name="description" content="Programa de crescimento do Grid402: Starter, Builder Rewards, Agent Referrals e On-Chain Reputation para agentes autônomos.">
+    <meta name="description" content="Grid402 Growth Program: Starter, Builder Rewards, Agent Referrals, and On-Chain Reputation for autonomous agents.">
     <style>
         :root { --bg:#060B19; --surface:#0B132B; --border:#1E2C4F; --text:#F8FAFC; --muted:#94A3B8; --cyan:#00F0FF; --blue:#0052FF; --ok:#10B981; --warn:#F59E0B; }
         * { box-sizing:border-box; }
@@ -120,58 +120,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
-<?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '']); ?>
+<?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '', 'show_lang' => true]); ?>
 <main>
-    <h1>GRID402 AGENT GROWTH PROGRAM</h1>
-    <p>Programa de aquisição, ativação, recompra e retenção para agentes autônomos que usam o Grid402 sobre USDC + x402 na Base.</p>
+    <h1 data-i18n="growth.title">GRID402 AGENT GROWTH PROGRAM</h1>
+    <p data-i18n="growth.subtitle">Acquisition, activation, repeat purchase, and retention program for autonomous agents using Grid402 over USDC + x402 on Base.</p>
 
     <?php if ($msg !== ''): ?><div class="okmsg"><?php echo htmlspecialchars($msg); ?></div><?php endif; ?>
     <?php if ($err !== ''): ?><div class="errmsg"><?php echo htmlspecialchars($err); ?></div><?php endif; ?>
 
     <div class="grid">
-        <div class="card"><div class="value">Starter</div><p><strong>10 créditos bônus</strong> para agentes que fizerem a primeira consulta validada.</p><p>Elegibilidade: primeira transação liquidada na carteira indicada; 1 promoção por carteira.</p></div>
-        <div class="card"><div class="value">Builders</div><p><strong>100 créditos</strong> por integração ativa que passe por 5 chamadas pagas.</p><p>Registro, validação administrativa e controle antifraude obrigatórios.</p></div>
-        <div class="card"><div class="value">Referrals</div><p><strong>25 créditos</strong> por integração onboard validada por 10 chamadas.</p><p>Links de indicação com HMAC; sem autorreferência.</p></div>
+        <div class="card"><div class="value">Starter</div><p data-i18n-html="growth.c1.p1"><strong>10 bonus credits</strong> for agents completing their first validated query.</p><p data-i18n="growth.c1.p2">Eligibility: first settled transaction on the specified wallet; 1 promotion per wallet.</p></div>
+        <div class="card"><div class="value">Builders</div><p data-i18n-html="growth.c2.p1"><strong>100 credits</strong> per active integration completing 5 paid calls.</p><p data-i18n="growth.c2.p2">Registration, administrative validation, and anti-fraud control required.</p></div>
+        <div class="card"><div class="value">Referrals</div><p data-i18n-html="growth.c3.p1"><strong>25 credits</strong> per onboarded integration validated by 10 calls.</p><p data-i18n="growth.c3.p2">HMAC-signed referral links; self-referral prohibited.</p></div>
     </div>
 
-    <h2>5.1 Agent Starter</h2>
+    <h2 data-i18n="growth.s1.title">5.1 Agent Starter</h2>
     <div class="card">
-        <ol>
-            <li>Gere uma carteira Base e conecte-a no <a href="/#playground">playground</a> ou configure um payer x402 no SDK/MCP.</li>
-            <li>Faça uma chamada paga (ex.: <code>curl -H "X-Payment: $PAYTOKEN" https://grid402.online/api/v1/crypto</code>).</li>
-            <li>Use o crédito promocional para testar outros endpoints.</li>
+        <ol data-i18n-html="growth.s1.list">
+            <li>Generate a Base wallet and connect it in the <a href="/#playground">playground</a> or configure an x402 payer in the SDK/MCP.</li>
+            <li>Make a paid call (e.g.: <code>curl -H "X-Payment: $PAYTOKEN" https://grid402.online/api/v1/crypto</code>).</li>
+            <li>Use the promotional credit to test other endpoints.</li>
         </ol>
-        <p>As solicitações ficam pendentes de validação administrativa antes de emissão.</p>
+        <p data-i18n="growth.s1.note">Requests remain pending administrative validation before issuance.</p>
     </div>
 
-    <h2>5.2 Builder Rewards</h2>
+    <h2 data-i18n="growth.s2.title">5.2 Builder Rewards</h2>
     <div class="card">
         <form method="post" action="/growth">
-            <label for="name">Nome do builder / time</label>
-            <input id="name" name="name" required minlength="2" maxlength="80" placeholder="Ex.: FiscalAgents Labs">
-            <label for="email">E-mail ou contato</label>
+            <label for="name" data-i18n="growth.s2.name">Builder / team name</label>
+            <input id="name" name="name" required minlength="2" maxlength="80" placeholder="e.g., FiscalAgents Labs">
+            <label for="email" data-i18n="growth.s2.email">Email or contact</label>
             <input id="email" name="email" type="email" required placeholder="you@example.com">
-            <label for="url">Repositório/URL da integração</label>
+            <label for="url" data-i18n="growth.s2.url">Integration repository/URL</label>
             <input id="url" name="url" type="url" placeholder="https://github.com/your-org/agent-integration">
             <input type="hidden" name="action" value="register_builder">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf); ?>">
-            <button type="submit">Cadastrar como builder</button>
+            <button type="submit" data-i18n="growth.s2.btn">Register as builder</button>
         </form>
     </div>
 
-    <h2>5.3 Agent Referrals</h2>
+    <h2 data-i18n="growth.s3.title">5.3 Agent Referrals</h2>
     <div class="card">
         <form method="post" action="/growth">
-            <label for="wallet">Carteira Base (0x...)</label>
+            <label for="wallet" data-i18n="growth.s3.wallet">Base Wallet (0x...)</label>
             <input id="wallet" name="wallet" required pattern="^0x[a-fA-F0-9]{40}$" placeholder="0x0000000000000000000000000000000000000000">
             <input type="hidden" name="action" value="create_referral">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrf); ?>">
-            <button type="submit">Gerar referral code</button>
+            <button type="submit" data-i18n="growth.s3.btn">Generate referral code</button>
         </form>
     </div>
 
-    <h2>Conformidade</h2>
-    <p>O Grid402 oferece infraestrutura e dados públicos verificáveis; não decide crédito, cadastro ou atribuição de risco. O builder configurador dos agentes assume responsabilidade pelas decisões do próprio sistema.</p>
+    <h2 data-i18n="growth.compliance.title">Compliance</h2>
+    <p data-i18n="growth.compliance.desc">Grid402 provides infrastructure and verifiable public data; it does not decide credit, onboarding, or risk assignment. The builder configuring the agents assumes responsibility for their system's decisions.</p>
 </main>
+<script src="/assets/js/i18n.js?v=3.2.0"></script>
 </body>
 </html>

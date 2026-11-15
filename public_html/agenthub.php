@@ -13,7 +13,7 @@ ksort($services);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GRID402 Agent Hub</title>
-    <meta name="description" content="Central de integração para agentes autônomos — HTTP x402, MCP, Coinbase AgentKit, Python SDK, TypeScript SDK.">
+    <meta name="description" content="Integration hub for autonomous agents — HTTP x402, MCP, Coinbase AgentKit, Python SDK, TypeScript SDK.">
     <style>
         :root { --bg:#060B19; --surface:#0B132B; --border:#1E2C4F; --text:#F8FAFC; --muted:#94A3B8; --cyan:#00F0FF; --blue:#0052FF; }
         * { box-sizing:border-box; }
@@ -29,24 +29,24 @@ ksort($services);
     </style>
 </head>
 <body>
-<?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '']); ?>
+<?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '', 'show_lang' => true]); ?>
 <main>
-    <h1>GRID402 AGENT HUB</h1>
-    <p>Central de integração para agentes autônomos: documentação, exemplos, preços e compatibilidade.</p>
+    <h1 data-i18n="agenthub.title">GRID402 AGENT HUB</h1>
+    <p data-i18n="agenthub.subtitle">Integration hub for autonomous agents: documentation, examples, pricing, and compatibility.</p>
 
-    <h2>Catálogo de serviços</h2>
+    <h2 data-i18n="agenthub.catalog.title">Service catalog</h2>
     <div class="grid">
         <?php foreach ($services as $id => $svc): ?>
             <div class="card">
-                <h3><?php echo htmlspecialchars((string)($svc['name'] ?? $id)); ?></h3>
-                <p><?php echo htmlspecialchars((string)($svc['description'] ?? '')); ?></p>
+                <h3 data-i18n="svc.<?php echo htmlspecialchars((string)$id); ?>.name"><?php echo htmlspecialchars((string)($svc['name'] ?? $id)); ?></h3>
+                <p data-i18n="svc.<?php echo htmlspecialchars((string)$id); ?>.desc"><?php echo htmlspecialchars((string)($svc['description'] ?? '')); ?></p>
                 <code><?php echo htmlspecialchars((string)($svc['endpoint'] ?? '/api/v1/' . $id)); ?></code>
-                <p><a href="/catalog">Preços e tarifas →</a></p>
+                <p><a href="/catalog" data-i18n="agenthub.catalog.link">Prices and fees →</a></p>
             </div>
         <?php endforeach; ?>
     </div>
 
-    <h2>Exemplos de integração</h2>
+    <h2 data-i18n="agenthub.examples.title">Integration examples</h2>
 
     <div class="card">
         <h3>HTTP x402 (cURL)</h3>
@@ -73,16 +73,17 @@ while (budget > spent) {
   const q = await grid402.query('crypto');
   spent += 0.0050;
 }</pre>
-        <p>Agentes devem implementar orçamento próprio; Grid402 não autoriza movimentação de fundos sem permissão explícita do mantenedor.</p>
+        <p data-i18n="agenthub.budget.desc">Agents should implement their own budget controls; Grid402 does not authorize fund movement without explicit maintainer permission.</p>
     </div>
 
-    <h2>Regras de produção</h2>
-    <ul>
-        <li>Não movimente fundos sem autorização on-chain compatível com suas políticas.</li>
-        <li>Prefira <code>demo</code> para testes sandbox (5 consultas/h/IP).</li>
-        <li>Use Session Pass para reduzir latência e custo administrativo.</li>
-        <li>Valide <code>_oracle_proof</code> para respostas sensíveis.</li>
+    <h2 data-i18n="agenthub.rules.title">Production rules</h2>
+    <ul data-i18n-html="agenthub.rules.list">
+        <li>Do not move funds without on-chain authorization compliant with your policies.</li>
+        <li>Prefer <code>demo</code> for sandbox testing (5 queries/h/IP).</li>
+        <li>Use a Session Pass to reduce latency and administrative cost.</li>
+        <li>Validate <code>_oracle_proof</code> for sensitive responses.</li>
     </ul>
 </main>
+<script src="/assets/js/i18n.js?v=3.2.0"></script>
 </body>
 </html>

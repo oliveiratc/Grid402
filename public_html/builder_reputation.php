@@ -20,7 +20,7 @@ usort($builders, function ($a, $b) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GRID402 Builder Reputation</title>
-    <meta name="description" content="Reputação pública de builders Grid402 — baseada em consumo legítimo, não apenas volume financeiro.">
+    <meta name="description" content="Public reputation of Grid402 builders — based on legitimate consumption, not just financial volume.">
     <style>
         :root { --bg:#060B19; --surface:#0B132B; --border:#1E2C4F; --text:#F8FAFC; --muted:#94A3B8; --cyan:#00F0FF; --ok:#10B981; }
         * { box-sizing:border-box; }
@@ -35,16 +35,16 @@ usort($builders, function ($a, $b) {
     </style>
 </head>
 <body>
-<?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '']); ?>
+<?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '', 'show_lang' => true]); ?>
 <main>
-    <p><a href="/growth">← Growth Program</a></p>
-    <h1>GRID402 On-Chain Reputation</h1>
-    <p>Ranking público de builders validados com base em consumo comprovado. Sem dados pessoais ou endereço completo de carteira.</p>
+    <p><a href="/growth" data-i18n="rep.back">← Growth Program</a></p>
+    <h1 data-i18n="rep.title">GRID402 On-Chain Reputation</h1>
+    <p data-i18n="rep.subtitle">Public ranking of validated builders based on proven consumption. No personal data or full wallet addresses exposed.</p>
     <?php if (empty($builders)): ?>
-        <div class="empty">Nenhum builder validado ainda. <a href="/growth">Cadastre-se no programa →</a></div>
+        <div class="empty" data-i18n-html="rep.empty">No validated builders yet. <a href="/growth">Register in the program →</a></div>
     <?php else: ?>
         <table>
-            <thead><tr><th>#</th><th>Builder</th><th>Status</th><th>Chamadas pagas</th></tr></thead>
+            <thead><tr><th>#</th><th data-i18n="rep.th.builder">Builder</th><th data-i18n="rep.th.status">Status</th><th data-i18n="rep.th.calls">Paid calls</th></tr></thead>
             <tbody>
             <?php $rank = 0; foreach ($builders as $b): $rank++; ?>
                 <tr>
@@ -58,5 +58,6 @@ usort($builders, function ($a, $b) {
         </table>
     <?php endif; ?>
 </main>
+<script src="/assets/js/i18n.js?v=3.2.0"></script>
 </body>
 </html>
