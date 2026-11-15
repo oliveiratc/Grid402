@@ -13,9 +13,9 @@ if (!function_exists('grid402_render_public_nav')) {
 
         $links = [
             ['href' => ($base !== '' ? $base : '') . '/', 'key' => '/', 'label' => 'Home', 'i18n' => 'nav.home'],
-            ['href' => $base . '/catalog', 'key' => '/catalog', 'label' => 'Catálogo', 'i18n' => 'nav.catalog'],
+            ['href' => $base . '/catalog', 'key' => '/catalog', 'label' => 'Catalog', 'i18n' => 'nav.catalog'],
             ['href' => $base . '/pass', 'key' => '/pass', 'label' => 'Session Pass', 'i18n' => 'nav.pass'],
-            ['href' => $base . '/agents', 'key' => '/agents', 'label' => 'Agentes', 'i18n' => 'nav.agents'],
+            ['href' => $base . '/agents', 'key' => '/agents', 'label' => 'AI Agents', 'i18n' => 'nav.agents'],
             ['href' => $base . '/trust', 'key' => '/trust', 'label' => 'Trust', 'i18n' => 'nav.trust'],
         ];
         ?>
@@ -67,9 +67,9 @@ if (!function_exists('grid402_render_public_nav')) {
         <?php endforeach; ?>
       </ul>
       <?php if ($showLang): ?>
-      <div class="g402-nav-lang" role="group" aria-label="Idioma">
+      <div class="g402-nav-lang" role="group" aria-label="Language">
+        <button type="button" onclick="if(window.setLanguage)setLanguage('en')" id="lang-btn-en" class="active">EN</button>
         <button type="button" onclick="if(window.setLanguage)setLanguage('pt')" id="lang-btn-pt">PT</button>
-        <button type="button" onclick="if(window.setLanguage)setLanguage('en')" id="lang-btn-en">EN</button>
       </div>
       <?php endif; ?>
     </nav>

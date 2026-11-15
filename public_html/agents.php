@@ -14,7 +14,7 @@ header('Access-Control-Allow-Origin: *');
 header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.json>; rel="service-meta"; type="application/json", </openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json"');
 ?>
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -455,7 +455,7 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
 
         <div class="card" style="margin: 0 0 1.5rem 0; border-color: rgba(0,240,255,.35);">
             <h2 style="margin-top:.2rem;">Entrada sem carteira Web3 — 3 minutos</h2>
-            <p style="color:#94A3B8;">Você pode testar agora com <code>X-Payment: demo</code> (30 consultas por hora por IP). Para produção sem gerenciar transação, instale o SDK/MCP e configure o facilitador ou um Session Pass; o agente apenas chama a URL.</p>
+            <p style="color:#94A3B8;">Você pode testar agora com <code>X-Payment: demo</code> (5 consultas por hora por IP). Para produção sem gerenciar transação, instale o SDK/MCP e configure o facilitador ou um Session Pass; o agente apenas chama a URL.</p>
             <div class="code-box" style="margin:.75rem 0;"><pre><code>curl -H "X-Payment: demo" https://grid402.online/api/v1/cnpj?cnpj=00000000000191</code></pre></div>
             <a href="/catalog" style="color:#00F0FF;font-weight:700;">Ver preços, limites e exemplos →</a> &nbsp;·&nbsp;
             <a href="/pass" style="color:#00F0FF;font-weight:700;">Comprar Session Pass →</a>

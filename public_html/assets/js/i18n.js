@@ -7,6 +7,10 @@
 const GRID402_I18N = {
     pt: {
         // Navegacao e Header
+        'nav.home': 'Início',
+        'nav.catalog': 'Catálogo',
+        'nav.pass': 'Session Pass',
+        'nav.trust': 'Trust',
         'nav.services': 'Serviços',
         'nav.topup': 'Abastecer Saldo',
         'nav.savings': 'Economia 98%',
@@ -25,7 +29,9 @@ const GRID402_I18N = {
         'hero.desc': 'Acesse 22 endpoints globais e brasileiros: identidade corporativa mundial (GLEIF LEI em 200+ países), sanções OFAC SDN + AML Web3 na Base, notarização criptográfica ECDSA, auditoria KYB completa (CNPJ + OFAC + LEI), auditoria de domínio (DNS + SSL + ASN), snapshot consolidado de mercado (Forex + Cripto + Indicadores), bolsas mundiais e 30+ moedas do BCE, câmbio, cripto, compliance 360, Selic/CDI/IPCA, feriados ANBIMA, DNS, SSL, BGP/ASN, CEP e CNPJ em milissegundos sem cadastro ou API keys. Liquidação via x402 ou Session Pass pré-pago (<15ms).',
         'hero.btn.topup': '💎 Abastecer Saldo Web3 (Base)',
         'hero.btn.agents': '🤖 Central de Agentes IA',
-        'hero.btn.playground': '⚡ Testar no Playground',
+        'hero.btn.playground': '⚡ Testar agora (Sandbox)',
+        'hero.btn.catalog': 'Ver preços, limites e exemplos →',
+        'hero.subnote': 'Sem cartão, sem API key, sem cadastro. Sandbox: <strong>5 consultas por hora por IP</strong>. Produção: x402 ou Session Pass.',
         'hero.btn.console': 'Console e SDKs',
         'hero.btn.llms': 'Documentação llms.txt',
         'hero.btn.status': 'Resumo Gratuito (JSON)',
@@ -142,7 +148,7 @@ const GRID402_I18N = {
         'playground.title': 'Playground Interativo e Verificador de Oráculo',
         'playground.desc': 'Execute consultas reais nos micro-serviços do Grid402 em modo Sandbox gratuito ou simule o desafio x402. Valide instantaneamente a atestação criptográfica ECDSA secp256k1 (_oracle_proof) com o motor matemático em tempo real.',
         'playground.btn.challenge': '🔒 Desafio x402 (HTTP 402)',
-        'playground.btn.sandbox': '🧪 Sandbox (30 consultas/h)',
+        'playground.btn.sandbox': '🧪 Sandbox (5 consultas/h)',
         'playground.btn.manual': '✍️ Validar JSON Externo',
         'playground.route': 'Rota:',
         'playground.btn.run': '⚡ Executar Consulta',
@@ -216,7 +222,7 @@ const GRID402_I18N = {
         'console.smithery.desc': 'O Grid402 está catalogado no registro global da Smithery.ai. Você pode registrar instantaneamente o servidor de ferramentas no seu Claude Desktop ou Cursor sem precisar editar arquivos de configuração manualmente.',
         'console.smithery.cmd_claude': 'Comando de Instalação no Claude Desktop:',
         'console.smithery.cmd_cursor': 'Comando de Instalação no Cursor:',
-        'console.smithery.params': '<strong style="color: #fff;">💡 Parâmetros Suportados no smithery.yaml:</strong><ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;"><li><code>sandbox: true</code> — Ativa o Modo Sandbox gratuito (30 consultas por hora por IP) para testes sem necessidade de carteira.</li><li><code>privateKey: 0x...</code> — Chave privada EVM opcional para auto-liquidação em USDC na Base (0.0050 a 0.0200 USDC por chamada).</li></ul>',
+        'console.smithery.params': '<strong style="color: #fff;">💡 Parâmetros Suportados no smithery.yaml:</strong><ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;"><li><code>sandbox: true</code> — Ativa o Modo Sandbox gratuito (5 consultas por hora por IP) para testes sem necessidade de carteira.</li><li><code>privateKey: 0x...</code> — Chave privada EVM opcional para auto-liquidação em USDC na Base (0.0050 a 0.0200 USDC por chamada).</li></ul>',
 
         'console.agentkit.title': '🪙 Integração Nativa Coinbase AgentKit (CDP)',
         'console.agentkit.desc': 'Permita que agentes de IA com carteiras CDP na Base consultem dados públicos e utilitários de rede pagando tarifas x402 de forma 100% autônoma, sem interrupção humana. O provedor de ações intercepta o desafio 402, transfere o USDC e reenvia a requisição de forma transparente.',
@@ -432,6 +438,10 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
     },
     en: {
         // Navigation and Header
+        'nav.home': 'Home',
+        'nav.catalog': 'Catalog',
+        'nav.pass': 'Session Pass',
+        'nav.trust': 'Trust',
         'nav.services': 'Services',
         'nav.topup': 'Web3 Top-Up',
         'nav.savings': '98% Savings',
@@ -450,7 +460,9 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'hero.desc': 'Access 22 global and regional endpoints: worldwide corporate identity (GLEIF LEI across 200+ countries), US Treasury OFAC SDN sanctions + Base Web3 AML, ECDSA timestamp notarization, full KYB audit (CNPJ + OFAC + LEI), full domain audit (DNS + SSL + ASN), consolidated market snapshot (FX + crypto + indicators), world exchange calendars and 30+ ECB currencies, live FX, crypto spot, Compliance 360, DNS, SSL, BGP/ASN, CEP, and CNPJ in milliseconds with zero signup or API keys. Settled via x402 on Base or Prepaid Session Pass (<15ms).',
         'hero.btn.topup': '💎 Web3 Top-Up (Base)',
         'hero.btn.agents': '🤖 AI Agents Hub',
-        'hero.btn.playground': '⚡ Test in Playground',
+        'hero.btn.playground': '⚡ Test now (Sandbox)',
+        'hero.btn.catalog': 'See pricing, limits and examples →',
+        'hero.subnote': 'No credit card, no API key, no signup. Sandbox: <strong>5 queries per hour per IP</strong>. Production: x402 or Session Pass.',
         'hero.btn.console': 'Console and SDKs',
         'hero.btn.llms': 'llms.txt Documentation',
         'hero.btn.status': 'Free Status (JSON)',
@@ -567,7 +579,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'playground.title': 'Interactive Playground and Oracle Verifier',
         'playground.desc': 'Run real queries across Grid402 microservices using free Sandbox mode or simulate the x402 challenge. Instantly verify ECDSA secp256k1 cryptographic attestations (_oracle_proof) using our browser-based math engine in real time.',
         'playground.btn.challenge': '🔒 x402 Challenge (HTTP 402)',
-        'playground.btn.sandbox': '🧪 Sandbox (3 tests/hr)',
+        'playground.btn.sandbox': '🧪 Sandbox (5 queries/hr)',
         'playground.btn.manual': '✍️ Validate External JSON',
         'playground.route': 'Route:',
         'playground.btn.run': '⚡ Run Query',
@@ -641,7 +653,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'console.smithery.desc': 'Grid402 is indexed in the global Smithery.ai registry. You can instantly register the MCP tools server in your Claude Desktop or Cursor without editing configuration files manually.',
         'console.smithery.cmd_claude': 'Installation Command for Claude Desktop:',
         'console.smithery.cmd_cursor': 'Installation Command for Cursor:',
-        'console.smithery.params': '<strong style="color: #fff;">💡 Supported Parameters in smithery.yaml:</strong><ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;"><li><code>sandbox: true</code> — Enables free Sandbox Mode (20 queries/hour per IP) to test without a wallet.</li><li><code>privateKey: 0x...</code> — Optional EVM private key for auto-settlement in USDC on Base (0.0050 to 0.0200 USDC per call).</li></ul>',
+        'console.smithery.params': '<strong style="color: #fff;">💡 Supported Parameters in smithery.yaml:</strong><ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;"><li><code>sandbox: true</code> — Enables free Sandbox Mode (5 queries/hour per IP) to test without a wallet.</li><li><code>privateKey: 0x...</code> — Optional EVM private key for auto-settlement in USDC on Base (0.0050 to 0.0200 USDC per call).</li></ul>',
 
         'console.agentkit.title': '🪙 Native Coinbase AgentKit Integration (CDP)',
         'console.agentkit.desc': 'Allow autonomous AI agents equipped with CDP wallets on Base to fetch public data and network utilities paying x402 rates 100% autonomously, with zero human intervention. The action provider intercepts HTTP 402, transfers USDC, and retries the request seamlessly.',
@@ -995,13 +1007,14 @@ const playgroundPresets_en = {
     }
 };
 
-let currentLanguage = 'pt';
+let currentLanguage = 'en';
 
 /**
  * Traduz uma chave com substituicao opcional de parametros
  */
 function t(key, params = {}) {
     let str = (GRID402_I18N[currentLanguage] && GRID402_I18N[currentLanguage][key]) 
+           || (GRID402_I18N['en'] && GRID402_I18N['en'][key]) 
            || (GRID402_I18N['pt'] && GRID402_I18N['pt'][key]) 
            || key;
     for (const [k, v] of Object.entries(params)) {
@@ -1014,7 +1027,7 @@ function t(key, params = {}) {
  * Aplica o idioma em todos os elementos com data-i18n
  */
 function setLanguage(lang) {
-    if (!GRID402_I18N[lang]) lang = 'pt';
+    if (!GRID402_I18N[lang]) lang = 'en';
     currentLanguage = lang;
     try {
         localStorage.setItem('grid402_lang', lang);
@@ -1153,12 +1166,12 @@ function setLanguage(lang) {
 }
 
 /**
- * Inicializacao automatica na carga
+ * Inicializacao automatica na carga (Ingles como idioma primario padrao)
  */
 document.addEventListener('DOMContentLoaded', () => {
-    let saved = 'pt';
+    let saved = 'en';
     try {
-        saved = localStorage.getItem('grid402_lang') || 'pt';
+        saved = localStorage.getItem('grid402_lang') || 'en';
     } catch (_) {}
     setLanguage(saved);
 });

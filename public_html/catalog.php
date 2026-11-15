@@ -21,7 +21,7 @@ $summaryAt = isset($summary['timestamp']) ? (string)$summary['timestamp'] : gmda
 ksort($services);
 ?>
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -73,7 +73,7 @@ ksort($services);
     <div class="grid">
         <div class="card"><h3>x402 micropagamento</h3><p>Envie <code>PAYMENT-SIGNATURE</code> (Base64, EIP-3009, token facilitador) ou tx hash para a carteira oficial <code><?php echo htmlspecialchars(GRID402_WALLET_ADDRESS); ?></code>; o serviço responde em milissegundos.</p></div>
         <div class="card"><h3>Session Pass (1 crédito = 0.0050 USDC)</h3><p>Compre créditos em <a href="/pass" style="color:var(--primary)">/pass</a>; envie <code>X-Payment: pass_g402_...</code>. Starter (2 USDC = 400 créditos), Pro (5 USDC = 1.000 créditos), Fleet (20 USDC = 5.000 + 1.000 bônus = 6.000 créditos).</p></div>
-        <div class="card"><h3>Sandbox &amp; Idempotência</h3><p>Para testes: <code>X-Payment: demo</code> (30 req/hora por IP). Em produção, envie <code>Idempotency-Key</code> para retentativas sem cobrança duplicada (TTL 300s).</p></div>
+        <div class="card"><h3>Sandbox &amp; Idempotência</h3><p>Para testes: <code>X-Payment: demo</code> (5 req/hora por IP). Em produção, envie <code>Idempotency-Key</code> para retentativas sem cobrança duplicada (TTL 300s).</p></div>
         <div class="card"><h3>Rate limit e Spend Controls</h3><p>Timeout: <?php echo GRID402_TIMEOUT_MS; ?> ms. Consulte saldo grátis em <code>GET /api/v1/pass/balance</code> e configure teto diário (<code>daily_credit_limit</code>) e whitelist de rotas.</p></div>
     </div>
 

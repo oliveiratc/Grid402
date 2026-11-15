@@ -8,7 +8,7 @@ $services = grid402_get_utility_services();
 ksort($services);
 ?>
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -79,7 +79,7 @@ while (budget > spent) {
     <h2>Regras de produção</h2>
     <ul>
         <li>Não movimente fundos sem autorização on-chain compatível com suas políticas.</li>
-        <li>Prefira <code>demo</code> para testes sandbox (30 consultas/h/IP).</li>
+        <li>Prefira <code>demo</code> para testes sandbox (5 consultas/h/IP).</li>
         <li>Use Session Pass para reduzir latência e custo administrativo.</li>
         <li>Valide <code>_oracle_proof</code> para respostas sensíveis.</li>
     </ul>

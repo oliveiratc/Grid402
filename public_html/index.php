@@ -140,7 +140,7 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
     header('Content-Type: text/html; charset=utf-8');
     ?>
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -1330,12 +1330,12 @@ $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
 grid402_log_public_visit('/');
 ?>
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grid402 - Hub de Utilitarios de Rede e Dados Publicos com Micropagamentos x402 na Base</title>
-    <meta name="description" content="Grid402: Plataforma de micro-servicos publicos (CNPJ, CEP, Forex, Cripto, DNS, SSL, ASN) para agentes autonomos de IA e desenvolvedores, com micropagamentos x402 em USDC na rede Base.">
+    <title>Grid402 - Global Open-Data &amp; Network Utilities M2M Hub (HTTP x402 on Base)</title>
+    <meta name="description" content="Grid402: Global M2M public data and network utilities oracle (GLEIF LEI, OFAC SDN, Web3 AML, CNPJ, CEP, Forex, Crypto, DNS, SSL, ASN) for AI agents and developers, settled via HTTP x402 in USDC on Base.">
     <link rel="canonical" href="https://grid402.online/">
     <link rel="service-desc" type="application/vnd.oai.openapi+json" href="/openapi.json">
     <link rel="help" type="text/markdown" href="/llms.txt">
@@ -2717,12 +2717,12 @@ grid402_log_public_visit('/');
             <h1 data-i18n="hero.title">Grid402: Hub de Utilitários de Rede e Dados Públicos para Agentes de IA</h1>
             <p data-i18n="hero.desc">Acesse cotações de câmbio, cripto, suíte de compliance e antifraude (score 360, sanções da CGU e Simples Nacional), indicadores econômicos oficiais (Selic, CDI e IPCA), feriados bancários ANBIMA, DNS, certificados SSL, BGP/ASN, CEP e CNPJ da Receita Federal em milissegundos sem cadastro ou chaves de API. Micropagamentos por chamada em USDC na Base.</p>
             <div class="cta-group">
-                <a href="#playground" class="btn btn-primary" style="background: linear-gradient(135deg, #0052FF 0%, #00F0FF 100%); font-weight: 800; box-shadow: 0 4px 15px rgba(0, 82, 255, 0.4);">⚡ Testar agora (Sandbox)</a>
-                <a href="/catalog" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary); font-weight: 700;">Ver preços, limites e exemplos →</a>
-                <a href="/agents" class="btn btn-outline" data-i18n="hero.btn.agents">🤖 Integrar no seu agente</a>
+                <a href="#playground" class="btn btn-primary" style="background: linear-gradient(135deg, #0052FF 0%, #00F0FF 100%); font-weight: 800; box-shadow: 0 4px 15px rgba(0, 82, 255, 0.4);" data-i18n="hero.btn.playground">⚡ Test now (Sandbox)</a>
+                <a href="/catalog" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary); font-weight: 700;" data-i18n="hero.btn.catalog">See pricing, limits and examples →</a>
+                <a href="/agents" class="btn btn-outline" data-i18n="hero.btn.agents">🤖 AI Agents Hub</a>
             </div>
-            <p style="margin-top: .7rem; font-size: .82rem; color: var(--text-muted);">
-                Sem cartão, sem API key, sem cadastro. Sandbox: <strong>30 consultas por hora por IP</strong>. Produção: x402 ou Session Pass.
+            <p style="margin-top: .7rem; font-size: .82rem; color: var(--text-muted);" data-i18n-html="hero.subnote">
+                No credit card, no API key, no signup. Sandbox: <strong>5 queries per hour per IP</strong>. Production: x402 or Session Pass.
             </p>
         </section>
 
@@ -3027,7 +3027,7 @@ grid402_log_public_visit('/');
             <div class="playground-toolbar">
                 <div class="mode-toggle-group">
                     <button type="button" class="mode-toggle-btn active" id="btn-mode-challenge" onclick="setPlaygroundMode('challenge')" data-i18n="playground.btn.challenge">🔒 Desafio x402 (HTTP 402)</button>
-                    <button type="button" class="mode-toggle-btn" id="btn-mode-sandbox" onclick="setPlaygroundMode('sandbox')" data-i18n="playground.btn.sandbox">🧪 Sandbox (30 consultas/h)</button>
+                    <button type="button" class="mode-toggle-btn" id="btn-mode-sandbox" onclick="setPlaygroundMode('sandbox')" data-i18n="playground.btn.sandbox">🧪 Sandbox (5 queries/hr)</button>
                     <button type="button" class="mode-toggle-btn" id="btn-mode-manual" onclick="setPlaygroundMode('manual')" data-i18n="playground.btn.manual">✍️ Validar JSON Externo</button>
                 </div>
                 <div class="playground-url-bar">
@@ -3283,7 +3283,7 @@ grid402_log_public_visit('/');
                     <div style="background: rgba(0, 0, 0, 0.3); border-radius: 6px; padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--text-muted);" data-i18n-html="console.smithery.params">
                         <strong style="color: #fff;">💡 Parâmetros Suportados no smithery.yaml:</strong>
                         <ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;">
-                            <li><code>sandbox: true</code> — Ativa o Modo Sandbox gratuito (30 consultas por hora por IP) para testes sem necessidade de carteira.</li>
+                            <li><code>sandbox: true</code> — Enables free Sandbox Mode (5 queries per hour per IP) for testing without a wallet.</li>
                             <li><code>privateKey: 0x...</code> — Chave privada EVM opcional para auto-liquidação em USDC na Base (0.0050 a 0.0200 USDC por chamada).</li>
                         </ul>
                     </div>
@@ -3384,7 +3384,7 @@ curl -i "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191"
 curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
   -H "X-Payment: 0x&lt;tx_hash_na_base&gt;"
 
-# 4. Modo Sandbox gratuito para testes e CI/CD (30 req/hora por IP)
+# 4. Modo Sandbox gratuito para testes e CI/CD (5 req/hora por IP)
 curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
   -H "X-Payment: demo"</div>
             </div>

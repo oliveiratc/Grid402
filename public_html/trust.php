@@ -40,7 +40,7 @@ $error4xx = (int)($statusCounts['402'] ?? 0) + (int)($statusCounts['403'] ?? 0);
 $checkedAt = $summary['timestamp'] ?? gmdate('Y-m-d\TH:i:s\Z');
 ?>
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">

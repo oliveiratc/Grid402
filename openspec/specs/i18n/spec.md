@@ -21,17 +21,17 @@ O cabeçalho da interface pública SHALL conter um seletor acessível permitindo
 ---
 
 ### Requirement: Persistência de Preferência (REQ-I18N-002)
-A preferência de idioma do usuário SHALL ser armazenada em `localStorage` sob a chave `grid402_lang` e restaurada automaticamente em novos acessos, mantendo Português (`pt`) como idioma padrão inicial.
+A preferência de idioma do usuário SHALL ser armazenada em `localStorage` sob a chave `grid402_lang` e restaurada automaticamente em novos acessos, mantendo Inglês (`en`) como idioma primário padrão inicial.
 
 #### Scenario: Primeiro acesso sem preferência salva
 - GIVEN que um usuário novo acessa o site pela primeira vez sem `grid402_lang` definido
 - WHEN a página é carregada
-- THEN o idioma exibido deve ser Português (`pt`)
+- THEN o idioma exibido deve ser Inglês (`en`)
 
 #### Scenario: Persistência após recarregamento
-- GIVEN que o usuário alterou o idioma para Inglês (`en`)
+- GIVEN que o usuário alterou o idioma para Português (`pt`)
 - WHEN recarregar a página ou abrir uma nova aba
-- THEN o site deve ser renderizado diretamente em Inglês (`en`)
+- THEN o site deve ser renderizado diretamente em Português (`pt`)
 
 ---
 
