@@ -495,6 +495,88 @@ function grid402_build_accepts(int $priceRawUnits): array {
 }
 
 /**
+ * Constroi o objeto canônico `resource` para respostas 402 e payloads x402 v2 (Bazaar).
+ */
+function grid402_build_resource_info(?string $serviceName = null, ?string $priceDisplay = null, ?string $fullUrl = null, ?string $customDescription = null): array {
+    $priceDisplay = $priceDisplay ?? GRID402_PRICE_DISPLAY;
+    $canonicalBase = defined('GRID402_CANONICAL_DOMAIN') ? rtrim(GRID402_CANONICAL_DOMAIN, '/') : 'https://grid402.online';
+
+    if ($fullUrl === null || $fullUrl === '') {
+        $host = $_SERVER['HTTP_HOST'] ?? (defined('GRID402_CANONICAL_HOST') ? GRID402_CANONICAL_HOST : 'grid402.online');
+        $isHttps = (isset($_SERVER['HTTPS']) and $_SERVER['HTTPS'] === 'on') or (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) and $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+        $proto = $isHttps ? 'https' : 'http';
+        $reqUri = $_SERVER['REQUEST_URI'] ?? ('/api/v1/' . ($serviceName ?? 'forex'));
+        $resourceBase = rtrim((string) grid402_env('GRID402_X402_RESOURCE_URL', ''), '/');
+        $fullUrl = ($resourceBase !== '') ? ($resourceBase . $reqUri) : ($proto . '://' . $host . $reqUri);
+    } elseif (str_starts_with($fullUrl, '/')) {
+        $fullUrl = $canonicalBase . $fullUrl;
+    }
+
+    $msg = $customDescription ?? ($serviceName
+        ? "Access to Grid402 '{$serviceName}' API requires a {$priceDisplay} USDC micropayment via x402 protocol."
+        : 'Technical query requires on-demand micropayment via x402 protocol.');
+
+    return [
+        'url' => $fullUrl,
+        'description' => $msg,
+        'mimeType' => 'application/json',
+        'serviceName' => 'Grid402 ' . strtoupper((string) ($serviceName ?? 'hub')),
+        'tags' => ['public-data', 'utility', 'x402', 'base', 'agents'],
+        'iconUrl' => $canonicalBase . '/assets/icon-192x192.png',
+    ];
+}
+
+/**
+ * Constroi a extensao `extensions.bazaar` conforme a spec oficial x402 v2
+ * (com `info` + `schema` JSON Schema 2020-12 exigido pelo indexador PayAI/CDP).
+ */
+function grid402_build_bazaar_extension(?array $exampleOutput = null): array {
+    $example = ($exampleOutput !== null && !empty($exampleOutput)) ? $exampleOutput : ['status' => 'success'];
+    return [
+        'info' => [
+            'input' => [
+                'type' => 'http',
+                'method' => 'GET',
+                'discoverable' => true,
+            ],
+            'output' => [
+                'type' => 'json',
+                'example' => $example,
+            ],
+        ],
+        'schema' => [
+            '$schema' => 'https://json-schema.org/draft/2020-12/schema',
+            'type' => 'object',
+            'required' => ['input'],
+            'properties' => [
+                'input' => [
+                    'type' => 'object',
+                    'required' => ['type', 'method'],
+                    'properties' => [
+                        'type' => ['type' => 'string', 'const' => 'http'],
+                        'method' => ['type' => 'string', 'enum' => ['GET', 'HEAD', 'POST']],
+                        'discoverable' => ['type' => 'boolean'],
+                        'queryParams' => [
+                            'type' => 'object',
+                            'additionalProperties' => ['type' => 'string'],
+                        ],
+                    ],
+                    'additionalProperties' => true,
+                ],
+                'output' => [
+                    'type' => 'object',
+                    'required' => ['type'],
+                    'properties' => [
+                        'type' => ['type' => 'string'],
+                        'example' => ['type' => 'object'],
+                    ],
+                ],
+            ],
+        ],
+    ];
+}
+
+/**
  * Emite a resposta HTTP 402 Payment Required estruturada compativel com x402 v2
  */
 function grid402_respond_402(?string $serviceName = null, ?string $errorMessage = null, ?string $priceDisplay = null, ?int $priceRawUnits = null, ?array $preview = null, ?array $lockedFields = null): void {
@@ -513,41 +595,9 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
 
     $msg = $errorMessage ?? ($serviceName ? "Acesso à API '{$serviceName}' requer micropagamento de {$priceDisplay} USDC via protocolo x402." : 'Consulta técnica requer micropagamento sob demanda via protocolo x402.');
 
-    $host = $_SERVER['HTTP_HOST'] ?? (defined('GRID402_CANONICAL_HOST') ? GRID402_CANONICAL_HOST : 'grid402.online');
-    $isHttps = (isset($_SERVER['HTTPS']) and $_SERVER['HTTPS'] === 'on') or (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) and $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
-    $proto = $isHttps ? 'https' : 'http';
-    $reqUri = $_SERVER['REQUEST_URI'] ?? ('/api/v1/' . ($serviceName ?? 'forex'));
-    // Opt-in: URL pública absoluta do recurso (config por trás de proxy ou homologação local).
-    $resourceBase = rtrim((string) grid402_env('GRID402_X402_RESOURCE_URL', ''), '/');
-    $fullUrl = ($resourceBase !== '') ? ($resourceBase . $reqUri) : ($proto . '://' . $host . $reqUri);
-
     $acceptsList = grid402_build_accepts($priceRawUnits);
-
-    $resourceInfo = [
-        'url' => $fullUrl,
-        'description' => $msg,
-        'mimeType' => 'application/json',
-        'serviceName' => 'Grid402 ' . strtoupper((string) ($serviceName ?? 'hub')),
-        'tags' => ['public-data', 'utility', 'x402', 'base', 'agents'],
-        'iconUrl' => (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . '/assets/icon-192x192.png',
-    ];
-
-    // Bazaar discovery metadata conforme spec (docs.x402.org/extensions/bazaar.md):
-    // extensions.bazaar.info.input.type/output.type são exigidos pela validação dos facilitadores.
-    $exampleOutput = ($preview !== null && !empty($preview)) ? $preview : new \stdClass();
-    $bazaarInfo = [
-        'info' => [
-            'input' => [
-                'type' => 'http',
-                'method' => 'GET',
-                'discoverable' => true,
-            ],
-            'output' => [
-                'type' => 'json',
-                'example' => $exampleOutput,
-            ],
-        ],
-    ];
+    $resourceInfo = grid402_build_resource_info($serviceName, $priceDisplay, null, $msg);
+    $bazaarInfo = grid402_build_bazaar_extension($preview);
 
     $x402V2HeaderData = [
         'x402Version' => 2,

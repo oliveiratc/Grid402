@@ -4497,7 +4497,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             return x402UnwrapProvider(chosen);
         }
 
-        async function x402SignTransferAuthorization(provider, userAddress, amountRaw) {
+        async function x402SignTransferAuthorization(provider, userAddress, amountRaw, serviceMeta = {}) {
             const out = document.getElementById('console-output') || document.getElementById('playground-json-viewer');
             const step = (m) => {
                 const el = document.getElementById('console-status-text') || document.getElementById('playground-http-status');
@@ -4592,8 +4592,18 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 if (!signature) {
                     throw lastSignErr || new Error('Nenhuma assinatura EIP-712 obtida da carteira.');
                 }
+                const serviceName = (serviceMeta && serviceMeta.service) ? String(serviceMeta.service) : 'hub';
+                const resourceUrl = (serviceMeta && serviceMeta.url) ? String(serviceMeta.url) : window.location.origin + '/api/v1/' + serviceName;
                 const envelope = {
                     x402Version: 2,
+                    resource: {
+                        url: resourceUrl,
+                        description: 'Grid402 ' + serviceName.toUpperCase() + ' M2M oracle endpoint',
+                        mimeType: 'application/json',
+                        serviceName: 'Grid402 ' + serviceName.toUpperCase(),
+                        tags: ['public-data', 'utility', 'x402', 'base', 'agents'],
+                        iconUrl: 'https://grid402.online/assets/icon-192x192.png',
+                    },
                     accepted: {
                         scheme: 'exact',
                         network: 'eip155:8453',
@@ -4612,6 +4622,39 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                             validAfter,
                             validBefore,
                             nonce,
+                        },
+                    },
+                    extensions: {
+                        bazaar: {
+                            info: {
+                                input: { type: 'http', method: 'GET', discoverable: true },
+                                output: { type: 'json', example: { status: 'success' } },
+                            },
+                            schema: {
+                                '$schema': 'https://json-schema.org/draft/2020-12/schema',
+                                type: 'object',
+                                required: ['input'],
+                                properties: {
+                                    input: {
+                                        type: 'object',
+                                        required: ['type', 'method'],
+                                        properties: {
+                                            type: { type: 'string', const: 'http' },
+                                            method: { type: 'string', enum: ['GET', 'HEAD', 'POST'] },
+                                            discoverable: { type: 'boolean' },
+                                        },
+                                        additionalProperties: true,
+                                    },
+                                    output: {
+                                        type: 'object',
+                                        required: ['type'],
+                                        properties: {
+                                            type: { type: 'string' },
+                                            example: { type: 'object' },
+                                        },
+                                    },
+                                },
+                            },
                         },
                     },
                 };
@@ -4703,7 +4746,10 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 }
 
                 if (btn) btn.textContent = 'Assine ' + priceUsdc + ' USDC na carteira (x402 EIP-712)...';
-                const xpay = await x402SignTransferAuthorization(provider, userAddress, amountRaw);
+                const xpay = await x402SignTransferAuthorization(provider, userAddress, amountRaw, {
+                    service: currentPlaygroundPreset,
+                    url: buildPlaygroundUrl(),
+                });
                 if (statusBadge) statusBadge.textContent = 'Liquidando via facilitador x402...';
                 if (viewer) viewer.textContent = '// Assinatura x402 (EIP-712) criada.\n// Enviando prova para o facilitador (verify + settle)...';
                 if (btn) btn.textContent = 'Liquidando via facilitador x402...';
@@ -5134,7 +5180,10 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 if (btn) btn.textContent = `Aguardando assinatura de ${priceUsdc} USDC (x402 EIP-712)...`;
                 out.textContent = `Solicitando assinatura na carteira: ${priceUsdc} USDC na Base, liquidados pelo facilitador x402.`;
 
-                const xpay = await x402SignTransferAuthorization(provider, userAddress, amountRaw);
+                const xpay = await x402SignTransferAuthorization(provider, userAddress, amountRaw, {
+                    service: currentServiceAction,
+                    url: window.location.origin + '/api/v1/' + (currentServiceAction || 'forex'),
+                });
 
                 document.getElementById('tx-input').value = xpay;
                 statusText.textContent = 'Assinatura x402 criada; liquidando via facilitador...';

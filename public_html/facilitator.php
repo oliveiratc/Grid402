@@ -510,9 +510,25 @@ function grid402_validate_exact_payment(string $rawProof, int $requiredRawUnits,
         ];
     }
 
+    $paymentPayload = $decoded['raw'];
+    if ($decoded['version'] === 2) {
+        $serviceSlug = null;
+        if (is_string($resourceUrl) && preg_match('#/api/v1/([a-z0-9-]+)#i', $resourceUrl, $m)) {
+            $serviceSlug = strtolower($m[1]);
+        }
+        $priceDisplay = number_format($requiredRawUnits / 1e6, 4, '.', '');
+        if (empty($paymentPayload['resource']) && function_exists('grid402_build_resource_info')) {
+            $paymentPayload['resource'] = grid402_build_resource_info($serviceSlug, $priceDisplay, (string) $resourceUrl);
+        }
+        if (empty($paymentPayload['extensions']['bazaar']['schema']) && function_exists('grid402_build_bazaar_extension')) {
+            $paymentPayload['extensions'] = is_array($paymentPayload['extensions'] ?? null) ? $paymentPayload['extensions'] : [];
+            $paymentPayload['extensions']['bazaar'] = grid402_build_bazaar_extension();
+        }
+    }
+
     $requestBody = [
         'x402Version' => $decoded['version'],
-        'paymentPayload' => $decoded['raw'],
+        'paymentPayload' => $paymentPayload,
         'paymentRequirements' => grid402_build_payment_requirements($decoded['version'], $requiredRawUnits, (string) $resourceUrl),
     ];
     $unavailable = static fn(string $reason = 'Servico de liquidacao temporariamente indisponivel. Tente novamente em instantes.'): array => [
