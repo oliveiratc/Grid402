@@ -150,9 +150,9 @@ if (verificacao.valid) {
 | `getIndicators(txHash?)` | Indicadores macroeconomicos oficiais (Selic meta e diaria, CDI anual e IPCA) | 0.0050 |
 | `getHolidays(year?, txHash?)` | Calendario oficial de feriados nacionais e bancarios ANBIMA | 0.0050 |
 | `getWorkdays(params?, txHash?)` | Calculadora de dias uteis financeiros e projecao de vencimentos ANBIMA | 0.0050 |
-| `getSanctions(cnpj, txHash?)` | Consulta de sancoes administrativas ativas nos cadastros CEIS e CNEP (CGU) | 0.0010 |
-| `getSimples(cnpj, txHash?)` | Consulta de enquadramento tributario no Simples Nacional e SIMEI | 0.0010 |
-| `getCompliance(cnpj, txHash?)` | Dossiê consolidado de Compliance 360 com score de risco de 0 a 100 | 0.0030 |
+| `getSanctions(cnpj, txHash?)` | Consulta de sancoes administrativas ativas nos cadastros CEIS e CNEP (CGU) | 0.0100 |
+| `getSimples(cnpj, txHash?)` | Consulta de enquadramento tributario no Simples Nacional e SIMEI | 0.0100 |
+| `getCompliance(cnpj, txHash?)` | Dossiê consolidado de Compliance 360 com score de risco de 0 a 100 | 0.0300 |
 
 ---
 

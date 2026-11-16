@@ -15,7 +15,6 @@
 declare(strict_types=1);
 
 $projectRoot = dirname(__DIR__);
-$privateDir = $projectRoot . '/public_html/private_data';
 
 echo "=== Grid402 Zero-DB Storage Integrity Check ===\n";
 
@@ -24,6 +23,8 @@ ob_start();
 require_once $projectRoot . '/public_html/collector.php';
 $collectorOutput = trim((string) ob_get_clean());
 echo "[1/3] Collector sync: {$collectorOutput}\n";
+
+$privateDir = defined('GRID402_PRIVATE_DIR') ? GRID402_PRIVATE_DIR : ($projectRoot . '/public_html/private_data');
 
 if (!is_dir($privateDir)) {
     fwrite(STDERR, "[FAIL] Directory not found: {$privateDir}\n");

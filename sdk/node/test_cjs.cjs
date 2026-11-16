@@ -23,6 +23,11 @@ FuMG+zevhna+MX1NMJ1+yZ+hRANCAARmHsUjjU6W0zb8/uaJbQv8PQ4ToXMRBGTZ
 gmgw8Rc7+YqJnqhKLmX0wIi9L9bsigil7fPURX2thUSwAM6AceQn
 -----END PRIVATE KEY-----`;
 
+const TEST_ORACLE_PUBKEY = `-----BEGIN PUBLIC KEY-----
+MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEZh7FI41OltM2/P7miW0L/D0OE6FzEQRk
+2YJoMPEXO/mKiZ6oSi5l9MCIvS/W7IoIpe3z1EV9rYVEsADOgHHkJw==
+-----END PUBLIC KEY-----`;
+
 function generateMockSignedResponse(data, isSandbox = false) {
   const hash = computeDataHash(data);
   const timestamp = Math.floor(Date.now() / 1000);
@@ -84,11 +89,11 @@ test('CJS - Validacao de prova criptografica e deteccao de adulteracao', () => {
   const sample = { status: 'success', service: 'workdays', workdays: 5 };
   const signed = generateMockSignedResponse(sample, false);
 
-  const validRes = client.verifyProof(signed);
+  const validRes = client.verifyProof(signed, null, TEST_ORACLE_PUBKEY);
   assert.equal(validRes.valid, true);
 
   signed.workdays = 99;
-  const tamperedRes = client.verifyProof(signed);
+  const tamperedRes = client.verifyProof(signed, null, TEST_ORACLE_PUBKEY);
   assert.equal(tamperedRes.valid, false);
   assert.equal(tamperedRes.error, 'DataHashMismatch');
 });

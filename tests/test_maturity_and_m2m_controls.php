@@ -37,9 +37,16 @@ echo "=================================================================\n\n";
 // -----------------------------------------------------------------
 echo "[1/7] Unificação de Carteira Recebedora (0xa592...3f90):\n";
 $indexContent = (string) file_get_contents($projectRoot . '/public_html/index.php');
-$walletCacheContent = (string) file_get_contents($projectRoot . '/public_html/private_data/wallet_balance_cache.json');
+$walletCachePath = is_file(GRID402_PRIVATE_DIR . '/wallet_balance_cache.json')
+    ? (GRID402_PRIVATE_DIR . '/wallet_balance_cache.json')
+    : ($projectRoot . '/public_html/private_data/wallet_balance_cache.json');
+$walletCacheContent = is_file($walletCachePath) ? (string) file_get_contents($walletCachePath) : '';
 check('index.php não contém carteira legada 0xa31c...356c', !str_contains(strtolower($indexContent), '0xa31ca8fbabbdac7ab34fb045ae2fc2019ba9356c'));
-check('wallet_balance_cache.json usa carteira oficial 0xa592...3f90', str_contains(strtolower($walletCacheContent), '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90'));
+check('wallet_balance_cache.json usa carteira oficial 0xa592...3f90 (ou ausente em checkout limpo)',
+    $walletCacheContent === '' ||
+    (!str_contains(strtolower($walletCacheContent), '0xa31ca8fbabbdac7ab34fb045ae2fc2019ba9356c') &&
+     str_contains(strtolower($walletCacheContent), '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90'))
+);
 check('GRID402_WALLET_ADDRESS aponta para 0xa592...3f90', strtolower(GRID402_WALLET_ADDRESS) === '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90');
 
 // -----------------------------------------------------------------
@@ -78,6 +85,11 @@ echo "\n[3/7] Cobertura 22/22 Serviços UP, Proveniência e Histórico Uptime 30
 $servicesCatalog = grid402_get_utility_services();
 check('Catálogo possui exatamente 22 micro-serviços', count($servicesCatalog) === 22, 'Got: ' . count($servicesCatalog));
 
+if (!is_file(GRID402_FILE_FREE)) {
+    ob_start();
+    require_once $projectRoot . '/public_html/collector.php';
+    ob_end_clean();
+}
 $summaryFree = json_decode((string) file_get_contents(GRID402_FILE_FREE), true);
 $allUp = true;
 $allHaveProvenance = true;
