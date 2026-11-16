@@ -8,7 +8,9 @@
 
 declare(strict_types=1);
 
-define('GRID402_EXEC', true);
+if (!defined('GRID402_EXEC')) {
+    define('GRID402_EXEC', true);
+}
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/services/forex.php';
 require_once __DIR__ . '/services/crypto.php';

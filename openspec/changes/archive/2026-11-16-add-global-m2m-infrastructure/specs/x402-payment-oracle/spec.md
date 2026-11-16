@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Emissão e Consumo de Passe de Sessão Pré-pago x402 (REQ-PASS-001)
-O sistema DEVE permitir a emissão de passes de sessão pré-pagos (`pass_g402_<id>_<hmac>`) através do endpoint `/api/v1/pass` mediante liquidação em USDC na Base (onde cada `0.0005 USDC` equivale a 1 crédito universal, com pacote padrão de `0.05 USDC` = 100 créditos) e aceitar esse token no cabeçalho `X-Payment` em todos os micro-serviços do Grid402.
+O sistema SHALL permitir a emissão de passes de sessão pré-pagos (`pass_g402_<id>_<hmac>`) através do endpoint `/api/v1/pass` mediante liquidação em USDC na Base (escala oficial `v2_5000`: `0.0050 USDC` = 1 crédito universal; Starter `2 USDC` = 400 créditos, Pro `5 USDC` = 1.000 créditos, Fleet `20 USDC` = 6.000 créditos) e aceitar esse token no cabeçalho `X-Payment` em todos os micro-serviços do Grid402.
 
 #### Scenario: Emissão de Session Pass e débito atômico em chamadas subsequentes
 - GIVEN que um cliente ou agente obtém um token `pass_g402_...` com créditos ativos
