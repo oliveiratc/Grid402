@@ -114,6 +114,14 @@ Cron criado no Hostinger (conta `u637629962`, uid `2URlitBU3F`):
 
 ---
 
+## 5.2 Política de Gestão Não-Custodial de Chaves M2M e Spend Controls
+
+1. **Princípio de Menor Privilégio no Agente:** nunca configure uma chave privada principal/tesouraria no ambiente do agente autônomo (`GRID402_PRIVATE_KEY` ou CDP Wallet). Utilize sempre uma **carteira operacional dedicada** financiada apenas com o limite de gasto planejado (ex.: `2` a `20 USDC`).
+2. **Preferência por Session Pass (`pass_g402_...`):** sempre que o agente operar com alta frequência ou precisar evitar exposição de chave privada no runtime, utilize `GRID402_SESSION_PASS` combinado com `daily_credit_limit` e `allowed_endpoints` configurados no passe.
+3. **Sem Custódia de Fundos no Servidor:** o gateway do Grid402 nunca recebe, lê ou armazena chaves privadas de clientes; a liquidação EIP-3009 é assinada exclusivamente pelo cliente e validada em payload base64 sem retenção em logs (`requests.jsonl` descarta cabeçalhos `X-Payment`/`PAYMENT-SIGNATURE` e tokens inteiros).
+
+---
+
 ## 6. Checklist de produção (em ordem)
 
 - [x] Homologação Sepolia concluída com HTTP 200 + recibo `PAYMENT-RESPONSE` (2 settles via PayAI, 2026-11-13)

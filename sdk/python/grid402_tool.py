@@ -151,7 +151,7 @@ GRID402_FUNCTION_SCHEMAS: List[Dict[str, Any]] = [
                     },
                     "payment_tx_hash": {
                         "type": "string",
-                        "description": "Hash de transação hexadecimal de 32 bytes (66 caracteres) no Base Mainnet com 0.0005 USDC comprovando pagamento x402."
+                        "description": "Hash de transação hexadecimal de 32 bytes (66 caracteres) no Base Mainnet com 0.0050 USDC comprovando pagamento x402."
                     }
                 },
                 "required": ["service"]

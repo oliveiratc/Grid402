@@ -8,7 +8,8 @@ Projetada especificamente para agentes autonomos de inteligencia artificial, fra
 
 ## Recursos Principais
 
-- **11 Ferramentas Integradas:** Indicadores macroeconomicos (Selic, CDI, IPCA), calculadora de dias uteis financeiros ANBIMA, feriados nacionais e bancarios ANBIMA, CNPJ da Receita Federal, CEP postal e IBGE, cotacoes Forex e Cripto spot, resolucao DNS, auditoria TLS e SSL, analise ASN e BGP e status do ecossistema.
+- **Ecossistema Grid402 (22 Endpoints):** Suporte direto aos métodos tipados (`status`, `forex`, `crypto`, `dns`, `ssl`, `asn`, `cep`, `cnpj`, `indicators`, `holidays`, `workdays`) e acesso padronizado HTTP x402 (`0.0050` a `0.0300 USDC` na Base Mainnet ou via Session Pass `1 crédito = 0.0050 USDC`).
+- **Gestão Segura de Carteiras:** Nunca armazene chaves privadas no código; utilize carteiras dedicadas de agente com limite de saldo (Spend Controls) ou `X-Payment: pass_g402_...`.
 - **Zero Cadastro e Zero Friccao:** Sem necessidade de chaves de API estaticas ou contratos mensais.
 - **Modo Sandbox Gratuito:** Teste e homologue localmente sem custos informando `sandbox=True`.
 - **Integracao Nativa com IA:** Compativel com Coinbase Developer Platform (CDP) AgentKit, LangChain e CrewAI.

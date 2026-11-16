@@ -126,6 +126,7 @@ function grid402_default_metrics(): array {
         ],
         'daily' => [],
         'recent_events' => [],
+        'latency_samples_ms' => [],
     ];
 }
 
@@ -155,6 +156,9 @@ function grid402_normalize_metrics(array $metrics): array {
     }
     if (!isset($metrics['recent_events']) || !is_array($metrics['recent_events'])) {
         $metrics['recent_events'] = [];
+    }
+    if (!isset($metrics['latency_samples_ms']) || !is_array($metrics['latency_samples_ms'])) {
+        $metrics['latency_samples_ms'] = [];
     }
     if (!isset($metrics['daily']) || !is_array($metrics['daily'])) {
         $metrics['daily'] = [];
@@ -412,6 +416,22 @@ function grid402_record_telemetry(
             $metrics['recent_events'] = array_slice($metrics['recent_events'], 0, 100);
         }
 
+        // 5. Buffer circular de latencias (ultimas 200 amostras em ms para calculo de p50/p95)
+        if (empty($meta['defer_latency_sample'])) {
+            $sampleMs = null;
+            if (isset($meta['latency_ms']) && is_numeric($meta['latency_ms'])) {
+                $sampleMs = round((float) $meta['latency_ms'], 2);
+            } elseif (function_exists('grid402_request_elapsed_ms')) {
+                $sampleMs = grid402_request_elapsed_ms();
+            }
+            if ($sampleMs !== null && $sampleMs >= 0.0) {
+                $metrics['latency_samples_ms'][] = $sampleMs;
+                if (count($metrics['latency_samples_ms']) > 200) {
+                    $metrics['latency_samples_ms'] = array_slice($metrics['latency_samples_ms'], -200);
+                }
+            }
+        }
+
         // Gravação segura
         ftruncate($fp, 0);
         rewind($fp);
@@ -421,6 +441,65 @@ function grid402_record_telemetry(
     }
 
     fclose($fp);
+}
+
+/**
+ * Registra atomicamente uma amostra de latencia (ms) no buffer circular de metrics.json.
+ */
+function grid402_record_latency_sample(float $latencyMs): void {
+    if ($latencyMs < 0.0) {
+        return;
+    }
+    $file = defined('GRID402_FILE_METRICS') ? GRID402_FILE_METRICS : (GRID402_PRIVATE_DIR . '/metrics.json');
+    $dir = dirname($file);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+    $fp = @fopen($file, 'c+');
+    if (!$fp) {
+        return;
+    }
+    if (flock($fp, LOCK_EX)) {
+        $size = filesize($file);
+        $content = $size > 0 ? (string) fread($fp, $size) : '';
+        $metrics = ($content !== '') ? (@json_decode($content, true) ?: grid402_default_metrics()) : grid402_default_metrics();
+        $metrics = grid402_normalize_metrics(is_array($metrics) ? $metrics : grid402_default_metrics());
+
+        $metrics['latency_samples_ms'][] = round($latencyMs, 2);
+        if (count($metrics['latency_samples_ms']) > 200) {
+            $metrics['latency_samples_ms'] = array_slice($metrics['latency_samples_ms'], -200);
+        }
+
+        ftruncate($fp, 0);
+        rewind($fp);
+        fwrite($fp, (string) json_encode($metrics, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        fflush($fp);
+        flock($fp, LOCK_UN);
+    }
+    fclose($fp);
+}
+
+/**
+ * Calcula percentil (ex: p50 ou p95) sobre um array de latencias em ms.
+ */
+function grid402_calculate_percentile(array $samples, float $percentile = 95.0): float {
+    $vals = [];
+    foreach ($samples as $v) {
+        if (is_numeric($v)) {
+            $vals[] = (float) $v;
+        }
+    }
+    if (empty($vals)) {
+        return 0.0;
+    }
+    sort($vals, SORT_NUMERIC);
+    $n = count($vals);
+    if ($n === 1) {
+        return round($vals[0], 2);
+    }
+    $idx = (int) ceil(($percentile / 100.0) * $n) - 1;
+    $idx = max(0, min($n - 1, $idx));
+    return round($vals[$idx], 2);
 }
 
 /**
@@ -729,11 +808,18 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
     // Ordena da maior receita estimada para a menor
     uasort($serviceRevenue, fn($a, $b) => $b['estimated_usdc'] <=> $a['estimated_usdc']);
 
+    $latencySamples = is_array($metrics['latency_samples_ms'] ?? null) ? $metrics['latency_samples_ms'] : [];
+    $latencyP50 = grid402_calculate_percentile($latencySamples, 50.0);
+    $latencyP95 = grid402_calculate_percentile($latencySamples, 95.0);
+
     return [
         'arpu_usdc' => $arpuUsdc,
         'arpu_brl' => $arpuBrl,
         'technical_success_rate' => $technicalSuccessRate,
         'sandbox_rate' => $sandboxRate,
+        'latency_p50_ms' => $latencyP50,
+        'latency_p95_ms' => $latencyP95,
+        'latency_samples_count' => count($latencySamples),
         'daily_history_14d' => $dailyHistory14d,
         'top_consumers' => $topConsumers,
         'service_revenue' => array_values($serviceRevenue),

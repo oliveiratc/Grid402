@@ -19,17 +19,17 @@ O servidor SHALL disponibilizar arquivos de texto puro `llms.txt` e `llms-full.t
 - THEN o servidor SHALL retornar status HTTP 200, Content-Type `text/plain` com documentacao tecnica e endpoints sob `https://grid402.online`.
 
 ### Requirement: Manifestos Padronizados de Agentes e MCP
-O servidor SHALL expor manifestos JSON padronizados sob `/.well-known/` para descoberta automatica por clientes MCP e orquestradores de agentes, com endpoints referenciando a raiz `https://grid402.online`.
+O servidor SHALL expor manifestos JSON padronizados sob `/.well-known/mcp.json` e `/.well-known/mcp/server-card.json` para descoberta automática por clientes MCP e diretórios externos (como Glama e Smithery), listando todas as 24 ferramentas disponíveis com endpoints apontando para `https://grid402.online`.
 
 #### Scenario: Consulta ao manifesto MCP
-- GIVEN o servidor web em producao
-- WHEN um cliente efetua um GET em `/.well-known/mcp.json`
-- THEN o servidor SHALL retornar status HTTP 200, Content-Type `application/json` e a URL base configurada para `https://grid402.online`.
+- **GIVEN** o servidor web em producao
+- **WHEN** um cliente efetua um GET em `/.well-known/mcp.json` ou `/.well-known/mcp/server-card.json`
+- **THEN** o servidor SHALL retornar status HTTP 200, Content-Type `application/json`, URL base configurada para `https://grid402.online` e as 24 ferramentas registradas sincronizadas com `mcp/tools.mjs`.
 
 #### Scenario: Consulta ao manifesto AI Plugin
-- GIVEN o servidor web em producao
-- WHEN um orquestrador de IA efetua um GET em `/.well-known/ai-plugin.json`
-- THEN o servidor SHALL retornar status HTTP 200, Content-Type `application/json` com url apontando para `https://grid402.online/openapi.json`.
+- **GIVEN** o servidor web em producao
+- **WHEN** um orquestrador de IA efetua um GET em `/.well-known/ai-plugin.json`
+- **THEN** o servidor SHALL retornar status HTTP 200, Content-Type `application/json` com url apontando para `https://grid402.online/openapi.json`.
 
 ### Requirement: Central de Agentes e Desenvolvedores
 O sistema SHALL prover uma rota `/agents` renderizando uma interface terminal interativa com snippets de configuracao copiados para Claude Desktop, Python e cURL.
@@ -101,3 +101,12 @@ O sistema SHALL expor em `/trust` a identificação institucional do operador re
 - **GIVEN** um avaliador técnico acessando `https://grid402.online/trust`
 - **WHEN** a página for renderizada
 - **THEN** a página SHALL exibir a seção de Identificação do Operador e Governança, a matriz de proveniência e TTL por fonte (Receita Federal, BCB, IBGE, CGU, GLEIF, OFAC), o histórico de uptime de 30 dias, o resumo de Changelog de preços/versões e a nota de desambiguação de marca.
+
+### Requirement: Dual-License Explicita e Higiene de Dominio e Precos Legados
+O repositório SHALL explicitar em `LICENSE` e `README.md` a separação Dual-License entre o gateway proprietário (`public_html/`) e os SDKs, MCP Server e integrações sob licença MIT, garantindo o posicionamento *"The Verifiable Data and x402 Payment Layer for Autonomous AI Agents"* e zero referências ativas a `grid402.com.br` ou `0.0005`.
+
+#### Scenario: Verificacao de Dual-License e ausencia de referencias legadas
+- **GIVEN** os arquivos `LICENSE`, `README.md`, `.env.example`, `examples/*` e `sdk/*` do repositório
+- **WHEN** um auditor ou suite automatizada inspecionar licenças, URLs e tarifas padrão
+- **THEN** `LICENSE` e `README.md` SHALL explicitar a divisão entre servidor proprietário (`public_html/`) e SDKs/MCP em `MIT`
+- **AND** nenhuma referência ativa em `examples/` ou `sdk/` SHALL apontar para `grid402.com.br` ou usar `0.0005` como preço vigente.

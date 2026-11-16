@@ -662,6 +662,9 @@ if ($apiParam === 'stats') {
         'arpu_usdc' => $analytics['arpu_usdc'],
         'arpu_brl' => $analytics['arpu_brl'],
         'technical_success_rate' => $analytics['technical_success_rate'],
+        'latency_p50_ms' => $analytics['latency_p50_ms'] ?? 0.0,
+        'latency_p95_ms' => $analytics['latency_p95_ms'] ?? 0.0,
+        'latency_samples_count' => $analytics['latency_samples_count'] ?? 0,
         'sandbox_rate' => $analytics['sandbox_rate'],
         'usd_rate' => $usdRate,
         'wallet_balances' => $wallet,
@@ -874,6 +877,7 @@ $todayBrl = round($todayUsdc * $usdRate, 2);
 $arpuUsdc = $analytics['arpu_usdc'];
 $arpuBrl = $analytics['arpu_brl'];
 $technicalSuccessRate = $analytics['technical_success_rate'];
+$latencyP95Ms = (float) ($analytics['latency_p95_ms'] ?? 0.0);
 $sandboxRate = $analytics['sandbox_rate'];
 $passesStats = $analytics['passes_stats'] ?? ['active_passes' => 0, 'remaining_credits' => 0];
 $dailyHistory14d = $analytics['daily_history_14d'] ?? [];
@@ -1543,7 +1547,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             <div class="kpi-card">
                 <div class="kpi-title">SLA / Sucesso Técnico</div>
                 <div class="kpi-value" id="kpi-sla-tech" style="color: #10B981;"><?php echo $technicalSuccessRate; ?>%</div>
-                <div class="kpi-sub">HTTP 200 OK sobre total de chamadas</div>
+                <div class="kpi-sub" id="kpi-latency-p95">HTTP 200 OK • Latência p95: <?php echo number_format($latencyP95Ms, 1, ',', '.'); ?> ms</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">Adoção Sandbox</div>
@@ -2264,6 +2268,10 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 if (arpuUsdcEl) arpuUsdcEl.textContent = 'US$ ' + Number(data.arpu_usdc ?? 0).toFixed(4);
                 if (arpuBrlEl) arpuBrlEl.textContent = '≈ R$ ' + Number(data.arpu_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 4 }) + ' / consulta paga';
                 if (slaTechEl) slaTechEl.textContent = Number(data.technical_success_rate || 100).toFixed(1) + '%';
+                const p95El = document.getElementById('kpi-latency-p95');
+                if (p95El && data.latency_p95_ms !== undefined) {
+                    p95El.textContent = 'HTTP 200 OK • Latência p95: ' + Number(data.latency_p95_ms || 0).toFixed(1).replace('.', ',') + ' ms';
+                }
                 if (sandboxRateEl) sandboxRateEl.textContent = Number(data.sandbox_rate || 0).toFixed(1) + '%';
 
                 if (passesEl && data.passes_stats) {

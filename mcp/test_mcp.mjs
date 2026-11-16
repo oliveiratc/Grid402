@@ -114,6 +114,78 @@ async function runTests() {
     process.env.GRID402_SANDBOX = originalSandbox;
   }
 
+  console.log('\n[7/7] Testando handshake JSON-RPC stdio (instructions + version 1.8.2 + 24 tools)...');
+  const { spawn } = await import('node:child_process');
+  const { fileURLToPath } = await import('node:url');
+  const { dirname, join } = await import('node:path');
+  const mcpDir = dirname(fileURLToPath(import.meta.url));
+  const rpcResult = await new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [join(mcpDir, 'index.mjs')], {
+      cwd: mcpDir,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    let stdoutBuf = '';
+    const responses = new Map();
+    const timeout = setTimeout(() => {
+      child.kill();
+      reject(new Error('Timeout aguardando handshake MCP stdio'));
+    }, 8000);
+
+    child.stdout.on('data', (chunk) => {
+      stdoutBuf += chunk.toString('utf8');
+      const lines = stdoutBuf.split(/\r?\n/);
+      stdoutBuf = lines.pop() ?? '';
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        try {
+          const msg = JSON.parse(line);
+          if (msg.id !== undefined) {
+            responses.set(msg.id, msg);
+          }
+          if (responses.has(1) && responses.has(2)) {
+            clearTimeout(timeout);
+            child.kill();
+            resolve({ init: responses.get(1), list: responses.get(2) });
+          }
+        } catch {
+          // Ignora linhas parciais ou informativas
+        }
+      }
+    });
+
+    child.on('error', (err) => {
+      clearTimeout(timeout);
+      reject(err);
+    });
+
+    child.stdin.write(JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'initialize',
+      params: {
+        protocolVersion: '2024-11-05',
+        capabilities: {},
+        clientInfo: { name: 'grid402-test', version: '1.0.0' },
+      },
+    }) + '\n');
+    child.stdin.write(JSON.stringify({
+      jsonrpc: '2.0',
+      method: 'notifications/initialized',
+    }) + '\n');
+    child.stdin.write(JSON.stringify({
+      jsonrpc: '2.0',
+      id: 2,
+      method: 'tools/list',
+      params: {},
+    }) + '\n');
+  });
+
+  assert.strictEqual(rpcResult.init?.result?.serverInfo?.version, '1.8.2', 'Versao MCP initialize deve ser 1.8.2');
+  assert.ok(typeof rpcResult.init?.result?.instructions === 'string' && rpcResult.init.result.instructions.includes('GRID402_SESSION_PASS'), 'Handshake initialize deve retornar instructions com orientacoes de Session Pass e sandbox');
+  assert.ok(rpcResult.init.result.instructions.includes('demo'), 'Instructions deve mencionar modo sandbox demo');
+  assert.strictEqual(rpcResult.list?.result?.tools?.length, 24, 'tools/list via stdio deve expor exatamente 24 ferramentas');
+  console.log('  ✓ Handshake stdio retornou version=1.8.2, instructions nativas e 24 ferramentas!');
+
   console.log('\n=== Todos os testes do MCP Server Grid402 foram APROVADOS com 100% de sucesso! ===');
 }
 

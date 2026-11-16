@@ -5,7 +5,7 @@
  *   node examples/client_agent.mjs
  */
 
-const GRID402_BASE_URL = process.env.GRID402_URL || 'https://www.grid402.com.br';
+const GRID402_BASE_URL = process.env.GRID402_URL || 'https://grid402.online';
 
 async function main() {
     console.log('[AGENTE M2M] 1. Consultando disponibilidade preliminar (Free Tier)...');

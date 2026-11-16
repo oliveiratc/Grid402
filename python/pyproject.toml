@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "grid402"
-version = "2.5.2"
-description = "SDK Python oficial do Grid402: Micropagamentos HTTP 402 na Base e Prova Criptografica de Oraculo para Agentes Autonomos e IA"
+version = "2.5.3"
+description = "Official Grid402 Python SDK - Verifiable Data and HTTP x402 Payment Layer on Base (ECDSA Oracle Proof)"
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"

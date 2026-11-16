@@ -31,6 +31,9 @@ $uptimePct30d = (float)($uptime30d['overall_uptime_pct'] ?? 100.0);
 $uptimeDays = is_array($uptime30d['days'] ?? null) ? $uptime30d['days'] : [];
 
 $metrics = grid402_get_metrics();
+$trustAnalytics = grid402_compute_admin_analytics($metrics);
+$latencyP95Ms = (float) ($trustAnalytics['latency_p95_ms'] ?? 0.0);
+$latencySamplesCount = (int) ($trustAnalytics['latency_samples_count'] ?? 0);
 $statusCounts = is_array($metrics['status_counts'] ?? null) ? $metrics['status_counts'] : [];
 $total = (int)($metrics['total_requests'] ?? 0);
 $ok = (int)($statusCounts['200'] ?? 0);
@@ -81,7 +84,7 @@ $checkedAt = $summary['timestamp'] ?? gmdate('Y-m-d\TH:i:s\Z');
     <div class="cards">
         <div class="card"><div class="value ok"><?php echo number_format($uptimePct30d, 2); ?>%</div><div data-i18n="trust.kpi1">Historical Uptime (30 days) · Best-Effort Target: 99.5%</div></div>
         <div class="card"><div class="value ok"><?php echo $servicesUp; ?>/<?php echo $servicesTotal; ?></div><div data-i18n="trust.kpi2">Operational Services (UP) in Current Snapshot</div></div>
-        <div class="card"><div class="value ok"><?php echo number_format($availabilityHttp, 2); ?>%</div><div><span data-i18n="trust.kpi3">Success Rate Without 5xx Errors</span> (<?php echo $ok; ?> HTTP 200)</div></div>
+        <div class="card"><div class="value ok"><?php echo number_format($availabilityHttp, 2); ?>%</div><div><span data-i18n="trust.kpi3">Success Rate Without 5xx Errors</span> (<?php echo $ok; ?> HTTP 200) · <span data-i18n="trust.kpi3_p95">p95 Latency:</span> <strong><?php echo number_format($latencyP95Ms, 1); ?> ms</strong></div></div>
         <div class="card"><div class="value"><?php echo $error4xx; ?></div><div data-i18n="trust.kpi4">HTTP 402 Challenges Issued + Replays Blocked</div></div>
     </div>
 
@@ -196,10 +199,11 @@ $checkedAt = $summary['timestamp'] ?? gmdate('Y-m-d\TH:i:s\Z');
         </ul>
     </div>
 
-    <h2 data-i18n="trust.s6.title">6. Incident and Liability Policy</h2>
+    <h2 data-i18n="trust.s6.title">6. Incident Policy, Key Security and Liability</h2>
     <ul data-i18n-html="trust.s6.list">
         <li><strong>S0 (Critical Outage):</strong> immediate response and automatic fallback to signed cached snapshot with explicit timestamp in <code>_meta.fetched_at</code>.</li>
         <li><strong>S1 (External Government Source Degradation):</strong> <em>fail-closed</em> behavior with structured error, zero synthetic data generation, and zero credit deduction on 5xx failures.</li>
+        <li><strong>Non-Custodial M2M Key Management &amp; Spend Controls:</strong> Grid402 never stores or requests client private keys or seed phrases. Autonomous agents using <code>GRID402_PRIVATE_KEY</code> should use dedicated low-balance operational wallets or Session Passes (<code>pass_g402_...</code>) constrained by <code>daily_credit_limit</code> and <code>allowed_endpoints</code>; request logs (<code>requests.jsonl</code> + <code>X-Request-Id</code>) never record full payment tokens or raw IPs.</li>
         <li><strong>Credit Decision Disclaimer:</strong> Grid402 provides verifiable public technical data and does not grant credit, provide legal advice, or approve onboarding.</li>
     </ul>
 </div>

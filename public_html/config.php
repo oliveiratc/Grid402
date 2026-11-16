@@ -257,6 +257,7 @@ define('GRID402_FILE_METRICS', GRID402_PRIVATE_DIR . '/metrics.json');
 define('GRID402_FILE_ADMIN_AUTH', GRID402_PRIVATE_DIR . '/admin_auth.json');
 define('GRID402_FILE_CNPJ', GRID402_PRIVATE_DIR . '/cnpj_cache.json');
 define('GRID402_FILE_SANDBOX_RATES', (string) grid402_env('GRID402_FILE_SANDBOX_RATES', GRID402_PRIVATE_DIR . '/sandbox_rates.json'));
+define('GRID402_FILE_REQUEST_LOGS', (string) grid402_env('GRID402_FILE_REQUEST_LOGS', GRID402_PRIVATE_DIR . '/requests.jsonl'));
 define('GRID402_FILE_INDICATORS', GRID402_PRIVATE_DIR . '/indicators_cache.json');
 define('GRID402_FILE_HOLIDAYS', GRID402_PRIVATE_DIR . '/holidays_cache.json');
 define('GRID402_FILE_WORKDAYS', GRID402_PRIVATE_DIR . '/workdays_cache.json');

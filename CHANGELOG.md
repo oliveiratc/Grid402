@@ -4,6 +4,23 @@ Todas as mudanças relevantes de arquitetura, catálogo de serviços, segurança
 
 ---
 
+## [3.2.0] - 2026-11-16
+
+### Adicionado
+- **Observabilidade Estruturada JSONL Zero-PII (`logger.php` + `X-Request-Id`):** Todas as respostas de API passam a emitir cabeçalho `X-Request-Id` para correlação ponta a ponta e registrar trilha sanitizada em `private_data/requests.jsonl` com rotação automática em `10 MB` (`.1`), utilizando prefixo HMAC de IP e sem armazenar tokens ou PII.
+- **Telemetria de Latência P50/P95:** Armazenamento de janela circular de latências em `metrics.json` com cálculo de `latency_p95_ms` e exposição no `/admin` e `/trust`.
+- **Instruções Nativas no Handshake MCP (`grid402-mcp` `1.8.2`):** Inclusão do campo `ServerOptions.instructions` em `mcp/index.mjs` e sincronização das **24 ferramentas** nos manifestos públicos `/.well-known/mcp.json` e `/.well-known/mcp/server-card.json`.
+- **Suíte Real de Concorrência Paralela e Carga (`tests/test_concurrency_and_load.php`):** Validação multi-processo de disputa pelo último crédito de Session Pass, bloqueio concorrente de replay (`tx_hash` e `payer:nonce` via `flock`), rotação de logs e benchmark `p50`/`p95`/`p99`.
+
+### Alterado
+- **Dual-License Explícita (`LICENSE` e `README.md`):** Separação formal entre **MIT License** para SDKs, servidor MCP e integrações (`python/`, `mcp/`, `sdk/`, `integrations/`, `examples/`) e **Proprietary License** para a camada servidora (`public_html/`), alinhando o posicionamento principal *"The Verifiable Data and x402 Payment Layer for Autonomous AI Agents"*.
+- **Extensão x402 v2 Bazaar:** Inclusão completa de `resource` e `extensions.bazaar` (com JSON Schema 2020-12) tanto nos desafios 402 quanto no payload enviado ao facilitador e no assinador Web3 do navegador.
+
+### Corrigido
+- **Higiene de URLs e Tarifas Legadas:** Remoção de ocorrências residuais de `grid402.com.br` (`examples/`) e `0.0005 USDC` (`sdk/` e `.env.example`), unificando todos os fluxos na tarifa oficial vigente (`0.0050` a `0.0300 USDC`).
+
+---
+
 ## [3.1.0] - 2026-11-15
 
 ### Adicionado

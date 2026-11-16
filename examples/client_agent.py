@@ -11,7 +11,7 @@ import os
 import json
 import requests
 
-GRID402_BASE_URL = os.getenv("GRID402_URL", "https://www.grid402.com.br")
+GRID402_BASE_URL = os.getenv("GRID402_URL", "https://grid402.online")
 
 def check_system_health():
     """Consulta o resumo gratuito da telemetria."""
@@ -49,7 +49,7 @@ def fetch_detailed_telemetry(wallet_tx_hash=None):
         print(f"     • Token: {challenge.get('token')} ({challenge.get('token_contract')})")
         print(f"     • Preço: US$ {challenge.get('price_usdc')} USDC")
         print(f"     • Carteira Oráculo: {challenge.get('recipient_wallet')}")
-        print(f"     • Ação do Agente: Executar transfer(recipient_wallet, 500) e reenviar tx_hash.")
+        print(f"     • Ação do Agente: Executar transfer(recipient_wallet, 5000) (0.0050 USDC) e reenviar tx_hash.")
         return challenge
 
     # Caso 2: Pagamento Aceito (HTTP 200)

@@ -2,17 +2,19 @@
   <img src="public_html/assets/logo-horizontal-transparent.png" alt="Grid402 Logo" width="380">
 </p>
 
-# Grid402 // Hub de Utilitários de Rede e Dados Públicos Abertos
+# Grid402 // The Verifiable Data and x402 Payment Layer for Autonomous AI Agents
 
 [![CI](https://github.com/oliveiratc/Grid402/actions/workflows/ci.yml/badge.svg)](https://github.com/oliveiratc/Grid402/actions)
 ![Network](https://img.shields.io/badge/Network-Base_Mainnet_(8453)-0052FF?logo=coinbase)
 ![Payment](https://img.shields.io/badge/Payment-0.0050_a_0.0300_USDC-2775CA?logo=usd-coin)
 ![Protocol](https://img.shields.io/badge/Protocol-HTTP_x402-00F0FF)
-![Brand](https://img.shields.io/badge/Manual_da_Marca-Visual_Identity-0052FF)](MANUAL_DE_MARCA.md)
+![SDK License](https://img.shields.io/badge/SDKs_%26_MCP-MIT_License-10B981)
+![Core License](https://img.shields.io/badge/Gateway_Core-Proprietary-64748B)
+[![Brand](https://img.shields.io/badge/Manual_da_Marca-Visual_Identity-0052FF)](MANUAL_DE_MARCA.md)
 ![PHP](https://img.shields.io/badge/PHP-8.1%20%7C%208.2%20%7C%208.3-777BB4?logo=php)
 ![Server](https://img.shields.io/badge/Server-Hostinger_LiteSpeed-blue)
 
-> Infraestrutura de dados abertos e utilitários de rede de alta velocidade para agentes autônomos de IA e sistemas M2M. Consultas de câmbio, cripto, DNS, certificados SSL, BGP/ASN, CEP e CNPJ da Receita Federal com liquidação de micropagamentos sob demanda via protocolo HTTP x402 em USDC na rede Base.
+> **The Verifiable Data and x402 Payment Layer for Autonomous AI Agents.** Infraestrutura M2M de dados públicos verificáveis com assinatura ECDSA secp256k1 (`_oracle_proof`) e liquidação instantânea via HTTP x402 (USDC na rede Base) ou Session Passes pré-pagos sub-15ms.
 
 ---
 
@@ -161,7 +163,7 @@ curl "https://grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 ├── mcp/                               # Pacote oficial Model Context Protocol (grid402-mcp)
 │   ├── package.json                   # Configuração e dependências do servidor MCP
 │   ├── index.mjs                      # Ponto de entrada do protocolo MCP
-│   ├── tools.mjs                      # Implementação das 15 ferramentas e cliente HTTP x402
+│   ├── tools.mjs                      # Implementação das 24 ferramentas MCP e cliente HTTP x402
 │   ├── test_mcp.mjs                   # Suíte de testes automatizados do MCP
 │   └── README.md                      # Documentação de configuração do servidor MCP
 ├── public_html/                       # Raiz pública servida na Hostinger
@@ -200,6 +202,22 @@ node mcp/test_mcp.mjs
 
 ---
 
-## 📄 Direitos Autorais e Propriedade Intelectual
-© 2026 **Grid402 Network Intelligence**. **Todos os direitos reservados / All rights reserved.**
-O software da plataforma Grid402, motor de liquidação HTTP 402, arquitetura de Session Pass, design visual e marca são protegidos pela Lei de Software (Lei nº 9.609/1998), Lei de Direitos Autorais (Lei nº 9.610/1998) e Convenção de Berna. Os dados consultados nos endpoints provêm de fontes públicas abertas e registros em domínio público (CC0, LAI, 17 U.S.C. § 105). Consulte [LICENSE](LICENSE) e [llms.txt](public_html/llms.txt) para os termos completos.
+## 🔐 Segurança Não-Custodial e Gestão de Chaves M2M
+
+- **Zero Custódia de Chaves de Agentes:** O gateway servidor nunca solicita nem armazena chaves privadas ou seed phrases de clientes.
+- **Carteiras Isoladas de Orçamento (Agentes Autônomos):** Ao utilizar `GRID402_PRIVATE_KEY` no `grid402-mcp` ou Coinbase AgentKit, utilize sempre uma carteira operacional dedicada com saldo estritamente limitado ao orçamento de automação (injetada via `.env` ou cofre de segredos, jamais versionada no Git).
+- **Session Pass com Spend Controls:** Para eliminar qualquer exposição de chave privada no runtime do agente, emita um `pass_g402_...` e configure `daily_credit_limit` e `allowed_endpoints` com acompanhamento via `GET /api/v1/pass/balance`.
+
+---
+
+## 📄 Licenciamento (Dual-License) e Propriedade Intelectual
+
+O ecossistema Grid402 adota separação explícita de licenças para garantir liberdade total de adoção nos clientes de IA e proteção da infraestrutura proprietária:
+
+| Camada / Diretório | Licença Aplicável | Escopo |
+|---|---|---|
+| **SDKs, MCP Server e Integrações** (`python/`, `mcp/`, `sdk/`, `integrations/`, `examples/`) | **MIT License** | Uso livre, comercial ou aberto, em agentes autônomos, forks clientes e produtos SaaS (PyPI `grid402`, npm `grid402-mcp`) |
+| **Gateway e Plataforma Servidora** (`public_html/`) | **Proprietária (All Rights Reserved)** | Motor HTTP x402, assinador ECDSA do Oráculo, Session Pass, interface web e painel administrativo (`Lei nº 9.609/1998` e `Lei nº 9.610/1998`) |
+| **Dados Consultados nas APIs** | **Domínio Público / CC0 / LAI** | Registros governamentais abertos e protocolos IETF sem reserva proprietária |
+
+© 2026 **Grid402 Network Intelligence**. Consulte [LICENSE](LICENSE) e [llms.txt](public_html/llms.txt) para os termos completos.

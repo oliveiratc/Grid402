@@ -210,7 +210,7 @@ Resposta de verificacao:
 - Descricao: Certificado criptografico de existencia no tempo (SHA-256 + ECDSA secp256k1) Zero-Retention.
 
 ### 19. Calendario Mundial de Bolsas e 30+ Moedas BCE (ECB)
-- Rota: `GET /api/v1/global-markets?market={US|EU|UK|BR}&base={USD|EUR|GBP|BRL}`
+- Rota: `GET /api/v1/global-markets?market={US|EU|UK|BR}` (parametro opcional: `base={USD|EUR|GBP|BRL}`)
 - Tarifa: 0.0050 USDC (1 credito)
 - Descricao: Expediente de bolsas mundiais (NYSE/Fed, TARGET2, LSE, B3) e 30+ moedas oficiais do Banco Central Europeu.
 
@@ -220,7 +220,7 @@ Resposta de verificacao:
 - Descricao: Auditoria completa de dominio em 1 chamada consolidando DNS, TLS/SSL e roteamento BGP/ASN.
 
 ### 21. Auditoria Consolidada KYB e Compliance (CNPJ + OFAC + LEI)
-- Rota: `GET /api/v1/kyb-audit?cnpj={cnpj}&name={nome}&lei={lei}`
+- Rota: `GET /api/v1/kyb-audit?cnpj={cnpj}` (parametros opcionais: `name={nome}`, `lei={lei}`)
 - Tarifa: 0.0200 USDC (4 creditos)
 - Descricao: Triagem corporativa consolidada unindo Receita Federal, OFAC SDN e GLEIF LEI em 1 chamada.
 

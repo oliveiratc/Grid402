@@ -1,7 +1,7 @@
 {
   "name": "grid402-mcp",
-  "version": "1.8.1",
-  "description": "Official Model Context Protocol (MCP) Server for Grid402 - Public Open Data e Network Utilities Hub (Forex, Crypto, DNS, SSL, ASN, CEP, CNPJ, Indicators, Holidays, Workdays, Oracle Verifier) with Base x402 micropayments, Oracle Proof e Sandbox.",
+  "version": "1.8.2",
+  "description": "Official Model Context Protocol (MCP) Server for Grid402 - The Verifiable Data and x402 Payment Layer for Autonomous AI Agents (24 MCP Tools: Financial Markets, Compliance, Global LEI, OFAC AML, Network Audits) on Base.",
   "type": "module",
   "bin": {
     "grid402-mcp": "index.mjs"

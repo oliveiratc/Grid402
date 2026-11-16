@@ -589,9 +589,12 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
     http_response_code(402);
     header('HTTP/1.1 402 Payment Required', true, 402);
     header('Content-Type: application/json; charset=utf-8');
+    if (function_exists('grid402_emit_request_id_header')) {
+        grid402_emit_request_id_header();
+    }
     header('X-Authenticate: x402');
     header('X-Accept-Payment: base:usdc:' . GRID402_WALLET_ADDRESS . ':' . $priceDisplay);
-    header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Payment-Required, payment-required');
+    header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Payment-Required, payment-required, X-Request-Id');
 
     $msg = $errorMessage ?? ($serviceName ? "Acesso à API '{$serviceName}' requer micropagamento de {$priceDisplay} USDC via protocolo x402." : 'Consulta técnica requer micropagamento sob demanda via protocolo x402.');
 
@@ -673,6 +676,14 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         $payload['locked_fields'] = $lockedFields;
     }
 
+    if (function_exists('grid402_log_request')) {
+        grid402_log_request([
+            'service' => $serviceName ?? 'unknown',
+            'status' => 402,
+            'payment_source' => 'none',
+            'error' => 'PaymentRequired',
+        ]);
+    }
     echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
 }

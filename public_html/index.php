@@ -9,9 +9,14 @@
 
 declare(strict_types=1);
 
+$GLOBALS['GRID402_REQ_START'] = microtime(true);
+
 define('GRID402_EXEC', true);
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/logger.php';
 require_once __DIR__ . '/x402.php';
+
+grid402_emit_request_id_header();
 require_once __DIR__ . '/services/forex.php';
 require_once __DIR__ . '/services/crypto.php';
 require_once __DIR__ . '/services/dns.php';
@@ -299,6 +304,7 @@ if ($pageParam === 'about' || $requestPath === '/about') {
         grid402_render_page_html('About Grid402 - Global M2M Open Data & Network Utilities Hub', 'Learn about Grid402 global infrastructure and 22 open-data microservices for AI agents and developers.', '/about', 'About Grid402', $aboutBody);
     } else {
         header('Content-Type: application/json; charset=utf-8');
+        grid402_log_request(['service' => 'about', 'status' => 200, 'payment_source' => 'free']);
         echo json_encode([
             'organization' => 'Grid402',
             'name' => 'Grid402 Public Data and Network Utilities Hub',
@@ -340,6 +346,7 @@ if ($pageParam === 'contact' || $requestPath === '/contact') {
         grid402_render_page_html('Contact Grid402 - Official Channels & Support', 'Contact Grid402: official technical support channels, Data Protection Officer (DPO), and open-source repositories.', '/contact', 'Contact Grid402', $contactBody);
     } else {
         header('Content-Type: application/json; charset=utf-8');
+        grid402_log_request(['service' => 'contact', 'status' => 200, 'payment_source' => 'free']);
         echo json_encode([
             'organization' => 'Grid402',
             'support_email' => 'contato@grid402.online',
@@ -374,6 +381,7 @@ if ($pageParam === 'terms' || $requestPath === '/terms') {
         grid402_render_page_html('Terms of Service - Grid402', 'Terms of Service, copyright protection, and open-data legal framework (CC0, 17 U.S.C. 105, LAI) for Grid402.', '/terms', 'Terms of Service', $termsBody);
     } else {
         header('Content-Type: application/json; charset=utf-8');
+        grid402_log_request(['service' => 'terms', 'status' => 200, 'payment_source' => 'free']);
         echo json_encode([
             'document' => 'Terms of Service, Intellectual Property & Open Data Legal Framework',
             'version' => '3.0.5',
@@ -415,6 +423,7 @@ if ($pageParam === 'privacy' || $requestPath === '/privacy') {
         grid402_render_page_html('Privacy Policy - Grid402', 'Privacy guidelines, Zero-PII architecture, and GDPR, LGPD, and CCPA compliance for Grid402.', '/privacy', 'Privacy Policy', $privacyBody);
     } else {
         header('Content-Type: application/json; charset=utf-8');
+        grid402_log_request(['service' => 'privacy', 'status' => 200, 'payment_source' => 'free']);
         echo json_encode([
             'document' => 'Privacy Policy & Global Data Protection Compliance',
             'version' => '3.0.4',
@@ -487,6 +496,12 @@ if (str_starts_with($requestPath, '/api/v1/pass/mp-')) {
     http_response_code((int) ($res['code'] ?? 200));
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
+    grid402_log_request([
+        'service' => 'pass-mp',
+        'status' => (int) ($res['code'] ?? 200),
+        'payment_source' => 'free',
+        'error' => !empty($res['ok']) ? null : (string) ($res['error'] ?? null),
+    ]);
     echo json_encode($res, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -507,6 +522,7 @@ if (!$isHomeRoute && !$isStatusRoute && !$isValidApiAction && !$isInstitutionalR
         echo '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><link rel="icon" type="image/x-icon" href="/favicon.ico"><title>404 - Pagina Nao Encontrada | Grid402</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet"><style>body{background:#060B19;color:#F8FAFC;font-family:\'Inter\',sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column;text-align:center;padding:1rem}h1{font-family:\'Space Grotesk\',sans-serif;font-size:4rem;margin:0.5rem 0 0.25rem;color:#00F0FF;letter-spacing:-1px}p{color:#94A3B8;font-size:1.1rem;margin:0.5rem 0 1.5rem}a{background:#0052FF;color:#FFF;padding:0.75rem 1.5rem;border-radius:8px;text-decoration:none;font-weight:600;transition:opacity 0.2s}a:hover{opacity:0.9}</style></head><body><img src="/assets/logo-icon-transparent.png" alt="Grid402" width="64" height="64"><h1>404</h1><p>A pagina ou rota solicitada nao existe no Grid402.</p><p><a href="/">Voltar a pagina inicial</a></p></body></html>';
     } else {
         header('Content-Type: application/json; charset=utf-8');
+        grid402_log_request(['service' => 'not_found', 'status' => 404, 'payment_source' => 'none', 'error' => 'NotFound']);
         echo json_encode([
             'error' => 'NotFound',
             'status' => 404,
@@ -557,6 +573,7 @@ if ($isStatusRoute || ($isHomeRoute && isset($_GET['format']) && $_GET['format']
             include_once __DIR__ . '/collector.php';
         }
         grid402_record_telemetry('summary', 200, false);
+        grid402_log_request(['service' => 'summary', 'status' => 200, 'payment_source' => 'free']);
         header('Access-Control-Allow-Origin: *');
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: public, max-age=30');
@@ -681,10 +698,21 @@ if ($isVerifyRoute) {
     $verification = grid402_verify_oracle_proof($payload);
     $elapsedMs = round((microtime(true) - $t0) * 1000, 3);
 
+    $verifyStatusLabel = !empty($verification['valid']) ? 'AUTHENTIC_ORACLE_DATA' : 'VERIFICATION_FAILED';
     $response = array_merge($verification, [
         'verification_time_ms' => $elapsedMs,
         'hub' => 'Grid402',
-        'status' => !empty($verification['valid']) ? 'AUTHENTIC_ORACLE_DATA' : 'VERIFICATION_FAILED',
+        'status' => $verifyStatusLabel,
+    ]);
+
+    $verifyLatency = grid402_request_elapsed_ms();
+    grid402_record_latency_sample($verifyLatency);
+    grid402_log_request([
+        'service' => 'verify',
+        'status' => 200,
+        'latency_ms' => $verifyLatency,
+        'payment_source' => 'free',
+        'error' => !empty($verification['valid']) ? null : ($verification['error'] ?? 'VerificationFailed'),
     ]);
 
     http_response_code(200);
@@ -696,8 +724,8 @@ if ($isVerifyRoute) {
 if ($isValidApiAction) {
     header('Access-Control-Allow-Origin: *');
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment, Idempotency-Key');
-    header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Payment-Required, payment-required, X-Idempotent-Replay');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment, Idempotency-Key, X-Request-Id');
+    header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Payment-Required, payment-required, X-Idempotent-Replay, X-Request-Id');
 
     // 2.1. Consulta gratuita de saldo e Spend Controls de Session Pass (/api/v1/pass/balance, /api/v1/pass/limits ou ?status=pass_...)
     if ($apiParam === 'pass-balance' || $apiParam === 'pass-limits' || ($apiParam === 'pass' && (!empty($_GET['status']) || !empty($_GET['token'])))) {
@@ -738,6 +766,15 @@ if ($isValidApiAction) {
         http_response_code($passInfo['code'] ?? 200);
         header('Content-Type: application/json; charset=utf-8');
         header('Cache-Control: no-store');
+        $passLatency = grid402_request_elapsed_ms();
+        grid402_record_latency_sample($passLatency);
+        grid402_log_request([
+            'service' => $apiParam,
+            'status' => (int) ($passInfo['code'] ?? 200),
+            'latency_ms' => $passLatency,
+            'payment_source' => 'free',
+            'error' => !empty($passInfo['ok']) ? null : (string) ($passInfo['error'] ?? 'PassLookupError'),
+        ]);
         echo json_encode($passInfo, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         exit;
     }
@@ -894,6 +931,15 @@ if ($isValidApiAction) {
     if ($idempotencyKey !== '' && !$isPassEmitir) {
         $cachedIdempotent = grid402_idempotency_check($idempotencyKey, $apiParam, $_GET);
         if (is_array($cachedIdempotent)) {
+            $idemLatency = grid402_request_elapsed_ms();
+            grid402_record_latency_sample($idemLatency);
+            grid402_log_request([
+                'service' => $apiParam,
+                'status' => 200,
+                'latency_ms' => $idemLatency,
+                'payment_source' => 'pass',
+                'idempotent_replay' => true,
+            ]);
             http_response_code(200);
             header('Content-Type: application/json; charset=utf-8');
             header('X-Payment-Status: Accepted');
@@ -990,6 +1036,15 @@ if ($isValidApiAction) {
         if (isset($validation['sandbox'])) {
             $errPayload['sandbox'] = true;
         }
+        $logPaySource = $proofIsPayload
+            ? 'facilitator'
+            : (str_starts_with(strtolower($paymentProof), 'pass_g402_') ? 'pass' : ((strtolower($paymentProof) === 'demo' || strtolower($paymentProof) === 'sandbox') ? 'sandbox' : 'unknown'));
+        grid402_log_request([
+            'service' => $serviceLabel,
+            'status' => (int) $validation['code'],
+            'payment_source' => $logPaySource,
+            'error' => $errCodeLabel,
+        ]);
         echo json_encode($errPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         exit;
     }
@@ -1024,7 +1079,7 @@ if ($isValidApiAction) {
         null,
         ($isSandbox || $isVerifyOnly) ? 0.0 : (float)$servicePriceDisplay,
         $isSandbox ? 'sandbox' : ($isVerifyOnly ? 'verify_only' : null),
-        ['payment_source' => $validation['source'] ?? null]
+        ['payment_source' => $validation['source'] ?? null, 'defer_latency_sample' => true]
     );
     if (!$isSandbox) {
         grid402_notify_telegram_purchase($apiParam, (float)$servicePriceDisplay, (string) ($settlementTx ?? $proofForLog ?? 'x402-exact'));
@@ -1308,6 +1363,16 @@ if ($isValidApiAction) {
             grid402_idempotency_store($idempotencyKey, $apiParam, $_GET, $result);
         }
     }
+
+    $finalLatencyMs = grid402_request_elapsed_ms();
+    grid402_record_latency_sample($finalLatencyMs);
+    grid402_log_request([
+        'service' => $apiParam,
+        'status' => 200,
+        'latency_ms' => $finalLatencyMs,
+        'payment_source' => (string) ($validation['source'] ?? 'unknown'),
+        'idempotent_replay' => false,
+    ]);
 
     echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
