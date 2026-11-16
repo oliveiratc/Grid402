@@ -12,6 +12,7 @@ require_once __DIR__ . '/helpers_server.php';
 $tmpDir = t_bootstrap('statement');
 require_once __DIR__ . '/../public_html/services/pass.php';
 require_once __DIR__ . '/../public_html/logger.php';
+require_once __DIR__ . '/../public_html/x402.php';
 
 echo "=================================================================\n";
 echo "  GRID402 - EXTRATO ZERO-PII DE SESSION PASS & STORAGE INTERFACE\n";
@@ -170,6 +171,9 @@ try {
         grid402_update_session_pass_limits($liveToken, 1, ['forex']);
 
         // a) Chamada valida em /api/v1/forex com Idempotency-Key e X-Request-Id iniciado por '-' (testar CSV injection)
+        t_assert('Notificacao Telegram recusa token Session Pass (evita vazar pass_g402_ ou link BaseScan falso)',
+            grid402_notify_telegram_purchase('forex', 0.0050, $liveToken) === false
+        );
         $rConsumed = stmt_http_get("{$baseUrl}/api/v1/forex?base=BRL", [
             "X-Payment: {$liveToken}",
             'Idempotency-Key: stmt-idem-001',

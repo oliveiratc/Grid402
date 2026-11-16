@@ -1145,8 +1145,10 @@ if ($isValidApiAction) {
         $isSandbox ? 'sandbox' : ($isVerifyOnly ? 'verify_only' : null),
         ['payment_source' => $validation['source'] ?? null, 'defer_latency_sample' => true]
     );
-    if (!$isSandbox) {
-        grid402_notify_telegram_purchase($apiParam, (float)$servicePriceDisplay, (string) ($settlementTx ?? $proofForLog ?? 'x402-exact'));
+    $paymentSourceVal = (string) ($validation['source'] ?? '');
+    $txForNotification = (string) ($settlementTx ?? $proofForLog ?? '');
+    if (!$isSandbox && !$isVerifyOnly && $paymentSourceVal !== 'pass' && preg_match('/^0x[a-f0-9]{64}$/i', $txForNotification) === 1) {
+        grid402_notify_telegram_purchase($apiParam, (float) $servicePriceDisplay, $txForNotification);
     }
     http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');

@@ -689,10 +689,19 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
  * Disparo nao-bloqueante (timeout de 1s) e tratamento silencioso de erros.
  */
 function grid402_notify_telegram_purchase(string $service, float $priceUsdc, string $txHash, bool $isTest = false): bool {
+    if ((string) grid402_env('GRID402_DISABLE_TELEGRAM', '') === '1') {
+        return false;
+    }
+
     $token = defined('GRID402_TELEGRAM_BOT_TOKEN') ? GRID402_TELEGRAM_BOT_TOKEN : (string) grid402_env('GRID402_TELEGRAM_BOT_TOKEN', '');
     $chatId = defined('GRID402_TELEGRAM_CHAT_ID') ? GRID402_TELEGRAM_CHAT_ID : (string) grid402_env('GRID402_TELEGRAM_CHAT_ID', '');
 
     if ($token === '' or $chatId === '') {
+        return false;
+    }
+
+    $cleanTx = trim($txHash);
+    if (preg_match('/^0x[a-f0-9]{64}$/i', $cleanTx) !== 1) {
         return false;
     }
 
@@ -716,7 +725,6 @@ function grid402_notify_telegram_purchase(string $service, float $priceUsdc, str
     $displayName = $serviceNames[$cleanSvc] ?? ('Servico ' . strtoupper($service));
     $displayPrice = number_format($priceUsdc, 4, '.', '') . ' USDC';
     $nowUtc = gmdate('Y-m-d H:i:s') . ' UTC';
-    $cleanTx = trim($txHash);
     $txLink = 'https://basescan.org/tx/' . $cleanTx;
 
     $isTestTx = $isTest || preg_match('/^0x(a{64}|0{64}|f{64}|1{64}|demo)$/i', $cleanTx);
