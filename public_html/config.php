@@ -932,3 +932,19 @@ function grid402_idempotency_store(string $idempotencyKey, string $endpoint, arr
     }
     fclose($fp);
 }
+
+/**
+ * Le integralmente um payload JSON de descritor ja protegido por flock(), evitando bugs de statcache de filesize() no Linux.
+ */
+function grid402_read_locked_json($fp, array $default = []): array {
+    if (!is_resource($fp)) {
+        return $default;
+    }
+    rewind($fp);
+    $raw = (string) stream_get_contents($fp);
+    if ($raw === '') {
+        return $default;
+    }
+    $decoded = @json_decode($raw, true);
+    return is_array($decoded) ? $decoded : $default;
+}

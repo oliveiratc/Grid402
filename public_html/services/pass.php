@@ -99,9 +99,7 @@ function grid402_issue_session_pass(string $txHash, int $rawUsdcUnits = 50000, b
 
     $record = null;
     if (flock($fp, LOCK_EX)) {
-        $size = filesize($file);
-        $rawContent = ($size > 0) ? (string) fread($fp, $size) : '';
-        $store = ($rawContent !== '') ? (@json_decode($rawContent, true) ?: []) : [];
+        $store = grid402_read_locked_json($fp, []);
 
         // Se a mesma txHash (não demo) já gerou um passe, retorna o passe existente
         $cleanTx = strtolower(trim($txHash));
@@ -303,9 +301,7 @@ function grid402_update_session_pass_limits(string $token, ?int $dailyCreditLimi
 
     $updated = null;
     if (flock($fp, LOCK_EX)) {
-        $size = filesize($file);
-        $rawContent = ($size > 0) ? (string) fread($fp, $size) : '';
-        $store = ($rawContent !== '') ? (@json_decode($rawContent, true) ?: []) : [];
+        $store = grid402_read_locked_json($fp, []);
 
         if (isset($store[$passId])) {
             $entry = grid402_normalize_pass_entry($store[$passId]);
@@ -381,9 +377,7 @@ function grid402_consume_session_pass(string $token, int $requiredRawUnits = 500
     ];
 
     if (flock($fp, LOCK_EX)) {
-        $size = filesize($file);
-        $rawContent = ($size > 0) ? (string) fread($fp, $size) : '';
-        $store = ($rawContent !== '') ? (@json_decode($rawContent, true) ?: []) : [];
+        $store = grid402_read_locked_json($fp, []);
 
         if (!isset($store[$passId])) {
             $result = [

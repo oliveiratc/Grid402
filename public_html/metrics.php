@@ -225,9 +225,7 @@ function grid402_record_telemetry(
     }
 
     if (flock($fp, LOCK_EX)) {
-        $filesize = filesize($file);
-        $content = ($filesize > 0) ? (string) fread($fp, $filesize) : '';
-        $metrics = ($content !== '') ? (@json_decode($content, true) ?: grid402_default_metrics()) : grid402_default_metrics();
+        $metrics = grid402_read_locked_json($fp, grid402_default_metrics());
         $metrics = grid402_normalize_metrics($metrics);
 
         $now = gmdate('Y-m-d\TH:i:s\Z');
@@ -460,9 +458,7 @@ function grid402_record_latency_sample(float $latencyMs): void {
         return;
     }
     if (flock($fp, LOCK_EX)) {
-        $size = filesize($file);
-        $content = $size > 0 ? (string) fread($fp, $size) : '';
-        $metrics = ($content !== '') ? (@json_decode($content, true) ?: grid402_default_metrics()) : grid402_default_metrics();
+        $metrics = grid402_read_locked_json($fp, grid402_default_metrics());
         $metrics = grid402_normalize_metrics(is_array($metrics) ? $metrics : grid402_default_metrics());
 
         $metrics['latency_samples_ms'][] = round($latencyMs, 2);
@@ -530,9 +526,10 @@ function grid402_metrics_adjust_revenue(float $deltaUsdc): void {
     }
 
     if (flock($fp, LOCK_EX)) {
-        $size = filesize($file);
-        $payload = $size > 0 ? (string) fread($fp, $size) : '';
-        $metrics = ($payload !== '') ? (@json_decode($payload, true) ?: null) : null;
+        $metrics = grid402_read_locked_json($fp, []);
+        if ($metrics === []) {
+            $metrics = null;
+        }
         if (is_array($metrics)) {
             $metrics['total_revenue_usdc'] = round((float)($metrics['total_revenue_usdc'] ?? 0.0) + $deltaUsdc, 4);
             $today = grid402_metrics_today();
@@ -562,9 +559,7 @@ function grid402_record_page_visit(?string $path = null, ?string $ip = null, ?st
     }
 
     if (flock($fp, LOCK_EX)) {
-        $filesize = filesize($file);
-        $content = ($filesize > 0) ? (string) fread($fp, $filesize) : '';
-        $metrics = ($content !== '') ? (@json_decode($content, true) ?: grid402_default_metrics()) : grid402_default_metrics();
+        $metrics = grid402_read_locked_json($fp, grid402_default_metrics());
         if (!is_array($metrics)) {
             $metrics = grid402_default_metrics();
         }

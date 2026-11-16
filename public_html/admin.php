@@ -296,9 +296,7 @@ function grid402_record_login_failure(string $ip): void {
     }
 
     if (flock($fp, LOCK_EX)) {
-        $filesize = filesize($file);
-        $content = ($filesize > 0) ? (string) fread($fp, $filesize) : '';
-        $data = $content !== '' ? (@json_decode($content, true) ?: []) : [];
+        $data = grid402_read_locked_json($fp, []);
 
         $cleaned = [];
         foreach ($data as $kIp => $v) {
@@ -336,9 +334,7 @@ function grid402_reset_login_rate(string $ip): void {
         return;
     }
     if (flock($fp, LOCK_EX)) {
-        $filesize = filesize($file);
-        $content = ($filesize > 0) ? (string) fread($fp, $filesize) : '';
-        $data = $content !== '' ? (@json_decode($content, true) ?: []) : [];
+        $data = grid402_read_locked_json($fp, []);
         if (isset($data[$ip])) {
             unset($data[$ip]);
             ftruncate($fp, 0);

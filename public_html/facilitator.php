@@ -216,9 +216,7 @@ function grid402_nonce_store_mutate(callable $mutator): mixed {
 
     $result = null;
     if (flock($fp, LOCK_EX)) {
-        $size = filesize($file);
-        $content = ($size > 0) ? (string) fread($fp, $size) : '';
-        $entries = $content !== '' ? (@json_decode($content, true) ?: []) : [];
+        $entries = grid402_read_locked_json($fp, []);
 
         $now = time();
         foreach ($entries as $k => $entry) {

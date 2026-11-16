@@ -148,16 +148,14 @@ function grid402_growth_read(): array {
         return grid402_growth_normalize([]);
     }
 
-    $payload = '';
+    $decoded = [];
     if (flock($fp, LOCK_SH)) {
-        $size = filesize($file);
-        $payload = $size > 0 ? (string) fread($fp, $size) : '';
+        $decoded = grid402_read_locked_json($fp, []);
         flock($fp, LOCK_UN);
     }
     fclose($fp);
 
-    $decoded = $payload !== '' ? @json_decode($payload, true) : [];
-    return is_array($decoded) ? grid402_growth_normalize($decoded) : grid402_growth_normalize([]);
+    return grid402_growth_normalize($decoded);
 }
 
 /**
@@ -211,10 +209,8 @@ function grid402_growth_update(callable $mutator): array {
 
     $result = null;
     if (flock($fp, LOCK_EX)) {
-        $size = filesize($file);
-        $payload = $size > 0 ? (string) fread($fp, $size) : '';
-        $decoded = $payload !== '' ? @json_decode($payload, true) : [];
-        $data = is_array($decoded) ? grid402_growth_normalize($decoded) : grid402_growth_normalize([]);
+        $decoded = grid402_read_locked_json($fp, []);
+        $data = grid402_growth_normalize($decoded);
         try {
             $result = $mutator($data);
             if (!is_array($result)) {

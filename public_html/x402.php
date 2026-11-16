@@ -188,9 +188,7 @@ function grid402_claim_transaction_lock(string $txHash): bool {
 
     $acquired = false;
     if (flock($fp, LOCK_EX)) {
-        $filesize = filesize($file);
-        $content = ($filesize > 0) ? (string) fread($fp, $filesize) : '';
-        $txs = $content !== '' ? (@json_decode($content, true) ?: []) : [];
+        $txs = grid402_read_locked_json($fp, []);
 
         $lowerHash = strtolower($txHash);
 
@@ -239,9 +237,7 @@ function grid402_release_transaction_lock(string $txHash): void {
     }
 
     if (flock($fp, LOCK_EX)) {
-        $filesize = filesize($file);
-        $content = ($filesize > 0) ? (string) fread($fp, $filesize) : '';
-        $txs = $content !== '' ? (@json_decode($content, true) ?: []) : [];
+        $txs = grid402_read_locked_json($fp, []);
 
         $lowerHash = strtolower($txHash);
         if (isset($txs[$lowerHash])) {
