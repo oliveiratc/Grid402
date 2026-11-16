@@ -49,7 +49,7 @@ Consulte a tabela completa com fontes *upstream* e TTL de cache em [`references/
 - **3 créditos (`0.0150 USDC` / `15000 raw`):** `domain-audit`, `market-snapshot`
 - **4 créditos (`0.0200 USDC` / `20000 raw`):** `cnpj`, `lei`, `ofac`, `kyb-audit`
 - **6 créditos (`0.0300 USDC` / `30000 raw`):** `compliance` (Compliance Score 360)
-- **Gratuitos (`0 USDC`):** `/status` (`/api/v1/summary`), `/api/v1/verify`, `/api/v1/pass/balance` (ou `/api/v1/pass?status=...`), `/catalog`, `/trust`
+- **Gratuitos (`0 USDC`):** `/status` (`/api/v1/summary`), `/api/v1/verify`, `/api/v1/pass/balance` (ou `/api/v1/pass?status=...`), `/api/v1/pass/statement` (`format=json|csv`), `/catalog`, `/trust`, `/payment-dashboard`
 
 > **REGRA DE OURO #2 (`22/22 UP`):** Sempre que adicionar ou alterar um serviço em `grid402_get_utility_services()` (`public_html/config.php`), atualize também:
 > 1. `public_html/collector.php` (para popular `summary_free.json` com `status: "UP"`, `upstream_source`, `cache_ttl_sec`, `latency_ms`)
@@ -64,7 +64,7 @@ Consulte a tabela completa com fontes *upstream* e TTL de cache em [`references/
 
 ### Ordem de Execução no Porteiro (`public_html/index.php`)
 Para qualquer chamada a um endpoint pago (`/api/v1/<service>`):
-1. **Rotas Gratuitas:** `/api/v1/verify`, `/api/v1/pass?status=...`, `GET /api/v1/pass/balance` e `POST /api/v1/pass/limits` executam sem cobrança.
+1. **Rotas Gratuitas:** `/api/v1/verify`, `/api/v1/pass?status=...`, `GET /api/v1/pass/balance`, `GET /api/v1/pass/statement` (`?format=json|csv`) e `POST /api/v1/pass/limits` executam sem cobrança.
 2. **Desafio HTTP 402 + Teaser Gratuito:** Se não houver cabeçalho `X-Payment` nem `PAYMENT-SIGNATURE`, retorna HTTP 402 com `accepts` (x402 v2), instruções de pagamento e bloco `preview` (amostra real truncada) + `locked_fields`.
 3. **Verificação de Idempotência (`Idempotency-Key`):**
    - **ANTES** de debitar o Session Pass ou liquidar transação on-chain, `grid402_idempotency_check($idempotencyKey, $apiParam, $_GET)` verifica se há resposta assinada em cache (TTL de 300s em `private_data/idempotency_cache.json`).
@@ -86,9 +86,9 @@ Para qualquer chamada a um endpoint pago (`/api/v1/<service>`):
 
 ## 4. Arquitetura Zero-DB e Concorrência Segura
 
-O Grid402 opera na Hostinger (LiteSpeed PHP 8.1+) com **Zero Banco de Dados SQL**. Todo o estado reside em `public_html/private_data/*.json` (protegido por `.htaccess` com `Require all denied`).
+O Grid402 opera na Hostinger (LiteSpeed PHP 8.1+) com **Zero Banco de Dados SQL**. Todo o estado reside em `public_html/private_data/*.json` (ou `GRID402_PRIVATE_DIR` externo, protegido por `.htaccess` com `Require all denied`). A camada de Session Passes é abstraída pelo contrato `PassStorageInterface` (`JsonFlockPassRepository` em `public_html/services/pass_repository.php`), isolando `session_passes.json` de `pass_statements.json` (ring buffer de até `200` eventos Zero-PII/passe).
 - **Leitura/Escrita de Cache:** Sempre use `grid402_atomic_write($file, $data)` (escreve em `.tmp.` + `rename()` atômico).
-- **Mutação Concorrente (Passes, Nonces, Txs, Idempotência, Rate Limit):** Sempre abra com `fopen($file, 'c+')`, adquira `flock($fp, LOCK_EX)`, faça `ftruncate($fp, 0); rewind($fp); fwrite($fp, ...); fflush($fp); flock($fp, LOCK_UN); fclose($fp);`.
+- **Mutação Concorrente (Passes, Extratos, Nonces, Txs, Idempotência, Rate Limit):** Sempre abra com `fopen($file, 'c+')`, adquira `flock($fp, LOCK_EX)`, leia com `grid402_read_locked_json($fp, $default)` (que usa `rewind($fp)` + `stream_get_contents($fp)` evitando bugs de cache de `filesize()` no Linux), faça `ftruncate($fp, 0); rewind($fp); fwrite($fp, ...); fflush($fp); flock($fp, LOCK_UN); fclose($fp);`. Nunca segure dois locks de arquivo simultaneamente.
 - **Compatibilidade PHP CLI Local vs Produção:** Não dependa da extensão `mbstring` (`mb_check_encoding`) sem fallback; para validar UTF-8 use `preg_match('//u', $raw) === 1`.
 
 ---
@@ -108,23 +108,27 @@ c:\Antigravity\Projetos\Grid402
 │   ├── facilitator.php                   # Liquidação EIP-3009 gasless (x402 v2 exact)
 │   ├── collector.php                     # Cron collector (<400ms) -> summary_free.json + uptime_history.json
 │   ├── catalog.php                       # Catálogo público HTML/M2M (/catalog) com 22 serviços UP
-│   ├── trust.php                         # Trust Center (/trust): governança, SLA 30d, proveniência
+│   ├── trust.php                         # Trust Center (/trust): governança, SLA 30d, proveniência, p95
 │   ├── pass.php                          # Portal Web3/Pix de compra e gestão de Session Pass
+│   ├── payment_dashboard.php             # Painel de acompanhamento e extrato Zero-PII CSV/JSON por Session Pass
+│   ├── logger.php                        # Observabilidade estruturada JSONL Zero-PII (X-Request-Id + rotação 10 MB)
 │   ├── mcp.php                           # Servidor MCP HTTP Streamable público (/mcp - 24 tools)
 │   ├── openapi.json                      # Especificação OpenAPI 3.1.0
 │   ├── llms.txt / llms-full.txt          # Manifestos de descoberta para LLMs e agentes
 │   ├── robots.txt / robots.php           # Diretivas RFC 9309 permitindo GPTBot, ClaudeBot, OAI-SearchBot
 │   ├── .well-known/security.txt          # Política de divulgação de vulnerabilidades RFC 9116
-│   └── services/                         # Implementação isolada dos micro-serviços e oracle_signer.php
+│   └── services/                         # Micro-serviços, pass_repository.php (PassStorageInterface) e oracle_signer.php
 ├── mcp/                                  # Pacote npm oficial grid402-mcp (stdio)
-│   ├── index.mjs                         # Servidor MCP stdio (24 ferramentas)
+│   ├── index.mjs                         # Servidor MCP stdio (24 ferramentas + instructions)
 │   ├── tools.mjs                         # Definições MCP_TOOLS_DEFINITIONS (24) e cliente HTTP x402
 │   └── test_mcp.mjs                      # Bateria de testes automatizados do MCP
 ├── scripts/
-│   ├── verify_storage_integrity.php      # Verifica UTF-8/JSON e 22/22 UP em private_data/ (+ --backup)
+│   ├── verify_storage_integrity.php      # Verifica UTF-8/JSON e 22/22 UP em GRID402_PRIVATE_DIR (+ --backup)
 │   └── package_deploy.ps1                # Gera dist/grid402_hostinger_deploy.zip com caminhos POSIX
 └── tests/
     ├── test_maturity_and_m2m_controls.php # Suíte de maturidade, passes, Spend Controls, Idempotency e _meta
+    ├── test_concurrency_and_load.php      # Disputa multi-processo, replay locks, JSONL Zero-PII e benchmark p50/p95/p99
+    ├── test_session_pass_statement.php    # Extrato Zero-PII CSV/JSON, ring buffer 200, PassStorageInterface e concorrência
     ├── test_agentkit_integration.php      # Valida Smithery, AgentKit e ausência de '&' nas docs
     └── test_e2e_full.php                  # Homologação ponta a ponta com servidor HTTP local e Base RPC
 ```
@@ -145,10 +149,12 @@ Antes de concluir qualquer alteração no projeto, verifique estas 5 regras crí
    ```powershell
    php scripts/verify_storage_integrity.php
    php tests/test_maturity_and_m2m_controls.php
+   php tests/test_concurrency_and_load.php
+   php tests/test_session_pass_statement.php
    php tests/test_agentkit_integration.php
    php tests/test_e2e_full.php
    node mcp/test_mcp.mjs
-   npx -y @fission-ai/openspec@latest validate --specs --strict
+   npx -y @fission-ai/openspec@latest validate --all --strict
    ```
 5. **Empacotamento para Deploy na Hostinger:**
    - Sempre que alterar arquivos em `public_html/`, gere o pacote de deploy atualizado executando:

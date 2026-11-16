@@ -4,6 +4,23 @@ Todas as mudanças relevantes de arquitetura, catálogo de serviços, segurança
 
 ---
 
+## [3.3.0] - 2026-11-16
+
+### Adicionado
+- **Extrato Zero-PII por Session Pass (`GET /api/v1/pass/statement` + `/payment-dashboard`):** Nova rota gratuita autenticável pelo próprio token `pass_g402_...` (via query `?token=`, `X-Payment` ou `Authorization: Bearer`), suportando filtros `?endpoint=` e `?outcome=` e exportação em `json` (padrão) ou `csv` (UTF-8 com BOM e sanitização OWASP anti Formula/CSV Injection). Retenção em ring buffer de até **200 lançamentos recentes por passe** cobrindo débitos (`200 consumed`), bloqueios de Spend Control (`403 endpoint_restricted`, `429 daily_limit_exceeded`) e replays idempotentes (`200 idempotent_replay`), estritamente sem query params ou IPs.
+- **Abstração de Persistência Zero-DB (`PassStorageInterface`):** Criação de `public_html/services/pass_repository.php` com o contrato `PassStorageInterface` e implementação padrão `JsonFlockPassRepository` gravando extratos em `private_data/pass_statements.json` isolado de `session_passes.json` (sem deadlocks).
+- **Suíte de Testes do Extrato e Repositório (`tests/test_session_pass_statement.php`):** 36 asserções cobrindo `PassStorageInterface`, ring buffer de `200` eventos, CSV injection, Zero-PII, filtros HTTP, interface `/payment-dashboard` e disputa concorrente multi-processo.
+
+### Alterado
+- **Descoberta M2M e Interface Bilíngue:** Atualização de `/payment-dashboard`, `i18n.js` (`PT`/`EN`), `/pass`, `openapi.json`, `llms.txt` e `llms-full.txt` para expor filtros, resumo financeiro e exportação CSV/JSON de extratos.
+- **Publicação de Pacotes SDK:** Publicação das versões atualizadas `grid402@2.7.0` (npm) e `grid402@2.5.3` (PyPI), além do suporte a PyPI Trusted Publishing (OIDC) e actions v7 (Node 24) no `.github/workflows/ci.yml`.
+
+### Corrigido
+- **Leitura Segura sob `flock()` no Linux (`grid402_read_locked_json`):** Substituição das leituras baseadas em `filesize($file)` em cache (`statcache`) por `rewind($fp)` + `stream_get_contents($fp)` em `pass.php`, `x402.php`, `facilitator.php`, `growth.php`, `admin.php` e `metrics.php`, eliminando truncamento de JSON após crescimento de arquivo no mesmo processo PHP.
+- **CommonJS SDK Test e CI em Checkout Limpo:** Correção de `TEST_ORACLE_PUBKEY` em `sdk/node/test_cjs.cjs`, ajuste de `scripts/verify_storage_integrity.php` para respeitar `GRID402_PRIVATE_DIR` e proteção `if (!defined('GRID402_EXEC'))` em `public_html/collector.php`.
+
+---
+
 ## [3.2.0] - 2026-11-16
 
 ### Adicionado
