@@ -74,6 +74,9 @@ jobs:
       - name: Run Platform Maturity & M2M Controls Suite
         run: php tests/test_maturity_and_m2m_controls.php
 
+      - name: Run Session Pass Statement & Storage Interface Suite
+        run: php tests/test_session_pass_statement.php
+
   test-sdks:
     name: Client SDKs & MCP Server Tests
     runs-on: ubuntu-24.04

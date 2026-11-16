@@ -233,6 +233,7 @@ Resposta de verificacao:
 - Emissao: `GET/POST /api/v1/pass` (2 USDC = 400 creditos, 5 USDC = 1.000 creditos, 20 USDC = 6.000 creditos)
 - Consulta Gratuita de Saldo: `GET /api/v1/pass/balance?token=pass_g402_...` (0.0000 USDC)
 - Configuracao Gratuita de Spend Controls: `POST /api/v1/pass/limits` com `token`, `daily_credit_limit` e `allowed_endpoints`.
+- Extrato Zero-PII CSV/JSON (Gratuito): `GET /api/v1/pass/statement?token=pass_g402_...` (parametros opcionais: `format=json` ou `csv`, `endpoint`, `outcome`; retem ate 200 eventos recentes por passe) e painel visual em `/payment-dashboard`.
 
 ---
 

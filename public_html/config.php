@@ -265,6 +265,7 @@ define('GRID402_FILE_LEI', GRID402_PRIVATE_DIR . '/lei_cache.json');
 define('GRID402_FILE_OFAC', GRID402_PRIVATE_DIR . '/ofac_cache.json');
 define('GRID402_FILE_GLOBAL_MARKETS', GRID402_PRIVATE_DIR . '/global_markets_cache.json');
 define('GRID402_FILE_PASSES', GRID402_PRIVATE_DIR . '/session_passes.json');
+define('GRID402_FILE_PASS_STATEMENTS', (string) grid402_env('GRID402_FILE_PASS_STATEMENTS', GRID402_PRIVATE_DIR . '/pass_statements.json'));
 define('GRID402_FILE_USED_NONCES', GRID402_PRIVATE_DIR . '/used_nonces.json');
 define('GRID402_FILE_MP_ORDERS', GRID402_PRIVATE_DIR . '/mp_orders.json');
 define('GRID402_FILE_UPTIME_HISTORY', (string) grid402_env('GRID402_FILE_UPTIME_HISTORY', GRID402_PRIVATE_DIR . '/uptime_history.json'));

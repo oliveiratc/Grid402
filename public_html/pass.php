@@ -148,6 +148,7 @@ $isSandbox = grid402_mp_is_sandbox();
     <pre>curl -s -H "X-Payment: pass_g402_YOUR_TOKEN_HERE" \
   "https://grid402.online/api/v1/cnpj?cnpj=00000000000191"</pre>
     <p data-i18n-html="pass.howto.desc">Or set <code>GRID402_SESSION_PASS=pass_g402_...</code> in the MCP server (<code>grid402-mcp</code>) or in your n8n credentials.</p>
+    <p><a class="btn btn-outline" style="width:auto;" href="/payment-dashboard" data-i18n="paydash.stmt.title">Session Pass Consumption Statement</a></p>
 </div>
 
 <script>

@@ -65,7 +65,7 @@ if ($requestPath === '') {
 }
 
 $apiParam = (string) ($_GET['api'] ?? '');
-if ($apiParam === '' && preg_match('#^/api/v1/pass/(balance|limits)$#i', $requestPath, $matchesPassSub)) {
+if ($apiParam === '' && preg_match('#^/api/v1/pass/(balance|limits|statement)$#i', $requestPath, $matchesPassSub)) {
     $apiParam = 'pass-' . strtolower($matchesPassSub[1]);
 } elseif ($apiParam === '' && preg_match('#^/api/v1/([a-z0-9_-]+)#i', $requestPath, $matches)) {
     $apiParam = strtolower($matches[1]);
@@ -510,7 +510,7 @@ if (str_starts_with($requestPath, '/api/v1/pass/mp-')) {
 $isStatusRoute = ($requestPath === '/status' || $requestPath === '/api/v1/summary' || $requestPath === '/telemetry');
 $isHomeRoute = ($requestPath === '/' || $requestPath === '/index.php');
 $isVerifyRoute = ($requestPath === '/api/v1/verify' || $apiParam === 'verify');
-$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'domain-audit', 'kyb-audit', 'market-snapshot', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays', 'sanctions', 'simples', 'compliance', 'lei', 'ofac', 'notarize', 'global-markets', 'pass', 'pass-emitir', 'pass-balance', 'pass-limits'];
+$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'domain-audit', 'kyb-audit', 'market-snapshot', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays', 'sanctions', 'simples', 'compliance', 'lei', 'ofac', 'notarize', 'global-markets', 'pass', 'pass-emitir', 'pass-balance', 'pass-limits', 'pass-statement'];
 $isValidApiAction = in_array($apiParam, $validApiEndpoints, true);
 $isInstitutionalRoute = in_array($requestPath, ['/about', '/contact', '/terms', '/privacy', '/admin', '/dashboard', '/agents'], true);
 
@@ -727,6 +727,55 @@ if ($isValidApiAction) {
     header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment, Idempotency-Key, X-Request-Id');
     header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Payment-Required, payment-required, X-Idempotent-Replay, X-Request-Id');
 
+    // 2.0. Consulta gratuita de extrato Zero-PII do Session Pass (/api/v1/pass/statement -> JSON ou CSV)
+    if ($apiParam === 'pass-statement') {
+        $authHeaderRaw = trim((string) ($_SERVER['HTTP_AUTHORIZATION'] ?? ''));
+        $bearerToken = '';
+        if (preg_match('/^Bearer\s+(pass_g402_[a-z0-9_]+)$/i', $authHeaderRaw, $bearerMatch)) {
+            $bearerToken = trim($bearerMatch[1]);
+        }
+        $statementToken = trim((string) ($_GET['token'] ?? $_GET['pass'] ?? ''));
+        if ($statementToken === '' && str_starts_with(strtolower($paymentProof), 'pass_g402_')) {
+            $statementToken = trim($paymentProof);
+        }
+        if ($statementToken === '' && $bearerToken !== '') {
+            $statementToken = $bearerToken;
+        }
+        $statementFilters = [
+            'endpoint' => $_GET['endpoint'] ?? null,
+            'outcome' => $_GET['outcome'] ?? null,
+        ];
+        $statement = grid402_get_session_pass_statement($statementToken, $statementFilters);
+        $statusCode = (int) ($statement['code'] ?? 200);
+        $stmtLatency = grid402_request_elapsed_ms();
+        grid402_record_latency_sample($stmtLatency);
+        grid402_log_request([
+            'service' => 'pass-statement',
+            'status' => $statusCode,
+            'latency_ms' => $stmtLatency,
+            'payment_source' => 'free',
+            'error' => !empty($statement['ok']) ? null : (string) ($statement['error'] ?? 'PassStatementError'),
+        ]);
+
+        $requestedFormat = strtolower(trim((string) ($_GET['format'] ?? 'json')));
+        if ($requestedFormat === 'csv' && !empty($statement['ok'])) {
+            $passIdFile = preg_replace('/[^a-z0-9_-]/i', '', (string) ($statement['pass']['pass_id'] ?? 'session'));
+            $csvPayload = grid402_format_statement_csv($statement['entries'] ?? []);
+            http_response_code(200);
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="grid402_statement_' . $passIdFile . '.csv"');
+            header('Cache-Control: no-store');
+            echo $csvPayload;
+            exit;
+        }
+
+        http_response_code($statusCode);
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store');
+        echo json_encode($statement, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     // 2.1. Consulta gratuita de saldo e Spend Controls de Session Pass (/api/v1/pass/balance, /api/v1/pass/limits ou ?status=pass_...)
     if ($apiParam === 'pass-balance' || $apiParam === 'pass-limits' || ($apiParam === 'pass' && (!empty($_GET['status']) || !empty($_GET['token'])))) {
         $rawBodyPass = (string) @file_get_contents('php://input');
@@ -931,6 +980,19 @@ if ($isValidApiAction) {
     if ($idempotencyKey !== '' && !$isPassEmitir) {
         $cachedIdempotent = grid402_idempotency_check($idempotencyKey, $apiParam, $_GET);
         if (is_array($cachedIdempotent)) {
+            if (str_starts_with(strtolower($paymentProof), 'pass_g402_')) {
+                $replayPassStatus = grid402_get_session_pass_status($paymentProof);
+                if (!empty($replayPassStatus['ok'])) {
+                    grid402_record_pass_statement_event($paymentProof, [
+                        'request_id' => grid402_get_request_id(),
+                        'endpoint' => $apiParam,
+                        'credits_debited' => 0,
+                        'credits_after' => (int) ($replayPassStatus['credits_remaining'] ?? 0),
+                        'http_status' => 200,
+                        'outcome' => 'idempotent_replay',
+                    ]);
+                }
+            }
             $idemLatency = grid402_request_elapsed_ms();
             grid402_record_latency_sample($idemLatency);
             grid402_log_request([
@@ -1002,6 +1064,8 @@ if ($isValidApiAction) {
         $errCategory = (string) ($validation['category'] ?? '');
         if ($errCategory === 'daily_limit_exceeded') {
             $errCodeLabel = 'PassDailyLimitExceeded';
+        } elseif ($errCategory === 'endpoint_restricted') {
+            $errCodeLabel = 'PassEndpointRestricted';
         } elseif ($errCategory === 'endpoint_not_allowed') {
             $errCodeLabel = 'PassEndpointNotAllowed';
         } elseif ($validation['code'] === 403) {

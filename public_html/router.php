@@ -33,9 +33,13 @@ if (preg_match('#^/(admin|dashboard)(/.*)?$#', $uri)) {
     exit;
 }
 
-// 5. Pagina de compra de Session Pass
+// 5. Pagina de compra de Session Pass e Payment Dashboard
 if (preg_match('#^/pass(/.*)?$#', $uri)) {
     require __DIR__ . '/pass.php';
+    exit;
+}
+if (preg_match('#^/payment-dashboard(/.*)?$#', $uri)) {
+    require __DIR__ . '/payment_dashboard.php';
     exit;
 }
 

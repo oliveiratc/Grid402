@@ -733,6 +733,48 @@
         }
       }
     },
+    "/api/v1/pass/statement": {
+      "get": {
+        "summary": "Session Pass Zero-PII Usage Statement in JSON or CSV (Free)",
+        "description": "Returns up to the 200 most recent Zero-PII consumption, Spend Control block (403/429), and idempotent replay events for a Session Pass token at zero cost, with optional endpoint/outcome filters and CSV export.",
+        "tags": ["Session-Pass", "Free"],
+        "parameters": [
+          {
+            "name": "token",
+            "in": "query",
+            "required": false,
+            "description": "Session Pass token (pass_g402_...), or send via X-Payment or Authorization Bearer header",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "required": false,
+            "description": "Output format: json (default) or csv (UTF-8 with BOM and CSV formula injection protection)",
+            "schema": { "type": "string", "enum": ["json", "csv"], "default": "json" }
+          },
+          {
+            "name": "endpoint",
+            "in": "query",
+            "required": false,
+            "description": "Filter entries by API endpoint identifier (e.g. forex, cnpj)",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "outcome",
+            "in": "query",
+            "required": false,
+            "description": "Filter entries by event outcome (consumed, endpoint_restricted, daily_limit_exceeded, idempotent_replay)",
+            "schema": { "type": "string", "enum": ["consumed", "endpoint_restricted", "daily_limit_exceeded", "idempotent_replay"] }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Zero-PII usage statement payload (JSON or text/csv attachment)" },
+          "400": { "description": "InvalidPassTokenFormat" },
+          "404": { "description": "PassNotFound" }
+        }
+      }
+    },
     "/api/v1/domain-audit": {
       "get": {
         "summary": "Consolidated Domain Infrastructure Bundle (DNS + SSL + ASN)",
