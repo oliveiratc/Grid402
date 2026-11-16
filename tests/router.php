@@ -6,6 +6,11 @@ declare(strict_types=1);
 
 $uri = (string)parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 
+if ($uri === '/robots.txt') {
+    require __DIR__ . '/../public_html/robots.php';
+    return true;
+}
+
 if ($uri === '/status') {
     $_GET['api'] = 'status';
     $_GET['format'] = 'json';

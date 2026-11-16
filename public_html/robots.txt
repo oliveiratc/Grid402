@@ -2,6 +2,7 @@
 # Permissao explicita para Crawlers de Busca, Agentes de IA e Robos Autonomos (RFC 9309)
 
 User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 Allow: /
 Allow: /status
 Allow: /catalog

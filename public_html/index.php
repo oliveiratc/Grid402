@@ -135,7 +135,7 @@ header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
-header('Content-Signal: search=yes, ai-train=no');
+header('Content-Signal: search=yes, ai-input=yes, ai-train=no');
 
 /**
  * Renderizador de Paginas Institucionais HTML para Agentes e Navegadores
@@ -172,6 +172,13 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
           "telephone": "+55-11-95832-5848",
           "description": "Hub de micro-servicos publicos e oraculo de utilitarios de rede para agentes autonomos de IA sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.",
           "priceRange": "$0.0050 - $0.0300",
+          "areaServed": "Worldwide",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "São Paulo",
+            "addressRegion": "SP",
+            "addressCountry": "BR"
+          },
           "sameAs": [
             "https://github.com/oliveiratc/Grid402",
             "https://www.npmjs.com/package/grid402",
@@ -1488,6 +1495,13 @@ grid402_log_public_visit('/');
           "telephone": "+55-11-95832-5848",
           "description": "Hub de micro-servicos publicos e oraculo de utilitarios de rede para agentes autonomos de IA sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.",
           "priceRange": "$0.0050 - $0.0300",
+          "areaServed": "Worldwide",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "São Paulo",
+            "addressRegion": "SP",
+            "addressCountry": "BR"
+          },
           "sameAs": [
             "https://github.com/oliveiratc/Grid402",
             "https://www.npmjs.com/package/grid402",

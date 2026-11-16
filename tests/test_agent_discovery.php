@@ -153,6 +153,37 @@ try {
     }
     assert_test(!$hasAmp, "Nenhum arquivo de descoberta contem o caractere ampersand");
 
+    // 7. Teste de Content-Signal em /robots.txt e Schema.org PostalAddress
+    echo "\n7. Validando Content-Signal em /robots.txt e Schema.org PostalAddress...\n";
+    $chRobots = curl_init("{$baseUrl}/robots.txt");
+    curl_setopt_array($chRobots, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HEADER => true, CURLOPT_TIMEOUT => 4]);
+    $rawRobots = (string) curl_exec($chRobots);
+    $robotsCode = (int) curl_getinfo($chRobots, CURLINFO_HTTP_CODE);
+    $robotsHdrSize = (int) curl_getinfo($chRobots, CURLINFO_HEADER_SIZE);
+    curl_close($chRobots);
+    $robotsHdrs = substr($rawRobots, 0, $robotsHdrSize);
+    $robotsBody = substr($rawRobots, $robotsHdrSize);
+    assert_test($robotsCode === 200, "Status HTTP 200 para /robots.txt");
+    assert_test(str_contains($robotsBody, 'Content-Signal: search=yes, ai-input=yes, ai-train=no'), "Diretiva Content-Signal declarada em /robots.txt");
+    assert_test(stripos($robotsHdrs, 'Content-Signal: search=yes, ai-input=yes, ai-train=no') !== false, "Cabecalho HTTP Content-Signal emitido em /robots.txt");
+
+    foreach (['/', '/about'] as $schemaRoute) {
+        $resHtml = test_http_request("{$baseUrl}{$schemaRoute}", ['Accept: text/html']);
+        assert_test($resHtml['code'] === 200, "Status HTTP 200 HTML para {$schemaRoute}");
+        $matched = preg_match('#<script type="application/ld\+json">\s*(\{.*?\})\s*</script>#s', $resHtml['body'], $ldMatch);
+        $ldJson = ($matched === 1) ? json_decode($ldMatch[1], true) : null;
+        $orgNode = $ldJson['@graph'][0] ?? null;
+        assert_test(is_array($orgNode), "JSON-LD estruturado e valido em {$schemaRoute}");
+        assert_test(
+            is_array($orgNode['address'] ?? null) &&
+            ($orgNode['address']['@type'] ?? '') === 'PostalAddress' &&
+            ($orgNode['address']['addressLocality'] ?? '') === 'São Paulo' &&
+            ($orgNode['address']['addressRegion'] ?? '') === 'SP' &&
+            ($orgNode['address']['addressCountry'] ?? '') === 'BR',
+            "Business node em {$schemaRoute} contem PostalAddress completo (Sao Paulo, SP, BR)"
+        );
+    }
+
 } finally {
     // Encerramento do servidor web de teste (mata a arvore de processos)
     grid402_stop_server($server);

@@ -9,6 +9,12 @@ declare(strict_types=1);
 $uri = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $filePath = __DIR__ . $uri;
 
+// Handler dinamico para robots.txt (identico ao .htaccess da Hostinger)
+if ($uri === '/robots.txt') {
+    require __DIR__ . '/robots.php';
+    exit;
+}
+
 // 1. Arquivos estáticos reais (llms.txt, arquivos em disco) são servidos diretamente pelo PHP
 if ($uri !== '/' && file_exists($filePath) && !is_dir($filePath)) {
     return false;
