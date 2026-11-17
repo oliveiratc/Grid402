@@ -3,8 +3,15 @@
   "name": "io.github.oliveiratc/grid402",
   "title": "Grid402 — Brazil Public Data & Network Oracle",
   "description": "24 MCP tools: Brazil CNPJ, compliance, ANBIMA, FX, GLEIF LEI, OFAC & DNS/SSL via x402 Base USDC.",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "websiteUrl": "https://grid402.online",
+  "icons": [
+    {
+      "src": "https://grid402.online/assets/icon-192x192.png",
+      "mimeType": "image/png",
+      "sizes": ["192x192"]
+    }
+  ],
   "repository": {
     "url": "https://github.com/oliveiratc/Grid402",
     "source": "github"

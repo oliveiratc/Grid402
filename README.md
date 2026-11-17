@@ -13,6 +13,7 @@
 [![Brand](https://img.shields.io/badge/Manual_da_Marca-Visual_Identity-0052FF)](MANUAL_DE_MARCA.md)
 ![PHP](https://img.shields.io/badge/PHP-8.1%20%7C%208.2%20%7C%208.3-777BB4?logo=php)
 ![Server](https://img.shields.io/badge/Server-Hostinger_LiteSpeed-blue)
+[![mcptry](https://mcptry.com/badge/io.github.oliveiratc/grid402)](https://mcptry.com/servers/io.github.oliveiratc/grid402)
 
 > **The Verifiable Data and x402 Payment Layer for Autonomous AI Agents.** Infraestrutura M2M de dados públicos verificáveis com assinatura ECDSA secp256k1 (`_oracle_proof`) e liquidação instantânea via HTTP x402 (USDC na rede Base) ou Session Passes pré-pagos sub-15ms.
 
