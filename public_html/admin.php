@@ -13,7 +13,38 @@ if (!defined('GRID402_EXEC')) {
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/metrics.php';
 require_once __DIR__ . '/growth.php';
+require_once __DIR__ . '/facilitator.php';
 require_once __DIR__ . '/services/forex.php';
+
+/**
+ * Retorna snapshot seguro (sem segredos) do estado do facilitador x402 e do coletor de resumo.
+ */
+function grid402_admin_runtime_status(): array {
+    $facMode = defined('GRID402_FACILITATOR_MODE') ? (string) GRID402_FACILITATOR_MODE : 'settle';
+    $facUrl = defined('GRID402_FACILITATOR_URL') ? (string) GRID402_FACILITATOR_URL : '';
+    $facHost = $facUrl !== '' ? (string) (parse_url($facUrl, PHP_URL_HOST) ?: '') : '';
+    $authMode = function_exists('grid402_facilitator_auth_mode') ? grid402_facilitator_auth_mode() : 'public';
+    $x402Network = defined('GRID402_X402_NETWORK') ? (string) GRID402_X402_NETWORK : 'base';
+
+    $summaryFile = defined('GRID402_FILE_FREE') ? GRID402_FILE_FREE : '';
+    $summaryExists = ($summaryFile !== '' && file_exists($summaryFile));
+    $summaryMtime = $summaryExists ? (int) @filemtime($summaryFile) : 0;
+    $summaryAgeSec = ($summaryExists && $summaryMtime > 0) ? max(0, time() - $summaryMtime) : null;
+
+    return [
+        'facilitator' => [
+            'mode' => $facMode,
+            'auth_mode' => $authMode,
+            'host' => $facHost,
+            'network' => $x402Network,
+        ],
+        'collector' => [
+            'summary_exists' => $summaryExists,
+            'summary_age_sec' => $summaryAgeSec,
+            'summary_stale' => ($summaryAgeSec === null || $summaryAgeSec > 600),
+        ],
+    ];
+}
 
 /**
  * Consulta os saldos on-chain em USDC e ETH da carteira oficial na Base Mainnet com cache de 60s
@@ -621,6 +652,7 @@ if ($apiParam === 'stats') {
     $wallet = grid402_get_oracle_wallet_balances();
     $oracleConfigured = defined('GRID402_ORACLE_PRIVATE_KEY') && !empty(GRID402_ORACLE_PRIVATE_KEY);
     $analytics = grid402_compute_admin_analytics($metrics, $usdRate);
+    $runtimeStatus = grid402_admin_runtime_status();
 
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-cache, no-store, must-revalidate');
@@ -658,6 +690,9 @@ if ($apiParam === 'stats') {
         'arpu_usdc' => $analytics['arpu_usdc'],
         'arpu_brl' => $analytics['arpu_brl'],
         'technical_success_rate' => $analytics['technical_success_rate'],
+        'http_200_count' => $analytics['http_200_count'] ?? 0,
+        'http_200_rate' => $analytics['http_200_rate'] ?? 100.0,
+        'error_5xx_count' => $analytics['error_5xx_count'] ?? 0,
         'latency_p50_ms' => $analytics['latency_p50_ms'] ?? 0.0,
         'latency_p95_ms' => $analytics['latency_p95_ms'] ?? 0.0,
         'latency_samples_count' => $analytics['latency_samples_count'] ?? 0,
@@ -665,6 +700,8 @@ if ($apiParam === 'stats') {
         'usd_rate' => $usdRate,
         'wallet_balances' => $wallet,
         'passes_stats' => $analytics['passes_stats'] ?? [],
+        'facilitator_status' => $runtimeStatus['facilitator'],
+        'collector_status' => $runtimeStatus['collector'],
         'oracle_configured' => $oracleConfigured,
         'status_counts' => $metrics['status_counts'] ?? [],
         'service_counts' => $metrics['service_counts'] ?? [],
@@ -862,6 +899,9 @@ $usdRate = (float)($forex['rates']['USD']['bid'] ?? 5.50);
 $wallet = grid402_get_oracle_wallet_balances();
 $oracleConfigured = defined('GRID402_ORACLE_PRIVATE_KEY') && !empty(GRID402_ORACLE_PRIVATE_KEY);
 $analytics = grid402_compute_admin_analytics($metrics, $usdRate);
+$runtimeStatus = grid402_admin_runtime_status();
+$facStatus = $runtimeStatus['facilitator'];
+$colStatus = $runtimeStatus['collector'];
 
 $revenueUsdc = (float)($metrics['total_revenue_usdc'] ?? 0.0);
 $revenueBrl = round($revenueUsdc * $usdRate, 2);
@@ -1508,6 +1548,25 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             </div>
         </header>
 
+        <!-- Runtime Status Bar (Facilitador x402 + Coletor, sem segredos) -->
+        <div id="runtime-status-bar" style="display:flex;flex-wrap:wrap;gap:0.75rem 1.25rem;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0.7rem 1rem;margin-bottom:1.25rem;font-size:0.78rem;font-family:var(--font-mono);">
+            <span id="runtime-facilitator-badge" style="color:<?php echo ($facStatus['mode'] === 'settle' ? '#10B981' : '#F59E0B'); ?>;">
+                Facilitador x402: <strong><?php echo htmlspecialchars($facStatus['mode'], ENT_QUOTES, 'UTF-8'); ?></strong>
+                (<?php echo htmlspecialchars(($facStatus['host'] !== '' ? $facStatus['host'] : 'local') . ' · ' . $facStatus['auth_mode'] . ' · ' . $facStatus['network'], ENT_QUOTES, 'UTF-8'); ?>)
+            </span>
+            <span id="runtime-collector-badge" style="color:<?php echo (!$colStatus['summary_stale'] ? '#10B981' : '#F59E0B'); ?>;">
+                Coletor (/status): <strong><?php
+                    if ($colStatus['summary_age_sec'] === null) {
+                        echo 'ausente';
+                    } elseif ($colStatus['summary_age_sec'] < 120) {
+                        echo $colStatus['summary_age_sec'] . 's atrás';
+                    } else {
+                        echo round($colStatus['summary_age_sec'] / 60) . ' min atrás';
+                    }
+                ?></strong>
+            </span>
+        </div>
+
         <!-- KPI Cards Grid (8 Cards Executivos de Alta Fidelidade) -->
         <div id="overview" class="kpi-grid">
             <div class="kpi-card">
@@ -1543,7 +1602,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             <div class="kpi-card">
                 <div class="kpi-title">SLA / Sucesso Técnico</div>
                 <div class="kpi-value" id="kpi-sla-tech" style="color: #10B981;"><?php echo $technicalSuccessRate; ?>%</div>
-                <div class="kpi-sub" id="kpi-latency-p95">HTTP 200 OK • Latência p95: <?php echo number_format($latencyP95Ms, 1, ',', '.'); ?> ms</div>
+                <div class="kpi-sub" id="kpi-latency-p95">Sem erros 5xx · Latência p95: <?php echo number_format($latencyP95Ms, 1, ',', '.'); ?> ms</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">Adoção Sandbox</div>
@@ -2263,10 +2322,31 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
 
                 if (arpuUsdcEl) arpuUsdcEl.textContent = 'US$ ' + Number(data.arpu_usdc ?? 0).toFixed(4);
                 if (arpuBrlEl) arpuBrlEl.textContent = '≈ R$ ' + Number(data.arpu_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 4 }) + ' / consulta paga';
-                if (slaTechEl) slaTechEl.textContent = Number(data.technical_success_rate || 100).toFixed(1) + '%';
+                if (slaTechEl) slaTechEl.textContent = Number(data.technical_success_rate ?? 100).toFixed(1) + '%';
                 const p95El = document.getElementById('kpi-latency-p95');
                 if (p95El && data.latency_p95_ms !== undefined) {
-                    p95El.textContent = 'HTTP 200 OK • Latência p95: ' + Number(data.latency_p95_ms || 0).toFixed(1).replace('.', ',') + ' ms';
+                    p95El.textContent = 'Sem erros 5xx · Latência p95: ' + Number(data.latency_p95_ms || 0).toFixed(1).replace('.', ',') + ' ms';
+                }
+                const facBadgeEl = document.getElementById('runtime-facilitator-badge');
+                if (facBadgeEl && data.facilitator_status) {
+                    const fs = data.facilitator_status;
+                    facBadgeEl.style.color = fs.mode === 'settle' ? '#10B981' : '#F59E0B';
+                    const strong = document.createElement('strong');
+                    strong.textContent = String(fs.mode || 'unknown');
+                    facBadgeEl.replaceChildren(
+                        document.createTextNode('Facilitador x402: '),
+                        strong,
+                        document.createTextNode(' (' + (fs.host || 'local') + ' · ' + (fs.auth_mode || '') + ' · ' + (fs.network || '') + ')')
+                    );
+                }
+                const colBadgeEl = document.getElementById('runtime-collector-badge');
+                if (colBadgeEl && data.collector_status) {
+                    const cs = data.collector_status;
+                    colBadgeEl.style.color = cs.summary_stale ? '#F59E0B' : '#10B981';
+                    const ageTxt = cs.summary_age_sec === null ? 'ausente' : (cs.summary_age_sec < 120 ? cs.summary_age_sec + 's atrás' : Math.round(cs.summary_age_sec / 60) + ' min atrás');
+                    const strong = document.createElement('strong');
+                    strong.textContent = ageTxt;
+                    colBadgeEl.replaceChildren(document.createTextNode('Coletor (/status): '), strong);
                 }
                 if (sandboxRateEl) sandboxRateEl.textContent = Number(data.sandbox_rate || 0).toFixed(1) + '%';
 

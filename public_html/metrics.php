@@ -624,23 +624,47 @@ function grid402_get_passes_stats(): array {
             'active_passes' => 0,
             'total_credits' => 0,
             'remaining_credits' => 0,
+            'active_remaining_credits' => 0,
         ];
     }
     $raw = @file_get_contents($file);
     $passes = $raw ? (@json_decode($raw, true) ?: []) : [];
-    $total = count($passes);
+    $total = is_array($passes) ? count($passes) : 0;
     $active = 0;
     $totalCredits = 0;
     $remainingCredits = 0;
+    $activeRemainingCredits = 0;
     $now = time();
     foreach ($passes as $p) {
-        $exp = isset($p['expires_at']) ? strtotime($p['expires_at']) : 0;
-        $rem = (int)($p['credits_remaining'] ?? 0);
-        $init = (int)($p['initial_credits'] ?? 0);
+        if (!is_array($p)) {
+            continue;
+        }
+        if (function_exists('grid402_normalize_pass_entry')) {
+            $p = grid402_normalize_pass_entry($p);
+        } elseif (($p['credit_scale'] ?? '') !== 'v2_5000') {
+            $rawTotal = (int) ($p['credits_total'] ?? $p['initial_credits'] ?? 0);
+            $rawRem = (int) ($p['credits_remaining'] ?? 0);
+            if ($rawTotal >= 4000) {
+                $p['credits_total'] = max(1, intdiv($rawTotal, 100));
+                $p['credits_remaining'] = max(0, intdiv($rawRem, 100));
+            }
+        }
+
+        $exp = (int) ($p['expires_epoch'] ?? 0);
+        if ($exp <= 0 && !empty($p['expires_at'])) {
+            $parsedExp = is_numeric($p['expires_at'])
+                ? (int) $p['expires_at']
+                : @strtotime((string) $p['expires_at']);
+            $exp = $parsedExp !== false ? (int) $parsedExp : 0;
+        }
+
+        $rem = max(0, (int) ($p['credits_remaining'] ?? 0));
+        $init = max(0, (int) ($p['credits_total'] ?? $p['initial_credits'] ?? 0));
         $totalCredits += $init;
         $remainingCredits += $rem;
         if ($exp > $now && $rem > 0) {
             $active++;
+            $activeRemainingCredits += $rem;
         }
     }
     return [
@@ -648,13 +672,14 @@ function grid402_get_passes_stats(): array {
         'active_passes' => $active,
         'total_credits' => $totalCredits,
         'remaining_credits' => $remainingCredits,
+        'active_remaining_credits' => $activeRemainingCredits,
     ];
 }
 
 /**
  * Computa indicadores analíticos avançados para o painel administrativo:
  * - ARPU (Ticket Médio em USDC e BRL)
- * - SLA Técnico (Taxa de HTTP 200 %)
+ * - SLA Técnico (Disponibilidade HTTP sem erros 5xx %)
  * - Taxa de Adoção de Sandbox (%)
  * - Histórico Diário ordenado dos últimos 14 dias (com preenchimento contínuo)
  * - Top Agentes / IPs Consumidores (anonimizados conforme LGPD)
@@ -675,9 +700,14 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
     $arpuUsdc = $totalPaid > 0 ? round($totalRevenueUsdc / $totalPaid, 6) : 0.0;
     $arpuBrl = round($arpuUsdc * $usdRate, 4);
 
-    // 2. SLA Técnico (HTTP 200 %)
+    // 2. SLA Técnico sem erros 5xx (desafios 402 e page_views 200 HTML sao comportamento esperado)
     $ok200 = (int)($statusCounts['200'] ?? 0);
-    $technicalSuccessRate = $totalRequests > 0 ? round(($ok200 / $totalRequests) * 100, 1) : 100.0;
+    $error5xx = (int)($statusCounts['500'] ?? 0)
+        + (int)($statusCounts['502'] ?? 0)
+        + (int)($statusCounts['503'] ?? 0)
+        + (int)($statusCounts['504'] ?? 0);
+    $technicalSuccessRate = $totalRequests > 0 ? round((max(0, $totalRequests - $error5xx) / $totalRequests) * 100, 1) : 100.0;
+    $http200Rate = $totalRequests > 0 ? round(($ok200 / $totalRequests) * 100, 1) : 100.0;
 
     // 3. Taxa de Adoção Sandbox (%)
     $sandboxRate = $totalRequests > 0 ? round(($totalSandbox / $totalRequests) * 100, 1) : 0.0;
@@ -811,6 +841,9 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
         'arpu_usdc' => $arpuUsdc,
         'arpu_brl' => $arpuBrl,
         'technical_success_rate' => $technicalSuccessRate,
+        'http_200_rate' => $http200Rate,
+        'http_200_count' => $ok200,
+        'error_5xx_count' => $error5xx,
         'sandbox_rate' => $sandboxRate,
         'latency_p50_ms' => $latencyP50,
         'latency_p95_ms' => $latencyP95,

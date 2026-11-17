@@ -573,11 +573,31 @@ if (!$isHomeRoute && !$isStatusRoute && !$isValidApiAction && !$isInstitutionalR
 // 4. Rota Gratuita: Resumo Geral do Hub (/status ou /?format=json)
 if ($isStatusRoute || ($isHomeRoute && isset($_GET['format']) && $_GET['format'] === 'json')) {
     if (!isset($_GET['detail'])) {
-        if (!file_exists(GRID402_FILE_FREE)) {
-            if (!defined('GRID402_INTERNAL_BOOTSTRAP')) {
-                define('GRID402_INTERNAL_BOOTSTRAP', true);
+        $summaryMaxAgeSec = 600;
+        $summaryMissing = !file_exists(GRID402_FILE_FREE);
+        $summaryMtime = $summaryMissing ? 0 : (int) @filemtime(GRID402_FILE_FREE);
+        $summaryStale = $summaryMissing || $summaryMtime <= 0 || (time() - $summaryMtime) > $summaryMaxAgeSec;
+        if ($summaryStale) {
+            // Lock nao-bloqueante para evitar stampede de multiplas requisicoes disparando collector ao mesmo tempo
+            $refreshLockPath = GRID402_PRIVATE_DIR . '/collector.refresh.lock';
+            $lockDir = dirname($refreshLockPath);
+            if (!is_dir($lockDir)) {
+                @mkdir($lockDir, 0775, true);
             }
-            include_once __DIR__ . '/collector.php';
+            $lockFp = @fopen($refreshLockPath, 'c+');
+            $gotLock = $lockFp && @flock($lockFp, LOCK_EX | LOCK_NB);
+            if ($gotLock || $summaryMissing) {
+                if (!defined('GRID402_INTERNAL_BOOTSTRAP')) {
+                    define('GRID402_INTERNAL_BOOTSTRAP', true);
+                }
+                include_once __DIR__ . '/collector.php';
+                if ($gotLock && $lockFp) {
+                    @flock($lockFp, LOCK_UN);
+                }
+            }
+            if ($lockFp) {
+                @fclose($lockFp);
+            }
         }
         grid402_record_telemetry('summary', 200, false);
         grid402_log_request(['service' => 'summary', 'status' => 200, 'payment_source' => 'free']);

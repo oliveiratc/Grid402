@@ -18,7 +18,6 @@ if (!defined('GRID402_EXEC')) {
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/metrics.php';
 require_once __DIR__ . '/services/pass.php';
-require_once __DIR__ . '/services/pass.php';
 
 /**
  * Caminho do armazenamento de growth (Zero-DB).
@@ -62,9 +61,9 @@ function grid402_growth_defaults(): array {
         'recurring_service_threshold' => 3,
         'recurring_24h_threshold' => 5,
         'low_balance_threshold' => 10,
-        'recharge_starter_credits' => 4000,
-        'recharge_pro_credits' => 10000,
-        'recharge_fleet_credits' => 50000,
+        'recharge_starter_credits' => 400,
+        'recharge_pro_credits' => 1000,
+        'recharge_fleet_credits' => 6000,
         'agent_spend_limit_usdc' => 5.0,
         'agent_spend_window_days' => 30,
         'starter_promo_enabled' => true,
@@ -120,6 +119,16 @@ function grid402_growth_normalize(array $data): array {
     }
 
     $out['config'] = array_merge($defaults, $out['config'] ?? []);
+    // Migra a escala legada de recarga (4000/10000/50000) para v2_5000 (400/1000/6000)
+    if (
+        (int) ($out['config']['recharge_starter_credits'] ?? 0) === 4000
+        && (int) ($out['config']['recharge_pro_credits'] ?? 0) === 10000
+        && (int) ($out['config']['recharge_fleet_credits'] ?? 0) === 50000
+    ) {
+        $out['config']['recharge_starter_credits'] = 400;
+        $out['config']['recharge_pro_credits'] = 1000;
+        $out['config']['recharge_fleet_credits'] = 6000;
+    }
     $out['payload_version'] = 1;
     $out['profiles'] = is_array($data['profiles'] ?? null) ? $data['profiles'] : [];
     $out['builders'] = is_array($data['builders'] ?? null) ? $data['builders'] : [];

@@ -51,6 +51,7 @@ if (!$isAuthorized) {
 }
 
 // 2. Gravação Atômica em JSON
+if (!function_exists('grid402_atomic_write_json')) {
 function grid402_atomic_write_json(string $filePath, array $data): bool {
     $dir = dirname($filePath);
     if (!is_dir($dir)) {
@@ -67,6 +68,7 @@ function grid402_atomic_write_json(string $filePath, array $data): bool {
     }
     chmod($tmpFile, 0644);
     return rename($tmpFile, $filePath);
+}
 }
 
 // 3. Execução das Coletas e Validações

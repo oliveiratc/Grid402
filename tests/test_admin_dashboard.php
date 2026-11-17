@@ -115,6 +115,57 @@ $analytics = grid402_compute_admin_analytics($mMeta, 5.50);
 assert(isset($analytics['arpu_usdc']), 'Analytics deve conter arpu_usdc');
 assert(abs($analytics['arpu_usdc'] - 0.0050) < 0.000001, 'ARPU com 0.001 USDC em 2 pagamentos deve ser 0.0050');
 assert(isset($analytics['technical_success_rate']), 'Analytics deve conter technical_success_rate');
+assert($analytics['technical_success_rate'] === 100.0, 'SLA sem erros 5xx deve ser 100.0 mesmo havendo desafios 402');
+assert(($analytics['error_5xx_count'] ?? -1) === 0, 'Sem 5xx registrados, error_5xx_count deve ser 0');
+assert(isset($analytics['http_200_rate']) && $analytics['http_200_rate'] < 100.0, 'http_200_rate deve refletir proporcao de 200 separados do SLA');
+// Simula erro 503 para validar queda proporcional no SLA sem 5xx
+$mWith5xx = $mMeta;
+$mWith5xx['total_requests'] = 100;
+$mWith5xx['status_counts']['503'] = 2;
+$analyticsWith5xx = grid402_compute_admin_analytics($mWith5xx, 5.50);
+assert($analyticsWith5xx['error_5xx_count'] === 2 && $analyticsWith5xx['technical_success_rate'] === 98.0, 'SLA deve refletir exatamente 98.0% quando ha 2 erros 5xx em 100 requests');
+
+// Teste unitario de grid402_get_passes_stats() com schema credits_total + expires_epoch + legado
+$passesBackupFile = GRID402_FILE_PASSES . '.bak_admin_test';
+$hadPassesFile = file_exists(GRID402_FILE_PASSES);
+if ($hadPassesFile) {
+    copy(GRID402_FILE_PASSES, $passesBackupFile);
+}
+try {
+    $futureEpoch = time() + 86400;
+    $pastEpoch = time() - 86400;
+    grid402_atomic_write(GRID402_FILE_PASSES, [
+        'pass_v2_ativo' => [
+            'pass_id' => 'pass_v2_ativo',
+            'credit_scale' => 'v2_5000',
+            'credits_total' => 400,
+            'credits_remaining' => 250,
+            'expires_epoch' => $futureEpoch,
+            'expires_at' => gmdate('Y-m-d\TH:i:s\Z', $futureEpoch),
+        ],
+        'pass_expirado' => [
+            'pass_id' => 'pass_expirado',
+            'credit_scale' => 'v2_5000',
+            'credits_total' => 1000,
+            'credits_remaining' => 4,
+            'expires_epoch' => $pastEpoch,
+            'expires_at' => gmdate('Y-m-d\TH:i:s\Z', $pastEpoch),
+        ],
+    ]);
+    $pStats = grid402_get_passes_stats();
+    assert($pStats['total_issued'] === 2, 'total_issued deve ser 2');
+    assert($pStats['active_passes'] === 1, 'active_passes deve contabilizar 1 passe ativo via expires_epoch');
+    assert($pStats['total_credits'] === 1400, 'total_credits deve somar credits_total (1400)');
+    assert($pStats['remaining_credits'] === 254, 'remaining_credits deve somar todos os restantes (254)');
+    assert($pStats['active_remaining_credits'] === 250, 'active_remaining_credits deve isolar apenas ativos (250)');
+} finally {
+    if ($hadPassesFile && file_exists($passesBackupFile)) {
+        rename($passesBackupFile, GRID402_FILE_PASSES);
+    } else {
+        @unlink(GRID402_FILE_PASSES);
+        if (file_exists($passesBackupFile)) @unlink($passesBackupFile);
+    }
+}
 assert(isset($analytics['sandbox_rate']), 'Analytics deve conter sandbox_rate');
 assert(count($analytics['daily_history_14d']) === 14, 'daily_history_14d deve conter exatamente 14 dias continuos');
 assert(is_array($analytics['top_consumers']), 'top_consumers deve ser array');
@@ -279,6 +330,9 @@ try {
     assert(isset($statsJson['top_consumers']) && is_array($statsJson['top_consumers']), 'API deve conter top_consumers');
     assert(isset($statsJson['service_revenue']) && is_array($statsJson['service_revenue']), 'API deve conter service_revenue');
     assert(isset($statsJson['passes_stats']), 'API deve conter passes_stats');
+    assert(isset($statsJson['facilitator_status']['mode'], $statsJson['facilitator_status']['auth_mode'], $statsJson['facilitator_status']['host']), 'API deve conter facilitator_status sem segredos');
+    assert(isset($statsJson['collector_status']['summary_exists'], $statsJson['collector_status']['summary_stale']), 'API deve conter collector_status');
+    assert(isset($statsJson['error_5xx_count']), 'API deve conter error_5xx_count');
     echo "     ✓ Snapshot JSON em tempo real com saldos on-chain, ARPU, SLA, gráfico 14D e top consumidores validado!\n";
 
     // 4.5. Testar exportação de CSV autenticado
@@ -308,6 +362,8 @@ try {
     assert($dashResp['code'] === 200, "Dashboard autenticado deve retornar 200");
     assert(str_contains($dashResp['body'], 'Monitoramento e Faturamento'), 'Deve conter título do Dashboard');
     assert(str_contains($dashResp['body'], 'Ao Vivo'), 'Deve conter indicador de atualização Ao Vivo');
+    assert(str_contains($dashResp['body'], 'Facilitador x402'), 'Dashboard deve exibir status seguro do Facilitador x402');
+    assert(str_contains($dashResp['body'], 'Sem erros 5xx'), 'Dashboard deve exibir SLA sem erros 5xx');
     assert(str_contains($dashResp['body'], 'Saldo On-Chain (Base)'), 'Deve conter card de Saldo On-Chain');
     assert(str_contains($dashResp['body'], 'password-modal-overlay'), 'Deve conter modal de alteração de senha');
     assert(str_contains($dashResp['body'], 'Origem dos Pagamentos'), 'Deve conter painel de Origem dos Pagamentos');
