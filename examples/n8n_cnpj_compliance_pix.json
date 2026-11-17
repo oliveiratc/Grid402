@@ -1,0 +1,152 @@
+{
+  "name": "Grid402 - Consulta CNPJ + Compliance 360 + Verificacao ECDSA (Pix Session Pass)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "g402-manual-trigger",
+      "name": "When clicking Execute workflow",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cnpj-field",
+              "name": "cnpj",
+              "value": "00000000000191",
+              "type": "string"
+            },
+            {
+              "id": "token-field",
+              "name": "pass_token",
+              "value": "demo",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "g402-set-params",
+      "name": "Configurar CNPJ e Session Pass",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        460,
+        300
+      ],
+      "notes": "Troque 'demo' pelo seu token pass_g402_... comprado via Pix (R$ 12 = 400 creditos) em https://www.grid402.online/pass"
+    },
+    {
+      "parameters": {
+        "url": "=https://www.grid402.online/api/v1/compliance?cnpj={{ $json.cnpj }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Payment",
+              "value": "={{ $json.pass_token }}"
+            },
+            {
+              "name": "Idempotency-Key",
+              "value": "={{ $execution.id }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "g402-http-compliance",
+      "name": "Grid402 Compliance 360 (CNPJ + CEIS/CNEP)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.grid402.online/api/v1/verify",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 5000
+        }
+      },
+      "id": "g402-http-verify",
+      "name": "Verificar Prova Criptografica (Gratuito)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        940,
+        300
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking Execute workflow": {
+      "main": [
+        [
+          {
+            "node": "Configurar CNPJ e Session Pass",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configurar CNPJ e Session Pass": {
+      "main": [
+        [
+          {
+            "node": "Grid402 Compliance 360 (CNPJ + CEIS/CNEP)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Grid402 Compliance 360 (CNPJ + CEIS/CNEP)": {
+      "main": [
+        [
+          {
+            "node": "Verificar Prova Criptografica (Gratuito)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1.0.0",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
