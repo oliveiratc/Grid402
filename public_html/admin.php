@@ -557,6 +557,106 @@ $failureCategoryLabels = [
 $paymentSourceKeys = array_keys($paymentSourceLabels);
 $failureCategoryKeys = array_keys($failureCategoryLabels);
 
+/**
+ * Calcula indicadores operacionais recentes (Hoje vs. Ontem + janela de 1h/6h/24h nos recent_events).
+ */
+function grid402_admin_recent_pulse(array $metrics): array {
+    $tz = new DateTimeZone('America/Sao_Paulo');
+    $todayDt = new DateTimeImmutable('now', $tz);
+    $todayKey = $todayDt->format('Y-m-d');
+    $yesterdayKey = $todayDt->modify('-1 day')->format('Y-m-d');
+
+    $daily = is_array($metrics['daily'] ?? null) ? $metrics['daily'] : [];
+    $todayRow = is_array($daily[$todayKey] ?? null) ? $daily[$todayKey] : [];
+    $yesterdayRow = is_array($daily[$yesterdayKey] ?? null) ? $daily[$yesterdayKey] : [];
+
+    $events = is_array($metrics['recent_events'] ?? null) ? $metrics['recent_events'] : [];
+    $nowTs = time();
+    $last1h = 0;
+    $last6h = 0;
+    $last24h = 0;
+    $challengeClean = 0;
+    $paymentFailures = 0;
+    $sandboxCount = 0;
+    $freeCount = 0;
+    $paidCount = 0;
+    $errorNon402Count = 0;
+    $recentServices = [];
+
+    foreach ($events as $ev) {
+        if (!is_array($ev)) {
+            continue;
+        }
+        $tsStr = (string) ($ev['timestamp'] ?? '');
+        $evTs = $tsStr !== '' ? strtotime($tsStr) : false;
+        if ($evTs !== false) {
+            $age = $nowTs - (int) $evTs;
+            if ($age <= 3600) {
+                $last1h++;
+            }
+            if ($age <= 21600) {
+                $last6h++;
+            }
+            if ($age <= 86400) {
+                $last24h++;
+            }
+        }
+
+        $status = (int) ($ev['status'] ?? 200);
+        $type = (string) ($ev['type'] ?? '');
+        $failureCat = $ev['failure_category'] ?? null;
+        $svc = (string) ($ev['service'] ?? 'unknown');
+        if ($svc !== '') {
+            $recentServices[$svc] = ((int) ($recentServices[$svc] ?? 0)) + 1;
+        }
+
+        if ($type === 'paid' || !empty($ev['is_paid'])) {
+            $paidCount++;
+        } elseif ($type === 'sandbox') {
+            $sandboxCount++;
+        } elseif ($status === 402) {
+            if (!empty($failureCat)) {
+                $paymentFailures++;
+            } else {
+                $challengeClean++;
+            }
+        } elseif ($status >= 400) {
+            $errorNon402Count++;
+            if (!empty($failureCat)) {
+                $paymentFailures++;
+            }
+        } else {
+            $freeCount++;
+        }
+    }
+
+    arsort($recentServices);
+    $topRecentServices = [];
+    foreach (array_slice($recentServices, 0, 6, true) as $svcName => $cnt) {
+        $topRecentServices[] = ['service' => (string) $svcName, 'count' => (int) $cnt];
+    }
+
+    return [
+        'today_date' => $todayDt->format('d/m'),
+        'yesterday_date' => $todayDt->modify('-1 day')->format('d/m'),
+        'today_requests' => (int) ($todayRow['requests'] ?? 0),
+        'today_paid' => (int) ($todayRow['paid'] ?? 0),
+        'yesterday_requests' => (int) ($yesterdayRow['requests'] ?? 0),
+        'yesterday_paid' => (int) ($yesterdayRow['paid'] ?? 0),
+        'buffer_total' => count($events),
+        'last_1h_count' => $last1h,
+        'last_6h_count' => $last6h,
+        'last_24h_count' => $last24h,
+        'challenge_402_clean' => $challengeClean,
+        'payment_failures' => $paymentFailures,
+        'sandbox_count' => $sandboxCount,
+        'free_count' => $freeCount,
+        'paid_count' => $paidCount,
+        'error_non_402_count' => $errorNon402Count,
+        'top_recent_services' => $topRecentServices,
+    ];
+}
+
 // 4.1. Endpoint de Exportacao Financeira CSV (/admin?api=export_csv)
 if ($apiParam === 'export_csv') {
     if (!$isLoggedIn) {
@@ -712,6 +812,7 @@ if ($apiParam === 'stats') {
         'daily_history_14d' => $analytics['daily_history_14d'] ?? [],
         'top_consumers' => $analytics['top_consumers'] ?? [],
         'service_revenue' => $analytics['service_revenue'] ?? [],
+        'recent_pulse' => grid402_admin_recent_pulse($metrics),
         'recent_events' => $metrics['recent_events'] ?? [],
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
@@ -919,6 +1020,7 @@ $passesStats = $analytics['passes_stats'] ?? ['active_passes' => 0, 'remaining_c
 $dailyHistory14d = $analytics['daily_history_14d'] ?? [];
 $topConsumers = $analytics['top_consumers'] ?? [];
 $serviceRevenue = $analytics['service_revenue'] ?? [];
+$recentPulse = grid402_admin_recent_pulse($metrics);
 
 $totalPageViews = (int)($metrics['total_page_views'] ?? 0);
 $todayPageViews = (int)($metrics['daily'][$today]['page_views'] ?? 0);
@@ -1619,6 +1721,52 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             </div>
         </div>
 
+        <!-- Pulso Operacional Recente (Hoje vs. Ontem + Últimas Horas) -->
+        <section id="recent-pulse-panel" class="panel" style="grid-column: 1 / -1; margin-top: 1rem;">
+            <div class="panel-title">
+                <span>Pulso Operacional Recente — Últimas Horas (Janela de <?php echo (int)($recentPulse['buffer_total'] ?? 0); ?> Eventos)</span>
+                <span id="pulse-window-badge" style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--primary);">
+                    1h: <?php echo (int)($recentPulse['last_1h_count'] ?? 0); ?> reqs • 6h: <?php echo (int)($recentPulse['last_6h_count'] ?? 0); ?> • 24h: <?php echo (int)($recentPulse['last_24h_count'] ?? 0); ?>
+                </span>
+            </div>
+            <div class="kpi-grid" style="margin-top: 0.85rem;">
+                <div class="kpi-card">
+                    <div class="kpi-title">Consultas Hoje vs. Ontem</div>
+                    <div class="kpi-value" id="pulse-today-reqs"><?php echo number_format((int)($recentPulse['today_requests'] ?? 0), 0, ',', '.'); ?> <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">hoje (<?php echo htmlspecialchars((string)($recentPulse['today_date'] ?? ''), ENT_QUOTES); ?>)</span></div>
+                    <div class="kpi-sub" id="pulse-yesterday-reqs">Ontem (<?php echo htmlspecialchars((string)($recentPulse['yesterday_date'] ?? ''), ENT_QUOTES); ?>): <?php echo number_format((int)($recentPulse['yesterday_requests'] ?? 0), 0, ',', '.'); ?> reqs • <?php echo (int)($recentPulse['today_paid'] ?? 0); ?> pagas hoje</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Descoberta 402 vs. Tentativas</div>
+                    <div class="kpi-value" id="pulse-402-clean" style="color: #F59E0B;"><?php echo (int)($recentPulse['challenge_402_clean'] ?? 0); ?> <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">desafios</span></div>
+                    <div class="kpi-sub" id="pulse-payment-failures"><?php echo (int)($recentPulse['payment_failures'] ?? 0); ?> tentativas falhas • <?php echo (int)($recentPulse['paid_count'] ?? 0); ?> pagas recentes</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Tráfego Recente (Sandbox / Free)</div>
+                    <div class="kpi-value" id="pulse-sandbox-free" style="color: #A855F7;"><?php echo (int)($recentPulse['sandbox_count'] ?? 0); ?> <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">sandbox</span></div>
+                    <div class="kpi-sub" id="pulse-free-sub"><?php echo (int)($recentPulse['free_count'] ?? 0); ?> chamadas gratuitas (summary/status)</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Erros Recentes (exceto 402)</div>
+                    <div class="kpi-value" id="pulse-errors-recent" style="color: <?php echo ((int)($recentPulse['error_non_402_count'] ?? 0) === 0) ? '#10B981' : '#EF4444'; ?>;"><?php echo (int)($recentPulse['error_non_402_count'] ?? 0); ?></div>
+                    <div class="kpi-sub" id="pulse-errors-sub"><?php echo ((int)($recentPulse['error_non_402_count'] ?? 0) === 0) ? 'Zero 400/403/5xx nos últimos eventos' : 'Verificar feed recente abaixo'; ?></div>
+                </div>
+            </div>
+            <div style="margin-top: 0.9rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">Top serviços sondados recentemente:</span>
+                <div id="pulse-top-services" style="display: flex; flex-wrap: wrap; gap: 0.45rem;">
+                    <?php if (empty($recentPulse['top_recent_services'])): ?>
+                        <span style="font-size: 0.78rem; color: var(--text-muted);">Sem eventos recentes</span>
+                    <?php else: ?>
+                        <?php foreach ($recentPulse['top_recent_services'] as $item): ?>
+                            <span style="font-size: 0.75rem; font-family: var(--font-mono); padding: 0.22rem 0.55rem; border-radius: 999px; background: rgba(0, 240, 255, 0.08); border: 1px solid rgba(0, 240, 255, 0.25); color: #e2e8f0;">
+                                <?php echo htmlspecialchars((string)$item['service'], ENT_QUOTES); ?>: <strong><?php echo (int)$item['count']; ?></strong>
+                            </span>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </section>
+
         <!-- Growth Engine (Web3) -->
         <section id="growth-engine" class="panel" style="grid-column: 1 / -1; margin-top: 1rem;">
             <div class="panel-title">
@@ -2236,6 +2384,78 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             tbody.innerHTML = html;
         }
 
+        function renderRecentPulse(pulse) {
+            if (!pulse) return;
+            const winBadge = document.getElementById('pulse-window-badge');
+            if (winBadge) {
+                winBadge.textContent = `1h: ${Number(pulse.last_1h_count || 0)} reqs • 6h: ${Number(pulse.last_6h_count || 0)} • 24h: ${Number(pulse.last_24h_count || 0)}`;
+            }
+            const todayEl = document.getElementById('pulse-today-reqs');
+            if (todayEl) {
+                const span = document.createElement('span');
+                span.style.cssText = 'font-size: 0.85rem; color: var(--text-muted); font-weight: 500;';
+                span.textContent = ' hoje (' + (pulse.today_date || '') + ')';
+                todayEl.replaceChildren(document.createTextNode(Number(pulse.today_requests || 0).toLocaleString('pt-BR')), span);
+            }
+            const yestEl = document.getElementById('pulse-yesterday-reqs');
+            if (yestEl) {
+                yestEl.textContent = `Ontem (${pulse.yesterday_date || ''}): ${Number(pulse.yesterday_requests || 0).toLocaleString('pt-BR')} reqs • ${Number(pulse.today_paid || 0)} pagas hoje`;
+            }
+            const c402El = document.getElementById('pulse-402-clean');
+            if (c402El) {
+                const span = document.createElement('span');
+                span.style.cssText = 'font-size: 0.85rem; color: var(--text-muted); font-weight: 500;';
+                span.textContent = ' desafios';
+                c402El.replaceChildren(document.createTextNode(String(Number(pulse.challenge_402_clean || 0))), span);
+            }
+            const failEl = document.getElementById('pulse-payment-failures');
+            if (failEl) {
+                failEl.textContent = `${Number(pulse.payment_failures || 0)} tentativas falhas • ${Number(pulse.paid_count || 0)} pagas recentes`;
+            }
+            const sbxEl = document.getElementById('pulse-sandbox-free');
+            if (sbxEl) {
+                const span = document.createElement('span');
+                span.style.cssText = 'font-size: 0.85rem; color: var(--text-muted); font-weight: 500;';
+                span.textContent = ' sandbox';
+                sbxEl.replaceChildren(document.createTextNode(String(Number(pulse.sandbox_count || 0))), span);
+            }
+            const freeEl = document.getElementById('pulse-free-sub');
+            if (freeEl) {
+                freeEl.textContent = `${Number(pulse.free_count || 0)} chamadas gratuitas (summary/status)`;
+            }
+            const errEl = document.getElementById('pulse-errors-recent');
+            const errSub = document.getElementById('pulse-errors-sub');
+            const errCount = Number(pulse.error_non_402_count || 0);
+            if (errEl) {
+                errEl.textContent = String(errCount);
+                errEl.style.color = errCount === 0 ? '#10B981' : '#EF4444';
+            }
+            if (errSub) {
+                errSub.textContent = errCount === 0 ? 'Zero 400/403/5xx nos últimos eventos' : 'Verificar feed recente abaixo';
+            }
+            const topWrap = document.getElementById('pulse-top-services');
+            if (topWrap) {
+                const items = Array.isArray(pulse.top_recent_services) ? pulse.top_recent_services : [];
+                if (items.length === 0) {
+                    const empty = document.createElement('span');
+                    empty.style.cssText = 'font-size: 0.78rem; color: var(--text-muted);';
+                    empty.textContent = 'Sem eventos recentes';
+                    topWrap.replaceChildren(empty);
+                } else {
+                    const nodes = items.map(it => {
+                        const badge = document.createElement('span');
+                        badge.style.cssText = 'font-size: 0.75rem; font-family: var(--font-mono); padding: 0.22rem 0.55rem; border-radius: 999px; background: rgba(0, 240, 255, 0.08); border: 1px solid rgba(0, 240, 255, 0.25); color: #e2e8f0;';
+                        badge.appendChild(document.createTextNode(String(it.service || '') + ': '));
+                        const strong = document.createElement('strong');
+                        strong.textContent = String(Number(it.count || 0));
+                        badge.appendChild(strong);
+                        return badge;
+                    });
+                    topWrap.replaceChildren(...nodes);
+                }
+            }
+        }
+
         // Renderiza a lista de Rentabilidade por Servico
         function renderServiceRevenue(services) {
             const el = document.getElementById('service-revenue-bars-container');
@@ -2384,6 +2604,11 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 // 2d. Atualizar Rentabilidade Estimada por Serviço
                 if (data.service_revenue) {
                     renderServiceRevenue(data.service_revenue);
+                }
+
+                // 2e. Atualizar Pulso Operacional Recente
+                if (data.recent_pulse) {
+                    renderRecentPulse(data.recent_pulse);
                 }
 
                 // 3. Atualizar Barras de Servicos (22 Nós)
