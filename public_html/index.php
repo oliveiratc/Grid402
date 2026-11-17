@@ -751,8 +751,12 @@ if ($isVerifyRoute) {
 if ($isValidApiAction) {
     header('Access-Control-Allow-Origin: *');
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment, Idempotency-Key, X-Request-Id');
-    header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Payment-Required, payment-required, X-Idempotent-Replay, X-Request-Id');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment, x-payment, PAYMENT-SIGNATURE, payment-signature, Idempotency-Key, X-Request-Id');
+    header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Payment-Required, payment-required, PAYMENT-RESPONSE, X-PAYMENT-RESPONSE, X-Idempotent-Replay, X-Request-Id');
+    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        http_response_code(204);
+        exit;
+    }
 
     // 2.0. Consulta gratuita de extrato Zero-PII do Session Pass (/api/v1/pass/statement -> JSON ou CSV)
     if ($apiParam === 'pass-statement') {
@@ -873,8 +877,8 @@ if ($isValidApiAction) {
         $servicePriceDisplay = GRID402_PRICE_CNPJ;
         $servicePriceRaw = GRID402_USDC_CNPJ_RAW; // 0.020000 USDC (4 creditos)
     } elseif ($isCompositeMedium) {
-        $servicePriceDisplay = '0.0120';
-        $servicePriceRaw = 12000; // 0.012000 USDC (3 creditos)
+        $servicePriceDisplay = '0.0150';
+        $servicePriceRaw = 15000; // 0.015000 USDC (3 creditos)
     } elseif ($isSanctionsOrSimples) {
         $servicePriceDisplay = '0.0100';
         $servicePriceRaw = 10000; // 0.010000 USDC (2 creditos)
@@ -883,21 +887,76 @@ if ($isValidApiAction) {
         $servicePriceRaw = GRID402_USDC_REQUIRED_RAW; // 0.005000 USDC (1 credito)
     }
 
+    // Validação prévia defensiva de parâmetros (só rejeita se o parâmetro foi explicitamente enviado e é inválido;
+    // quando omitido, o desafio 402 e a execução usam o identificador showcase padrão).
     $isCnpjEndpoint = in_array($apiParam, ['cnpj', 'sanctions', 'simples', 'compliance'], true);
     if ($isCnpjEndpoint) {
-        $cnpjInput = (string) ($_GET['cnpj'] ?? $_GET['code'] ?? '');
-        $cnpjInputClean = preg_replace('/\D/', '', $cnpjInput);
-        if ($cnpjInputClean === '' or !grid402_validate_cnpj_digits($cnpjInputClean)) {
-            http_response_code(400);
-            header('Content-Type: application/json; charset=utf-8');
-            echo json_encode([
-                'success' => false,
-                'error' => 'InvalidCNPJ',
-                'message' => 'O CNPJ informado é matematicamente inválido ou possui dígitos verificadores incorretos.',
-                'cnpj' => $cnpjInput,
-                'code' => 400,
-            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            exit;
+        $cnpjInputRaw = trim((string) ($_GET['cnpj'] ?? $_GET['code'] ?? ''));
+        if ($cnpjInputRaw !== '') {
+            $cnpjInputClean = preg_replace('/\D/', '', $cnpjInputRaw);
+            if ($cnpjInputClean === '' || !grid402_validate_cnpj_digits($cnpjInputClean)) {
+                http_response_code(400);
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'InvalidCNPJ',
+                    'message' => 'O CNPJ informado é matematicamente inválido ou possui dígitos verificadores incorretos.',
+                    'cnpj' => $cnpjInputRaw,
+                    'code' => 400,
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+        }
+    } elseif ($apiParam === 'cep') {
+        $cepInputRaw = trim((string) ($_GET['code'] ?? $_GET['cep'] ?? ''));
+        if ($cepInputRaw !== '') {
+            $cepDigits = preg_replace('/\D/', '', $cepInputRaw);
+            if (strlen($cepDigits) !== 8) {
+                http_response_code(400);
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'InvalidCEP',
+                    'message' => 'O CEP informado deve conter exatamente 8 dígitos numéricos.',
+                    'cep' => $cepInputRaw,
+                    'code' => 400,
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+        }
+    } elseif ($apiParam === 'lei') {
+        $leiInputRaw = trim((string) ($_GET['lei'] ?? ''));
+        if ($leiInputRaw !== '') {
+            $leiClean = preg_replace('/[^A-Za-z0-9]/', '', $leiInputRaw);
+            if (strlen($leiClean) !== 20) {
+                http_response_code(400);
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'InvalidLEI',
+                    'message' => 'O código LEI (ISO 17442) deve conter exatamente 20 caracteres alfanuméricos.',
+                    'lei' => $leiInputRaw,
+                    'code' => 400,
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+        }
+    } elseif ($apiParam === 'kyb-audit') {
+        $kybCnpjRaw = trim((string) ($_GET['cnpj'] ?? ''));
+        if ($kybCnpjRaw !== '') {
+            $kybCnpjClean = preg_replace('/\D/', '', $kybCnpjRaw);
+            if ($kybCnpjClean === '' || !grid402_validate_cnpj_digits($kybCnpjClean)) {
+                http_response_code(400);
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'success' => false,
+                    'error' => 'InvalidCNPJ',
+                    'message' => 'O CNPJ informado para auditoria KYB é inválido.',
+                    'cnpj' => $kybCnpjRaw,
+                    'code' => 400,
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                exit;
+            }
         }
     }
 
@@ -907,17 +966,92 @@ if ($isValidApiAction) {
         $previewData = null;
         $lockedFields = null;
 
-        if ($apiParam === 'cnpj') {
-            $cnpjInput = (string) ($_GET['cnpj'] ?? $_GET['code'] ?? '00000000000191');
+        if ($apiParam === 'forex') {
+            $previewData = [
+                'base' => 'BRL',
+                'pairs_sample' => ['USD/BRL', 'EUR/BRL', 'GBP/BRL'],
+                'source' => 'Banco Central do Brasil (PTAX)',
+                'status' => 'UP',
+            ];
+            $lockedFields = ['rates.USD', 'rates.EUR', 'rates.GBP', 'timestamp', '_oracle_proof'];
+        } elseif ($apiParam === 'crypto') {
+            $previewData = [
+                'assets_sample' => ['BTC', 'ETH', 'SOL', 'USDC', 'BASE'],
+                'quotes' => ['USD', 'BRL'],
+                'source' => 'Coinbase Spot + Kraken',
+                'status' => 'UP',
+            ];
+            $lockedFields = ['prices.BTC', 'prices.ETH', 'prices.SOL', 'prices.USDC', '_oracle_proof'];
+        } elseif ($apiParam === 'dns') {
+            $dnsTarget = (string) ($_GET['domain'] ?? 'github.com');
+            $previewData = [
+                'domain' => $dnsTarget,
+                'record_types' => ['A', 'AAAA', 'MX', 'TXT', 'NS', 'CNAME'],
+                'resolver' => 'Authoritative DNS / DoH',
+            ];
+            $lockedFields = ['records.A', 'records.MX', 'records.TXT', 'records.NS', '_oracle_proof'];
+        } elseif ($apiParam === 'ssl') {
+            $sslTarget = (string) ($_GET['host'] ?? 'base.org');
+            $previewData = [
+                'host' => $sslTarget,
+                'port' => 443,
+                'checks' => ['validity', 'days_remaining', 'issuer', 'san_domains', 'tls_version'],
+            ];
+            $lockedFields = ['valid', 'days_remaining', 'issuer', 'subject_alt_names', '_oracle_proof'];
+        } elseif ($apiParam === 'asn') {
+            $asnTarget = (string) ($_GET['ip'] ?? '1.1.1.1');
+            $previewData = [
+                'ip' => $asnTarget,
+                'source' => 'RIPE Stat / BGP Routing Registry',
+                'fields' => ['asn', 'organization', 'prefix', 'country'],
+            ];
+            $lockedFields = ['asn', 'as_name', 'prefix', 'country', '_oracle_proof'];
+        } elseif ($apiParam === 'domain-audit') {
+            $daTarget = (string) ($_GET['domain'] ?? $_GET['host'] ?? 'base.org');
+            $previewData = [
+                'domain' => $daTarget,
+                'bundle' => 'DNS + TLS/X.509 + BGP/ASN',
+                'credits' => 3,
+            ];
+            $lockedFields = ['dns', 'ssl', 'asn', 'risk_score', '_oracle_proof'];
+        } elseif ($apiParam === 'kyb-audit') {
+            $kybCnpj = (string) ($_GET['cnpj'] ?? '00000000000191');
+            $previewData = [
+                'cnpj' => $kybCnpj,
+                'bundle' => 'Receita Federal CNPJ + OFAC/UN Sanctions + GLEIF LEI',
+                'credits' => 4,
+            ];
+            $lockedFields = ['audit.cnpj', 'audit.ofac_sanctions', 'audit.lei', 'checked_at', '_oracle_proof'];
+        } elseif ($apiParam === 'market-snapshot') {
+            $previewData = [
+                'market' => (string) ($_GET['market'] ?? 'US'),
+                'bundle' => 'PTAX Forex + Crypto Spot + Selic/CDI/IPCA + ANBIMA',
+                'credits' => 3,
+            ];
+            $lockedFields = ['forex', 'crypto', 'indicators', 'global_markets', '_oracle_proof'];
+        } elseif ($apiParam === 'cnpj') {
+            $hasExplicitCnpj = trim((string) ($_GET['cnpj'] ?? $_GET['code'] ?? '')) !== '';
+            $cnpjInput = $hasExplicitCnpj ? (string) ($_GET['cnpj'] ?? $_GET['code']) : '00000000000191';
             $cnpjResult = grid402_get_cnpj_preview($cnpjInput);
             if (!($cnpjResult['success'] ?? false)) {
-                http_response_code($cnpjResult['code'] ?? 400);
-                header('Content-Type: application/json; charset=utf-8');
-                echo json_encode($cnpjResult, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-                exit;
+                if ($hasExplicitCnpj) {
+                    http_response_code($cnpjResult['code'] ?? 400);
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo json_encode($cnpjResult, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+                $previewData = [
+                    'cnpj' => '00.000.000/0001-91',
+                    'razao_social' => 'BANCO DO BRASIL SA',
+                    'nome_fantasia' => 'DIRECAO GERAL',
+                    'uf' => 'DF',
+                    'situacao_cadastral' => 'ATIVA',
+                ];
+                $lockedFields = ['capital_social', 'natureza_juridica', 'data_abertura', 'cnae_fiscal', 'cnaes_secundarios', 'endereco', '_oracle_proof'];
+            } else {
+                $previewData = $cnpjResult['preview'];
+                $lockedFields = $cnpjResult['locked_fields'];
             }
-            $previewData = $cnpjResult['preview'];
-            $lockedFields = $cnpjResult['locked_fields'];
         } elseif ($apiParam === 'cep') {
             $cepInput = (string) ($_GET['code'] ?? $_GET['cep'] ?? '01310100');
             $cepResult = grid402_get_cep_preview($cepInput);
@@ -1145,21 +1279,29 @@ if ($isValidApiAction) {
     $isSandbox = !empty($validation['sandbox']);
     $isVerifyOnly = (($validation['source'] ?? '') === 'facilitator_verify_only');
     $isRealPayment = !$isSandbox && !$isVerifyOnly;
-    // Sandbox/demo e verify_only nao sao consulta paga: registra como 'sandbox'/'verify_only'
+    // Sandbox/demo e verify_only nao sao consulta paga: registra como 'sandbox'/'verify_only'.
+    // Consumo de Session Pass conta como chamada paga em total_paid_requests, mas soma 0.0 em total_revenue_usdc
+    // porque a receita ja foi contabilizada no ato da compra/emissao do passe (Web3 ou Mercado Pago).
     $settlementTx = $validation['settlement_tx'] ?? null;
+    $paymentSourceVal = (string) ($validation['source'] ?? '');
+    $actualPaidUsdc = ($apiParam === 'pass' && !empty($validation['raw_amount']) && (int) $validation['raw_amount'] > 0)
+        ? (((int) $validation['raw_amount']) / 1000000.0)
+        : (float) $servicePriceDisplay;
+    $revenueUsdcToRecord = ($isSandbox || $isVerifyOnly || $paymentSourceVal === 'pass') ? 0.0 : $actualPaidUsdc;
+
     if ($isRealPayment) {
         grid402_growth_event('paid_request', [
             'service' => $apiParam,
             'payer' => $validation['payer'] ?? '',
-            'amount_usdc' => (float)$servicePriceDisplay,
-            'type' => ($validation['source'] ?? '') === 'pass' ? 'pass' : 'x402',
+            'amount_usdc' => $revenueUsdcToRecord,
+            'type' => $paymentSourceVal === 'pass' ? 'pass' : 'x402',
         ]);
     } else {
         $growthType = $isSandbox ? 'sandbox_request' : 'verify_only';
         grid402_growth_event($growthType, [
             'service' => $apiParam,
             'proof' => $proofForLog ?? $paymentProof ?? '',
-            'type' => $validation['source'] ?? '',
+            'type' => $paymentSourceVal,
         ]);
     }
     grid402_record_telemetry(
@@ -1168,11 +1310,10 @@ if ($isValidApiAction) {
         $isRealPayment,
         $settlementTx ?? $proofForLog,
         null,
-        ($isSandbox || $isVerifyOnly) ? 0.0 : (float)$servicePriceDisplay,
+        $revenueUsdcToRecord,
         $isSandbox ? 'sandbox' : ($isVerifyOnly ? 'verify_only' : null),
         ['payment_source' => $validation['source'] ?? null, 'defer_latency_sample' => true]
     );
-    $paymentSourceVal = (string) ($validation['source'] ?? '');
     $txForNotification = (string) ($settlementTx ?? $proofForLog ?? '');
     if (!$isSandbox && !$isVerifyOnly && $paymentSourceVal !== 'pass' && preg_match('/^0x[a-f0-9]{64}$/i', $txForNotification) === 1) {
         grid402_notify_telegram_purchase($apiParam, (float) $servicePriceDisplay, $txForNotification);
@@ -1248,7 +1389,8 @@ if ($isValidApiAction) {
             $cnpjVal = (string) ($_GET['cnpj'] ?? '');
             $nameVal = (string) ($_GET['name'] ?? '');
             $leiVal = (string) ($_GET['lei'] ?? '');
-            $result = grid402_service_kyb_audit($cnpjVal, $nameVal, $leiVal);
+            $addrVal = (string) ($_GET['address'] ?? '');
+            $result = grid402_service_kyb_audit($cnpjVal, $nameVal, $leiVal, $addrVal);
             if (isset($result['code']) && $result['code'] !== 200) {
                 http_response_code($result['code']);
             }
@@ -3255,9 +3397,14 @@ grid402_log_public_visit('/');
                             <div style="background: rgba(51,65,85,.35); border:1px solid var(--border); border-radius:8px; padding:.75rem .9rem; margin-bottom:.65rem; font-size:.82rem; color:#cbd5e1;" data-i18n-html="playground.unlock.flow_note">
                                 <strong style="color:#fff;">Primary flow:</strong> click “Unlock now”. Endpoint pricing (USDC/BRL) is listed in the catalog.
                             </div>
-                            <button type="button" id="btn-playground-web3-pay" class="btn-sm btn-primary" onclick="payPlaygroundWithWeb3()" style="padding: 0.6rem 1.15rem; font-size: 0.85rem; font-weight: 800;" data-i18n="playground.unlock.cta_web3">
-                                ⚡ Unlock with Web3 Wallet (1-Click)
-                            </button>
+                            <div style="display:flex; flex-wrap:wrap; gap:.55rem; align-items:center;">
+                                <button type="button" id="btn-playground-web3-pay" class="btn-sm btn-primary" onclick="payPlaygroundWithWeb3()" style="padding: 0.6rem 1.15rem; font-size: 0.85rem; font-weight: 800;" data-i18n="playground.unlock.cta_web3">
+                                    ⚡ Unlock with Web3 Wallet (1-Click)
+                                </button>
+                                <a id="btn-playground-pix-pay" class="btn-sm btn-outline" href="/pass?tier=starter&amp;method=pix" style="text-decoration:none; display:inline-flex; align-items:center; padding: 0.6rem 1rem; font-size: 0.82rem; font-weight: 700; border-color: rgba(16, 185, 129, 0.5); color: #34d399; background: rgba(16, 185, 129, 0.08);" data-i18n="playground.unlock.cta_pix">
+                                    🇧🇷 Buy 400 Credits via Pix (R$ 12)
+                                </a>
+                            </div>
                             <details style="margin-top:.6rem; border:1px solid var(--border); border-radius:8px; padding:.55rem .75rem; background:#0b132b;">
                                 <summary style="cursor:pointer; color:#00F0FF; font-weight:700;" data-i18n="playground.unlock.other_ways">Other ways to unlock</summary>
                                 <div style="display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.7rem;">
@@ -4897,15 +5044,18 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 let amountRaw = 5000;
                 let priceUsdc = '0.0050';
                 if (currentPlaygroundPreset === 'pass') {
-                    amountRaw = 500000;
-                    priceUsdc = '0.5000';
+                    amountRaw = 2000000;
+                    priceUsdc = '2.0000';
                 } else if (currentPlaygroundPreset === 'compliance') {
                     amountRaw = 30000;
                     priceUsdc = '0.0300';
                 } else if (currentPlaygroundPreset === 'sanctions' || currentPlaygroundPreset === 'simples') {
                     amountRaw = 10000;
                     priceUsdc = '0.0100';
-                } else if (currentPlaygroundPreset === 'cnpj' || currentPlaygroundPreset === 'lei' || currentPlaygroundPreset === 'ofac') {
+                } else if (currentPlaygroundPreset === 'domain-audit' || currentPlaygroundPreset === 'market-snapshot') {
+                    amountRaw = 15000;
+                    priceUsdc = '0.0150';
+                } else if (currentPlaygroundPreset === 'cnpj' || currentPlaygroundPreset === 'lei' || currentPlaygroundPreset === 'ofac' || currentPlaygroundPreset === 'kyb-audit') {
                     amountRaw = 20000;
                     priceUsdc = '0.0200';
                 }
@@ -5329,15 +5479,18 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 let amountRaw = 5000;
                 let priceUsdc = '0.0050';
                 if (currentServiceAction === 'pass') {
-                    amountRaw = 500000;
-                    priceUsdc = '0.5000';
+                    amountRaw = 2000000;
+                    priceUsdc = '2.0000';
                 } else if (currentServiceAction === 'compliance') {
                     amountRaw = 30000;
                     priceUsdc = '0.0300';
                 } else if (currentServiceAction === 'sanctions' || currentServiceAction === 'simples') {
                     amountRaw = 10000;
                     priceUsdc = '0.0100';
-                } else if (currentServiceAction === 'cnpj' || currentServiceAction === 'lei' || currentServiceAction === 'ofac') {
+                } else if (currentServiceAction === 'domain-audit' || currentServiceAction === 'market-snapshot') {
+                    amountRaw = 15000;
+                    priceUsdc = '0.0150';
+                } else if (currentServiceAction === 'cnpj' || currentServiceAction === 'lei' || currentServiceAction === 'ofac' || currentServiceAction === 'kyb-audit') {
                     amountRaw = 20000;
                     priceUsdc = '0.0200';
                 }

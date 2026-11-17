@@ -28,8 +28,8 @@ ServerSignature Off
     <IfModule mod_headers.c>
         Header set Access-Control-Allow-Origin "*"
         Header set Access-Control-Allow-Methods "GET, OPTIONS"
-        Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Payment, Idempotency-Key"
-        Header set Access-Control-Expose-Headers "WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Payment-Required, payment-required, X-Idempotent-Replay"
+        Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Payment, x-payment, PAYMENT-SIGNATURE, payment-signature, Idempotency-Key, X-Request-Id"
+        Header set Access-Control-Expose-Headers "WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Payment-Required, payment-required, PAYMENT-RESPONSE, X-PAYMENT-RESPONSE, X-Idempotent-Replay, X-Request-Id"
     </IfModule>
 </FilesMatch>
 
@@ -39,19 +39,18 @@ ServerSignature Off
     RewriteBase /
 
     # 0. Redirecionamento Canonico de Dominio (301)
+    # Preserva execucao direta de rotas M2M (/api/*, /mcp, /status, manifestos) em www.grid402.online
+    # para nao descartar POST bodies nem cabecalhos X-Payment / PAYMENT-SIGNATURE em clientes HTTP.
     RewriteCond %{HTTP_HOST} ^orangered-jackal-900744\.hostingersite\.com$ [NC]
     RewriteRule ^(.*)$ https://grid402.online/$1 [R=301,L]
 
     RewriteCond %{HTTP_HOST} ^www\.grid402\.online$ [NC]
+    RewriteCond %{REQUEST_URI} !^/(api/|mcp|status|telemetry|workdays|llms|openapi\.json|\.well-known/) [NC]
     RewriteRule ^(.*)$ https://grid402.online/$1 [R=301,L]
 
     RewriteCond %{HTTPS} !=on
     RewriteCond %{HTTP_HOST} ^(www\.)?grid402\.online$ [NC]
     RewriteRule ^(.*)$ https://grid402.online/$1 [R=301,L]
-
-    # Responder pre-flight OPTIONS imediatamente
-    RewriteCond %{REQUEST_METHOD} OPTIONS
-    RewriteRule ^(.*)$ $1 [R=204,L]
 
     # Handler Dinamico para robots.txt com Content-Signal e Sitemap
     RewriteRule ^robots\.txt$ robots.php [L]
@@ -62,6 +61,7 @@ ServerSignature Off
 
     # Rotas da API v1
     RewriteRule ^api/v1/summary/?$ index.php?api=summary [QSA,L]
+    RewriteRule ^api/v1/verify/?$ index.php?api=verify [QSA,L]
     RewriteRule ^api/v1/forex/?$ index.php?api=forex [QSA,L]
     RewriteRule ^api/v1/crypto/?$ index.php?api=crypto [QSA,L]
     RewriteRule ^api/v1/dns/?$ index.php?api=dns [QSA,L]
@@ -71,11 +71,19 @@ ServerSignature Off
     RewriteRule ^api/v1/kyb-audit/?$ index.php?api=kyb-audit [QSA,L]
     RewriteRule ^api/v1/market-snapshot/?$ index.php?api=market-snapshot [QSA,L]
     # Web3 Top-Up, Spend Controls, Extrato e Checkout Mercado Pago para Session Pass
+    RewriteRule ^api/v1/pass/?$ index.php?api=pass [QSA,L]
     RewriteRule ^api/v1/pass-emitir/?$ index.php?api=pass-emitir [QSA,L]
     RewriteRule ^api/v1/pass/(balance|limits|statement)/?$ index.php?api=pass-$1 [QSA,L]
     RewriteRule ^api/v1/pass/mp-(pix|checkout|webhook|status|sandbox-approve)/?$ index.php [QSA,L]
     RewriteRule ^api/v1/cep/?$ index.php?api=cep [QSA,L]
     RewriteRule ^api/v1/cnpj/?$ index.php?api=cnpj [QSA,L]
+    RewriteRule ^api/v1/sanctions/?$ index.php?api=sanctions [QSA,L]
+    RewriteRule ^api/v1/simples/?$ index.php?api=simples [QSA,L]
+    RewriteRule ^api/v1/compliance/?$ index.php?api=compliance [QSA,L]
+    RewriteRule ^api/v1/lei/?$ index.php?api=lei [QSA,L]
+    RewriteRule ^api/v1/ofac/?$ index.php?api=ofac [QSA,L]
+    RewriteRule ^api/v1/notarize/?$ index.php?api=notarize [QSA,L]
+    RewriteRule ^api/v1/global-markets/?$ index.php?api=global-markets [QSA,L]
     RewriteRule ^api/v1/indicators/?$ index.php?api=indicators [QSA,L]
     RewriteRule ^api/v1/holidays/?$ index.php?api=holidays [QSA,L]
     RewriteRule ^api/v1/workdays/?$ index.php?api=workdays [QSA,L]

@@ -221,6 +221,7 @@ const GRID402_I18N = {
         'playground.unlock.badge': '🔒 DADOS COMPLETOS PROTEGIDOS (HTTP 402)',
         'playground.unlock.desc': 'A amostra gratuita acima foi validada. Desbloqueie agora os campos ocultos e a prova criptográfica ECDSA (_oracle_proof):',
         'playground.unlock.cta_web3': '⚡ Desbloquear com Carteira Web3 (1 Clique)',
+        'playground.unlock.cta_pix': '🇧🇷 Comprar 400 Créditos via Pix (R$ 12)',
         'playground.unlock.cta_qr': '📱 QR Code / Celular',
         'playground.unlock.cta_sandbox': '🧪 Ver Amostra Completa (Sandbox)',
 
@@ -1007,6 +1008,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'playground.unlock.badge': '🔒 FULL DATA PROTECTED (HTTP 402)',
         'playground.unlock.desc': 'The free sample above is verified. Unlock the hidden fields and ECDSA cryptographic proof (_oracle_proof) now:',
         'playground.unlock.cta_web3': '⚡ Unlock with Web3 Wallet (1-Click)',
+        'playground.unlock.cta_pix': '🇧🇷 Buy 400 Credits via Pix (R$ 12)',
         'playground.unlock.cta_qr': '📱 Mobile QR Code',
         'playground.unlock.cta_sandbox': '🧪 View Full Sample (Sandbox)',
 
@@ -1895,12 +1897,16 @@ function setLanguage(lang) {
 }
 
 /**
- * Inicializacao automatica na carga (Ingles como idioma primario padrao)
+ * Inicializacao automatica na carga: respeita preferencia salva ou detecta pt-BR no 1o acesso
  */
 document.addEventListener('DOMContentLoaded', () => {
-    let saved = 'en';
+    let saved = null;
     try {
-        saved = localStorage.getItem('grid402_lang') || 'en';
+        saved = localStorage.getItem('grid402_lang');
     } catch (_) {}
+    if (!saved) {
+        const navLang = ((typeof navigator !== 'undefined' && (navigator.language || navigator.userLanguage)) || '').toLowerCase();
+        saved = navLang.startsWith('pt') ? 'pt' : 'en';
+    }
     setLanguage(saved);
 });

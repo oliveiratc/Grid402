@@ -288,7 +288,7 @@ function grid402_growth_event(string $type, array $context = []): array {
         $service = grid402_growth_clean_text(isset($context['service']) ? (string)$context['service'] : 'unknown', 80);
         $p['services'][$service] = (int)($p['services'][$service] ?? 0) + 1;
 
-        $isPaid = !empty($context['is_paid']);
+        $isPaid = !empty($context['is_paid']) || $type === 'paid_request';
         $amount = (float)($context['amount_usdc'] ?? 0.0);
 
         if ($type === 'challenge_402') {

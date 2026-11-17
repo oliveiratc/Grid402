@@ -14,6 +14,8 @@ if (!defined('GRID402_EXEC')) {
 }
 
 require_once dirname(__DIR__) . '/config.php';
+require_once dirname(__DIR__) . '/metrics.php';
+require_once dirname(__DIR__) . '/growth.php';
 require_once __DIR__ . '/pass.php';
 
 /**
@@ -437,7 +439,7 @@ function grid402_mp_verify_webhook_signature(string $xSignature, string $xReques
  * Finaliza ordem aprovada e emite Session Pass de forma estritamente idempotente.
  */
 function grid402_mp_finalize_approved_order(string $orderId, string $mpPaymentId, float $paidAmount, bool $isSandbox): array {
-    return grid402_mp_with_orders(static function (array &$store) use ($orderId, $mpPaymentId, $paidAmount, $isSandbox): array {
+    $res = grid402_mp_with_orders(static function (array &$store) use ($orderId, $mpPaymentId, $paidAmount, $isSandbox): array {
         if (!isset($store['orders'][$orderId])) {
             return [['ok' => false, 'code' => 404, 'error' => 'OrderNotFound', 'message' => 'Ordem nao encontrada.'], false];
         }
@@ -452,6 +454,7 @@ function grid402_mp_finalize_approved_order(string $orderId, string $mpPaymentId
                 'pass_token' => $order['pass_token'],
                 'tier' => $order['tier'],
                 'credits' => $order['credits'],
+                'raw_usdc_units' => (int) ($order['raw_usdc_units'] ?? 0),
                 'ttl_days' => $order['ttl_days'],
                 'sandbox' => (bool) ($order['sandbox'] ?? $isSandbox),
                 'idempotent' => true,
@@ -471,6 +474,7 @@ function grid402_mp_finalize_approved_order(string $orderId, string $mpPaymentId
                     'pass_token' => $existing['pass_token'],
                     'tier' => $existing['tier'],
                     'credits' => $existing['credits'],
+                    'raw_usdc_units' => (int) ($existing['raw_usdc_units'] ?? 0),
                     'ttl_days' => $existing['ttl_days'],
                     'sandbox' => (bool) ($existing['sandbox'] ?? $isSandbox),
                     'idempotent' => true,
@@ -506,12 +510,44 @@ function grid402_mp_finalize_approved_order(string $orderId, string $mpPaymentId
             'pass_token' => $issued['pass_token'],
             'tier' => $order['tier'],
             'credits' => $issued['credits'] ?? $order['credits'],
+            'raw_usdc_units' => (int) ($order['raw_usdc_units'] ?? 0),
             'ttl_days' => $order['ttl_days'],
             'expires_at' => $issued['expires_at'] ?? null,
             'sandbox' => (bool) ($order['sandbox'] ?? $isSandbox),
             'idempotent' => false,
         ], true];
     });
+
+    if (!empty($res['ok']) && empty($res['idempotent'])) {
+        $usdcEquivalent = ((int) ($res['raw_usdc_units'] ?? 0)) / 1000000.0;
+        $isOrderSandbox = !empty($res['sandbox']);
+        $proofId = 'mp_pay_' . ($mpPaymentId !== '' ? $mpPaymentId : $orderId);
+        if (function_exists('grid402_record_telemetry')) {
+            grid402_record_telemetry(
+                'pass',
+                200,
+                !$isOrderSandbox,
+                $proofId,
+                null,
+                $isOrderSandbox ? 0.0 : $usdcEquivalent,
+                $isOrderSandbox ? 'sandbox' : 'paid',
+                ['payment_source' => $isOrderSandbox ? 'sandbox' : 'mercadopago']
+            );
+        }
+        if (!$isOrderSandbox && function_exists('grid402_growth_event')) {
+            grid402_growth_event('pass_purchase', [
+                'service' => 'pass',
+                'payer' => 'mp_' . $orderId,
+                'amount_usdc' => $usdcEquivalent,
+                'proof' => $proofId,
+            ]);
+        }
+        if (!$isOrderSandbox && function_exists('grid402_notify_telegram_purchase')) {
+            grid402_notify_telegram_purchase('pass (' . ($res['tier'] ?? 'starter') . ' Pix/MP)', $usdcEquivalent, $proofId);
+        }
+    }
+
+    return $res;
 }
 
 /**

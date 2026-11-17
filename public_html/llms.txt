@@ -54,7 +54,7 @@
 
 ## Micropayment Protocol Details
 - Rede e Chain ID: Base Mainnet (Chain ID 8453)
-- Tarifa Padrao por Requisicao: 0.0050 USDC = 1 credito (Sancoes e Simples: 0.0100 USDC = 2 creditos, Domain Audit e Market Snapshot: 0.0120 USDC = 3 creditos, CNPJ, LEI, OFAC e KYB Audit: 0.0200 USDC = 4 creditos, Compliance 360: 0.0300 USDC = 6 creditos)
+- Tarifa Padrao por Requisicao: 0.0050 USDC = 1 credito (Sancoes e Simples: 0.0100 USDC = 2 creditos, Domain Audit e Market Snapshot: 0.0150 USDC = 3 creditos, CNPJ, LEI, OFAC e KYB Audit: 0.0200 USDC = 4 creditos, Compliance 360: 0.0300 USDC = 6 creditos)
 - Formas de Liquidacao Suportadas:
   1) Protocolo x402 v2 padrao (M2M Gasless): Envie a autorizacao assinada EIP-3009 em base64 no cabecalho `PAYMENT-SIGNATURE` ou `X-Payment` (esquema `exact`). O Grid402 valida e liquida via facilitador retornando o recibo em `PAYMENT-RESPONSE`.
   2) Session Pass Pre-Pago (<15ms, `1 credito = 0.0050 USDC`): Adquira creditos em lote (Starter 2 USDC = 400 creditos, Pro 5 USDC = 1.000 creditos, Fleet 20 USDC = 5.000 + 1.000 bonus = 6.000 creditos) e reutilize o token `pass_g402_...` no cabecalho `X-Payment` sem latencia on-chain. Suporta teto diario (`daily_credit_limit`), whitelist de rotas (`allowed_endpoints`) e consulta gratuita de saldo em `GET /api/v1/pass/balance`.

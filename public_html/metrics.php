@@ -112,6 +112,7 @@ function grid402_default_metrics(): array {
             'pass' => 0,
             'facilitator' => 0,
             'facilitator_verify_only' => 0,
+            'mercadopago' => 0,
             'sandbox' => 0,
             'unknown' => 0,
         ],
@@ -301,6 +302,7 @@ function grid402_record_telemetry(
             'pass' => 0,
             'facilitator' => 0,
             'facilitator_verify_only' => 0,
+            'mercadopago' => 0,
             'sandbox' => 0,
             'unknown' => 0,
         ];

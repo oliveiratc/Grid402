@@ -18,7 +18,7 @@ $passHtml = (string) ob_get_clean();
 t_assert('Exibe Starter R$ 12,00', str_contains($passHtml, '12,00'));
 t_assert('Exibe Pro R$ 29,00', str_contains($passHtml, '29,00'));
 t_assert('Exibe Fleet R$ 115,00', str_contains($passHtml, '115,00'));
-t_assert('Exibe botoes Pix e Cartao', str_contains($passHtml, 'Pagar com Pix') && str_contains($passHtml, 'Pagar com Cartão'));
+t_assert('Exibe botoes Pix e Cartao', (str_contains($passHtml, 'Pagar com Pix') || str_contains($passHtml, 'Pay with Pix')) && (str_contains($passHtml, 'Pagar com Cartão') || str_contains($passHtml, 'Pay with Card')));
 
 echo "\n[2] Gateway nao configurado fora do sandbox -> 503:\n";
 $GLOBALS['grid402_mp_sandbox_override'] = false;
@@ -136,8 +136,13 @@ t_assert('Pix em sandbox gera QR SVG simulado', $sbxPix['ok'] === true && $sbxPi
 $sbxApprove = grid402_mp_sandbox_approve($sbxPix['order_id']);
 t_assert('Aprovacao sandbox emite pass_g402_... marcado como sandbox', $sbxApprove['ok'] === true && str_starts_with((string) $sbxApprove['pass_token'], 'pass_g402_') && $sbxApprove['sandbox'] === true);
 
+$prodPassStatus = grid402_get_session_pass_status($okWh['pass_token']);
+t_assert('Token Pro de producao possui 1000 creditos em grid402_get_session_pass_status', !empty($prodPassStatus['valid']) && (int) $prodPassStatus['credits_remaining'] === 1000);
 $passStatus = grid402_get_session_pass_status($sbxApprove['pass_token']);
-t_assert('Token emitido funciona em grid402_get_session_pass_status', !empty($passStatus['valid']) && (int) $passStatus['credits_remaining'] === 500);
+t_assert('Token emitido em sandbox funciona em grid402_get_session_pass_status (100 creditos Sandbox)', !empty($passStatus['valid']) && (int) $passStatus['credits_remaining'] === 100);
+
+$mpMetrics = grid402_get_metrics();
+t_assert('Compra aprovada no Mercado Pago registra receita equivalente em USDC (5.0000 USDC Pro) sem duplicar no replay', abs(((float)($mpMetrics['total_revenue_usdc'] ?? 0)) - 5.0) < 0.0001 && (($mpMetrics['payment_sources']['mercadopago'] ?? 0) === 1));
 
 t_rmdir($dir);
 t_finish('RESULTADO FINAL (Mercado Pago Checkout)');

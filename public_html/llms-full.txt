@@ -216,7 +216,7 @@ Resposta de verificacao:
 
 ### 20. Auditoria Consolidada de Dominio (Domain Audit: DNS + SSL + ASN)
 - Rota: `GET /api/v1/domain-audit?domain={dominio}`
-- Tarifa: 0.0120 USDC (3 creditos)
+- Tarifa: 0.0150 USDC (3 creditos)
 - Descricao: Auditoria completa de dominio em 1 chamada consolidando DNS, TLS/SSL e roteamento BGP/ASN.
 
 ### 21. Auditoria Consolidada KYB e Compliance (CNPJ + OFAC + LEI)
@@ -226,7 +226,7 @@ Resposta de verificacao:
 
 ### 22. Snapshot Consolidado de Mercado (Forex + Crypto + Indicadores)
 - Rota: `GET /api/v1/market-snapshot`
-- Tarifa: 0.0120 USDC (3 creditos)
+- Tarifa: 0.0150 USDC (3 creditos)
 - Descricao: Panorama financeiro unificado combinando cambio PTAX, criptoativos spot e indicadores Selic/CDI/IPCA.
 
 ### 23. Session Pass Pre-Pago e Spend Controls

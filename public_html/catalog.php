@@ -84,7 +84,7 @@ ksort($services);
             <thead><tr><th data-i18n="catalog.th.service">Service &amp; Official Source</th><th data-i18n="catalog.th.category">Category</th><th data-i18n="catalog.th.price">Price USDC</th><th data-i18n="catalog.th.status">Status</th><th data-i18n="catalog.th.example">Example</th></tr></thead>
             <tbody>
             <?php foreach ($services as $id => $svc):
-                $price = isset($svc['price_usdc']) ? $svc['price_usdc'] : ($id === 'sanctions' || $id === 'simples' ? '0.0100' : (in_array($id, ['cnpj','lei','ofac','kyb-audit'], true) ? '0.0200' : (in_array($id, ['domain-audit','market-snapshot'], true) ? '0.0120' : ($id === 'compliance' ? '0.0300' : ($id === 'pass' ? '2.0000' : ($id === 'verify' ? 'Gratuito' : GRID402_PRICE_DISPLAY))))));
+                $price = isset($svc['price_usdc']) ? $svc['price_usdc'] : ($id === 'sanctions' || $id === 'simples' ? '0.0100' : (in_array($id, ['cnpj','lei','ofac','kyb-audit'], true) ? '0.0200' : (in_array($id, ['domain-audit','market-snapshot'], true) ? '0.0150' : ($id === 'compliance' ? '0.0300' : ($id === 'pass' ? '2.0000' : ($id === 'verify' ? 'Gratuito' : GRID402_PRICE_DISPLAY))))));
                 $status = is_array($summaryServices[$id] ?? null) ? ($summaryServices[$id]['status'] ?? 'UP') : 'UP';
                 if ($status === '—' || $status === '') {
                     $status = 'UP';
