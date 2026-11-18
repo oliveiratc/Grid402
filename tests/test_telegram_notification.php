@@ -111,6 +111,18 @@ $rtJson = (string) json_encode($rt);
 assertTest($token === '' || !str_contains($rtJson, $token), 'Snapshot runtime_status nunca expoe GRID402_TELEGRAM_BOT_TOKEN');
 assertTest($chatId === '' || !str_contains($rtJson, $chatId), 'Snapshot runtime_status nunca expoe GRID402_TELEGRAM_CHAT_ID');
 
+// 8. Valida persistencia e leitura de telegram_config.json (fallback administrativo)
+$cfgPath = grid402_telegram_config_path();
+$prevCfgRaw = is_file($cfgPath) ? file_get_contents($cfgPath) : null;
+$savedOk = grid402_save_telegram_config('123456789:AAH_test_token_value_1234567890', '987654321');
+$readCfg = grid402_read_telegram_config();
+assertTest($savedOk === true && $readCfg['bot_token'] === '123456789:AAH_test_token_value_1234567890' && $readCfg['chat_id'] === '987654321', 'grid402_save_telegram_config e grid402_read_telegram_config funcionam corretamente');
+if ($prevCfgRaw !== null) {
+    file_put_contents($cfgPath, $prevCfgRaw, LOCK_EX);
+} elseif (is_file($cfgPath)) {
+    @unlink($cfgPath);
+}
+
 echo "\n--------------------------------------------------------\n";
 echo "Resultado: {$testsPassed}/{$totalTests} testes aprovados.\n";
 echo "========================================================\n";

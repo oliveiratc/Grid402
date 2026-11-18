@@ -723,6 +723,68 @@ function grid402_telegram_status_path(): string {
     return $dir . '/telegram_last_status.json';
 }
 
+/**
+ * Caminho privado para credenciais Telegram salvas via painel /admin (fallback quando .env nao contem).
+ */
+function grid402_telegram_config_path(): string {
+    $dir = defined('GRID402_PRIVATE_DIR') ? rtrim((string) GRID402_PRIVATE_DIR, '/\\') : (__DIR__ . '/private_data');
+    return $dir . '/telegram_config.json';
+}
+
+function grid402_read_telegram_config(): array {
+    $path = grid402_telegram_config_path();
+    if (!is_file($path)) {
+        return ['bot_token' => '', 'chat_id' => ''];
+    }
+    $raw = @file_get_contents($path);
+    $decoded = $raw ? @json_decode($raw, true) : null;
+    if (!is_array($decoded)) {
+        return ['bot_token' => '', 'chat_id' => ''];
+    }
+    return [
+        'bot_token' => trim((string) ($decoded['bot_token'] ?? '')),
+        'chat_id' => trim((string) ($decoded['chat_id'] ?? '')),
+    ];
+}
+
+function grid402_save_telegram_config(string $botToken, string $chatId): bool {
+    $path = grid402_telegram_config_path();
+    $dir = dirname($path);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+    }
+    $payload = json_encode([
+        'bot_token' => trim($botToken),
+        'chat_id' => trim($chatId),
+        'updated_at' => gmdate('Y-m-d\TH:i:s\Z'),
+    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if (!is_string($payload)) {
+        return false;
+    }
+    return (@file_put_contents($path, $payload, LOCK_EX) !== false);
+}
+
+/**
+ * Resolve credenciais do Telegram priorizando variaveis de ambiente (.env) com fallback para telegram_config.json.
+ */
+function grid402_resolve_telegram_credentials(): array {
+    $envToken = defined('GRID402_TELEGRAM_BOT_TOKEN') ? GRID402_TELEGRAM_BOT_TOKEN : (string) grid402_env('GRID402_TELEGRAM_BOT_TOKEN', '');
+    $envChat = defined('GRID402_TELEGRAM_CHAT_ID') ? GRID402_TELEGRAM_CHAT_ID : (string) grid402_env('GRID402_TELEGRAM_CHAT_ID', '');
+    $envToken = trim($envToken);
+    $envChat = trim($envChat);
+
+    if ($envToken !== '' and $envChat !== '') {
+        return ['token' => $envToken, 'chat_id' => $envChat, 'source' => 'env'];
+    }
+
+    $fileCfg = grid402_read_telegram_config();
+    $token = $envToken !== '' ? $envToken : $fileCfg['bot_token'];
+    $chatId = $envChat !== '' ? $envChat : $fileCfg['chat_id'];
+    $source = ($token !== '' and $chatId !== '') ? ($envToken !== '' or $envChat !== '' ? 'mixed' : 'admin_file') : 'none';
+
+    return ['token' => $token, 'chat_id' => $chatId, 'source' => $source];
+}
+
 function grid402_record_telegram_status(bool $ok, int $httpCode, string $error, string $service, bool $isTest): void {
     $path = grid402_telegram_status_path();
     $dir = dirname($path);
@@ -747,8 +809,9 @@ function grid402_record_telegram_status(bool $ok, int $httpCode, string $error, 
  */
 function grid402_telegram_runtime_status(): array {
     $disabled = ((string) grid402_env('GRID402_DISABLE_TELEGRAM', '') === '1');
-    $token = defined('GRID402_TELEGRAM_BOT_TOKEN') ? GRID402_TELEGRAM_BOT_TOKEN : (string) grid402_env('GRID402_TELEGRAM_BOT_TOKEN', '');
-    $chatId = defined('GRID402_TELEGRAM_CHAT_ID') ? GRID402_TELEGRAM_CHAT_ID : (string) grid402_env('GRID402_TELEGRAM_CHAT_ID', '');
+    $creds = grid402_resolve_telegram_credentials();
+    $token = $creds['token'];
+    $chatId = $creds['chat_id'];
     $lastStatus = null;
     $path = grid402_telegram_status_path();
     if (is_file($path)) {
@@ -763,6 +826,7 @@ function grid402_telegram_runtime_status(): array {
         'token_configured' => ($token !== ''),
         'chat_id_configured' => ($chatId !== ''),
         'configured' => (!$disabled and $token !== '' and $chatId !== ''),
+        'source' => $creds['source'],
         'last_status' => $lastStatus,
     ];
 }
@@ -777,8 +841,9 @@ function grid402_notify_telegram_purchase(string $service, float $priceUsdc, str
         return false;
     }
 
-    $token = defined('GRID402_TELEGRAM_BOT_TOKEN') ? GRID402_TELEGRAM_BOT_TOKEN : (string) grid402_env('GRID402_TELEGRAM_BOT_TOKEN', '');
-    $chatId = defined('GRID402_TELEGRAM_CHAT_ID') ? GRID402_TELEGRAM_CHAT_ID : (string) grid402_env('GRID402_TELEGRAM_CHAT_ID', '');
+    $creds = grid402_resolve_telegram_credentials();
+    $token = $creds['token'];
+    $chatId = $creds['chat_id'];
 
     if ($token === '' or $chatId === '') {
         grid402_record_telegram_status(false, 0, 'Credenciais GRID402_TELEGRAM_BOT_TOKEN / GRID402_TELEGRAM_CHAT_ID ausentes neste servidor.', $cleanSvc, $isTest);

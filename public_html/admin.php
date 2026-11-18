@@ -414,6 +414,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+    // 3.0b. Configuracao de credenciais Telegram (salvo em private_data/telegram_config.json)
+    if ($action === 'save_telegram_config') {
+        header('Content-Type: application/json; charset=utf-8');
+        if (!$isLoggedIn) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Sessao administrativa expirada ou nao autenticada.']);
+            exit;
+        }
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Token CSRF de seguranca ausente ou invalido.']);
+            exit;
+        }
+
+        $inputToken = trim((string)($_POST['bot_token'] ?? ''));
+        $inputChat = trim((string)($_POST['chat_id'] ?? ''));
+        $existingCreds = grid402_resolve_telegram_credentials();
+
+        if ($inputToken === '' && $existingCreds['token'] !== '') {
+            $inputToken = $existingCreds['token'];
+        }
+        if ($inputChat === '' && $existingCreds['chat_id'] !== '') {
+            $inputChat = $existingCreds['chat_id'];
+        }
+
+        if (preg_match('/^\d{6,15}:[A-Za-z0-9_-]{20,80}$/', $inputToken) !== 1) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Formato de Bot Token invalido. Exemplo esperado: 123456789:AAH...']);
+            exit;
+        }
+        if (preg_match('/^(-?\d{5,20}|@[A-Za-z0-9_]{4,64})$/', $inputChat) !== 1) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Formato de Chat ID invalido. Exemplo esperado: 123456789 ou -100123456789.']);
+            exit;
+        }
+
+        if (!grid402_save_telegram_config($inputToken, $inputChat)) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Nao foi possivel gravar private_data/telegram_config.json no servidor.']);
+            exit;
+        }
+
+        $skipTest = ((string)($_POST['skip_test'] ?? '') === '1');
+        $sent = $skipTest ? false : grid402_notify_telegram_purchase('cnpj', 0.0200, '0x' . str_repeat('a', 64), true);
+        $tgStatus = grid402_telegram_runtime_status();
+        $errDetail = (string) ($tgStatus['last_status']['error'] ?? '');
+
+        echo json_encode([
+            'success' => true,
+            'test_sent' => $sent,
+            'telegram_status' => $tgStatus,
+            'message' => $sent
+                ? 'Credenciais salvas e alerta de teste entregue no Telegram!'
+                : ($skipTest ? 'Credenciais do Telegram salvas com sucesso!' : ('Credenciais salvas, mas o teste falhou' . ($errDetail !== '' ? ': ' . $errDetail : '.'))),
+        ]);
+        exit;
+    }
+
     // 3.0. Alteracao de Senha Autenticada
     if ($action === 'change_password') {
         $isJsonReq = ((isset($_GET['format']) and $_GET['format'] === 'json') or
@@ -1716,7 +1774,10 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             <span id="runtime-telegram-badge" style="color:<?php echo $tgColor; ?>;">
                 Telegram: <strong><?php echo htmlspecialchars($tgLabel, ENT_QUOTES, 'UTF-8'); ?></strong><?php echo htmlspecialchars($tgSuffix, ENT_QUOTES, 'UTF-8'); ?>
             </span>
-            <button type="button" id="btn-test-telegram" class="btn-outline" style="margin-left:auto;padding:0.25rem 0.65rem;font-size:0.74rem;" onclick="triggerTelegramTest()">🔔 Testar Telegram</button>
+            <div style="margin-left:auto;display:flex;gap:0.4rem;flex-wrap:wrap;">
+                <button type="button" id="btn-config-telegram" class="btn-outline" style="padding:0.25rem 0.65rem;font-size:0.74rem;" onclick="openTelegramModal()">⚙️ Configurar Telegram</button>
+                <button type="button" id="btn-test-telegram" class="btn-outline" style="padding:0.25rem 0.65rem;font-size:0.74rem;" onclick="triggerTelegramTest()">🔔 Testar Telegram</button>
+            </div>
         </div>
 
         <!-- KPI Cards Grid (8 Cards Executivos de Alta Fidelidade) -->
@@ -2197,6 +2258,34 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
                     <button type="button" class="btn-outline" onclick="closePasswordModal()">Cancelar</button>
                     <button type="submit" id="btn-submit-password" class="btn" style="width: auto; padding: 0.5rem 1.25rem; font-size: 0.85rem; margin-top: 0;">Salvar Nova Senha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Configuracao de Telegram -->
+    <div id="telegram-modal-overlay" class="modal-overlay" onclick="handleTelegramOverlayClick(event)">
+        <div class="modal-card" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3>⚙️ Configurar Alertas Telegram</h3>
+                <button type="button" class="modal-close" onclick="closeTelegramModal()">&times;</button>
+            </div>
+            <form id="telegram-config-form" onsubmit="submitTelegramConfig(event)" style="padding: 1.5rem;">
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0; margin-bottom: 1rem; line-height: 1.45;">
+                    Salva as credenciais em <code>private_data/telegram_config.json</code> (protegido por <code>.htaccess</code> e preservado entre deploys) e dispara um alerta de teste imediatamente.
+                </p>
+                <div id="telegram-modal-alert" style="display: none; padding: 0.65rem 0.85rem; border-radius: 6px; font-size: 0.82rem; margin-bottom: 1rem;"></div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="modal-tg-token" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">Bot Token (@BotFather)</label>
+                    <input type="password" id="modal-tg-token" class="search-input" style="max-width: 100%; width: 100%; font-family: var(--font-mono);" placeholder="<?php echo $tgOk ? '•••••••• (deixe em branco para manter o atual)' : 'Ex.: 123456789:AAH...'; ?>" autocomplete="off">
+                </div>
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label for="modal-tg-chat" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">Chat ID (usuário, grupo ou canal)</label>
+                    <input type="text" id="modal-tg-chat" class="search-input" style="max-width: 100%; width: 100%; font-family: var(--font-mono);" placeholder="Ex.: 123456789 ou -100123456789" autocomplete="off">
+                </div>
+                <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                    <button type="button" class="btn-outline" onclick="closeTelegramModal()">Cancelar</button>
+                    <button type="submit" id="btn-submit-telegram" class="btn" style="width: auto; padding: 0.5rem 1.25rem; font-size: 0.85rem; margin-top: 0;">Salvar e Testar</button>
                 </div>
             </form>
         </div>
@@ -2906,8 +2995,93 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             }
         }
 
+        // Modal de Configuracao de Telegram
+        function openTelegramModal() {
+            const overlay = document.getElementById('telegram-modal-overlay');
+            const alertBox = document.getElementById('telegram-modal-alert');
+            if (alertBox) alertBox.style.display = 'none';
+            if (overlay) overlay.classList.add('active');
+            const tokenInp = document.getElementById('modal-tg-token');
+            if (tokenInp) tokenInp.focus();
+        }
+
+        function closeTelegramModal() {
+            const overlay = document.getElementById('telegram-modal-overlay');
+            if (overlay) overlay.classList.remove('active');
+            const form = document.getElementById('telegram-config-form');
+            if (form) form.reset();
+        }
+
+        function handleTelegramOverlayClick(e) {
+            if (e.target.id === 'telegram-modal-overlay') closeTelegramModal();
+        }
+
+        async function submitTelegramConfig(e) {
+            e.preventDefault();
+            const tokenVal = document.getElementById('modal-tg-token').value.trim();
+            const chatVal = document.getElementById('modal-tg-chat').value.trim();
+            const alertBox = document.getElementById('telegram-modal-alert');
+            const btn = document.getElementById('btn-submit-telegram');
+
+            btn.disabled = true;
+            btn.textContent = 'Salvando e testando...';
+
+            try {
+                const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                const csrfVal = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+                const formData = new FormData();
+                formData.append('bot_token', tokenVal);
+                formData.append('chat_id', chatVal);
+                formData.append('csrf_token', csrfVal);
+
+                const res = await fetch('/admin?action=save_telegram_config', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': csrfVal
+                    },
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (data.telegram_status) {
+                    renderTelegramStatusBadge(data.telegram_status);
+                }
+
+                alertBox.style.display = 'block';
+                if (data.success && data.test_sent) {
+                    alertBox.style.background = 'rgba(16, 185, 129, 0.15)';
+                    alertBox.style.color = '#34D399';
+                    alertBox.textContent = data.message || 'Credenciais salvas e alerta de teste entregue!';
+                    setTimeout(() => {
+                        closeTelegramModal();
+                    }, 1500);
+                } else if (data.success && !data.test_sent) {
+                    alertBox.style.background = 'rgba(245, 158, 11, 0.15)';
+                    alertBox.style.color = '#FBBF24';
+                    alertBox.textContent = data.message || 'Credenciais salvas, mas o teste falhou.';
+                } else {
+                    alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                    alertBox.style.color = '#FCA5A5';
+                    alertBox.textContent = data.error || 'Nao foi possivel salvar as credenciais do Telegram.';
+                }
+            } catch (err) {
+                alertBox.style.display = 'block';
+                alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                alertBox.style.color = '#FCA5A5';
+                alertBox.textContent = 'Erro ao conectar ao servidor: ' + err.message;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Salvar e Testar';
+            }
+        }
+
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closePasswordModal();
+            if (e.key === 'Escape') {
+                closePasswordModal();
+                closeTelegramModal();
+            }
         });
 
         // Inicializacao dos contadores e polling

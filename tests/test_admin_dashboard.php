@@ -366,6 +366,7 @@ try {
     assert(str_contains($dashResp['body'], 'Ao Vivo'), 'Deve conter indicador de atualização Ao Vivo');
     assert(str_contains($dashResp['body'], 'Facilitador x402'), 'Dashboard deve exibir status seguro do Facilitador x402');
     assert(str_contains($dashResp['body'], 'runtime-telegram-badge') && str_contains($dashResp['body'], 'btn-test-telegram'), 'Dashboard deve exibir badge e botao de diagnostico do Telegram');
+    assert(str_contains($dashResp['body'], 'btn-config-telegram') && str_contains($dashResp['body'], 'telegram-modal-overlay'), 'Dashboard deve exibir botao e modal de configuracao do Telegram');
     assert(str_contains($dashResp['body'], 'Sem erros 5xx'), 'Dashboard deve exibir SLA sem erros 5xx');
     assert(str_contains($dashResp['body'], 'Saldo On-Chain (Base)'), 'Deve conter card de Saldo On-Chain');
     assert(str_contains($dashResp['body'], 'password-modal-overlay'), 'Deve conter modal de alteração de senha');
@@ -408,6 +409,54 @@ try {
         CURLOPT_COOKIEFILE => $cookieFile,
     ]);
     assert($noCsrfTg['code'] === 403, "test_telegram sem CSRF deve retornar HTTP 403 (Recebeu: {$noCsrfTg['code']})");
+
+    // 4.7.1c. Validacao completa do endpoint save_telegram_config (401, 403, 400 e 200 com skip_test)
+    $unauthSaveTg = curl_admin("http://127.0.0.1:{$port}/admin?action=save_telegram_config", [
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => ['Accept: application/json'],
+    ]);
+    assert($unauthSaveTg['code'] === 401, "save_telegram_config sem sessao deve retornar HTTP 401 (Recebeu: {$unauthSaveTg['code']})");
+
+    $noCsrfSaveTg = curl_admin("http://127.0.0.1:{$port}/admin?action=save_telegram_config", [
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => ['Accept: application/json'],
+        CURLOPT_COOKIEFILE => $cookieFile,
+    ]);
+    assert($noCsrfSaveTg['code'] === 403, "save_telegram_config sem CSRF deve retornar HTTP 403 (Recebeu: {$noCsrfSaveTg['code']})");
+
+    $badFormatSaveTg = curl_admin("http://127.0.0.1:{$port}/admin?action=save_telegram_config", [
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => ['Accept: application/json', 'X-CSRF-Token: ' . $authCsrf],
+        CURLOPT_POSTFIELDS => http_build_query([
+            'bot_token' => 'token_invalido',
+            'chat_id' => '123456789',
+            'csrf_token' => $authCsrf,
+        ]),
+        CURLOPT_COOKIEFILE => $cookieFile,
+    ]);
+    assert($badFormatSaveTg['code'] === 400, "save_telegram_config com formato invalido deve retornar HTTP 400 (Recebeu: {$badFormatSaveTg['code']})");
+
+    $tgCfgFile = GRID402_PRIVATE_DIR . '/telegram_config.json';
+    $prevTgCfg = is_file($tgCfgFile) ? file_get_contents($tgCfgFile) : null;
+    $goodSaveTg = curl_admin("http://127.0.0.1:{$port}/admin?action=save_telegram_config", [
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => ['Accept: application/json', 'X-CSRF-Token: ' . $authCsrf],
+        CURLOPT_POSTFIELDS => http_build_query([
+            'bot_token' => '123456789:AAH_test_token_value_1234567890',
+            'chat_id' => '987654321',
+            'skip_test' => '1',
+            'csrf_token' => $authCsrf,
+        ]),
+        CURLOPT_COOKIEFILE => $cookieFile,
+    ]);
+    assert($goodSaveTg['code'] === 200, "save_telegram_config valido deve retornar HTTP 200 (Recebeu: {$goodSaveTg['code']})");
+    $goodSaveTgJson = json_decode($goodSaveTg['body'], true);
+    assert(($goodSaveTgJson['success'] ?? false) === true && is_file($tgCfgFile), 'save_telegram_config deve gravar telegram_config.json');
+    if ($prevTgCfg !== null) {
+        file_put_contents($tgCfgFile, $prevTgCfg, LOCK_EX);
+    } elseif (is_file($tgCfgFile)) {
+        @unlink($tgCfgFile);
+    }
 
     // 4.7.2. Tentativa com senha atual errada via JSON e CSRF válido
     $badChange = curl_admin("http://127.0.0.1:{$port}/admin?action=change_password", [
