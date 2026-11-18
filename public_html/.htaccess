@@ -3,13 +3,24 @@ Options -Indexes
 ServerSignature Off
 
 # Proteção de arquivos sensíveis
-<FilesMatch "^\.(env|git)|config\.php$">
+<FilesMatch "^\.(env|git)|config\.php$|\.(json|log|sh|sql|bak|tmp)$">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>
     <IfModule !mod_authz_core.c>
         Order deny,allow
         Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Exceção explícita para manifestos JSON públicos de descoberta
+<FilesMatch "^(openapi|sitemap|package)\.json$|^\.well-known">
+    <IfModule mod_authz_core.c>
+        Require all granted
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Allow from all
     </IfModule>
 </FilesMatch>
 

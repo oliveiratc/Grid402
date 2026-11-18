@@ -43,7 +43,8 @@ function grid402_service_indicators(bool $forceRefresh = false): array {
         CURLOPT_TIMEOUT => 4,
         CURLOPT_CONNECTTIMEOUT => 2,
         CURLOPT_USERAGENT => 'Grid402-OpenData/2.0',
-        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
     ]);
     $raw = curl_exec($ch);
     $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);

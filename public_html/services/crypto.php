@@ -35,7 +35,8 @@ function grid402_service_crypto(bool $forceRefresh = false): array {
         CURLOPT_TIMEOUT => 4,
         CURLOPT_CONNECTTIMEOUT => 2,
         CURLOPT_USERAGENT => 'Grid402-Crypto/2.0',
-        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
     ]);
 
     $raw = curl_exec($ch);

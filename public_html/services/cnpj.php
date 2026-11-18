@@ -214,7 +214,8 @@ function grid402_fetch_cnpj_url(string $url, int $timeoutSeconds = 4): array {
         CURLOPT_TIMEOUT => $timeoutSeconds,
         CURLOPT_CONNECTTIMEOUT => 2,
         CURLOPT_USERAGENT => 'Grid402-CNPJ/1.0 (+https://grid402.online)',
-        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
         CURLOPT_HTTPHEADER => ['Accept: application/json'],
     ]);
 

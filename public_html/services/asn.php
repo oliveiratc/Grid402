@@ -26,6 +26,16 @@ function grid402_service_asn(?string $ip = null): array {
         ];
     }
 
+    // Proteção contra SSRF e IPs privados/reservados/loopback
+    if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+        return [
+            'success' => false,
+            'error' => 'ForbiddenIP',
+            'message' => 'Consultas de ASN não são permitidas para endereços IP privados, locais ou reservados.',
+            'code' => 403,
+        ];
+    }
+
     // Consulta à API pública de BGP / IP info
     $apiUrl = "https://ipapi.co/{$ip}/json/";
     $ch = curl_init($apiUrl);
@@ -34,7 +44,8 @@ function grid402_service_asn(?string $ip = null): array {
         CURLOPT_TIMEOUT => 3,
         CURLOPT_CONNECTTIMEOUT => 2,
         CURLOPT_USERAGENT => 'Grid402-ASN/2.0',
-        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
     ]);
 
     $raw = curl_exec($ch);

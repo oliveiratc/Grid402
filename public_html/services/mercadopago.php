@@ -632,9 +632,9 @@ function grid402_mp_handle_webhook(array $headers, string $rawBody, array $query
  * Consulta status da ordem para polling no frontend ou retorno do Checkout Pro.
  */
 function grid402_mp_get_order_status(string $orderId, ?string $paymentIdHint = null): array {
-    $orderId = trim($orderId);
+    $orderId = preg_replace('/[^a-zA-Z0-9_-]/', '', trim($orderId));
     if ($orderId === '') {
-        return ['ok' => false, 'code' => 400, 'error' => 'MissingOrderId', 'message' => 'Parametro order_id obrigatorio.'];
+        return ['ok' => false, 'code' => 400, 'error' => 'MissingOrderId', 'message' => 'Parametro order_id obrigatorio e deve conter caracteres validos.'];
     }
 
     $order = grid402_mp_with_orders(static function (array &$store) use ($orderId): array {

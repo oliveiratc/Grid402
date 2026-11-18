@@ -193,7 +193,8 @@ function grid402_service_lei(string $leiCode = '', string $queryName = ''): arra
         CURLOPT_CONNECTTIMEOUT => 2,
         CURLOPT_HTTPHEADER => ['Accept: application/vnd.api+json'],
         CURLOPT_USERAGENT => 'Grid402-GlobalOracle/2.0 (+https://grid402.online)',
-        CURLOPT_SSL_VERIFYPEER => false,
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
     ]);
     $raw = curl_exec($ch);
     $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
