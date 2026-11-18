@@ -1785,7 +1785,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             </div>
             <div id="growth-admin-actions" style="display:none;margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.5rem;">
                 <button type="button" class="btn-outline" onclick="fetchGrowthAdmin(true)">🔄 Atualizar KPIs Growth</button>
-                <a href="/builder_reputation" class="btn-outline" target="_blank">Ver reputação pública</a>
+                <a href="/reputation" class="btn-outline" target="_blank" rel="noopener">Ver reputação pública</a>
                 <a href="/growth" class="btn-outline" target="_blank">Abrir página do programa</a>
             </div>
         </section>

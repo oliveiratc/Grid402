@@ -115,6 +115,10 @@ t_assert('admin.php integra includes/admin_nav.php e ancoras #overview, #telemet
     str_contains($adminContent, 'id="telemetry"') &&
     str_contains($adminContent, 'id="passes"')
 );
+t_assert('admin.php aponta para rota valida /reputation (sem /builder_reputation 404)',
+    str_contains($adminContent, 'href="/reputation"') &&
+    !str_contains($adminContent, 'href="/builder_reputation"')
+);
 
 $growthAdminContent = (string) file_get_contents($rootDir . '/public_html/growth_admin.php');
 t_assert('growth_admin.php integra includes/admin_nav.php',
