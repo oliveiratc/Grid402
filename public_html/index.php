@@ -3013,9 +3013,15 @@ grid402_log_public_visit('/');
     <?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '/', 'show_lang' => true]); ?>
     <div class="container">
         <div style="display:flex;justify-content:flex-end;margin:0.75rem 0 0;">
-            <div class="badge-live">
-                <span class="badge-pulse"></span>
-                <span data-i18n-count="<?php echo count($servicesCatalog); ?>" id="badge-live-text">Base Mainnet (8453) • <?php echo count($servicesCatalog); ?>/<?php echo count($servicesCatalog); ?> Services Operational</span>
+            <div style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">
+                <a href="https://payapi.market/api/grid402-brazil-public-data-network-oracle" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.4);border-radius:999px;padding:0.3rem 0.75rem;font-size:0.75rem;font-family:var(--font-mono);font-weight:700;color:#34D399;transition:all 0.2s;" onmouseover="this.style.background='rgba(16,185,129,0.22)'" onmouseout="this.style.background='rgba(16,185,129,0.12)'">
+                    <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10B981;box-shadow:0 0 6px #10B981;"></span>
+                    <span>PayAPI Market • Verified</span>
+                </a>
+                <div class="badge-live">
+                    <span class="badge-pulse"></span>
+                    <span data-i18n-count="<?php echo count($servicesCatalog); ?>" id="badge-live-text">Base Mainnet (8453) • <?php echo count($servicesCatalog); ?>/<?php echo count($servicesCatalog); ?> Services Operational</span>
+                </div>
             </div>
         </div>
 
