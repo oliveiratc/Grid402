@@ -600,6 +600,91 @@ try {
     assert($afterLogout['code'] === 401, "Após logout, API deve responder 401 Unauthorized");
     echo "     ✓ Sessão encerrada e dados protegidos!\n";
 
+    // 4.8b. Testar fluxo completo de Recuperação de Senha via Telegram
+    echo "  -> Testando fluxo completo de recuperação de senha via Telegram (Esqueci minha senha)...\n";
+    $recoveryCookie = sys_get_temp_dir() . '/grid402_recovery_cookie.txt';
+    if (file_exists($recoveryCookie)) @unlink($recoveryCookie);
+
+    $loginPageRec = curl_admin("http://127.0.0.1:{$port}/admin", [
+        CURLOPT_COOKIEJAR => $recoveryCookie,
+        CURLOPT_COOKIEFILE => $recoveryCookie,
+    ]);
+    assert(str_contains($loginPageRec['body'], 'Esqueci minha senha (recuperar via Telegram)'), 'Tela de login deve exibir opção de recuperação');
+
+    preg_match('/name="csrf_token"\s+value="([a-f0-9]{64})"/', $loginPageRec['body'], $recCsrfMatches);
+    $recCsrf = $recCsrfMatches[1] ?? '';
+    assert(strlen($recCsrf) === 64, 'Token CSRF na tela de login deve ser válido');
+
+    // 1. Dispara solicitação de recuperação via POST
+    $triggerRec = curl_admin("http://127.0.0.1:{$port}/admin?action=forgot_password", [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => http_build_query([
+            'csrf_token' => $recCsrf,
+        ]),
+        CURLOPT_COOKIEJAR => $recoveryCookie,
+        CURLOPT_COOKIEFILE => $recoveryCookie,
+    ]);
+    assert(str_contains($triggerRec['body'], 'Recuperar Acesso') && str_contains($triggerRec['body'], 'recovery_otp'), 'Deve renderizar tela de formulário com campo recovery_otp');
+
+    // Lê o OTP capturado em modo de teste
+    $recOtpFile = GRID402_PRIVATE_DIR . '/admin_test_recovery_otp.json';
+    assert(file_exists($recOtpFile), 'Arquivo de captura de OTP de recuperação deve ter sido gerado');
+    $recOtpData = json_decode((string) file_get_contents($recOtpFile), true);
+    $validRecOtp = (string) ($recOtpData['otp'] ?? '');
+    assert(preg_match('/^\d{6}$/', $validRecOtp) === 1, 'OTP de recuperação capturado deve ter 6 dígitos');
+
+    // 2. Testa OTP incorreto -> deve recusar
+    $badRecResp = curl_admin("http://127.0.0.1:{$port}/admin?action=confirm_recovery", [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => http_build_query([
+            'csrf_token' => $recCsrf,
+            'recovery_otp' => '000000',
+            'new_password' => 'NovaSenhaSegura@2026',
+            'new_password_confirm' => 'NovaSenhaSegura@2026',
+        ]),
+        CURLOPT_COOKIEJAR => $recoveryCookie,
+        CURLOPT_COOKIEFILE => $recoveryCookie,
+    ]);
+    assert(str_contains($badRecResp['body'], 'Código de recuperação incorreto'), 'OTP incorreto deve ser recusado');
+
+    // 3. Testa senha curta (< 8 chars) -> deve recusar
+    $shortPassResp = curl_admin("http://127.0.0.1:{$port}/admin?action=confirm_recovery", [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => http_build_query([
+            'csrf_token' => $recCsrf,
+            'recovery_otp' => $validRecOtp,
+            'new_password' => 'curta',
+            'new_password_confirm' => 'curta',
+        ]),
+        CURLOPT_COOKIEJAR => $recoveryCookie,
+        CURLOPT_COOKIEFILE => $recoveryCookie,
+    ]);
+    assert(str_contains($shortPassResp['body'], 'pelo menos 8 caracteres'), 'Senha curta deve ser rejeitada');
+
+    // 4. Envia OTP correto e nova senha válida
+    $goodRecResp = curl_admin("http://127.0.0.1:{$port}/admin?action=confirm_recovery", [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => http_build_query([
+            'csrf_token' => $recCsrf,
+            'recovery_otp' => $validRecOtp,
+            'new_password' => 'SuperSenhaNova402!',
+            'new_password_confirm' => 'SuperSenhaNova402!',
+        ]),
+        CURLOPT_COOKIEJAR => $recoveryCookie,
+        CURLOPT_COOKIEFILE => $recoveryCookie,
+    ]);
+    assert($goodRecResp['code'] === 302, "Redefinição com sucesso deve retornar HTTP 302 (Recebeu: {$goodRecResp['code']})");
+
+    // Verifica que agora está autenticado e o painel responde 200
+    $dashRec = curl_admin("http://127.0.0.1:{$port}/admin?api=stats", [
+        CURLOPT_COOKIEFILE => $recoveryCookie,
+    ]);
+    assert($dashRec['code'] === 200, "Após recuperação concluída, /admin?api=stats deve responder 200");
+    echo "     ✓ Fluxo de recuperação de senha via Telegram (solicitação, recusa de OTP inválido e redefinição com sucesso) homologado!\n";
+
+    if (file_exists($recoveryCookie)) @unlink($recoveryCookie);
+    if (file_exists($recOtpFile)) @unlink($recOtpFile);
+
     // 4.9. Testar Bloqueio contra Força Bruta (Lockout de 15 minutos após 5 falhas consecutivas)
     echo "  -> Testando proteção contra força bruta no login (bloqueio 429 após 5 falhas)...\n";
     $loginPageCookie = sys_get_temp_dir() . '/grid402_login_cookie.txt';

@@ -62,7 +62,7 @@ if (!function_exists('grid402_admin_idle_timeout_sec')) {
     function grid402_establish_admin_session(string $username): void {
         $now = time();
         session_regenerate_id(true);
-        unset($_SESSION['admin_2fa_pending']);
+        unset($_SESSION['admin_2fa_pending'], $_SESSION['admin_recovery_pending']);
         $_SESSION['admin_logged_in'] = true;
         $_SESSION['admin_user'] = $username;
         $_SESSION['admin_login_at'] = $now;
@@ -78,7 +78,8 @@ if (!function_exists('grid402_admin_idle_timeout_sec')) {
             $_SESSION['admin_login_at'],
             $_SESSION['admin_last_activity'],
             $_SESSION['admin_fingerprint'],
-            $_SESSION['admin_2fa_pending']
+            $_SESSION['admin_2fa_pending'],
+            $_SESSION['admin_recovery_pending']
         );
     }
 

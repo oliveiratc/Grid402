@@ -208,6 +208,12 @@ if ($action === 'cancel_2fa') {
     exit;
 }
 
+if ($action === 'cancel_recovery') {
+    unset($_SESSION['admin_recovery_pending']);
+    header('Location: /admin');
+    exit;
+}
+
 // 2. Ações de Logout e Reset de Segurança
 if ($action === 'logout') {
     $_SESSION = [];
@@ -385,6 +391,103 @@ function grid402_reset_login_rate(string $ip): void {
             fwrite($fp, (string) json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
             fflush($fp);
         }
+        flock($fp, LOCK_UN);
+    }
+    fclose($fp);
+}
+
+/**
+ * Controle de Força Bruta para Recuperação de Senha via Telegram (Zero-DB)
+ * Limite de 3 envios por janela de 10 minutos (600s) por IP.
+ */
+function grid402_get_recovery_rate_file(): string {
+    $dir = defined('GRID402_PRIVATE_DIR') ? GRID402_PRIVATE_DIR : (__DIR__ . '/private_data');
+    return $dir . '/admin_recovery_rate.json';
+}
+
+function grid402_check_recovery_rate(string $ip): array {
+    $file = grid402_get_recovery_rate_file();
+    $maxAttempts = 3;
+    $lockoutSeconds = 600;
+    $now = time();
+
+    if (!file_exists($file)) {
+        return ['allowed' => true, 'remaining' => $maxAttempts, 'retry_after' => 0];
+    }
+
+    $raw = @file_get_contents($file);
+    $data = $raw ? (@json_decode($raw, true) ?: []) : [];
+    $entry = $data[$ip] ?? null;
+
+    if (!$entry) {
+        return ['allowed' => true, 'remaining' => $maxAttempts, 'retry_after' => 0];
+    }
+
+    $firstFail = (int)($entry['first_attempt'] ?? $now);
+    $attempts = (int)($entry['attempts'] ?? 0);
+    $elapsed = $now - $firstFail;
+
+    if ($elapsed >= $lockoutSeconds) {
+        return ['allowed' => true, 'remaining' => $maxAttempts, 'retry_after' => 0];
+    }
+
+    if ($attempts >= $maxAttempts) {
+        $retryAfter = max(1, $lockoutSeconds - $elapsed);
+        return [
+            'allowed' => false,
+            'remaining' => 0,
+            'retry_after' => $retryAfter,
+            'attempts' => $attempts,
+        ];
+    }
+
+    return [
+        'allowed' => true,
+        'remaining' => max(0, $maxAttempts - $attempts),
+        'retry_after' => 0,
+        'attempts' => $attempts,
+    ];
+}
+
+function grid402_record_recovery_attempt(string $ip): void {
+    $file = grid402_get_recovery_rate_file();
+    $lockoutSeconds = 600;
+    $now = time();
+
+    $dir = dirname($file);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+
+    $fp = fopen($file, 'c+');
+    if (!$fp) {
+        return;
+    }
+
+    if (flock($fp, LOCK_EX)) {
+        $data = grid402_read_locked_json($fp, []);
+
+        $cleaned = [];
+        foreach ($data as $kIp => $v) {
+            $t = (int)($v['first_attempt'] ?? 0);
+            if (($now - $t) < $lockoutSeconds) {
+                $cleaned[$kIp] = $v;
+            }
+        }
+
+        $entry = $cleaned[$ip] ?? ['attempts' => 0, 'first_attempt' => $now];
+        if (($now - (int)$entry['first_attempt']) >= $lockoutSeconds) {
+            $entry = ['attempts' => 0, 'first_attempt' => $now];
+        }
+
+        $entry['attempts'] = ((int)$entry['attempts']) + 1;
+        $entry['last_attempt'] = $now;
+        $cleaned[$ip] = $entry;
+
+        ftruncate($fp, 0);
+        rewind($fp);
+        fwrite($fp, (string) json_encode($cleaned, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        fflush($fp);
         flock($fp, LOCK_UN);
     }
     fclose($fp);
@@ -639,6 +742,158 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $successMsg = 'Novo código de 6 dígitos enviado para o seu Telegram.';
             } else {
                 $errorMsg = 'Falha ao reenviar código pelo Telegram.';
+            }
+        }
+    } elseif ($action === 'forgot_password') {
+        // 3.0e. Solicitação de Envio de Código de Recuperação via Telegram
+        $clientIp = function_exists('grid402_get_trusted_client_ip') ? grid402_get_trusted_client_ip() : (string)($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+        $tgStatus = function_exists('grid402_telegram_runtime_status') ? grid402_telegram_runtime_status() : ['configured' => false];
+
+        $isTestCapture = ((string) grid402_env('GRID402_TEST_OTP_CAPTURE', '') === '1' && in_array($clientIp, ['127.0.0.1', '::1'], true));
+
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            $errorMsg = 'Token CSRF de segurança inválido ou expirado. Recarregue a página.';
+        } elseif (!$hasSetup) {
+            $errorMsg = 'Nenhuma credencial configurada no sistema. Crie as credenciais no primeiro acesso.';
+        } elseif (empty($tgStatus['configured']) && !$isTestCapture) {
+            $errorMsg = 'Recuperação via Telegram indisponível: o bot @GRIG402BOT não está configurado neste servidor.';
+        } else {
+            $lastSent = (int)($_SESSION['admin_recovery_pending']['sent_at'] ?? 0);
+            if ($lastSent > 0 && (time() - $lastSent) < 30) {
+                $waitSec = max(1, 30 - (time() - $lastSent));
+                $errorMsg = "Um código de recuperação já foi enviado recentemente. Aguarde {$waitSec}s para novo envio.";
+            } else {
+                $rateCheck = grid402_check_recovery_rate($clientIp);
+                if (!$rateCheck['allowed']) {
+                    $waitMinutes = max(1, (int) ceil(($rateCheck['retry_after'] ?? 600) / 60));
+                    $errorMsg = "Muitas tentativas de recuperação. Acesso temporariamente bloqueado por {$waitMinutes} minuto(s).";
+                } else {
+                    $authRaw = @file_get_contents($authFile);
+                    $authData = $authRaw ? @json_decode($authRaw, true) : null;
+                    $targetUser = (string)($authData['username'] ?? 'admin');
+                    $otpCode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+                    $maskedIp = function_exists('grid402_mask_ip') ? grid402_mask_ip($clientIp) : $clientIp;
+
+                    if (grid402_send_telegram_admin_recovery_otp($targetUser, $otpCode, $maskedIp)) {
+                        grid402_record_recovery_attempt($clientIp);
+                        $_SESSION['admin_recovery_pending'] = [
+                            'username' => $targetUser,
+                            'code_hash' => hash_hmac('sha256', $otpCode, $csrfToken),
+                            'expires_at' => time() + 600, // 10 minutos
+                            'attempts' => 0,
+                            'sent_at' => time(),
+                            'fingerprint' => grid402_admin_session_fingerprint(),
+                        ];
+                        $successMsg = 'Código de segurança de 6 dígitos enviado para o seu Telegram (@GRIG402BOT)!';
+                    } else {
+                        $errorMsg = 'Falha ao despachar mensagem pelo Telegram. Verifique se o bot está ativo.';
+                    }
+                }
+            }
+        }
+    } elseif ($action === 'resend_recovery') {
+        // 3.0f. Reenvio de Código de Recuperação via Telegram
+        $clientIp = function_exists('grid402_get_trusted_client_ip') ? grid402_get_trusted_client_ip() : (string)($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+        $pending = $_SESSION['admin_recovery_pending'] ?? null;
+
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            $errorMsg = 'Token CSRF de segurança inválido ou expirado. Recarregue a página.';
+        } elseif (!is_array($pending)) {
+            $errorMsg = 'Nenhuma solicitação de recuperação ativa. Clique em "Esqueci minha senha" novamente.';
+        } elseif ((time() - (int)($pending['sent_at'] ?? 0)) < 30) {
+            $waitSec = max(1, 30 - (time() - (int)($pending['sent_at'] ?? 0)));
+            $errorMsg = "Aguarde {$waitSec}s antes de solicitar um novo código.";
+        } else {
+            $rateCheck = grid402_check_recovery_rate($clientIp);
+            if (!$rateCheck['allowed']) {
+                $waitMinutes = max(1, (int) ceil(($rateCheck['retry_after'] ?? 600) / 60));
+                $errorMsg = "Limite de solicitações excedido. Aguarde {$waitMinutes} minuto(s).";
+            } else {
+                $targetUser = (string)($pending['username'] ?? 'admin');
+                $otpCode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+                $maskedIp = function_exists('grid402_mask_ip') ? grid402_mask_ip($clientIp) : $clientIp;
+
+                if (grid402_send_telegram_admin_recovery_otp($targetUser, $otpCode, $maskedIp)) {
+                    grid402_record_recovery_attempt($clientIp);
+                    $_SESSION['admin_recovery_pending']['code_hash'] = hash_hmac('sha256', $otpCode, $csrfToken);
+                    $_SESSION['admin_recovery_pending']['expires_at'] = time() + 600;
+                    $_SESSION['admin_recovery_pending']['attempts'] = 0;
+                    $_SESSION['admin_recovery_pending']['sent_at'] = time();
+                    $successMsg = 'Novo código de recuperação de 6 dígitos enviado para o seu Telegram.';
+                } else {
+                    $errorMsg = 'Falha ao reenviar código pelo Telegram.';
+                }
+            }
+        }
+    } elseif ($action === 'confirm_recovery' || isset($_POST['recovery_otp'])) {
+        // 3.0g. Validação do Código e Redefinição de Senha
+        $clientIp = function_exists('grid402_get_trusted_client_ip') ? grid402_get_trusted_client_ip() : (string)($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+        $pending = $_SESSION['admin_recovery_pending'] ?? null;
+
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            $errorMsg = 'Token CSRF de segurança inválido ou expirado. Recarregue a página.';
+        } elseif (!is_array($pending)) {
+            $errorMsg = 'Nenhuma solicitação de recuperação ativa. Inicie a recuperação novamente.';
+        } elseif (!hash_equals((string)($pending['fingerprint'] ?? ''), grid402_admin_session_fingerprint())) {
+            unset($_SESSION['admin_recovery_pending']);
+            $errorMsg = 'Solicitação invalidada por mudança de rede ou navegador. Inicie novamente.';
+        } elseif (time() > (int)($pending['expires_at'] ?? 0)) {
+            unset($_SESSION['admin_recovery_pending']);
+            $errorMsg = 'O código de recuperação expirou (validade de 10 minutos). Solicite um novo código.';
+        } else {
+            $_SESSION['admin_recovery_pending']['attempts'] = ((int)($pending['attempts'] ?? 0)) + 1;
+            $attempts = (int) $_SESSION['admin_recovery_pending']['attempts'];
+            $otpInput = preg_replace('/\D/', '', (string)($_POST['recovery_otp'] ?? ''));
+            $expectedHash = (string)($pending['code_hash'] ?? '');
+            $actualHash = hash_hmac('sha256', (string) $otpInput, $csrfToken);
+
+            if ($otpInput !== '' && strlen((string) $otpInput) === 6 && hash_equals($expectedHash, $actualHash)) {
+                $newPass = (string)($_POST['new_password'] ?? '');
+                $newPassConfirm = (string)($_POST['new_password_confirm'] ?? '');
+
+                if (strlen($newPass) < 8) {
+                    $errorMsg = 'A nova senha deve ter pelo menos 8 caracteres.';
+                } elseif ($newPass !== $newPassConfirm) {
+                    $errorMsg = 'As novas senhas digitadas não coincidem.';
+                } else {
+                    $authContent = @file_get_contents($authFile);
+                    $authData = $authContent ? @json_decode($authContent, true) : null;
+                    if (!is_array($authData)) {
+                        $authData = [
+                            'username' => (string)($pending['username'] ?? 'admin'),
+                            'two_factor_telegram' => true,
+                            'created_at' => gmdate('Y-m-d\TH:i:s\Z'),
+                        ];
+                    }
+                    $authData['password_hash'] = password_hash($newPass, PASSWORD_BCRYPT, ['cost' => 11]);
+                    $authData['updated_at'] = gmdate('Y-m-d\TH:i:s\Z');
+                    $authData['last_login'] = gmdate('Y-m-d\TH:i:s\Z');
+                    $authData['login_count'] = ((int)($authData['login_count'] ?? 0)) + 1;
+                    grid402_atomic_write($authFile, $authData);
+
+                    $targetUser = (string)($authData['username'] ?? ($pending['username'] ?? 'admin'));
+                    $maskedIp = function_exists('grid402_mask_ip') ? grid402_mask_ip($clientIp) : $clientIp;
+                    grid402_reset_login_rate($clientIp);
+                    grid402_notify_telegram_admin_password_reset($targetUser, $maskedIp);
+
+                    unset($_SESSION['admin_recovery_pending']);
+                    grid402_establish_admin_session($targetUser);
+                    if (session_status() === PHP_SESSION_ACTIVE) {
+                        session_write_close();
+                    }
+                    header('Location: /admin?recovery=done');
+                    exit;
+                }
+            } else {
+                usleep(250000);
+                if ($attempts >= 5) {
+                    unset($_SESSION['admin_recovery_pending']);
+                    grid402_record_login_failure($clientIp);
+                    $errorMsg = 'Limite de 5 tentativas de código excedido. Solicite um novo código.';
+                } else {
+                    $rem = 5 - $attempts;
+                    $errorMsg = "Código de recuperação incorreto. ({$rem} tentativa(s) restante(s)).";
+                }
             }
         }
     } elseif (!$hasSetup) {
@@ -1161,8 +1416,18 @@ if (!$isLoggedIn) {
                 </div>
             </div>
 
-            <?php $pending2fa = is_array($_SESSION['admin_2fa_pending'] ?? null) ? $_SESSION['admin_2fa_pending'] : null; ?>
-            <?php if ($pending2fa): ?>
+            <?php
+            $pendingRecovery = is_array($_SESSION['admin_recovery_pending'] ?? null) ? $_SESSION['admin_recovery_pending'] : null;
+            $pending2fa = is_array($_SESSION['admin_2fa_pending'] ?? null) ? $_SESSION['admin_2fa_pending'] : null;
+            $isForgotPasswordPrompt = (!$pendingRecovery && !$pending2fa && $hasSetup && $action === 'forgot_password');
+            ?>
+            <?php if ($pendingRecovery): ?>
+                <h1>Recuperar Acesso</h1>
+                <p class="sub">Enviamos um código de segurança de 6 dígitos para o seu Telegram (@GRIG402BOT). Digite o código e cadastre sua nova senha.</p>
+            <?php elseif ($isForgotPasswordPrompt): ?>
+                <h1>Recuperação via Telegram</h1>
+                <p class="sub">Um código de autenticação único de 6 dígitos será despachado imediatamente para o bot oficial (@GRIG402BOT).</p>
+            <?php elseif ($pending2fa): ?>
                 <h1>Verificação 2FA (Telegram)</h1>
                 <p class="sub">Enviamos um código de 6 dígitos para o seu Telegram oficial (válido por 5 minutos).</p>
             <?php elseif (!$hasSetup): ?>
@@ -1181,7 +1446,35 @@ if (!$isLoggedIn) {
                 <div class="alert-info"><?php echo htmlspecialchars($successMsg, ENT_QUOTES, 'UTF-8'); ?></div>
             <?php endif; ?>
 
-            <?php if ($pending2fa): ?>
+            <?php if ($pendingRecovery): ?>
+                <form id="admin-recovery-form" method="POST" action="/admin?action=confirm_recovery">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                    <div class="form-group">
+                        <label for="recovery_otp">Código de Recuperação (Telegram)</label>
+                        <input type="text" id="recovery_otp" name="recovery_otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required autocomplete="one-time-code" autofocus style="font-family: var(--font-mono); font-size: 1.35rem; letter-spacing: 0.35rem; text-align: center;">
+                    </div>
+                    <div class="form-group">
+                        <label for="new_password">Nova Senha</label>
+                        <input type="password" id="new_password" name="new_password" required autocomplete="new-password" minlength="8" placeholder="Mínimo 8 caracteres">
+                    </div>
+                    <div class="form-group">
+                        <label for="new_password_confirm">Confirme a Nova Senha</label>
+                        <input type="password" id="new_password_confirm" name="new_password_confirm" required autocomplete="new-password" minlength="8" placeholder="Repita a nova senha">
+                    </div>
+                    <button type="submit" class="btn">Redefinir Senha e Entrar</button>
+                </form>
+                <form method="POST" action="/admin?action=resend_recovery" style="margin-top: 0.75rem;">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                    <button type="submit" class="btn" style="background: transparent; border: 1px solid var(--border); color: var(--text-muted); font-size: 0.85rem; padding: 0.55rem;">Reenviar código no Telegram</button>
+                </form>
+                <a href="/admin?action=cancel_recovery" class="back-link" style="margin-top: 1rem;">← Cancelar e voltar ao login</a>
+            <?php elseif ($isForgotPasswordPrompt): ?>
+                <form method="POST" action="/admin?action=forgot_password">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                    <button type="submit" class="btn">Despachar Código para o Telegram</button>
+                </form>
+                <a href="/admin" class="back-link" style="margin-top: 1rem;">← Voltar para o login</a>
+            <?php elseif ($pending2fa): ?>
                 <form id="admin-2fa-form" method="POST" action="/admin?action=verify_2fa">
                     <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="form-group">
@@ -1214,6 +1507,14 @@ if (!$isLoggedIn) {
                     <?php endif; ?>
                     <button type="submit" class="btn"><?php echo $hasSetup ? 'Entrar no Painel' : 'Salvar e Acessar'; ?></button>
                 </form>
+                <?php if ($hasSetup): ?>
+                    <form method="POST" action="/admin?action=forgot_password" style="margin-top: 1.25rem; text-align: center;">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                        <button type="submit" style="background: none; border: none; color: var(--accent); font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.25rem 0.5rem; text-decoration: none;">
+                            <span>🔑</span> Esqueci minha senha (recuperar via Telegram)
+                        </button>
+                    </form>
+                <?php endif; ?>
             <?php endif; ?>
 
             <a href="/" class="back-link">← Voltar para o portal público</a>
@@ -1873,6 +2174,11 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
 <body>
     <?php require_once __DIR__ . '/includes/admin_nav.php'; grid402_render_admin_nav(['active' => 'overview', 'logout_url' => '/admin?action=logout']); ?>
     <div class="container">
+        <?php if ((string)($_GET['recovery'] ?? '') === 'done'): ?>
+            <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #10B981; padding: 0.85rem 1.25rem; border-radius: 8px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.6rem; font-size: 0.95rem;">
+                <span>✅</span> <strong>Senha redefinida com sucesso via Telegram!</strong> O acesso administrativo foi liberado e suas novas credenciais já estão ativas.
+            </div>
+        <?php endif; ?>
         <header>
             <div class="logo-wrap">
                 <span style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500;">Monitoramento e Faturamento</span>
