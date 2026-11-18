@@ -101,6 +101,16 @@ if ($x402Content !== false) {
 $hasAmpersand = (strpos($notifyFunctionLines, chr(38)) !== false);
 assertTest(!$hasAmpersand, 'Ausencia absoluta do caractere comercial ampersand na funcao de notificacao');
 
+// 7. Valida recusa de tokens pass_g402_ mesmo em chamadas Pix/MP e snapshot sem segredos
+assertTest(grid402_notify_telegram_purchase('pass (starter Pix/MP)', 2.0, 'pass_g402_secret123') === false, 'Recusa enviar token pass_g402_ mesmo com label Pix/MP');
+assertTest(grid402_notify_telegram_purchase('forex', 0.0050, 'comprovante_invalido') === false, 'Recusa comprovante fora do padrao 0x ou MP');
+assertTest(function_exists('grid402_telegram_runtime_status'), 'Funcao grid402_telegram_runtime_status existe em x402.php');
+$rt = grid402_telegram_runtime_status();
+assertTest(is_array($rt) && array_key_exists('configured', $rt) && array_key_exists('token_configured', $rt), 'Snapshot runtime_status possui chaves esperadas');
+$rtJson = (string) json_encode($rt);
+assertTest($token === '' || !str_contains($rtJson, $token), 'Snapshot runtime_status nunca expoe GRID402_TELEGRAM_BOT_TOKEN');
+assertTest($chatId === '' || !str_contains($rtJson, $chatId), 'Snapshot runtime_status nunca expoe GRID402_TELEGRAM_CHAT_ID');
+
 echo "\n--------------------------------------------------------\n";
 echo "Resultado: {$testsPassed}/{$totalTests} testes aprovados.\n";
 echo "========================================================\n";

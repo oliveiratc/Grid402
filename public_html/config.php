@@ -28,28 +28,33 @@ function grid402_load_env(): void {
     ];
 
     foreach ($candidates as $filePath) {
-        if (file_exists($filePath) && is_readable($filePath)) {
-            $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            if ($lines === false) {
+        if (!file_exists($filePath) || !is_readable($filePath)) {
+            continue;
+        }
+        $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if ($lines === false) {
+            continue;
+        }
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) {
                 continue;
             }
-            foreach ($lines as $line) {
-                $line = trim($line);
-                if ($line === '' || str_starts_with($line, '#')) {
-                    continue;
-                }
-                if (str_contains($line, '=')) {
-                    [$key, $value] = explode('=', $line, 2);
-                    $key = trim($key);
-                    $value = trim($value, " \t\n\r\0\x0B\"'");
-                    if (!isset($_SERVER[$key]) && !isset($_ENV[$key])) {
-                        putenv("{$key}={$value}");
-                        $_ENV[$key] = $value;
-                        $_SERVER[$key] = $value;
-                    }
-                }
+            [$key, $value] = explode('=', $line, 2);
+            $key = trim($key);
+            $value = trim($value, " \t\n\r\0\x0B\"'");
+            if ($value === '') {
+                continue;
             }
-            break;
+            $currEnv = getenv($key);
+            $hasNonEmpty = ($currEnv !== false && $currEnv !== '')
+                || (isset($_ENV[$key]) && $_ENV[$key] !== '')
+                || (isset($_SERVER[$key]) && $_SERVER[$key] !== '');
+            if (!$hasNonEmpty) {
+                putenv("{$key}={$value}");
+                $_ENV[$key] = $value;
+                $_SERVER[$key] = $value;
+            }
         }
     }
 }

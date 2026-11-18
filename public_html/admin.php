@@ -14,10 +14,11 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/metrics.php';
 require_once __DIR__ . '/growth.php';
 require_once __DIR__ . '/facilitator.php';
+require_once __DIR__ . '/x402.php';
 require_once __DIR__ . '/services/forex.php';
 
 /**
- * Retorna snapshot seguro (sem segredos) do estado do facilitador x402 e do coletor de resumo.
+ * Retorna snapshot seguro (sem segredos) do estado do facilitador x402, coletor e Telegram.
  */
 function grid402_admin_runtime_status(): array {
     $facMode = defined('GRID402_FACILITATOR_MODE') ? (string) GRID402_FACILITATOR_MODE : 'settle';
@@ -31,6 +32,10 @@ function grid402_admin_runtime_status(): array {
     $summaryMtime = $summaryExists ? (int) @filemtime($summaryFile) : 0;
     $summaryAgeSec = ($summaryExists && $summaryMtime > 0) ? max(0, time() - $summaryMtime) : null;
 
+    $tg = function_exists('grid402_telegram_runtime_status')
+        ? grid402_telegram_runtime_status()
+        : ['configured' => false, 'disabled' => false, 'token_configured' => false, 'chat_id_configured' => false, 'last_status' => null];
+
     return [
         'facilitator' => [
             'mode' => $facMode,
@@ -43,6 +48,7 @@ function grid402_admin_runtime_status(): array {
             'summary_age_sec' => $summaryAgeSec,
             'summary_stale' => ($summaryAgeSec === null || $summaryAgeSec > 600),
         ],
+        'telegram' => $tg,
     ];
 }
 
@@ -381,6 +387,32 @@ function grid402_reset_login_rate(string $ip): void {
 // 3. Processamento de POST (Setup, Login ou Alteracao de Senha)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $submittedCsrf = (string)($_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+
+    // 3.0a. Disparo de teste Telegram autenticado (diagnostico sem segredos)
+    if ($action === 'test_telegram') {
+        header('Content-Type: application/json; charset=utf-8');
+        if (!$isLoggedIn) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Sessao administrativa expirada ou nao autenticada.']);
+            exit;
+        }
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Token CSRF de seguranca ausente ou invalido.']);
+            exit;
+        }
+        $sent = grid402_notify_telegram_purchase('cnpj', 0.0200, '0x' . str_repeat('a', 64), true);
+        $tgStatus = grid402_telegram_runtime_status();
+        $errDetail = (string) ($tgStatus['last_status']['error'] ?? '');
+        echo json_encode([
+            'success' => $sent,
+            'telegram_status' => $tgStatus,
+            'message' => $sent
+                ? 'Alerta de teste enviado para o Telegram!'
+                : ('Falha no envio' . ($errDetail !== '' ? ': ' . $errDetail : '. Verifique GRID402_TELEGRAM_BOT_TOKEN e GRID402_TELEGRAM_CHAT_ID no .env deste servidor.')),
+        ]);
+        exit;
+    }
 
     // 3.0. Alteracao de Senha Autenticada
     if ($action === 'change_password') {
@@ -802,6 +834,7 @@ if ($apiParam === 'stats') {
         'passes_stats' => $analytics['passes_stats'] ?? [],
         'facilitator_status' => $runtimeStatus['facilitator'],
         'collector_status' => $runtimeStatus['collector'],
+        'telegram_status' => $runtimeStatus['telegram'],
         'oracle_configured' => $oracleConfigured,
         'status_counts' => $metrics['status_counts'] ?? [],
         'service_counts' => $metrics['service_counts'] ?? [],
@@ -1003,6 +1036,7 @@ $analytics = grid402_compute_admin_analytics($metrics, $usdRate);
 $runtimeStatus = grid402_admin_runtime_status();
 $facStatus = $runtimeStatus['facilitator'];
 $colStatus = $runtimeStatus['collector'];
+$tgStatus = $runtimeStatus['telegram'];
 
 $revenueUsdc = (float)($metrics['total_revenue_usdc'] ?? 0.0);
 $revenueBrl = round($revenueUsdc * $usdRate, 2);
@@ -1650,7 +1684,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             </div>
         </header>
 
-        <!-- Runtime Status Bar (Facilitador x402 + Coletor, sem segredos) -->
+        <!-- Runtime Status Bar (Facilitador x402 + Coletor + Telegram, sem segredos) -->
         <div id="runtime-status-bar" style="display:flex;flex-wrap:wrap;gap:0.75rem 1.25rem;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0.7rem 1rem;margin-bottom:1.25rem;font-size:0.78rem;font-family:var(--font-mono);">
             <span id="runtime-facilitator-badge" style="color:<?php echo ($facStatus['mode'] === 'settle' ? '#10B981' : '#F59E0B'); ?>;">
                 Facilitador x402: <strong><?php echo htmlspecialchars($facStatus['mode'], ENT_QUOTES, 'UTF-8'); ?></strong>
@@ -1667,6 +1701,22 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                     }
                 ?></strong>
             </span>
+            <?php
+                $tgOk = !empty($tgStatus['configured']);
+                $tgLast = is_array($tgStatus['last_status'] ?? null) ? $tgStatus['last_status'] : null;
+                $tgLabel = $tgOk ? 'configurado' : (!empty($tgStatus['disabled']) ? 'desabilitado' : 'não configurado (.env)');
+                $tgColor = $tgOk ? (($tgLast && empty($tgLast['ok'])) ? '#F59E0B' : '#10B981') : '#EF4444';
+                $tgSuffix = '';
+                if ($tgLast) {
+                    $tgSuffix = !empty($tgLast['ok'])
+                        ? ' · último HTTP 200'
+                        : ' · erro: ' . (string) ($tgLast['error'] ?: ('HTTP ' . ($tgLast['http_code'] ?? 0)));
+                }
+            ?>
+            <span id="runtime-telegram-badge" style="color:<?php echo $tgColor; ?>;">
+                Telegram: <strong><?php echo htmlspecialchars($tgLabel, ENT_QUOTES, 'UTF-8'); ?></strong><?php echo htmlspecialchars($tgSuffix, ENT_QUOTES, 'UTF-8'); ?>
+            </span>
+            <button type="button" id="btn-test-telegram" class="btn-outline" style="margin-left:auto;padding:0.25rem 0.65rem;font-size:0.74rem;" onclick="triggerTelegramTest()">🔔 Testar Telegram</button>
         </div>
 
         <!-- KPI Cards Grid (8 Cards Executivos de Alta Fidelidade) -->
@@ -2568,6 +2618,9 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                     strong.textContent = ageTxt;
                     colBadgeEl.replaceChildren(document.createTextNode('Coletor (/status): '), strong);
                 }
+                if (data.telegram_status) {
+                    renderTelegramStatusBadge(data.telegram_status);
+                }
                 if (sandboxRateEl) sandboxRateEl.textContent = Number(data.sandbox_rate || 0).toFixed(1) + '%';
 
                 if (passesEl && data.passes_stats) {
@@ -2723,6 +2776,49 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 applyFeedFilterAndSearch();
             } catch (e) {
                 console.error('Erro ao buscar stats em tempo real:', e);
+            }
+        }
+
+        function renderTelegramStatusBadge(tg) {
+            const tgBadgeEl = document.getElementById('runtime-telegram-badge');
+            if (!tgBadgeEl || !tg) return;
+            const configured = Boolean(tg.configured);
+            const last = tg.last_status || null;
+            const label = configured ? 'configurado' : (tg.disabled ? 'desabilitado' : 'não configurado (.env)');
+            tgBadgeEl.style.color = configured ? ((last && !last.ok) ? '#F59E0B' : '#10B981') : '#EF4444';
+            const strong = document.createElement('strong');
+            strong.textContent = label;
+            let suffix = '';
+            if (last) {
+                suffix = last.ok ? ' · último HTTP 200' : (' · erro: ' + String(last.error || ('HTTP ' + (last.http_code || 0))));
+            }
+            tgBadgeEl.replaceChildren(document.createTextNode('Telegram: '), strong, document.createTextNode(suffix));
+        }
+
+        async function triggerTelegramTest() {
+            const btn = document.getElementById('btn-test-telegram');
+            if (!btn) return;
+            const origText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Enviando teste...';
+            try {
+                const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                const csrfVal = csrfMeta ? csrfMeta.getAttribute('content') : '';
+                const formData = new FormData();
+                formData.append('csrf_token', csrfVal);
+                const res = await fetch('/admin?action=test_telegram', {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json', 'X-CSRF-Token': csrfVal },
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.telegram_status) renderTelegramStatusBadge(data.telegram_status);
+                btn.textContent = data.success ? '✓ Alerta enviado!' : '✗ Falhou';
+                if (!data.success && data.message) alert(data.message);
+                setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 2500);
+            } catch (err) {
+                btn.textContent = '✗ Erro de rede';
+                setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 2500);
             }
         }
 

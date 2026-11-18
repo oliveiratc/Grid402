@@ -45,6 +45,9 @@ GRID402_USDC_REQUIRED_RAW=500
 GRID402_PRICE_DISPLAY=0.0050
 GRID402_TIMEOUT_MS=2800
 GRID402_CONNECT_TIMEOUT_MS=1500
+GRID402_FACILITATOR_MODE=settle
+GRID402_TELEGRAM_BOT_TOKEN=seu_token_do_botfather
+GRID402_TELEGRAM_CHAT_ID=seu_chat_id_telegram
 ```
 *(Nota: O `config.php` detecta automaticamente este arquivo fora da raiz pública, impedindo que visitantes ou robôs tenham acesso aos seus segredos)*.
 

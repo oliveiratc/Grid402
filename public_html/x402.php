@@ -716,10 +716,63 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
 }
 
 /**
+ * Caminho privado para gravar o resultado resumido (sem segredos) do ultimo envio Telegram.
+ */
+function grid402_telegram_status_path(): string {
+    $dir = defined('GRID402_PRIVATE_DIR') ? rtrim((string) GRID402_PRIVATE_DIR, '/\\') : (__DIR__ . '/private_data');
+    return $dir . '/telegram_last_status.json';
+}
+
+function grid402_record_telegram_status(bool $ok, int $httpCode, string $error, string $service, bool $isTest): void {
+    $path = grid402_telegram_status_path();
+    $dir = dirname($path);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+    }
+    $payload = json_encode([
+        'ok' => $ok,
+        'http_code' => $httpCode,
+        'error' => substr($error, 0, 180),
+        'service' => $service,
+        'is_test' => $isTest,
+        'timestamp' => gmdate('Y-m-d\TH:i:s\Z'),
+    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if (is_string($payload)) {
+        @file_put_contents($path, $payload, LOCK_EX);
+    }
+}
+
+/**
+ * Snapshot seguro (sem expor token nem chat_id) da configuracao e ultimo disparo Telegram.
+ */
+function grid402_telegram_runtime_status(): array {
+    $disabled = ((string) grid402_env('GRID402_DISABLE_TELEGRAM', '') === '1');
+    $token = defined('GRID402_TELEGRAM_BOT_TOKEN') ? GRID402_TELEGRAM_BOT_TOKEN : (string) grid402_env('GRID402_TELEGRAM_BOT_TOKEN', '');
+    $chatId = defined('GRID402_TELEGRAM_CHAT_ID') ? GRID402_TELEGRAM_CHAT_ID : (string) grid402_env('GRID402_TELEGRAM_CHAT_ID', '');
+    $lastStatus = null;
+    $path = grid402_telegram_status_path();
+    if (is_file($path)) {
+        $raw = @file_get_contents($path);
+        $decoded = $raw ? @json_decode($raw, true) : null;
+        if (is_array($decoded)) {
+            $lastStatus = $decoded;
+        }
+    }
+    return [
+        'disabled' => $disabled,
+        'token_configured' => ($token !== ''),
+        'chat_id_configured' => ($chatId !== ''),
+        'configured' => (!$disabled and $token !== '' and $chatId !== ''),
+        'last_status' => $lastStatus,
+    ];
+}
+
+/**
  * Notificacao em tempo real de micropagamentos x402 no Telegram
- * Disparo nao-bloqueante (timeout de 1s) e tratamento silencioso de erros.
+ * Disparo nao-bloqueante (IPv4 forcado, timeout curto) com registro de diagnostico sem segredos.
  */
 function grid402_notify_telegram_purchase(string $service, float $priceUsdc, string $txHash, bool $isTest = false): bool {
+    $cleanSvc = strtolower(trim($service));
     if ((string) grid402_env('GRID402_DISABLE_TELEGRAM', '') === '1') {
         return false;
     }
@@ -728,11 +781,19 @@ function grid402_notify_telegram_purchase(string $service, float $priceUsdc, str
     $chatId = defined('GRID402_TELEGRAM_CHAT_ID') ? GRID402_TELEGRAM_CHAT_ID : (string) grid402_env('GRID402_TELEGRAM_CHAT_ID', '');
 
     if ($token === '' or $chatId === '') {
+        grid402_record_telegram_status(false, 0, 'Credenciais GRID402_TELEGRAM_BOT_TOKEN / GRID402_TELEGRAM_CHAT_ID ausentes neste servidor.', $cleanSvc, $isTest);
         return false;
     }
 
     $cleanTx = trim($txHash);
-    if (preg_match('/^0x[a-f0-9]{64}$/i', $cleanTx) !== 1) {
+    $lowerTx = strtolower($cleanTx);
+    if (str_starts_with($lowerTx, 'pass_g402_')) {
+        return false;
+    }
+
+    $isOnChainHash = (preg_match('/^0x[a-f0-9]{64}$/i', $cleanTx) === 1);
+    $isPixOrderRef = (!$isOnChainHash and str_contains($cleanSvc, 'pix/mp') and preg_match('/^[a-zA-Z0-9_-]{4,64}$/', $cleanTx) === 1);
+    if (!$isOnChainHash and !$isPixOrderRef) {
         return false;
     }
 
@@ -746,28 +807,39 @@ function grid402_notify_telegram_purchase(string $service, float $priceUsdc, str
         'workdays' => 'Calculadora de Dias Uteis Financeiros',
         'dns' => 'Utilitario DNS Avancado',
         'ssl' => 'Auditoria de Certificado SSL e TLS',
-        'domain-audit' => 'Auditoria Completa de Domínio (DNS + SSL + ASN)',
+        'asn' => 'Roteamento BGP e ASN de Rede',
+        'sanctions' => 'Sancoes CGU (CEIS e CNEP)',
+        'simples' => 'Simples Nacional e MEI',
+        'compliance' => 'Compliance Score 360',
+        'lei' => 'Identidade Global GLEIF LEI',
+        'ofac' => 'OFAC SDN / ONU e AML Web3',
+        'notarize' => 'Notarizacao M2M ECDSA',
+        'global-markets' => 'Mercados Globais e Cambio BCE',
+        'pass' => 'Session Pass x402',
+        'domain-audit' => 'Auditoria Completa de Dominio (DNS + SSL + ASN)',
         'kyb-audit' => 'Auditoria KYB e Compliance (CNPJ + OFAC + LEI)',
         'market-snapshot' => 'Snapshot Consolidado de Mercado (Forex + Crypto + Indicadores)',
-        'asn' => 'Roteamento BGP e ASN de Rede',
     ];
 
-    $cleanSvc = strtolower(trim($service));
     $displayName = $serviceNames[$cleanSvc] ?? ('Servico ' . strtoupper($service));
     $displayPrice = number_format($priceUsdc, 4, '.', '') . ' USDC';
     $nowUtc = gmdate('Y-m-d H:i:s') . ' UTC';
-    $txLink = 'https://basescan.org/tx/' . $cleanTx;
 
-    $isTestTx = $isTest || preg_match('/^0x(a{64}|0{64}|f{64}|1{64}|demo)$/i', $cleanTx);
+    $isTestTx = $isTest || ($isOnChainHash and preg_match('/^0x(a{64}|0{64}|f{64}|1{64}|demo)$/i', $cleanTx) === 1);
     $titleHeader = $isTestTx ? "🧪 *TESTE DO SISTEMA: Simulação de Compra no Grid402*" : "💰 *Nova Compra no Grid402!*";
+
+    $netLabel = $isPixOrderRef ? 'Pix / Mercado Pago (BRL)' : 'Base Mainnet (ChainID 8453)';
+    $proofLine = $isPixOrderRef
+        ? ("🧾 *Comprovante MP:* `" . $cleanTx . "`")
+        : ("🔗 *Transacao:* [BaseScan](https://basescan.org/tx/" . $cleanTx . ")");
 
     $text = $titleHeader . "\n\n"
           . "📦 *Servico:* " . $displayName . "\n"
           . "💵 *Valor:* " . $displayPrice . "\n"
-          . "🌐 *Rede:* Base Mainnet (ChainID 8453)\n"
+          . "🌐 *Rede:* " . $netLabel . "\n"
           . "🕒 *Data:* " . $nowUtc . "\n"
           . ($isTestTx ? "ℹ️ *Nota:* Disparo originado por teste automatizado.\n" : "")
-          . "🔗 *Transacao:* [BaseScan](" . $txLink . ")";
+          . $proofLine;
 
     $apiUrl = 'https://api.telegram.org/bot' . $token . '/sendMessage';
     $payloadJson = json_encode([
@@ -779,6 +851,7 @@ function grid402_notify_telegram_purchase(string $service, float $priceUsdc, str
 
     $ch = @curl_init($apiUrl);
     if (!$ch) {
+        grid402_record_telegram_status(false, 0, 'curl_init falhou', $cleanSvc, $isTestTx);
         return false;
     }
 
@@ -787,15 +860,26 @@ function grid402_notify_telegram_purchase(string $service, float $priceUsdc, str
         CURLOPT_POSTFIELDS => $payloadJson,
         CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 3,
-        CURLOPT_CONNECTTIMEOUT => 2,
+        CURLOPT_IPRESOLVE => CURL_IPRESOLVE_V4,
+        CURLOPT_CONNECTTIMEOUT => 3,
+        CURLOPT_TIMEOUT => 5,
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
     ]);
 
     $resp = @curl_exec($ch);
+    $curlErr = ($resp === false) ? (string) @curl_error($ch) : '';
     $httpCode = (int) @curl_getinfo($ch, CURLINFO_HTTP_CODE);
     @curl_close($ch);
 
-    return ($httpCode === 200);
+    $ok = ($httpCode === 200);
+    $errMsg = '';
+    if (!$ok) {
+        $respData = is_string($resp) ? @json_decode($resp, true) : null;
+        $tgDesc = is_array($respData) ? (string) ($respData['description'] ?? '') : '';
+        $errMsg = $tgDesc !== '' ? $tgDesc : ($curlErr !== '' ? $curlErr : ('HTTP ' . $httpCode));
+    }
+    grid402_record_telegram_status($ok, $httpCode, $errMsg, $cleanSvc, $isTestTx);
+
+    return $ok;
 }

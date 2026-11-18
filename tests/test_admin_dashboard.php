@@ -332,6 +332,8 @@ try {
     assert(isset($statsJson['passes_stats']), 'API deve conter passes_stats');
     assert(isset($statsJson['facilitator_status']['mode'], $statsJson['facilitator_status']['auth_mode'], $statsJson['facilitator_status']['host']), 'API deve conter facilitator_status sem segredos');
     assert(isset($statsJson['collector_status']['summary_exists'], $statsJson['collector_status']['summary_stale']), 'API deve conter collector_status');
+    assert(isset($statsJson['telegram_status']['configured'], $statsJson['telegram_status']['token_configured'], $statsJson['telegram_status']['chat_id_configured']), 'API deve conter telegram_status sem segredos');
+    assert(defined('GRID402_TELEGRAM_BOT_TOKEN') && (GRID402_TELEGRAM_BOT_TOKEN === '' || !str_contains($authStats['body'], GRID402_TELEGRAM_BOT_TOKEN)), 'API stats nunca deve vazar GRID402_TELEGRAM_BOT_TOKEN');
     assert(isset($statsJson['error_5xx_count']), 'API deve conter error_5xx_count');
     echo "     ✓ Snapshot JSON em tempo real com saldos on-chain, ARPU, SLA, gráfico 14D e top consumidores validado!\n";
 
@@ -363,6 +365,7 @@ try {
     assert(str_contains($dashResp['body'], 'Monitoramento e Faturamento'), 'Deve conter título do Dashboard');
     assert(str_contains($dashResp['body'], 'Ao Vivo'), 'Deve conter indicador de atualização Ao Vivo');
     assert(str_contains($dashResp['body'], 'Facilitador x402'), 'Dashboard deve exibir status seguro do Facilitador x402');
+    assert(str_contains($dashResp['body'], 'runtime-telegram-badge') && str_contains($dashResp['body'], 'btn-test-telegram'), 'Dashboard deve exibir badge e botao de diagnostico do Telegram');
     assert(str_contains($dashResp['body'], 'Sem erros 5xx'), 'Dashboard deve exibir SLA sem erros 5xx');
     assert(str_contains($dashResp['body'], 'Saldo On-Chain (Base)'), 'Deve conter card de Saldo On-Chain');
     assert(str_contains($dashResp['body'], 'password-modal-overlay'), 'Deve conter modal de alteração de senha');
@@ -391,6 +394,20 @@ try {
         CURLOPT_COOKIEFILE => $cookieFile,
     ]);
     assert($noCsrfChange['code'] === 403, "Tentativa de alteração sem CSRF deve retornar HTTP 403 (Recebeu: {$noCsrfChange['code']})");
+
+    // 4.7.1b. Rejeição de test_telegram sem autenticacao e sem CSRF
+    $unauthTg = curl_admin("http://127.0.0.1:{$port}/admin?action=test_telegram", [
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => ['Accept: application/json'],
+    ]);
+    assert($unauthTg['code'] === 401, "test_telegram sem sessao deve retornar HTTP 401 (Recebeu: {$unauthTg['code']})");
+
+    $noCsrfTg = curl_admin("http://127.0.0.1:{$port}/admin?action=test_telegram", [
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => ['Accept: application/json'],
+        CURLOPT_COOKIEFILE => $cookieFile,
+    ]);
+    assert($noCsrfTg['code'] === 403, "test_telegram sem CSRF deve retornar HTTP 403 (Recebeu: {$noCsrfTg['code']})");
 
     // 4.7.2. Tentativa com senha atual errada via JSON e CSRF válido
     $badChange = curl_admin("http://127.0.0.1:{$port}/admin?action=change_password", [
