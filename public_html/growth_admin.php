@@ -10,16 +10,15 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/metrics.php';
 require_once __DIR__ . '/growth.php';
 require_once __DIR__ . '/services/onchain_stats.php';
+require_once __DIR__ . '/includes/admin_auth_guard.php';
 
-$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['SERVER_PORT'] ?? 80) == 443);
-session_name('GRID402_ADMIN_SESS');
-session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'secure' => $isHttps, 'httponly' => true, 'samesite' => 'Lax']);
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-if (empty($_SESSION['admin_logged_in'])) {
-    header('Location: /admin');
+grid402_admin_session_start();
+$sessCheck = grid402_verify_active_admin_session(true);
+if (!$sessCheck['valid']) {
+    $reasonParam = ($sessCheck['reason'] === 'idle_timeout' || $sessCheck['reason'] === 'fingerprint_mismatch')
+        ? ('?expired=' . $sessCheck['reason'])
+        : '';
+    header('Location: /admin' . $reasonParam);
     exit;
 }
 

@@ -193,6 +193,10 @@ $server = grid402_start_server([
     'docroot' => __DIR__ . '/../public_html',
     'router' => __DIR__ . '/../public_html/router.php',
     'probe' => '/admin',
+    'env' => [
+        'GRID402_DISABLE_TELEGRAM' => '1',
+        'GRID402_TEST_OTP_CAPTURE' => '1',
+    ],
 ]);
 $port = $server['port'];
 $serverLog = $server['log_file'];
@@ -503,17 +507,95 @@ try {
     assert(password_verify('NovaSenha#Forte2026', (string) $authDataUpdated['password_hash']) === true, 'Novo hash de senha deve ser validado');
     echo "     ✓ Fluxo seguro de alteração de senha protegido por CSRF homologado com sucesso!\n";
 
-    // 4.8. Testar Logout
+    // 4.7.4. Testar protecao contra sequestro de sessao (Fingerprint IP/User-Agent)
+    echo "  -> Testando proteção contra sequestro de sessão (vínculo de User-Agent)...\n";
+    $hijackResp = curl_admin("http://127.0.0.1:{$port}/admin?api=stats", [
+        CURLOPT_COOKIEFILE => $cookieFile,
+        CURLOPT_USERAGENT => 'Grid402-Hijacker-Agent/9.9',
+    ]);
+    assert($hijackResp['code'] === 401, "Tentativa de uso do cookie de sessão com outro User-Agent deve retornar HTTP 401 (Recebeu: {$hijackResp['code']})");
+    echo "     ✓ Sequestro de sessão com User-Agent divergente bloqueado e sessão invalidada!\n";
+
+    // 4.8. Testar fluxo completo de Login em Duas Etapas (2FA via Telegram) + Logout
+    echo "  -> Testando fluxo completo de autenticação em duas etapas (2FA via Telegram)...\n";
+    $otpCaptureFile = GRID402_PRIVATE_DIR . '/admin_test_otp.json';
+    if (file_exists($otpCaptureFile)) @unlink($otpCaptureFile);
+
+    $twoFaCookie = sys_get_temp_dir() . '/grid402_2fa_cookie.txt';
+    if (file_exists($twoFaCookie)) @unlink($twoFaCookie);
+
+    $loginGet = curl_admin("http://127.0.0.1:{$port}/admin", [
+        CURLOPT_COOKIEJAR => $twoFaCookie,
+        CURLOPT_COOKIEFILE => $twoFaCookie,
+    ]);
+    preg_match('/name="csrf_token"\s+value="([a-f0-9]{64})"/', $loginGet['body'], $twoFaCsrfMatch);
+    $twoFaCsrf = $twoFaCsrfMatch[1] ?? '';
+    assert(strlen($twoFaCsrf) === 64, 'Deve obter CSRF na tela de login para 2FA');
+
+    // Etapa 1: Envia usuario e senha corretos -> deve exigir codigo 2FA e NAO liberar /admin?api=stats ainda
+    $step1Resp = curl_admin("http://127.0.0.1:{$port}/admin", [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => http_build_query([
+            'username' => 'admin_test',
+            'password' => 'NovaSenha#Forte2026',
+            'csrf_token' => $twoFaCsrf,
+        ]),
+        CURLOPT_COOKIEJAR => $twoFaCookie,
+        CURLOPT_COOKIEFILE => $twoFaCookie,
+    ]);
+    assert($step1Resp['code'] === 200 && str_contains($step1Resp['body'], 'Verificação 2FA (Telegram)'), 'Login com 2FA ativo deve renderizar tela de desafio 2FA');
+    assert(is_file($otpCaptureFile), 'Deve ter gerado e despachado codigo OTP de 6 digitos');
+
+    $pre2faApi = curl_admin("http://127.0.0.1:{$port}/admin?api=stats", [
+        CURLOPT_COOKIEFILE => $twoFaCookie,
+    ]);
+    assert($pre2faApi['code'] === 401, 'Antes de concluir o 2FA, /admin?api=stats deve retornar HTTP 401');
+
+    $otpData = json_decode((string) file_get_contents($otpCaptureFile), true);
+    $realOtp = (string) ($otpData['otp'] ?? '');
+    assert(preg_match('/^\d{6}$/', $realOtp) === 1, 'OTP capturado deve ter 6 digitos numericos');
+    $wrongOtp = ($realOtp === '000000') ? '999999' : '000000';
+
+    // Etapa 2a: Envia codigo OTP incorreto -> deve recusar
+    $badOtpResp = curl_admin("http://127.0.0.1:{$port}/admin?action=verify_2fa", [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => http_build_query([
+            'otp_code' => $wrongOtp,
+            'csrf_token' => $twoFaCsrf,
+        ]),
+        CURLOPT_COOKIEJAR => $twoFaCookie,
+        CURLOPT_COOKIEFILE => $twoFaCookie,
+    ]);
+    assert(str_contains($badOtpResp['body'], 'Código 2FA incorreto'), 'OTP incorreto deve ser recusado com contagem de tentativas');
+
+    // Etapa 2b: Envia codigo OTP correto -> deve redirecionar 302 e liberar sessao autenticada
+    $goodOtpResp = curl_admin("http://127.0.0.1:{$port}/admin?action=verify_2fa", [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => http_build_query([
+            'otp_code' => $realOtp,
+            'csrf_token' => $twoFaCsrf,
+        ]),
+        CURLOPT_COOKIEJAR => $twoFaCookie,
+        CURLOPT_COOKIEFILE => $twoFaCookie,
+    ]);
+    assert($goodOtpResp['code'] === 302, "OTP correto deve redirecionar HTTP 302 para /admin (Recebeu: {$goodOtpResp['code']})");
+
+    $post2faApi = curl_admin("http://127.0.0.1:{$port}/admin?api=stats", [
+        CURLOPT_COOKIEFILE => $twoFaCookie,
+    ]);
+    assert($post2faApi['code'] === 200, "Apos concluir 2FA, /admin?api=stats deve retornar HTTP 200 (Recebeu: {$post2faApi['code']})");
+    echo "     ✓ Autenticação 2FA via Telegram (desafio, recusa de OTP inválido e aprovação de OTP válido) homologada!\n";
+
     echo "  -> Testando encerramento de sessão (Logout)...\n";
     $logoutResp = curl_admin("http://127.0.0.1:{$port}/admin?action=logout", [
-        CURLOPT_COOKIEFILE => $cookieFile,
-        CURLOPT_COOKIEJAR => $cookieFile,
+        CURLOPT_COOKIEFILE => $twoFaCookie,
+        CURLOPT_COOKIEJAR => $twoFaCookie,
     ]);
     assert($logoutResp['code'] === 302, "Logout deve redirecionar");
 
     // Verifica que não está mais autenticado na API
     $afterLogout = curl_admin("http://127.0.0.1:{$port}/admin?api=stats", [
-        CURLOPT_COOKIEFILE => $cookieFile,
+        CURLOPT_COOKIEFILE => $twoFaCookie,
     ]);
     assert($afterLogout['code'] === 401, "Após logout, API deve responder 401 Unauthorized");
     echo "     ✓ Sessão encerrada e dados protegidos!\n";
@@ -567,7 +649,10 @@ try {
 
     // Restaura arquivos de teste
     if (isset($cookieFile) && file_exists($cookieFile)) @unlink($cookieFile);
+    if (isset($twoFaCookie) && file_exists($twoFaCookie)) @unlink($twoFaCookie);
     if (isset($loginPageCookie) && file_exists($loginPageCookie)) @unlink($loginPageCookie);
+    $otpTestFile = GRID402_PRIVATE_DIR . '/admin_test_otp.json';
+    if (file_exists($otpTestFile)) @unlink($otpTestFile);
     $loginRateFile = GRID402_PRIVATE_DIR . '/admin_login_rate.json';
     if (file_exists($loginRateFile)) @unlink($loginRateFile);
     if (file_exists($testAuthBackup)) {

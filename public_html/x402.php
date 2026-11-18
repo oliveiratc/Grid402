@@ -780,7 +780,7 @@ function grid402_resolve_telegram_credentials(): array {
     $fileCfg = grid402_read_telegram_config();
     $token = $envToken !== '' ? $envToken : $fileCfg['bot_token'];
     $chatId = $envChat !== '' ? $envChat : $fileCfg['chat_id'];
-    $source = ($token !== '' and $chatId !== '') ? ($envToken !== '' or $envChat !== '' ? 'mixed' : 'admin_file') : 'none';
+    $source = ($token !== '' and $chatId !== '') ? (($envToken !== '' or $envChat !== '') ? 'mixed' : 'admin_file') : 'none';
 
     return ['token' => $token, 'chat_id' => $chatId, 'source' => $source];
 }
@@ -829,6 +829,107 @@ function grid402_telegram_runtime_status(): array {
         'source' => $creds['source'],
         'last_status' => $lastStatus,
     ];
+}
+
+/**
+ * Envia codigo OTP de 6 digitos via Telegram para autenticacao de dois fatores (2FA) no portal /admin.
+ */
+function grid402_send_telegram_admin_otp(string $username, string $otpCode, string $maskedIp): bool {
+    if (preg_match('/^\d{6}$/', $otpCode) !== 1) {
+        return false;
+    }
+
+    // Modo exclusivo de captura local para suite de testes automatizados (loopback estrito)
+    $remoteAddr = (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+    if ((string) grid402_env('GRID402_TEST_OTP_CAPTURE', '') === '1' and in_array($remoteAddr, ['127.0.0.1', '::1'], true)) {
+        $dir = defined('GRID402_PRIVATE_DIR') ? rtrim((string) GRID402_PRIVATE_DIR, '/\\') : (__DIR__ . '/private_data');
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0775, true);
+        }
+        @file_put_contents($dir . '/admin_test_otp.json', (string) json_encode([
+            'username' => $username,
+            'otp' => $otpCode,
+            'timestamp' => time(),
+        ], JSON_UNESCAPED_SLASHES), LOCK_EX);
+        return true;
+    }
+
+    if ((string) grid402_env('GRID402_DISABLE_TELEGRAM', '') === '1') {
+        return false;
+    }
+
+    $creds = grid402_resolve_telegram_credentials();
+    $token = $creds['token'];
+    $chatId = $creds['chat_id'];
+    if ($token === '' or $chatId === '') {
+        return false;
+    }
+
+    $safeUser = preg_replace('/[^a-zA-Z0-9_.-]/', '', $username) ?: 'admin';
+    $safeIp = preg_replace('/[^a-zA-Z0-9:._-]/', '', $maskedIp) ?: 'unknown';
+    $utcNow = gmdate('d/m/Y H:i:s \U\T\C');
+
+    $lines = [
+        "🔐 <b>Código de Acesso 2FA - Grid402 Admin</b>",
+        "",
+        "👤 <b>Operador:</b> <code>{$safeUser}</code>",
+        "🔑 <b>Código OTP:</b> <code>{$otpCode}</code>",
+        "🌐 <b>Origem:</b> <code>{$safeIp}</code>",
+        "⏱ <b>Validade:</b> 5 minutos",
+        "📅 <b>Data:</b> {$utcNow}",
+    ];
+    $payload = json_encode([
+        'chat_id' => $chatId,
+        'text' => implode("\n", $lines),
+        'parse_mode' => 'HTML',
+        'disable_web_page_preview' => true,
+    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+    if (!is_string($payload)) {
+        return false;
+    }
+
+    try {
+        $ch = @curl_init("https://api.telegram.org/bot{$token}/sendMessage");
+        if (!$ch) {
+            return false;
+        }
+        $curlOpts = [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_TIMEOUT => 4,
+            CURLOPT_CONNECTTIMEOUT => 2,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_USERAGENT => 'Grid402-Telegram-Notifier/1.0',
+        ];
+        if (defined('CURLOPT_IPRESOLVE') and defined('CURL_IPRESOLVE_V4')) {
+            $curlOpts[CURLOPT_IPRESOLVE] = CURL_IPRESOLVE_V4;
+        }
+        @curl_setopt_array($ch, $curlOpts);
+        $rawResp = @curl_exec($ch);
+        $httpCode = (int) @curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlErr = (string) @curl_error($ch);
+        @curl_close($ch);
+
+        if ($httpCode === 200) {
+            grid402_record_telegram_status(true, 200, '', 'admin_2fa', false);
+            return true;
+        }
+        $tgDesc = '';
+        if (is_string($rawResp) and $rawResp !== '') {
+            $dec = @json_decode($rawResp, true);
+            if (is_array($dec) and isset($dec['description'])) {
+                $tgDesc = (string) $dec['description'];
+            }
+        }
+        grid402_record_telegram_status(false, $httpCode, $tgDesc !== '' ? $tgDesc : ($curlErr !== '' ? $curlErr : "HTTP {$httpCode}"), 'admin_2fa', false);
+        return false;
+    } catch (Throwable $e) {
+        return false;
+    }
 }
 
 /**

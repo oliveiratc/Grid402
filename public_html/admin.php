@@ -16,6 +16,7 @@ require_once __DIR__ . '/growth.php';
 require_once __DIR__ . '/facilitator.php';
 require_once __DIR__ . '/x402.php';
 require_once __DIR__ . '/services/forex.php';
+require_once __DIR__ . '/includes/admin_auth_guard.php';
 
 /**
  * Retorna snapshot seguro (sem segredos) do estado do facilitador x402, coletor e Telegram.
@@ -180,27 +181,32 @@ function grid402_get_oracle_wallet_balances(): array {
     return $result;
 }
 
-// 1. Configuração estrita de sessão segura
-$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['SERVER_PORT'] ?? 80) == 443);
-session_name('GRID402_ADMIN_SESS');
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path' => '/',
-    'secure' => $isHttps,
-    'httponly' => true,
-    'samesite' => 'Lax',
-]);
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// 1. Configuração estrita de sessão segura (HttpOnly, SameSite=Lax, Fingerprint IP/UA e Idle Timeout)
+grid402_admin_session_start();
 
 $authFile = GRID402_FILE_ADMIN_AUTH;
 $hasSetup = file_exists($authFile);
-$isLoggedIn = !empty($_SESSION['admin_logged_in']);
 $action = (string) ($_GET['action'] ?? '');
 $apiParam = (string) ($_GET['api'] ?? '');
 $errorMsg = '';
 $successMsg = '';
+
+$isBackgroundPoll = ($apiParam === 'stats' || $apiParam === 'growth');
+$touchSessionActivity = !$isBackgroundPoll || ((string) ($_GET['touch'] ?? '') === '1');
+$sessionVerification = grid402_verify_active_admin_session($touchSessionActivity);
+$isLoggedIn = (bool) $sessionVerification['valid'];
+
+if (!$isLoggedIn && ($sessionVerification['reason'] === 'idle_timeout' || (string) ($_GET['expired'] ?? '') === 'idle_timeout')) {
+    $errorMsg = 'Sua sessão expirou por inatividade. Faça login novamente.';
+} elseif (!$isLoggedIn && ($sessionVerification['reason'] === 'fingerprint_mismatch' || (string) ($_GET['expired'] ?? '') === 'fingerprint_mismatch')) {
+    $errorMsg = 'Sessão encerrada por mudança de rede ou navegador. Autentique-se novamente.';
+}
+
+if ($action === 'cancel_2fa') {
+    unset($_SESSION['admin_2fa_pending']);
+    header('Location: /admin');
+    exit;
+}
 
 // 2. Ações de Logout e Reset de Segurança
 if ($action === 'logout') {
@@ -472,7 +478,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // 3.0. Alteracao de Senha Autenticada
+    // 3.0. Alteracao de Senha / Usuario / 2FA Autenticada
     if ($action === 'change_password') {
         $isJsonReq = ((isset($_GET['format']) and $_GET['format'] === 'json') or
                       (str_contains((string)($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json')));
@@ -502,6 +508,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $currPass = (string) ($_POST['current_password'] ?? '');
         $newPass = (string) ($_POST['new_password'] ?? '');
         $newPassConfirm = (string) ($_POST['new_password_confirm'] ?? '');
+        $newUsername = trim((string) ($_POST['new_username'] ?? ''));
+        $hasTwoFactorField = array_key_exists('two_factor_telegram', $_POST);
+        $twoFactorEnabled = $hasTwoFactorField ? ((string) $_POST['two_factor_telegram'] === '1') : null;
 
         $authContent = @file_get_contents($authFile);
         $authData = $authContent ? @json_decode($authContent, true) : null;
@@ -509,10 +518,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $pErr = '';
         if (!$authData or !password_verify($currPass, (string)($authData['password_hash'] ?? ''))) {
             $pErr = 'A senha atual informada esta incorreta.';
-        } elseif (strlen($newPass) < 8) {
-            $pErr = 'A nova senha deve ter no minimo 8 caracteres.';
-        } elseif ($newPass !== $newPassConfirm) {
-            $pErr = 'A nova senha e a confirmacao nao coincidem.';
+        } elseif ($newUsername !== '' and strlen($newUsername) < 3) {
+            $pErr = 'O nome de usuario deve ter no minimo 3 caracteres.';
+        } elseif ($newPass !== '' or $newPassConfirm !== '' or (!$hasTwoFactorField and $newUsername === '')) {
+            if (strlen($newPass) < 8) {
+                $pErr = 'A nova senha deve ter no minimo 8 caracteres.';
+            } elseif ($newPass !== $newPassConfirm) {
+                $pErr = 'A nova senha e a confirmacao nao coincidem.';
+            }
         }
 
         if ($pErr !== '') {
@@ -525,17 +538,107 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $errorMsg = $pErr;
             }
         } else {
-            $newHash = password_hash($newPass, PASSWORD_BCRYPT, ['cost' => 11]);
-            $authData['password_hash'] = $newHash;
+            if ($newPass !== '') {
+                $authData['password_hash'] = password_hash($newPass, PASSWORD_BCRYPT, ['cost' => 11]);
+            }
+            if ($newUsername !== '') {
+                $authData['username'] = $newUsername;
+                $_SESSION['admin_user'] = $newUsername;
+            }
+            if ($twoFactorEnabled !== null) {
+                $authData['two_factor_telegram'] = $twoFactorEnabled;
+            }
             $authData['updated_at'] = gmdate('Y-m-d\TH:i:s\Z');
             grid402_atomic_write($authFile, $authData);
 
             if ($isJsonReq) {
                 header('Content-Type: application/json; charset=utf-8');
-                echo json_encode(['success' => true, 'message' => 'Senha alterada com sucesso!']);
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Credenciais e configuracoes de seguranca atualizadas com sucesso!',
+                    'username' => (string) ($authData['username'] ?? ''),
+                    'two_factor_telegram' => (bool) ($authData['two_factor_telegram'] ?? true),
+                ]);
                 exit;
             } else {
                 $successMsg = 'Senha alterada com sucesso!';
+            }
+        }
+    } elseif ($action === 'verify_2fa' || isset($_POST['otp_code'])) {
+        // 3.0c. Verificacao do Codigo 2FA enviado via Telegram
+        $clientIp = function_exists('grid402_get_trusted_client_ip') ? grid402_get_trusted_client_ip() : (string)($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+        $pending = $_SESSION['admin_2fa_pending'] ?? null;
+
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            $errorMsg = 'Token CSRF de seguranca invalido ou expirado. Recarregue a pagina.';
+        } elseif (!is_array($pending)) {
+            $errorMsg = 'Nenhum desafio 2FA ativo na sessao. Faca login novamente.';
+        } elseif (!hash_equals((string)($pending['fingerprint'] ?? ''), grid402_admin_session_fingerprint())) {
+            unset($_SESSION['admin_2fa_pending']);
+            $errorMsg = 'Desafio 2FA invalidado por mudanca de rede ou navegador. Faca login novamente.';
+        } elseif (time() > (int)($pending['expires_at'] ?? 0)) {
+            unset($_SESSION['admin_2fa_pending']);
+            $errorMsg = 'O código 2FA expirou (validade de 5 minutos). Faça login novamente.';
+        } else {
+            $_SESSION['admin_2fa_pending']['attempts'] = ((int)($pending['attempts'] ?? 0)) + 1;
+            $attempts = (int) $_SESSION['admin_2fa_pending']['attempts'];
+            $otpInput = preg_replace('/\D/', '', (string)($_POST['otp_code'] ?? ''));
+            $expectedHash = (string)($pending['code_hash'] ?? '');
+            $actualHash = hash_hmac('sha256', (string) $otpInput, $csrfToken);
+
+            if ($otpInput !== '' && strlen((string) $otpInput) === 6 && hash_equals($expectedHash, $actualHash)) {
+                $authContent = @file_get_contents($authFile);
+                $authData = $authContent ? @json_decode($authContent, true) : null;
+                $verifiedUser = (string)($pending['username'] ?? ($authData['username'] ?? 'admin'));
+
+                if (is_array($authData)) {
+                    $authData['last_login'] = gmdate('Y-m-d\TH:i:s\Z');
+                    $authData['login_count'] = ((int)($authData['login_count'] ?? 0)) + 1;
+                    grid402_atomic_write($authFile, $authData);
+                }
+
+                grid402_reset_login_rate($clientIp);
+                grid402_establish_admin_session($verifiedUser);
+                if (session_status() === PHP_SESSION_ACTIVE) {
+                    session_write_close();
+                }
+                header('Location: /admin');
+                exit;
+            } else {
+                usleep(250000);
+                if ($attempts >= 5) {
+                    unset($_SESSION['admin_2fa_pending']);
+                    grid402_record_login_failure($clientIp);
+                    $errorMsg = 'Limite de 5 tentativas para o código 2FA excedido. Faça login novamente.';
+                } else {
+                    $rem2fa = 5 - $attempts;
+                    $errorMsg = "Código 2FA incorreto. ({$rem2fa} tentativa(s) restante(s)).";
+                }
+            }
+        }
+    } elseif ($action === 'resend_2fa') {
+        // 3.0d. Reenvio do Codigo 2FA via Telegram
+        $clientIp = function_exists('grid402_get_trusted_client_ip') ? grid402_get_trusted_client_ip() : (string)($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+        $pending = $_SESSION['admin_2fa_pending'] ?? null;
+
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            $errorMsg = 'Token CSRF de seguranca invalido ou expirado.';
+        } elseif (!is_array($pending)) {
+            $errorMsg = 'Nenhum desafio 2FA ativo. Faca login novamente.';
+        } elseif ((time() - (int)($pending['sent_at'] ?? 0)) < 15) {
+            $waitSec = max(1, 15 - (time() - (int)($pending['sent_at'] ?? 0)));
+            $errorMsg = "Aguarde {$waitSec}s antes de solicitar um novo código.";
+        } else {
+            $otpCode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $maskedIp = function_exists('grid402_mask_ip') ? grid402_mask_ip($clientIp) : $clientIp;
+            if (grid402_send_telegram_admin_otp((string)($pending['username'] ?? 'admin'), $otpCode, $maskedIp)) {
+                $_SESSION['admin_2fa_pending']['code_hash'] = hash_hmac('sha256', $otpCode, $csrfToken);
+                $_SESSION['admin_2fa_pending']['expires_at'] = time() + 300;
+                $_SESSION['admin_2fa_pending']['attempts'] = 0;
+                $_SESSION['admin_2fa_pending']['sent_at'] = time();
+                $successMsg = 'Novo código de 6 dígitos enviado para o seu Telegram.';
+            } else {
+                $errorMsg = 'Falha ao reenviar código pelo Telegram.';
             }
         }
     } elseif (!$hasSetup) {
@@ -558,6 +661,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $authData = [
                     'username' => $user,
                     'password_hash' => $hash,
+                    'two_factor_telegram' => true,
                     'created_at' => gmdate('Y-m-d\TH:i:s\Z'),
                     'last_login' => gmdate('Y-m-d\TH:i:s\Z'),
                     'login_count' => 1,
@@ -567,10 +671,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!$saved or !file_exists($authFile)) {
                     $errorMsg = 'Erro crítico: não foi possível gravar as credenciais no disco. Verifique permissões do diretório de armazenamento.';
                 } else {
-                    session_regenerate_id(true);
-                    $_SESSION['admin_logged_in'] = true;
-                    $_SESSION['admin_user'] = $user;
-                    $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
+                    grid402_establish_admin_session($user);
                     if (session_status() === PHP_SESSION_ACTIVE) {
                         session_write_close();
                     }
@@ -580,7 +681,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } else {
-        // 3.2. Login Normal com Protecao Anti-Brute-Force
+        // 3.2. Login Normal com Protecao Anti-Brute-Force + 2FA Telegram
         $clientIp = function_exists('grid402_get_trusted_client_ip') ? grid402_get_trusted_client_ip() : (string)($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
         $rateCheck = grid402_check_login_rate($clientIp);
 
@@ -598,21 +699,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $authData = $authContent ? @json_decode($authContent, true) : null;
 
             if ($authData and $user === ($authData['username'] ?? '') and password_verify($pass, (string)($authData['password_hash'] ?? ''))) {
-                grid402_reset_login_rate($clientIp);
-                session_regenerate_id(true);
-                $_SESSION['admin_logged_in'] = true;
-                $_SESSION['admin_user'] = $authData['username'];
-                $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
+                if (grid402_is_telegram_2fa_required($authData)) {
+                    $otpCode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+                    $maskedIp = function_exists('grid402_mask_ip') ? grid402_mask_ip($clientIp) : $clientIp;
+                    $sentOtp = grid402_send_telegram_admin_otp((string) $authData['username'], $otpCode, $maskedIp);
 
-                $authData['last_login'] = gmdate('Y-m-d\TH:i:s\Z');
-                $authData['login_count'] = ((int)($authData['login_count'] ?? 0)) + 1;
-                grid402_atomic_write($authFile, $authData);
+                    if ($sentOtp) {
+                        $_SESSION['admin_2fa_pending'] = [
+                            'username' => (string) $authData['username'],
+                            'code_hash' => hash_hmac('sha256', $otpCode, $csrfToken),
+                            'expires_at' => time() + 300,
+                            'attempts' => 0,
+                            'sent_at' => time(),
+                            'fingerprint' => grid402_admin_session_fingerprint(),
+                        ];
+                    } else {
+                        $errorMsg = 'Não foi possível enviar o código 2FA para o Telegram. Verifique a conectividade do bot.';
+                    }
+                } else {
+                    grid402_reset_login_rate($clientIp);
+                    grid402_establish_admin_session((string) $authData['username']);
 
-                if (session_status() === PHP_SESSION_ACTIVE) {
-                    session_write_close();
+                    $authData['last_login'] = gmdate('Y-m-d\TH:i:s\Z');
+                    $authData['login_count'] = ((int)($authData['login_count'] ?? 0)) + 1;
+                    grid402_atomic_write($authFile, $authData);
+
+                    if (session_status() === PHP_SESSION_ACTIVE) {
+                        session_write_close();
+                    }
+                    header('Location: /admin');
+                    exit;
                 }
-                header('Location: /admin');
-                exit;
             } else {
                 grid402_record_login_failure($clientIp);
                 usleep(350000); // Delay defensivo anti-bruteforce
@@ -1044,7 +1161,11 @@ if (!$isLoggedIn) {
                 </div>
             </div>
 
-            <?php if (!$hasSetup): ?>
+            <?php $pending2fa = is_array($_SESSION['admin_2fa_pending'] ?? null) ? $_SESSION['admin_2fa_pending'] : null; ?>
+            <?php if ($pending2fa): ?>
+                <h1>Verificação 2FA (Telegram)</h1>
+                <p class="sub">Enviamos um código de 6 dígitos para o seu Telegram oficial (válido por 5 minutos).</p>
+            <?php elseif (!$hasSetup): ?>
                 <h1>Configurar Acesso</h1>
                 <p class="sub">Primeiro acesso detectado. Crie as credenciais mestras do operador.</p>
                 <div class="alert-info">🔒 Estas credenciais serão salvas com criptografia forte e protegerão os dados financeiros e métricas de uso.</div>
@@ -1056,25 +1177,44 @@ if (!$isLoggedIn) {
             <?php if ($errorMsg): ?>
                 <div class="alert-error"><?php echo htmlspecialchars($errorMsg, ENT_QUOTES, 'UTF-8'); ?></div>
             <?php endif; ?>
+            <?php if ($successMsg): ?>
+                <div class="alert-info"><?php echo htmlspecialchars($successMsg, ENT_QUOTES, 'UTF-8'); ?></div>
+            <?php endif; ?>
 
-            <form method="POST" action="<?php echo htmlspecialchars($_SERVER['REQUEST_URI'] ?? '/admin', ENT_QUOTES, 'UTF-8'); ?>">
-                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
-                <div class="form-group">
-                    <label for="username">Usuário Administrador</label>
-                    <input type="text" id="username" name="username" value="<?php echo htmlspecialchars($user ?? '', ENT_QUOTES, 'UTF-8'); ?>" required autocomplete="username" autofocus>
-                </div>
-                <div class="form-group">
-                    <label for="password">Senha</label>
-                    <input type="password" id="password" name="password" required autocomplete="<?php echo $hasSetup ? 'current-password' : 'new-password'; ?>" minlength="8">
-                </div>
-                <?php if (!$hasSetup): ?>
+            <?php if ($pending2fa): ?>
+                <form id="admin-2fa-form" method="POST" action="/admin?action=verify_2fa">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="form-group">
-                        <label for="password_confirm">Confirme a Senha</label>
-                        <input type="password" id="password_confirm" name="password_confirm" required autocomplete="new-password" minlength="8">
+                        <label for="otp_code">Código OTP de 6 dígitos</label>
+                        <input type="text" id="otp_code" name="otp_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required autocomplete="one-time-code" autofocus style="font-family: var(--font-mono); font-size: 1.35rem; letter-spacing: 0.35rem; text-align: center;">
                     </div>
-                <?php endif; ?>
-                <button type="submit" class="btn"><?php echo $hasSetup ? 'Entrar no Painel' : 'Salvar e Acessar'; ?></button>
-            </form>
+                    <button type="submit" class="btn">Verificar e Entrar</button>
+                </form>
+                <form method="POST" action="/admin?action=resend_2fa" style="margin-top: 0.75rem;">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                    <button type="submit" class="btn" style="background: transparent; border: 1px solid var(--border); color: var(--text-muted); font-size: 0.85rem; padding: 0.55rem;">Reenviar código no Telegram</button>
+                </form>
+                <a href="/admin?action=cancel_2fa" class="back-link" style="margin-top: 1rem;">← Cancelar e voltar ao login</a>
+            <?php else: ?>
+                <form method="POST" action="<?php echo htmlspecialchars($_SERVER['REQUEST_URI'] ?? '/admin', ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                    <div class="form-group">
+                        <label for="username">Usuário Administrador</label>
+                        <input type="text" id="username" name="username" value="<?php echo htmlspecialchars($user ?? '', ENT_QUOTES, 'UTF-8'); ?>" required autocomplete="username" autofocus>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Senha</label>
+                        <input type="password" id="password" name="password" required autocomplete="<?php echo $hasSetup ? 'current-password' : 'new-password'; ?>" minlength="8">
+                    </div>
+                    <?php if (!$hasSetup): ?>
+                        <div class="form-group">
+                            <label for="password_confirm">Confirme a Senha</label>
+                            <input type="password" id="password_confirm" name="password_confirm" required autocomplete="new-password" minlength="8">
+                        </div>
+                    <?php endif; ?>
+                    <button type="submit" class="btn"><?php echo $hasSetup ? 'Entrar no Painel' : 'Salvar e Acessar'; ?></button>
+                </form>
+            <?php endif; ?>
 
             <a href="/" class="back-link">← Voltar para o portal público</a>
         </div>
@@ -1085,6 +1225,12 @@ if (!$isLoggedIn) {
 }
 
 // 5. Visualização do Dashboard Autenticado
+$currentAuthRaw = @file_get_contents($authFile);
+$currentAuthData = $currentAuthRaw ? (@json_decode($currentAuthRaw, true) ?: []) : [];
+$currentAdminUser = (string)($_SESSION['admin_user'] ?? ($currentAuthData['username'] ?? 'admin'));
+$twoFactorEnabled = array_key_exists('two_factor_telegram', $currentAuthData) ? (bool)$currentAuthData['two_factor_telegram'] : true;
+$twoFactorActive = grid402_is_telegram_2fa_required($currentAuthData);
+
 $metrics = grid402_get_metrics();
 $forex = grid402_service_forex();
 $usdRate = (float)($forex['rates']['USD']['bid'] ?? 5.50);
@@ -1774,6 +1920,9 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             <span id="runtime-telegram-badge" style="color:<?php echo $tgColor; ?>;">
                 Telegram: <strong><?php echo htmlspecialchars($tgLabel, ENT_QUOTES, 'UTF-8'); ?></strong><?php echo htmlspecialchars($tgSuffix, ENT_QUOTES, 'UTF-8'); ?>
             </span>
+            <span id="runtime-security-badge" style="color:<?php echo $twoFactorActive ? '#10B981' : '#38BDF8'; ?>;">
+                Sessão: <strong id="runtime-security-text"><?php echo $twoFactorActive ? '2FA Telegram ativo' : ($twoFactorEnabled ? '2FA aguardando bot' : '2FA desativado'); ?> · 30m timeout · IP/UA vinculado</strong>
+            </span>
             <div style="margin-left:auto;display:flex;gap:0.4rem;flex-wrap:wrap;">
                 <button type="button" id="btn-config-telegram" class="btn-outline" style="padding:0.25rem 0.65rem;font-size:0.74rem;" onclick="openTelegramModal()">⚙️ Configurar Telegram</button>
                 <button type="button" id="btn-test-telegram" class="btn-outline" style="padding:0.25rem 0.65rem;font-size:0.74rem;" onclick="triggerTelegramTest()">🔔 Testar Telegram</button>
@@ -2234,30 +2383,40 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
         </div>
     </div>
 
-    <!-- Modal de Alteracao de Senha do Operador -->
+    <!-- Modal de Seguranca e Alteracao de Senha do Operador -->
     <div id="password-modal-overlay" class="modal-overlay" onclick="handlePasswordOverlayClick(event)">
-        <div class="modal-card">
+        <div class="modal-card" style="max-width: 480px;">
             <div class="modal-header">
-                <span class="modal-title">🔑 Alterar Senha do Operador</span>
+                <span class="modal-title">🔑 Segurança, Conta e 2FA</span>
                 <button type="button" class="modal-close" onclick="closePasswordModal()">✕</button>
             </div>
             <form id="change-password-form" onsubmit="submitPasswordChange(event)" style="padding: 1.5rem;">
                 <div id="password-modal-alert" style="display: none; padding: 0.65rem 0.85rem; border-radius: 6px; font-size: 0.82rem; margin-bottom: 1rem;"></div>
                 <div class="form-group" style="margin-bottom: 1rem;">
-                    <label for="modal-curr-pass" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">Senha Atual</label>
+                    <label for="modal-new-user" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">Usuário Administrador</label>
+                    <input type="text" id="modal-new-user" minlength="3" class="search-input" style="max-width: 100%; width: 100%;" value="<?php echo htmlspecialchars($currentAdminUser, ENT_QUOTES, 'UTF-8'); ?>" autocomplete="username">
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem; padding: 0.65rem 0.85rem; background: rgba(0, 240, 255, 0.06); border: 1px solid rgba(0, 240, 255, 0.2); border-radius: 6px;">
+                    <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.82rem; color: #fff; cursor: pointer; margin: 0;">
+                        <input type="checkbox" id="modal-2fa-telegram" <?php echo $twoFactorEnabled ? 'checked' : ''; ?> style="width: 16px; height: 16px; accent-color: var(--accent);">
+                        <span>Exigir código 2FA no Telegram (@GRIG402BOT) a cada login</span>
+                    </label>
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="modal-curr-pass" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">Senha Atual (obrigatória para autorizar)</label>
                     <input type="password" id="modal-curr-pass" required class="search-input" style="max-width: 100%; width: 100%;" autocomplete="current-password">
                 </div>
                 <div class="form-group" style="margin-bottom: 1rem;">
-                    <label for="modal-new-pass" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">Nova Senha (min. 8 caracteres)</label>
-                    <input type="password" id="modal-new-pass" required minlength="8" class="search-input" style="max-width: 100%; width: 100%;" autocomplete="new-password">
+                    <label for="modal-new-pass" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">Nova Senha (min. 8 caracteres — deixe em branco para manter a atual)</label>
+                    <input type="password" id="modal-new-pass" minlength="8" class="search-input" style="max-width: 100%; width: 100%;" autocomplete="new-password">
                 </div>
                 <div class="form-group" style="margin-bottom: 1.25rem;">
                     <label for="modal-confirm-pass" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">Confirmar Nova Senha</label>
-                    <input type="password" id="modal-confirm-pass" required minlength="8" class="search-input" style="max-width: 100%; width: 100%;" autocomplete="new-password">
+                    <input type="password" id="modal-confirm-pass" minlength="8" class="search-input" style="max-width: 100%; width: 100%;" autocomplete="new-password">
                 </div>
                 <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
                     <button type="button" class="btn-outline" onclick="closePasswordModal()">Cancelar</button>
-                    <button type="submit" id="btn-submit-password" class="btn" style="width: auto; padding: 0.5rem 1.25rem; font-size: 0.85rem; margin-top: 0;">Salvar Nova Senha</button>
+                    <button type="submit" id="btn-submit-password" class="btn" style="width: auto; padding: 0.5rem 1.25rem; font-size: 0.85rem; margin-top: 0;">Salvar Segurança</button>
                 </div>
             </form>
         </div>
@@ -2644,11 +2803,23 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             }
         }
 
+        let userInteractedSinceLastTouch = false;
+        let lastSessionTouchAt = Date.now();
+        ['mousemove', 'keydown', 'click', 'touchstart'].forEach(evtName => {
+            window.addEventListener(evtName, () => { userInteractedSinceLastTouch = true; }, { passive: true });
+        });
+
         async function fetchLiveStats(isManual = false) {
             try {
-                const res = await fetch('/admin?api=stats', { cache: 'no-store' });
+                let statsUrl = '/admin?api=stats';
+                if (isManual || (userInteractedSinceLastTouch && (Date.now() - lastSessionTouchAt) > 30000)) {
+                    statsUrl += '&touch=1';
+                    userInteractedSinceLastTouch = false;
+                    lastSessionTouchAt = Date.now();
+                }
+                const res = await fetch(statsUrl, { cache: 'no-store' });
                 if (res.status === 401) {
-                    window.location.reload();
+                    window.location.href = '/admin?expired=idle_timeout';
                     return;
                 }
                 const data = await res.json();
@@ -2934,13 +3105,17 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
 
         async function submitPasswordChange(e) {
             e.preventDefault();
+            const newUserEl = document.getElementById('modal-new-user');
+            const twoFactorEl = document.getElementById('modal-2fa-telegram');
+            const newUser = newUserEl ? newUserEl.value.trim() : '';
+            const twoFactorVal = twoFactorEl ? (twoFactorEl.checked ? '1' : '0') : '1';
             const currPass = document.getElementById('modal-curr-pass').value;
             const newPass = document.getElementById('modal-new-pass').value;
             const confirmPass = document.getElementById('modal-confirm-pass').value;
             const alertBox = document.getElementById('password-modal-alert');
             const btn = document.getElementById('btn-submit-password');
 
-            if (newPass !== confirmPass) {
+            if (newPass !== '' && newPass !== confirmPass) {
                 alertBox.style.display = 'block';
                 alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
                 alertBox.style.color = '#FCA5A5';
@@ -2959,6 +3134,8 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 formData.append('current_password', currPass);
                 formData.append('new_password', newPass);
                 formData.append('new_password_confirm', confirmPass);
+                formData.append('new_username', newUser);
+                formData.append('two_factor_telegram', twoFactorVal);
                 formData.append('csrf_token', csrfVal);
 
                 const res = await fetch('/admin?action=change_password', {
@@ -2975,14 +3152,18 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 if (data.success) {
                     alertBox.style.background = 'rgba(16, 185, 129, 0.15)';
                     alertBox.style.color = '#34D399';
-                    alertBox.textContent = data.message || 'Senha alterada com sucesso!';
+                    alertBox.textContent = data.message || 'Segurança atualizada com sucesso!';
+                    const secTextEl = document.getElementById('runtime-security-text');
+                    if (secTextEl && typeof data.two_factor_telegram === 'boolean') {
+                        secTextEl.textContent = (data.two_factor_telegram ? '2FA Telegram ativo' : '2FA desativado') + ' · 30m timeout · IP/UA vinculado';
+                    }
                     setTimeout(() => {
                         closePasswordModal();
                     }, 1500);
                 } else {
                     alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
                     alertBox.style.color = '#FCA5A5';
-                    alertBox.textContent = data.error || 'Nao foi possivel alterar a senha.';
+                    alertBox.textContent = data.error || 'Nao foi possivel atualizar as configuracoes.';
                 }
             } catch (err) {
                 alertBox.style.display = 'block';
@@ -2991,7 +3172,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 alertBox.textContent = 'Erro ao conectar ao servidor: ' + err.message;
             } finally {
                 btn.disabled = false;
-                btn.textContent = 'Salvar Nova Senha';
+                btn.textContent = 'Salvar Segurança';
             }
         }
 
