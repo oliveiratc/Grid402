@@ -4936,39 +4936,53 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                             nonce,
                         },
                     },
-                    extensions: {
-                        bazaar: {
-                            info: {
-                                input: { type: 'http', method: 'GET', discoverable: true },
-                                output: { type: 'json', example: { status: 'success' } },
-                            },
-                            schema: {
-                                '$schema': 'https://json-schema.org/draft/2020-12/schema',
-                                type: 'object',
-                                required: ['input'],
-                                properties: {
-                                    input: {
-                                        type: 'object',
-                                        required: ['type', 'method'],
-                                        properties: {
-                                            type: { type: 'string', const: 'http' },
-                                            method: { type: 'string', enum: ['GET', 'HEAD', 'POST'] },
-                                            discoverable: { type: 'boolean' },
+                    extensions: (() => {
+                        const qp = {};
+                        try {
+                            const parsedUrl = new URL(resourceUrl);
+                            parsedUrl.searchParams.forEach((v, k) => {
+                                if (k !== 'api' && k !== 'format') qp[k] = v;
+                            });
+                        } catch (_) {}
+                        const hasQp = Object.keys(qp).length > 0;
+                        const qpSchemaProps = {};
+                        Object.keys(qp).forEach(k => { qpSchemaProps[k] = { type: 'string' }; });
+                        return {
+                            bazaar: {
+                                info: {
+                                    input: hasQp
+                                        ? { type: 'http', method: 'GET', queryParams: qp }
+                                        : { type: 'http', method: 'GET' },
+                                    output: { type: 'json', example: { status: 'success' } },
+                                },
+                                schema: {
+                                    '$schema': 'https://json-schema.org/draft/2020-12/schema',
+                                    type: 'object',
+                                    required: ['input'],
+                                    properties: {
+                                        input: {
+                                            type: 'object',
+                                            required: ['type', 'method'],
+                                            properties: {
+                                                type: { type: 'string', const: 'http' },
+                                                method: { type: 'string', enum: ['GET', 'HEAD', 'DELETE'] },
+                                                queryParams: { type: 'object', properties: qpSchemaProps },
+                                            },
+                                            additionalProperties: false,
                                         },
-                                        additionalProperties: true,
-                                    },
-                                    output: {
-                                        type: 'object',
-                                        required: ['type'],
-                                        properties: {
-                                            type: { type: 'string' },
-                                            example: { type: 'object' },
+                                        output: {
+                                            type: 'object',
+                                            required: ['type'],
+                                            properties: {
+                                                type: { type: 'string' },
+                                                example: { type: 'object' },
+                                            },
                                         },
                                     },
                                 },
                             },
-                        },
-                    },
+                        };
+                    })(),
                 };
                 const b64 = btoa(JSON.stringify(envelope));
                 step('btoa ok (' + b64.length + ' chars)');

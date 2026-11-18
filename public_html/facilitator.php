@@ -520,7 +520,18 @@ function grid402_validate_exact_payment(string $rawProof, int $requiredRawUnits,
         }
         if (empty($paymentPayload['extensions']['bazaar']['schema']) && function_exists('grid402_build_bazaar_extension')) {
             $paymentPayload['extensions'] = is_array($paymentPayload['extensions'] ?? null) ? $paymentPayload['extensions'] : [];
-            $paymentPayload['extensions']['bazaar'] = grid402_build_bazaar_extension();
+            $paymentPayload['extensions']['bazaar'] = grid402_build_bazaar_extension(null, $serviceSlug);
+        } elseif (!empty($paymentPayload['extensions']['bazaar']) && is_array($paymentPayload['extensions']['bazaar'])) {
+            if (isset($paymentPayload['extensions']['bazaar']['info']['input']['discoverable'])) {
+                unset($paymentPayload['extensions']['bazaar']['info']['input']['discoverable']);
+            }
+            if (isset($paymentPayload['extensions']['bazaar']['schema']['properties']['input'])) {
+                unset($paymentPayload['extensions']['bazaar']['schema']['properties']['input']['properties']['discoverable']);
+                $paymentPayload['extensions']['bazaar']['schema']['properties']['input']['additionalProperties'] = false;
+                if (isset($paymentPayload['extensions']['bazaar']['schema']['properties']['input']['properties']['method']['enum'])) {
+                    $paymentPayload['extensions']['bazaar']['schema']['properties']['input']['properties']['method']['enum'] = ['GET', 'HEAD', 'DELETE'];
+                }
+            }
         }
     }
 

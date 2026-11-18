@@ -522,19 +522,62 @@ function grid402_build_resource_info(?string $serviceName = null, ?string $price
     ];
 }
 
+function grid402_bazaar_default_query_params(?string $serviceName): array {
+    return match (strtolower(trim((string) $serviceName))) {
+        'dns', 'domain-audit' => ['domain' => 'base.org'],
+        'ssl' => ['host' => 'base.org'],
+        'asn' => ['ip' => '1.1.1.1'],
+        'cep' => ['code' => '01310100'],
+        'cnpj', 'sanctions', 'simples', 'compliance', 'kyb-audit' => ['cnpj' => '00000000000191'],
+        'holidays' => ['year' => '2026'],
+        'workdays' => ['start_date' => '2026-12-23', 'end_date' => '2026-12-28'],
+        'lei' => ['lei' => '5493006MHB84DD0ZWV18'],
+        'ofac' => ['target' => '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90'],
+        'notarize' => ['content' => 'Grid402-M2M-Contract-v1'],
+        'global-markets' => ['market' => 'US', 'base' => 'USD'],
+        default => [],
+    };
+}
+
 /**
- * Constroi a extensao `extensions.bazaar` conforme a spec oficial x402 v2
- * (com `info` + `schema` JSON Schema 2020-12 exigido pelo indexador PayAI/CDP).
+ * Constroi a extensao `extensions.bazaar` conforme @x402/extensions/bazaar (v2 createQueryDiscoveryExtension)
+ * com `info` + `schema` JSON Schema 2020-12 estrito (`additionalProperties: false` em `input`).
  */
-function grid402_build_bazaar_extension(?array $exampleOutput = null): array {
+function grid402_build_bazaar_extension(?array $exampleOutput = null, ?string $serviceName = null): array {
     $example = ($exampleOutput !== null && !empty($exampleOutput)) ? $exampleOutput : ['status' => 'success'];
+    $queryDefaults = grid402_bazaar_default_query_params($serviceName);
+
+    $inputInfo = [
+        'type' => 'http',
+        'method' => 'GET',
+    ];
+    $querySchemaProps = [];
+    if (!empty($queryDefaults)) {
+        $inputInfo['queryParams'] = $queryDefaults;
+        foreach ($queryDefaults as $paramName => $_val) {
+            $querySchemaProps[$paramName] = ['type' => 'string'];
+        }
+    }
+
+    $inputSchemaProps = [
+        'type' => ['type' => 'string', 'const' => 'http'],
+        'method' => ['type' => 'string', 'enum' => ['GET', 'HEAD', 'DELETE']],
+    ];
+    if (!empty($querySchemaProps)) {
+        $inputSchemaProps['queryParams'] = [
+            'type' => 'object',
+            'properties' => $querySchemaProps,
+        ];
+    } else {
+        $inputSchemaProps['queryParams'] = [
+            'type' => 'object',
+            'properties' => (object) [],
+        ];
+    }
+
     return [
         'info' => [
-            'input' => [
-                'type' => 'http',
-                'method' => 'GET',
-                'discoverable' => true,
-            ],
+            'input' => $inputInfo,
             'output' => [
                 'type' => 'json',
                 'example' => $example,
@@ -548,16 +591,8 @@ function grid402_build_bazaar_extension(?array $exampleOutput = null): array {
                 'input' => [
                     'type' => 'object',
                     'required' => ['type', 'method'],
-                    'properties' => [
-                        'type' => ['type' => 'string', 'const' => 'http'],
-                        'method' => ['type' => 'string', 'enum' => ['GET', 'HEAD', 'POST']],
-                        'discoverable' => ['type' => 'boolean'],
-                        'queryParams' => [
-                            'type' => 'object',
-                            'additionalProperties' => ['type' => 'string'],
-                        ],
-                    ],
-                    'additionalProperties' => true,
+                    'properties' => $inputSchemaProps,
+                    'additionalProperties' => false,
                 ],
                 'output' => [
                     'type' => 'object',
@@ -596,7 +631,7 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
 
     $acceptsList = grid402_build_accepts($priceRawUnits);
     $resourceInfo = grid402_build_resource_info($serviceName, $priceDisplay, null, $msg);
-    $bazaarInfo = grid402_build_bazaar_extension($preview);
+    $bazaarInfo = grid402_build_bazaar_extension($preview, $serviceName);
 
     $x402V2HeaderData = [
         'x402Version' => 2,
