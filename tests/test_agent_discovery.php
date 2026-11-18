@@ -138,6 +138,7 @@ try {
         __DIR__ . '/../public_html/llms-full.txt',
         __DIR__ . '/../public_html/.well-known/mcp.json',
         __DIR__ . '/../public_html/.well-known/ai-plugin.json',
+        __DIR__ . '/../public_html/.well-known/x402.json',
         __DIR__ . '/../docs/AGENT_MARKETPLACE_SUBMISSIONS.md'
     ];
     $hasAmp = false;
@@ -182,6 +183,38 @@ try {
             ($orgNode['address']['addressCountry'] ?? '') === 'BR',
             "Business node em {$schemaRoute} contem PostalAddress completo (Sao Paulo, SP, BR)"
         );
+    }
+
+    // 8. Teste /.well-known/x402.json e /.well-known/x402 sincronizados com config.php
+    echo "\n8. Validando /.well-known/x402.json e /.well-known/x402...\n";
+    if (!defined('GRID402_EXEC')) {
+        define('GRID402_EXEC', true);
+    }
+    require_once __DIR__ . '/../public_html/config.php';
+    $expectedSvcs = array_filter(grid402_get_utility_services(), static fn(array $s, string $k): bool => $k !== 'verify', ARRAY_FILTER_USE_BOTH);
+    foreach (['/.well-known/x402.json', '/.well-known/x402'] as $x402Path) {
+        $resX = test_http_request("{$baseUrl}{$x402Path}");
+        assert_test($resX['code'] === 200, "Status HTTP 200 para {$x402Path}", "Recebido: {$resX['code']}");
+        $xData = json_decode($resX['body'], true);
+        assert_test(is_array($xData) && ($xData['x402Version'] ?? 0) === 2, "Manifesto {$x402Path} e x402Version 2 valido");
+        if ($x402Path === '/.well-known/x402.json') {
+            $resByUrl = [];
+            foreach ($xData['resources'] ?? [] as $item) {
+                $resByUrl[$item['resource'] ?? ''] = $item['accepts'][0]['amount'] ?? null;
+            }
+            assert_test(count($resByUrl) === count($expectedSvcs), "Manifesto x402.json lista todos os " . count($expectedSvcs) . " endpoints pagos", "Contagem: " . count($resByUrl));
+            $allPricesMatch = true;
+            $priceErrors = [];
+            foreach ($expectedSvcs as $slug => $svc) {
+                $canonicalUrl = "https://grid402.online/api/v1/{$slug}";
+                $expectedRaw = (string) round(((float) $svc['price_usdc']) * 1000000);
+                if (($resByUrl[$canonicalUrl] ?? null) !== $expectedRaw) {
+                    $allPricesMatch = false;
+                    $priceErrors[] = "{$slug}: got=" . ($resByUrl[$canonicalUrl] ?? 'missing') . " exp={$expectedRaw}";
+                }
+            }
+            assert_test($allPricesMatch, "Todos os precos raw USDC em x402.json batem 100% com config.php", implode('; ', $priceErrors));
+        }
     }
 
 } finally {

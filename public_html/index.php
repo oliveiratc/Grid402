@@ -5811,11 +5811,8 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
         // Modal de Pagamento Web3
         function openWeb3Modal() {
-            let price = '0.0050';
-            if (currentServiceAction === 'pass') price = '0.5000';
-            else if (currentServiceAction === 'compliance') price = '0.0300';
-            else if (currentServiceAction === 'sanctions' || currentServiceAction === 'simples') price = '0.0100';
-            else if (currentServiceAction === 'cnpj' || currentServiceAction === 'lei' || currentServiceAction === 'ofac') price = '0.0200';
+            const target = resolveConsolePaidTarget(currentServiceAction);
+            const price = resolveWeb3Price(target.service).priceUsdc;
             const priceEl = document.getElementById('web3-modal-price');
             const priceDetailEl = document.getElementById('web3-modal-price-detail');
             if (priceEl) priceEl.textContent = price;

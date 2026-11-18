@@ -2,14 +2,17 @@
   "x402Version": 2,
   "name": "Grid402 Network Utilities",
   "alias": "grid402",
-  "description": "22 micro-serviços de dados abertos e utilidades de rede pagos via HTTP 402 x402 em USDC na rede Base.",
+  "description": "21 paid M2M open data, Brazilian KYB/compliance, and network utility endpoints under HTTP 402 x402 (Base Mainnet USDC) plus free cryptographic verification.",
   "website": "https://grid402.online",
+  "network": "eip155:8453",
+  "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+  "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
   "resources": [
     {
       "resource": "https://grid402.online/api/v1/forex",
       "type": "http",
       "method": "GET",
-      "description": "Cotações USD/EUR/GBP para BRL",
+      "description": "Official USD, EUR and GBP exchange rates against BRL (Banco Central PTAX).",
       "accepts": [
         { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
       ]
@@ -18,36 +21,180 @@
       "resource": "https://grid402.online/api/v1/crypto",
       "type": "http",
       "method": "GET",
-      "description": "Cotações BTC, ETH, SOL, USDC, BASE",
+      "description": "Spot crypto market tickers for BTC, ETH, SOL, USDC and BASE in USD and BRL.",
       "accepts": [
         { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
       ]
     },
     {
-      "resource": "https://grid402.online/api/v1/cnpj?cnpj=00000000000191",
+      "resource": "https://grid402.online/api/v1/dns",
       "type": "http",
       "method": "GET",
-      "description": "Consulta cadastral de CNPJ",
+      "description": "Authoritative DNS records lookup (A, AAAA, MX, TXT, NS, CNAME) by domain.",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/ssl",
+      "type": "http",
+      "method": "GET",
+      "description": "Port 443 TLS/SSL certificate inspector, issuer, SANs and expiration days.",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/asn",
+      "type": "http",
+      "method": "GET",
+      "description": "BGP routing intelligence, ASN number, CIDR block and country by IP.",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/domain-audit",
+      "type": "http",
+      "method": "GET",
+      "description": "Consolidated single-call domain audit (DNS + TLS/SSL + BGP ASN) with risk score.",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "15000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/kyb-audit",
+      "type": "http",
+      "method": "GET",
+      "description": "Consolidated corporate KYB dossier combining CNPJ, Simples/MEI, CGU sanctions and Compliance Score 360.",
       "accepts": [
         { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
-      ]
-    },
-    {
-      "resource": "https://grid402.online/api/v1/domain-audit?host=base.org",
-      "type": "http",
-      "method": "GET",
-      "description": "Auditoria consolidada DNS + SSL + ASN",
-      "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
       ]
     },
     {
       "resource": "https://grid402.online/api/v1/market-snapshot",
       "type": "http",
       "method": "GET",
-      "description": "Snapshot consolidado Forex + Cripto + Indicadores",
+      "description": "Consolidated macro snapshot combining PTAX FX, spot crypto, BCB indicators and ANBIMA calendar.",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "15000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/cep",
+      "type": "http",
+      "method": "GET",
+      "description": "Official Brazilian postal address and municipal IBGE code lookup by CEP.",
       "accepts": [
         { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/cnpj",
+      "type": "http",
+      "method": "GET",
+      "description": "Official Brazilian corporate registry lookup (Receita Federal CNPJ) without partner PII.",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/indicators",
+      "type": "http",
+      "method": "GET",
+      "description": "Official Central Bank and IBGE economic indicators: Selic, CDI and IPCA inflation.",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/holidays",
+      "type": "http",
+      "method": "GET",
+      "description": "Official ANBIMA and Febraban banking holiday calendar for any year.",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/workdays",
+      "type": "http",
+      "method": "GET",
+      "description": "ANBIMA financial business days calculator between dates and D+N projection.",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/sanctions",
+      "type": "http",
+      "method": "GET",
+      "description": "Brazilian federal administrative sanctions and debarment screening (CGU CEIS and CNEP).",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "10000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/simples",
+      "type": "http",
+      "method": "GET",
+      "description": "Official Simples Nacional and MEI (SIMEI) tax regime status lookup.",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "10000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/compliance",
+      "type": "http",
+      "method": "GET",
+      "description": "Consolidated Compliance Score 360 (0-100) cross-referencing Receita Federal and CGU registries.",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "30000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/lei",
+      "type": "http",
+      "method": "GET",
+      "description": "Global ISO 17442 corporate identity across 200+ jurisdictions via GLEIF CC0 open data.",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/ofac",
+      "type": "http",
+      "method": "GET",
+      "description": "Global OFAC SDN / UN sanctions screening and Base Mainnet Web3 AML telemetry.",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/notarize",
+      "type": "http",
+      "method": "GET",
+      "description": "Deterministic UTC timestamp and SHA-256 existence proof signed with ECDSA secp256k1.",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/global-markets",
+      "type": "http",
+      "method": "GET",
+      "description": "Global exchange settlement calendar (US, EU, UK, BR) and 30+ ECB reference FX rates.",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
+      "resource": "https://grid402.online/api/v1/pass",
+      "type": "http",
+      "method": "GET",
+      "description": "Prepaid x402 Session Pass issuance (Starter 2.0000 USDC = 400 credits) for sub-15ms M2M calls.",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "2000000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
       ]
     }
   ],
@@ -55,5 +202,5 @@
   "protocol": "x402",
   "scheme": "exact",
   "settlement": "EIP-3009",
-  "updated": "2026-11-13"
+  "updated": "2026-11-18"
 }

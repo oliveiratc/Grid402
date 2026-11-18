@@ -11,6 +11,12 @@ if ($uri === '/robots.txt') {
     return true;
 }
 
+if ($uri === '/.well-known/x402' || $uri === '/.well-known/x402/') {
+    header('Content-Type: application/json; charset=utf-8');
+    readfile(__DIR__ . '/../public_html/.well-known/x402.json');
+    return true;
+}
+
 if ($uri === '/status') {
     $_GET['api'] = 'status';
     $_GET['format'] = 'json';

@@ -89,7 +89,8 @@ ServerSignature Off
     RewriteRule ^api/v1/workdays/?$ index.php?api=workdays [QSA,L]
     RewriteRule ^workdays/?$ index.php?api=workdays [QSA,L]
 
-    # Hosted MCP (streamable HTTP) publico e anonimo — /mcp
+    # Manifestos well-known e Hosted MCP (streamable HTTP) publico e anonimo — /mcp
+    RewriteRule ^\.well-known/x402/?$ .well-known/x402.json [L]
     RewriteRule ^mcp/\.well-known/glama\.json$ .well-known/glama.json [L]
     RewriteRule ^mcp/?$ mcp.php [QSA,L]
 
