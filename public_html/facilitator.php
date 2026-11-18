@@ -548,6 +548,23 @@ function grid402_normalize_v2_discovery_payload(array &$paymentPayload, ?string 
             }
         }
     }
+
+    // Evita `queryParams.properties: []` (array JSON invalido no Ajv 2020-12 apos json_decode(..., true))
+    if (empty($paymentPayload['extensions']['bazaar']['info']['input']['queryParams'])) {
+        unset(
+            $paymentPayload['extensions']['bazaar']['info']['input']['queryParams'],
+            $paymentPayload['extensions']['bazaar']['schema']['properties']['input']['properties']['queryParams']
+        );
+    } elseif (empty($paymentPayload['extensions']['bazaar']['schema']['properties']['input']['properties']['queryParams']['properties'])) {
+        $qpSchema = [];
+        foreach ($paymentPayload['extensions']['bazaar']['info']['input']['queryParams'] as $k => $_v) {
+            $qpSchema[(string) $k] = ['type' => 'string'];
+        }
+        $paymentPayload['extensions']['bazaar']['schema']['properties']['input']['properties']['queryParams'] = [
+            'type' => 'object',
+            'properties' => $qpSchema,
+        ];
+    }
 }
 
 /**

@@ -206,6 +206,35 @@ t_assert("URL relativa normalizada para canonica absoluta", ($settleWork['resour
 t_assert("Descricao customizada preservada quando slug bate", ($settleWork['resource']['description'] ?? '') === 'Custom 402 description');
 t_assert("queryParams preservado para workdays", ($settleWork['extensions']['bazaar']['info']['input']['queryParams']['start_date'] ?? '') === '2026-12-23');
 
+// Teste 3: Endpoints sem params (/api/v1/forex) nao podem enviar queryParams.properties=[] para o Ajv do facilitador
+$calls = [];
+t_install_transport($handlers, $calls);
+$forexProofArr = json_decode((string) base64_decode(t_payload()), true);
+$forexProofArr['resource'] = ['url' => 'https://grid402.online/api/v1/forex', 'serviceName' => 'Grid402 FOREX'];
+$forexProofArr['extensions'] = ['bazaar' => [
+    'info' => ['input' => ['type' => 'http', 'method' => 'GET'], 'output' => ['type' => 'json', 'example' => ['status' => 'success']]],
+    'schema' => [
+        '$schema' => 'https://json-schema.org/draft/2020-12/schema',
+        'type' => 'object',
+        'required' => ['input'],
+        'properties' => ['input' => [
+            'type' => 'object',
+            'required' => ['type', 'method'],
+            'properties' => [
+                'type' => ['type' => 'string', 'const' => 'http'],
+                'method' => ['type' => 'string', 'enum' => ['GET', 'HEAD', 'DELETE']],
+                'queryParams' => ['type' => 'object', 'properties' => new stdClass()],
+            ],
+            'additionalProperties' => false,
+        ]],
+    ],
+]];
+$forexProof = base64_encode((string) json_encode($forexProofArr));
+$resForex = grid402_validate_exact_payment($forexProof, 500, '/api/v1/forex');
+t_assert("Settle em /api/v1/forex sem queryParams tem sucesso", $resForex['valid'] === true);
+$settleForexInputProps = $calls[1]['body']['paymentPayload']['extensions']['bazaar']['schema']['properties']['input']['properties'] ?? [];
+t_assert("queryParams vazio removido de schema.input.properties em /api/v1/forex", !array_key_exists('queryParams', $settleForexInputProps));
+
 // Limpeza
 @unlink(GRID402_FILE_USED_NONCES);
 

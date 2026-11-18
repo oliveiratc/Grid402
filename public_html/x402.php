@@ -563,15 +563,11 @@ function grid402_build_bazaar_extension(?array $exampleOutput = null, ?string $s
         'type' => ['type' => 'string', 'const' => 'http'],
         'method' => ['type' => 'string', 'enum' => ['GET', 'HEAD', 'DELETE']],
     ];
+    // So declara queryParams no schema quando ha parametros; evita `{}` virar `[]` em round-trips PHP assoc
     if (!empty($querySchemaProps)) {
         $inputSchemaProps['queryParams'] = [
             'type' => 'object',
             'properties' => $querySchemaProps,
-        ];
-    } else {
-        $inputSchemaProps['queryParams'] = [
-            'type' => 'object',
-            'properties' => (object) [],
         ];
     }
 

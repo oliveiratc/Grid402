@@ -4975,7 +4975,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                                             properties: {
                                                 type: { type: 'string', const: 'http' },
                                                 method: { type: 'string', enum: ['GET', 'HEAD', 'DELETE'] },
-                                                queryParams: { type: 'object', properties: qpSchemaProps },
+                                                ...(hasQp ? { queryParams: { type: 'object', properties: qpSchemaProps } } : {}),
                                             },
                                             additionalProperties: false,
                                         },
