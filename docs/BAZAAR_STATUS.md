@@ -1,6 +1,23 @@
-# Grid402 — Bazaar x402: status real (2026-11-13)
+# Grid402 — Bazaar x402: status real
 
-## O que foi verificado
+## Atualização 2026-11-18 — Indexação na Base Mainnet ATIVA (`total: 1+`)
+
+- ✅ **Conta Merchant PayAI (`merchant.payai.network`):** carteira `0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90` vinculada com `1,000` créditos gratuitos ativos.
+- ✅ **Schema `@x402/extensions` v2 corrigido (`060e2db`, `aee6863`, `633ec3e`):**
+  - Removido `"discoverable": true` de `info.input` e aplicado `"additionalProperties": false` + `method.enum: ["GET", "HEAD", "DELETE"]` (validado em `Ajv2020` e `x402lint`).
+  - `facilitator.php` agora normaliza `paymentPayload.resource` para `https://grid402.online/api/v1/<slug>` e preenche `extensions.bazaar.info.input.queryParams`.
+  - `/.well-known/x402.json` e `/.well-known/x402` sincronizados com todos os 21 endpoints pagos.
+- ✅ **PayAI Bazaar ao vivo:** `GET https://facilitator.payai.network/discovery/resources?payTo=0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90` passou de `total: 0` para **`total: 1`** após liquidação real na Base Mainnet (`2026-11-18T06:56:07.482Z`).
+- **Para popular os demais endpoints no Bazaar em lote:**
+  ```powershell
+  node scripts/bazaar_seed.mjs
+  # Quando quiser liquidar na Base Mainnet (~0,24 USDC total, que retorna 100% ao payTo):
+  $env:GRID402_BUYER_PRIVATE_KEY='0xSUA_CHAVE'; node scripts/bazaar_seed.mjs --execute
+  ```
+
+---
+
+## Histórico — 2026-11-13 (Homologação Sepolia)
 
 ### ✅ Homologação Sepolia — APROVADA
 - Wallet de teste financiada pelo faucet Circle: `0xa592625ADbceB8E025Ac383F1a3Fd8EBB6a63F90` (20 USDC Sepolia, saldo confirmado on-chain).

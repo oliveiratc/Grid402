@@ -10,13 +10,13 @@ Acabei de publicar um workflow de **enriquecimento B2B** pronto para importar no
 
 ## Testar em 30 segundos
 
-1. Baixe o template: `examples/n8n/grid402_cnpj_compliance_workflow.json` no repo https://github.com/oliveiratc/Grid402
+1. Baixe o template: `examples/n8n_cnpj_compliance_pix.json` (ou `examples/n8n/grid402_cnpj_compliance_workflow.json`) no repo https://github.com/oliveiratc/Grid402
 2. No n8n: **Menu (…) → Import from File**
-3. Clique em **Test workflow** — vem com `X-Payment: demo` (amostra grátis + desafio 402)
+3. Clique em **Test workflow** — vem com `X-Payment: demo` (amostra grátis + desafio 402, 5 chamadas/hora por IP)
 
-## Para produção (com limite real)
+## Para produção (com limite real, via Pix ou USDC)
 
-Troque o `demo` por um **Session Pass** (2 USDC = 40.000 créditos = 400 chamadas padrão; <15 ms por chamada).
+Troque `'demo'` por um **Session Pass** (`2 USDC` ou **R$ 12 no Pix** em https://grid402.online/pass = `400` créditos, onde 1 crédito = `0,0050 USDC`; `<15 ms` por chamada).
 
 ## Casos de uso prontos
 
