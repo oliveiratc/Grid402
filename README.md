@@ -5,7 +5,7 @@
 # Grid402 // The Verifiable Data and x402 Payment Layer for Autonomous AI Agents
 
 [![CI](https://github.com/oliveiratc/Grid402/actions/workflows/ci.yml/badge.svg)](https://github.com/oliveiratc/Grid402/actions)
-[![PayAPI Market](https://img.shields.io/badge/PayAPI_Market-Verified-10B981?logo=checkmarx&logoColor=white)](https://payapi.market/api/grid402-brazil-public-data-network-oracle)
+[![PayAPI Market](https://img.shields.io/badge/PayAPI_Market-Verified-10B981?logo=checkmarx)](https://payapi.market/api/grid402-brazil-public-data-network-oracle)
 ![Network](https://img.shields.io/badge/Network-Base_Mainnet_(8453)-0052FF?logo=coinbase)
 ![Payment](https://img.shields.io/badge/Payment-0.0050_a_0.0300_USDC-2775CA?logo=usd-coin)
 ![Protocol](https://img.shields.io/badge/Protocol-HTTP_x402-00F0FF)
@@ -77,7 +77,7 @@ npx -y @smithery/cli install grid402-mcp --client claude
 npx -y @smithery/cli install grid402-mcp --client cursor
 ```
 
-### 2. PayAPI Market & Claude Desktop / Cursor MCP
+### 2. PayAPI Market e Claude Desktop / Cursor MCP
 
 O Grid402 é verificado e listado oficialmente no [PayAPI Market](https://payapi.market/api/grid402-brazil-public-data-network-oracle):
 
