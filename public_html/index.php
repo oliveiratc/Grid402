@@ -4905,11 +4905,21 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     throw lastSignErr || new Error('Nenhuma assinatura EIP-712 obtida da carteira.');
                 }
                 const serviceName = (serviceMeta && serviceMeta.service) ? String(serviceMeta.service) : 'hub';
-                const resourceUrl = (serviceMeta && serviceMeta.url) ? String(serviceMeta.url) : window.location.origin + '/api/v1/' + serviceName;
+                let rawResourceUrl = (serviceMeta && serviceMeta.url) ? String(serviceMeta.url) : (window.location.origin + '/api/v1/' + serviceName);
+                if (rawResourceUrl.startsWith('/')) {
+                    rawResourceUrl = window.location.origin + rawResourceUrl;
+                }
+                let parsedResourceUrl = null;
+                try {
+                    parsedResourceUrl = new URL(rawResourceUrl, window.location.origin);
+                } catch (_) {}
+                const canonicalResourceUrl = parsedResourceUrl
+                    ? (parsedResourceUrl.origin + parsedResourceUrl.pathname)
+                    : rawResourceUrl;
                 const envelope = {
                     x402Version: 2,
                     resource: {
-                        url: resourceUrl,
+                        url: canonicalResourceUrl,
                         description: 'Grid402 ' + serviceName.toUpperCase() + ' M2M oracle endpoint',
                         mimeType: 'application/json',
                         serviceName: 'Grid402 ' + serviceName.toUpperCase(),
@@ -4938,12 +4948,11 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     },
                     extensions: (() => {
                         const qp = {};
-                        try {
-                            const parsedUrl = new URL(resourceUrl);
-                            parsedUrl.searchParams.forEach((v, k) => {
+                        if (parsedResourceUrl) {
+                            parsedResourceUrl.searchParams.forEach((v, k) => {
                                 if (k !== 'api' && k !== 'format') qp[k] = v;
                             });
-                        } catch (_) {}
+                        }
                         const hasQp = Object.keys(qp).length > 0;
                         const qpSchemaProps = {};
                         Object.keys(qp).forEach(k => { qpSchemaProps[k] = { type: 'string' }; });
@@ -5002,6 +5011,23 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             }
         }
 
+        const WEB3_PRICING_TABLE = {
+            'pass': { amountRaw: 2000000, priceUsdc: '2.0000' },
+            'compliance': { amountRaw: 30000, priceUsdc: '0.0300' },
+            'sanctions': { amountRaw: 10000, priceUsdc: '0.0100' },
+            'simples': { amountRaw: 10000, priceUsdc: '0.0100' },
+            'domain-audit': { amountRaw: 15000, priceUsdc: '0.0150' },
+            'market-snapshot': { amountRaw: 15000, priceUsdc: '0.0150' },
+            'cnpj': { amountRaw: 20000, priceUsdc: '0.0200' },
+            'lei': { amountRaw: 20000, priceUsdc: '0.0200' },
+            'ofac': { amountRaw: 20000, priceUsdc: '0.0200' },
+            'kyb-audit': { amountRaw: 20000, priceUsdc: '0.0200' },
+        };
+
+        function resolveWeb3Price(serviceSlug) {
+            return WEB3_PRICING_TABLE[serviceSlug] || { amountRaw: 5000, priceUsdc: '0.0050' };
+        }
+
         async function payPlaygroundWithWeb3(customProvider = null, customBtnId = null) {
             const btn = document.getElementById(customBtnId || 'btn-playground-web3-pay');
             const statusBadge = document.getElementById('playground-http-status');
@@ -5055,29 +5081,14 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     }
                 }
 
-                let amountRaw = 5000;
-                let priceUsdc = '0.0050';
-                if (currentPlaygroundPreset === 'pass') {
-                    amountRaw = 2000000;
-                    priceUsdc = '2.0000';
-                } else if (currentPlaygroundPreset === 'compliance') {
-                    amountRaw = 30000;
-                    priceUsdc = '0.0300';
-                } else if (currentPlaygroundPreset === 'sanctions' || currentPlaygroundPreset === 'simples') {
-                    amountRaw = 10000;
-                    priceUsdc = '0.0100';
-                } else if (currentPlaygroundPreset === 'domain-audit' || currentPlaygroundPreset === 'market-snapshot') {
-                    amountRaw = 15000;
-                    priceUsdc = '0.0150';
-                } else if (currentPlaygroundPreset === 'cnpj' || currentPlaygroundPreset === 'lei' || currentPlaygroundPreset === 'ofac' || currentPlaygroundPreset === 'kyb-audit') {
-                    amountRaw = 20000;
-                    priceUsdc = '0.0200';
-                }
+                const { amountRaw, priceUsdc } = resolveWeb3Price(currentPlaygroundPreset);
+                const playgroundUrl = buildPlaygroundUrl();
+                const absPlaygroundUrl = playgroundUrl.startsWith('/') ? (window.location.origin + playgroundUrl) : playgroundUrl;
 
                 if (btn) btn.textContent = 'Assine ' + priceUsdc + ' USDC na carteira (x402 EIP-712)...';
                 const xpay = await x402SignTransferAuthorization(provider, userAddress, amountRaw, {
                     service: currentPlaygroundPreset,
-                    url: buildPlaygroundUrl(),
+                    url: absPlaygroundUrl,
                 });
                 if (statusBadge) statusBadge.textContent = 'Liquidando via facilitador x402...';
                 if (viewer) viewer.textContent = '// Assinatura x402 (EIP-712) criada.\n// Enviando prova para o facilitador (verify + settle)...';
@@ -5312,6 +5323,32 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
         let currentServiceAction = 'summary';
 
+        const CONSOLE_PAID_URLS = {
+            forex: '/api/v1/forex',
+            crypto: '/api/v1/crypto',
+            dns: '/api/v1/dns?domain=github.com',
+            ssl: '/api/v1/ssl?host=base.org',
+            asn: '/api/v1/asn?ip=1.1.1.1',
+            cep: '/api/v1/cep?code=01310100',
+            cnpj: '/api/v1/cnpj?cnpj=00000000000191',
+            sanctions: '/api/v1/sanctions?cnpj=00000000000191',
+            simples: '/api/v1/simples?cnpj=00000000000191',
+            compliance: '/api/v1/compliance?cnpj=00000000000191',
+            indicators: '/api/v1/indicators',
+            holidays: '/api/v1/holidays?year=2026',
+            workdays: '/api/v1/workdays?start_date=2026-12-23' + String.fromCharCode(38) + 'end_date=2026-12-28',
+            lei: '/api/v1/lei?lei=5493006MHB84DD0ZWV18',
+            ofac: '/api/v1/ofac?target=0x8589427373d6d84e98730d7795d8f6f8731fda16',
+            notarize: '/api/v1/notarize?content=Grid402-M2M-Contract-v1',
+            'global-markets': '/api/v1/global-markets?market=US' + String.fromCharCode(38) + 'base=USD',
+            pass: '/api/v1/pass',
+        };
+
+        function resolveConsolePaidTarget(action) {
+            const service = CONSOLE_PAID_URLS[action] ? action : 'dns';
+            return { service, relativeUrl: CONSOLE_PAID_URLS[service] };
+        }
+
         async function runConsole(action) {
             if (action !== 'paid') {
                 currentServiceAction = action;
@@ -5329,52 +5366,16 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             let url = '/status';
             let headers = { 'Accept': 'application/json' };
 
-            switch (action) {
-                case 'forex': url = '/api/v1/forex'; break;
-                case 'crypto': url = '/api/v1/crypto'; break;
-                case 'dns': url = '/api/v1/dns?domain=github.com'; break;
-                case 'ssl': url = '/api/v1/ssl?host=base.org'; break;
-                case 'asn': url = '/api/v1/asn?ip=1.1.1.1'; break;
-                case 'cep': url = '/api/v1/cep?code=01310100'; break;
-                case 'cnpj': url = '/api/v1/cnpj?cnpj=00000000000191'; break;
-                case 'sanctions': url = '/api/v1/sanctions?cnpj=00000000000191'; break;
-                case 'simples': url = '/api/v1/simples?cnpj=00000000000191'; break;
-                case 'compliance': url = '/api/v1/compliance?cnpj=00000000000191'; break;
-                case 'indicators': url = '/api/v1/indicators'; break;
-                case 'holidays': url = '/api/v1/holidays?year=2026'; break;
-                case 'workdays': url = '/api/v1/workdays?start_date=2026-12-23' + String.fromCharCode(38) + 'end_date=2026-12-28'; break;
-                case 'lei': url = '/api/v1/lei?lei=5493006MHB84DD0ZWV18'; break;
-                case 'ofac': url = '/api/v1/ofac?target=0x8589427373d6d84e98730d7795d8f6f8731fda16'; break;
-                case 'notarize': url = '/api/v1/notarize?content=Grid402-M2M-Contract-v1'; break;
-                case 'global-markets': url = '/api/v1/global-markets?market=US' + String.fromCharCode(38) + 'base=USD'; break;
-                case 'pass': url = '/api/v1/pass'; break;
-                case 'paid':
-                    const tx = document.getElementById('tx-input').value.trim();
-                    if (!tx) {
-                        out.textContent = isEn ? 'Please paste the Base transaction hash or pass_g402_... token above.' : 'Por favor, insira o hash da transação na Base no campo acima.';
-                        return;
-                    }
-                    headers['X-Payment'] = tx;
-                    if (currentServiceAction === 'cnpj') url = '/api/v1/cnpj?cnpj=00000000000191';
-                    else if (currentServiceAction === 'sanctions') url = '/api/v1/sanctions?cnpj=00000000000191';
-                    else if (currentServiceAction === 'simples') url = '/api/v1/simples?cnpj=00000000000191';
-                    else if (currentServiceAction === 'compliance') url = '/api/v1/compliance?cnpj=00000000000191';
-                    else if (currentServiceAction === 'lei') url = '/api/v1/lei?lei=5493006MHB84DD0ZWV18';
-                    else if (currentServiceAction === 'ofac') url = '/api/v1/ofac?target=0x8589427373d6d84e98730d7795d8f6f8731fda16';
-                    else if (currentServiceAction === 'notarize') url = '/api/v1/notarize?content=Grid402-M2M-Contract-v1';
-                    else if (currentServiceAction === 'global-markets') url = '/api/v1/global-markets?market=US' + String.fromCharCode(38) + 'base=USD';
-                    else if (currentServiceAction === 'pass') url = '/api/v1/pass';
-                    else if (currentServiceAction === 'ssl') url = '/api/v1/ssl?host=base.org';
-                    else if (currentServiceAction === 'asn') url = '/api/v1/asn?ip=1.1.1.1';
-                    else if (currentServiceAction === 'cep') url = '/api/v1/cep?code=01310100';
-                    else if (currentServiceAction === 'indicators') url = '/api/v1/indicators';
-                    else if (currentServiceAction === 'holidays') url = '/api/v1/holidays?year=2026';
-                    else if (currentServiceAction === 'workdays') url = '/api/v1/workdays?start_date=2026-12-23' + String.fromCharCode(38) + 'end_date=2026-12-28';
-                    else if (currentServiceAction === 'forex') url = '/api/v1/forex';
-                    else if (currentServiceAction === 'crypto') url = '/api/v1/crypto';
-                    else url = '/api/v1/dns?domain=github.com';
-                    break;
-                default: url = '/status'; break;
+            if (action === 'paid') {
+                const tx = document.getElementById('tx-input').value.trim();
+                if (!tx) {
+                    out.textContent = isEn ? 'Please paste the Base transaction hash or pass_g402_... token above.' : 'Por favor, insira o hash da transação na Base no campo acima.';
+                    return;
+                }
+                headers['X-Payment'] = tx;
+                url = resolveConsolePaidTarget(currentServiceAction).relativeUrl;
+            } else if (CONSOLE_PAID_URLS[action]) {
+                url = CONSOLE_PAID_URLS[action];
             }
 
             const t0 = performance.now();
@@ -5490,31 +5491,15 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 }
 
                 // 3. Assina autorizacao x402 (EIP-712 TransferWithAuthorization)
-                let amountRaw = 5000;
-                let priceUsdc = '0.0050';
-                if (currentServiceAction === 'pass') {
-                    amountRaw = 2000000;
-                    priceUsdc = '2.0000';
-                } else if (currentServiceAction === 'compliance') {
-                    amountRaw = 30000;
-                    priceUsdc = '0.0300';
-                } else if (currentServiceAction === 'sanctions' || currentServiceAction === 'simples') {
-                    amountRaw = 10000;
-                    priceUsdc = '0.0100';
-                } else if (currentServiceAction === 'domain-audit' || currentServiceAction === 'market-snapshot') {
-                    amountRaw = 15000;
-                    priceUsdc = '0.0150';
-                } else if (currentServiceAction === 'cnpj' || currentServiceAction === 'lei' || currentServiceAction === 'ofac' || currentServiceAction === 'kyb-audit') {
-                    amountRaw = 20000;
-                    priceUsdc = '0.0200';
-                }
+                const target = resolveConsolePaidTarget(currentServiceAction);
+                const { amountRaw, priceUsdc } = resolveWeb3Price(target.service);
 
                 if (btn) btn.textContent = `Aguardando assinatura de ${priceUsdc} USDC (x402 EIP-712)...`;
                 out.textContent = `Solicitando assinatura na carteira: ${priceUsdc} USDC na Base, liquidados pelo facilitador x402.`;
 
                 const xpay = await x402SignTransferAuthorization(provider, userAddress, amountRaw, {
-                    service: currentServiceAction,
-                    url: window.location.origin + '/api/v1/' + (currentServiceAction || 'forex'),
+                    service: target.service,
+                    url: window.location.origin + target.relativeUrl,
                 });
 
                 document.getElementById('tx-input').value = xpay;

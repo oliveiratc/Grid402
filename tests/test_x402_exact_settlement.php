@@ -169,6 +169,43 @@ t_assert("Recibo contem success=true", $decodedReceipt['success'] === true);
 t_assert("Recibo contem transaction", $decodedReceipt['transaction'] === $res['settlement_tx']);
 t_assert("Recibo contem network", $decodedReceipt['network'] === 'eip155:8453');
 
+// -----------------------------------------------------------------------------
+// 6. Normalizacao de Discovery (resource + extensions.bazaar) no Settle
+// -----------------------------------------------------------------------------
+echo "\n[6] Normalizacao de Discovery (resource + extensions.bazaar):\n";
+
+$handlers['/v2/x402/verify'] = ['status' => 200, 'body' => ['isValid' => true]];
+$calls = [];
+t_install_transport($handlers, $calls);
+
+$summaryProofArr = json_decode((string) base64_decode(t_payload()), true);
+$summaryProofArr['resource'] = ['url' => 'https://grid402.online/api/v1/summary', 'serviceName' => 'Grid402 SUMMARY'];
+$summaryProofArr['extensions'] = ['bazaar' => ['info' => ['input' => ['type' => 'http', 'method' => 'GET', 'discoverable' => true]]]];
+$summaryProof = base64_encode((string) json_encode($summaryProofArr));
+
+$resDns = grid402_validate_exact_payment($summaryProof, 500, '/api/v1/dns?domain=github.com');
+t_assert("Settle com payload summary em /api/v1/dns tem sucesso", $resDns['valid'] === true);
+$settleCall = $calls[1]['body']['paymentPayload'] ?? [];
+t_assert("resource.url normalizado para endpoint real /api/v1/dns sem querystring", ($settleCall['resource']['url'] ?? '') === 'https://grid402.online/api/v1/dns');
+t_assert("resource.serviceName corrigido para Grid402 DNS", ($settleCall['resource']['serviceName'] ?? '') === 'Grid402 DNS');
+$settleBazaar = $settleCall['extensions']['bazaar'] ?? [];
+t_assert("discoverable legado removido de info.input", !array_key_exists('discoverable', $settleBazaar['info']['input'] ?? []));
+t_assert("queryParams real extraido da requisicao /api/v1/dns", ($settleBazaar['info']['input']['queryParams']['domain'] ?? '') === 'github.com');
+t_assert("schema.input.additionalProperties === false", ($settleBazaar['schema']['properties']['input']['additionalProperties'] ?? null) === false);
+
+// Teste 2: URL relativa no client resource (/api/v1/workdays?...) preservando URL canonica absoluta
+$calls = [];
+t_install_transport($handlers, $calls);
+$relProofArr = json_decode((string) base64_decode(t_payload()), true);
+$relProofArr['resource'] = ['url' => '/api/v1/workdays?start_date=2026-12-23&end_date=2026-12-28', 'serviceName' => 'Grid402 WORKDAYS', 'description' => 'Custom 402 description'];
+$relProof = base64_encode((string) json_encode($relProofArr));
+$resWork = grid402_validate_exact_payment($relProof, 500, '/api/v1/workdays?start_date=2026-12-23&end_date=2026-12-28');
+t_assert("Settle com URL relativa em /api/v1/workdays tem sucesso", $resWork['valid'] === true);
+$settleWork = $calls[1]['body']['paymentPayload'] ?? [];
+t_assert("URL relativa normalizada para canonica absoluta", ($settleWork['resource']['url'] ?? '') === 'https://grid402.online/api/v1/workdays');
+t_assert("Descricao customizada preservada quando slug bate", ($settleWork['resource']['description'] ?? '') === 'Custom 402 description');
+t_assert("queryParams preservado para workdays", ($settleWork['extensions']['bazaar']['info']['input']['queryParams']['start_date'] ?? '') === '2026-12-23');
+
 // Limpeza
 @unlink(GRID402_FILE_USED_NONCES);
 

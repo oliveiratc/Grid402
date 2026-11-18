@@ -473,6 +473,84 @@ function grid402_build_payment_requirements(int $version, int $requiredRawUnits,
 }
 
 /**
+ * Normaliza `resource` e `extensions.bazaar` do payload v2 para o endpoint real pago,
+ * evitando URLs relativas, query strings duplicadas ou metadados de fallback (`summary`).
+ */
+function grid402_normalize_v2_discovery_payload(array &$paymentPayload, ?string $serviceSlug, string $priceDisplay, string $resourceUrl): void {
+    $clientResource = is_array($paymentPayload['resource'] ?? null) ? $paymentPayload['resource'] : [];
+    $clientResourceUrl = (string) ($clientResource['url'] ?? '');
+    $clientSlug = null;
+    if ($clientResourceUrl !== '' && preg_match('#/api/v1/([a-z0-9-]+)#i', $clientResourceUrl, $cm)) {
+        $clientSlug = strtolower($cm[1]);
+    }
+
+    $hasRealSlug = ($serviceSlug !== null && $serviceSlug !== '' && $serviceSlug !== 'summary');
+    $canonicalPath = $hasRealSlug ? ('/api/v1/' . $serviceSlug) : $resourceUrl;
+    $canonicalBase = defined('GRID402_CANONICAL_DOMAIN') ? rtrim(GRID402_CANONICAL_DOMAIN, '/') : 'https://grid402.online';
+
+    if ($hasRealSlug && function_exists('grid402_build_resource_info')) {
+        if (empty($clientResource) || $clientSlug !== $serviceSlug) {
+            $paymentPayload['resource'] = grid402_build_resource_info($serviceSlug, $priceDisplay, $canonicalPath);
+        } else {
+            $paymentPayload['resource']['url'] = $canonicalBase . $canonicalPath;
+        }
+    } elseif (empty($paymentPayload['resource']) && function_exists('grid402_build_resource_info')) {
+        $paymentPayload['resource'] = grid402_build_resource_info($serviceSlug, $priceDisplay, $resourceUrl);
+    }
+
+    $bazaar = is_array($paymentPayload['extensions']['bazaar'] ?? null) ? $paymentPayload['extensions']['bazaar'] : [];
+    $sameSlugBazaar = (!$hasRealSlug || $clientSlug === null || $clientSlug === $serviceSlug);
+    if ((empty($bazaar['schema']) || !$sameSlugBazaar) && function_exists('grid402_build_bazaar_extension')) {
+        $existingExample = null;
+        if ($sameSlugBazaar && !empty($bazaar['info']['output']['example']) && is_array($bazaar['info']['output']['example'])) {
+            $existingExample = $bazaar['info']['output']['example'];
+        }
+        $paymentPayload['extensions'] = is_array($paymentPayload['extensions'] ?? null) ? $paymentPayload['extensions'] : [];
+        $paymentPayload['extensions']['bazaar'] = grid402_build_bazaar_extension($existingExample, $serviceSlug);
+    } elseif (!empty($bazaar)) {
+        unset(
+            $paymentPayload['extensions']['bazaar']['info']['input']['discoverable'],
+            $paymentPayload['extensions']['bazaar']['schema']['properties']['input']['properties']['discoverable']
+        );
+        if (isset($paymentPayload['extensions']['bazaar']['schema']['properties']['input'])) {
+            $paymentPayload['extensions']['bazaar']['schema']['properties']['input']['additionalProperties'] = false;
+            if (isset($paymentPayload['extensions']['bazaar']['schema']['properties']['input']['properties']['method']['enum'])) {
+                $paymentPayload['extensions']['bazaar']['schema']['properties']['input']['properties']['method']['enum'] = ['GET', 'HEAD', 'DELETE'];
+            }
+        }
+    }
+
+    // Preenche/atualiza queryParams reais da requisicao (ou defaults do servico) quando ausentes ou quando bazaar veio de slug divergente
+    if ($hasRealSlug && !empty($paymentPayload['extensions']['bazaar']['info']['input'])) {
+        $parsedQp = [];
+        $queryRaw = (string) parse_url($resourceUrl, PHP_URL_QUERY);
+        if ($queryRaw !== '') {
+            parse_str($queryRaw, $parsedQp);
+            unset($parsedQp['api'], $parsedQp['format']);
+        }
+        $currentQp = $paymentPayload['extensions']['bazaar']['info']['input']['queryParams'] ?? [];
+        if (empty($currentQp) || (!$sameSlugBazaar && !empty($parsedQp))) {
+            $fallbackQp = !empty($parsedQp)
+                ? $parsedQp
+                : (function_exists('grid402_bazaar_default_query_params') ? grid402_bazaar_default_query_params($serviceSlug) : []);
+            if (!empty($fallbackQp) && is_array($fallbackQp)) {
+                $cleanQp = [];
+                $qpSchema = [];
+                foreach ($fallbackQp as $k => $v) {
+                    $cleanQp[(string) $k] = is_scalar($v) ? (string) $v : '';
+                    $qpSchema[(string) $k] = ['type' => 'string'];
+                }
+                $paymentPayload['extensions']['bazaar']['info']['input']['queryParams'] = $cleanQp;
+                $paymentPayload['extensions']['bazaar']['schema']['properties']['input']['properties']['queryParams'] = [
+                    'type' => 'object',
+                    'properties' => $qpSchema,
+                ];
+            }
+        }
+    }
+}
+
+/**
  * Fluxo completo do pagamento x402 padrao: modo, decodificacao, validacao local,
  * anti-replay, verify e settle. Retorna o mesmo formato de grid402_validate_payment().
  */
@@ -515,24 +593,7 @@ function grid402_validate_exact_payment(string $rawProof, int $requiredRawUnits,
             $serviceSlug = strtolower($m[1]);
         }
         $priceDisplay = number_format($requiredRawUnits / 1e6, 4, '.', '');
-        if (empty($paymentPayload['resource']) && function_exists('grid402_build_resource_info')) {
-            $paymentPayload['resource'] = grid402_build_resource_info($serviceSlug, $priceDisplay, (string) $resourceUrl);
-        }
-        if (empty($paymentPayload['extensions']['bazaar']['schema']) && function_exists('grid402_build_bazaar_extension')) {
-            $paymentPayload['extensions'] = is_array($paymentPayload['extensions'] ?? null) ? $paymentPayload['extensions'] : [];
-            $paymentPayload['extensions']['bazaar'] = grid402_build_bazaar_extension(null, $serviceSlug);
-        } elseif (!empty($paymentPayload['extensions']['bazaar']) && is_array($paymentPayload['extensions']['bazaar'])) {
-            if (isset($paymentPayload['extensions']['bazaar']['info']['input']['discoverable'])) {
-                unset($paymentPayload['extensions']['bazaar']['info']['input']['discoverable']);
-            }
-            if (isset($paymentPayload['extensions']['bazaar']['schema']['properties']['input'])) {
-                unset($paymentPayload['extensions']['bazaar']['schema']['properties']['input']['properties']['discoverable']);
-                $paymentPayload['extensions']['bazaar']['schema']['properties']['input']['additionalProperties'] = false;
-                if (isset($paymentPayload['extensions']['bazaar']['schema']['properties']['input']['properties']['method']['enum'])) {
-                    $paymentPayload['extensions']['bazaar']['schema']['properties']['input']['properties']['method']['enum'] = ['GET', 'HEAD', 'DELETE'];
-                }
-            }
-        }
+        grid402_normalize_v2_discovery_payload($paymentPayload, $serviceSlug, $priceDisplay, (string) $resourceUrl);
     }
 
     $requestBody = [
