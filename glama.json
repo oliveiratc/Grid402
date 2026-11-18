@@ -2,5 +2,8 @@
   "$schema": "https://glama.ai/mcp/schemas/server.json",
   "maintainers": [
     "oliveiratc"
-  ]
+  ],
+  "name": "grid402-mcp",
+  "description": "Grid402 MCP Server: 24 on-chain oracle tools and micropayment APIs (CNPJ, Forex, Crypto, CEP, FIPE, Weather, Geolocation) on Base Mainnet USDC via x402 protocol.",
+  "type": "mcp_server"
 }

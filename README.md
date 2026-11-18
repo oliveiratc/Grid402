@@ -7,6 +7,7 @@
 [![CI](https://github.com/oliveiratc/Grid402/actions/workflows/ci.yml/badge.svg)](https://github.com/oliveiratc/Grid402/actions)
 [![PayAPI Market](https://img.shields.io/badge/PayAPI_Market-Verified-10B981?logo=checkmarx)](https://payapi.market/api/grid402-brazil-public-data-network-oracle)
 [![x402scan](https://img.shields.io/badge/x402scan-Verified_Server-00F0FF)](https://www.x402scan.com/server/00294038-51ff-4073-ab29-c59fca221a50)
+[![Glama](https://img.shields.io/badge/Glama-Verified_MCP-0052FF)](https://glama.ai/mcp/servers/oliveiratc/Grid402)
 ![Network](https://img.shields.io/badge/Network-Base_Mainnet_(8453)-0052FF?logo=coinbase)
 ![Payment](https://img.shields.io/badge/Payment-0.0050_a_0.0300_USDC-2775CA?logo=usd-coin)
 ![Protocol](https://img.shields.io/badge/Protocol-HTTP_x402-00F0FF)
@@ -109,7 +110,7 @@ const agentKit = await AgentKit.from({
 
 Exemplos detalhados em TypeScript e Python disponíveis em [`integrations/agentkit/README.md`](integrations/agentkit/README.md).
 
-### 3. Plugin Oficial para ElizaOS (`grid402-plugin-elizaos`)
+### 4. Plugin Oficial para ElizaOS (`grid402-plugin-elizaos`)
 
 Para agentes autônomos no framework [ElizaOS](https://github.com/elizaos/eliza):
 
@@ -129,7 +130,21 @@ export const character = {
 
 Exemplos detalhados e guia de instalação disponíveis em [`integrations/elizaos/README.md`](integrations/elizaos/README.md).
 
-### 4. Recarga Web3 em 1 Clique (Session Passes na Base)
+### 5. Integração com LangChain e CrewAI (Python Quickstart)
+
+Ferramenta leve e sem dependências externas pesadas para agentes Python:
+
+```python
+from examples.langchain_quickstart import Grid402Client
+
+client = Grid402Client(use_sandbox=True)
+forex = client.get_forex()
+print("USD/BRL:", forex["rates"]["USD"]["bid"])
+```
+
+Exemplo completo com wrappers prontos para `@tool` em [`examples/langchain_quickstart.py`](examples/langchain_quickstart.py).
+
+### 6. Recarga Web3 em 1 Clique (Session Passes na Base)
 
 Para agentes e desenvolvedores que buscam alta frequência (abaixo de 15ms) sem o custo e atrito de assinar 1 transação a cada `GET`:
 - Acesse a interface web em [https://grid402.online/#topup](https://grid402.online/#topup)
@@ -140,11 +155,11 @@ Para agentes e desenvolvedores que buscam alta frequência (abaixo de 15ms) sem 
   - **Fleet:** 20 USDC / R$ 115 $\rightarrow$ 6.000 créditos (5.000 + 1.000 bônus = 6.000 chamadas padrão, validade 60 dias)
 - Receba instantaneamente seu token `pass_g402_live...` para usar no cabeçalho `X-Payment`, consulte o saldo gratuitamente em `GET /api/v1/pass/balance` e envie `Idempotency-Key: <uuid>` para retentativas seguras sem débito duplicado.
 
-### 5. Dossiê Institucional Base Grants e Coinbase CDP
+### 7. Dossiê Institucional Base Grants e Coinbase CDP
 
 O plano de crescimento, métricas de rede e candidatura formal a subsídios da Base Foundation e Coinbase Developer Platform estão detalhados em [`docs/BASE_GRANTS_AND_CDP_DOSSIER.md`](docs/BASE_GRANTS_AND_CDP_DOSSIER.md).
 
-### 6. Chamadas Diretas via cURL
+### 8. Chamadas Diretas via cURL
 
 #### Consulta com Desafio HTTP 402 e Amostra Gratuita:
 ```bash
