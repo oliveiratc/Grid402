@@ -6,6 +6,7 @@
 
 [![CI](https://github.com/oliveiratc/Grid402/actions/workflows/ci.yml/badge.svg)](https://github.com/oliveiratc/Grid402/actions)
 [![PayAPI Market](https://img.shields.io/badge/PayAPI_Market-Verified-10B981?logo=checkmarx)](https://payapi.market/api/grid402-brazil-public-data-network-oracle)
+[![x402scan](https://img.shields.io/badge/x402scan-Verified_Server-00F0FF)](https://www.x402scan.com/server/00294038-51ff-4073-ab29-c59fca221a50)
 ![Network](https://img.shields.io/badge/Network-Base_Mainnet_(8453)-0052FF?logo=coinbase)
 ![Payment](https://img.shields.io/badge/Payment-0.0050_a_0.0300_USDC-2775CA?logo=usd-coin)
 ![Protocol](https://img.shields.io/badge/Protocol-HTTP_x402-00F0FF)
