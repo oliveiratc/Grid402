@@ -1287,7 +1287,7 @@ if ($isValidApiAction) {
             'service' => $serviceLabel,
             'status' => (int) $validation['code'],
             'payment_source' => $logPaySource,
-            'error' => $errCodeLabel,
+            'error' => $errCodeLabel . ': ' . (string) ($validation['reason'] ?? ''),
         ]);
         echo json_encode($errPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         exit;

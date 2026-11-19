@@ -13,6 +13,8 @@ if (!defined('GRID402_EXEC')) {
 }
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/metrics.php';
+require_once __DIR__ . '/logger.php';
+require_once __DIR__ . '/growth.php';
 require_once __DIR__ . '/services/forex.php';
 require_once __DIR__ . '/services/crypto.php';
 
@@ -55,10 +57,47 @@ if (!$isCli && !defined('GRID402_INTERNAL_BOOTSTRAP') && (($_GET['action'] ?? ''
     header('Content-Type: application/json; charset=utf-8');
     $metricsData = grid402_get_metrics();
     $todayKey = grid402_metrics_today();
+    $logPath = grid402_get_request_log_path();
+    $errorLogs = [];
+    $paidLogs = [];
+    if (is_file($logPath) && is_readable($logPath)) {
+        $lines = @file($logPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        if (is_array($lines)) {
+            foreach (array_reverse($lines) as $line) {
+                $row = @json_decode($line, true);
+                if (!is_array($row)) {
+                    continue;
+                }
+                if (!empty($row['error']) && count($errorLogs) < 50) {
+                    $errorLogs[] = $row;
+                }
+                if (in_array($row['payment_source'] ?? '', ['facilitator', 'tx_hash', 'pass'], true) && count($paidLogs) < 30) {
+                    $paidLogs[] = $row;
+                }
+                if (count($errorLogs) >= 50 && count($paidLogs) >= 30) {
+                    break;
+                }
+            }
+        }
+    }
+    $growthData = function_exists('grid402_growth_read') ? grid402_growth_read() : [];
+    $usedNoncesFile = GRID402_PRIVATE_DIR . '/used_nonces.json';
+    $usedTxsFile = GRID402_PRIVATE_DIR . '/used_txs.json';
+    $usedNonces = is_file($usedNoncesFile) ? (@json_decode((string) @file_get_contents($usedNoncesFile), true) ?: []) : [];
+    $usedTxs = is_file($usedTxsFile) ? (@json_decode((string) @file_get_contents($usedTxsFile), true) ?: []) : [];
+
     echo json_encode([
         'status' => 'success',
         'today_brt' => $todayKey,
         'today_stats' => $metricsData['daily'][$todayKey] ?? ['requests' => 0, 'page_views' => 0, 'paid' => 0, 'usdc' => 0.0],
+        'recent_errors_jsonl' => $errorLogs,
+        'recent_paid_jsonl' => $paidLogs,
+        'used_nonces_count' => count($usedNonces),
+        'used_txs_count' => count($usedTxs),
+        'growth_summary' => [
+            'actors_count' => count($growthData['actors'] ?? []),
+            'events_recent' => array_slice(array_reverse($growthData['events'] ?? []), 0, 30),
+        ],
         'metrics' => $metricsData,
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
