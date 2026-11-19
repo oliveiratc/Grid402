@@ -31,6 +31,13 @@ Copy-Item -Path "$publicHtml\*" -Destination $tempStage -Recurse -Force
 if (Test-Path "$publicHtml\.htaccess") {
     Copy-Item -Path "$publicHtml\.htaccess" -Destination "$tempStage\.htaccess" -Force
 }
+if (Test-Path "$publicHtml\.well-known\.htaccess") {
+    $wellKnownTarget = Join-Path $tempStage ".well-known"
+    if (-not (Test-Path $wellKnownTarget)) {
+        New-Item -ItemType Directory -Path $wellKnownTarget | Out-Null
+    }
+    Copy-Item -Path "$publicHtml\.well-known\.htaccess" -Destination "$wellKnownTarget\.htaccess" -Force
+}
 if (Test-Path "$publicHtml\private_data\.htaccess") {
     $privateTarget = Join-Path $tempStage "private_data"
     if (-not (Test-Path $privateTarget)) {

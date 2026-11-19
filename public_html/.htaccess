@@ -14,7 +14,7 @@ ServerSignature Off
 </FilesMatch>
 
 # Exceção explícita para manifestos JSON públicos de descoberta
-<FilesMatch "^(openapi|sitemap|package)\.json$|^\.well-known">
+<FilesMatch "^(openapi|sitemap|package|x402|mcp|glama|ai-plugin|server-card)\.json$">
     <IfModule mod_authz_core.c>
         Require all granted
     </IfModule>
