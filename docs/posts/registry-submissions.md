@@ -1,46 +1,40 @@
-# Submission pack — Glama & mcp.so (você preenche; eu não posso submeter por você)
-> Notas (2026-11-14): PulseMCP — submissões pausadas. Recall-Kitchen — PR #153 aberto com o MCP remoto. MCP remoto em produção: https://grid402.online/mcp
+# Submission & Directory Pack — Diretórios MCP e x402 (Atualizado em 2026-11-19)
+
+> Status verificado em produção (`https://grid402.online`): **23 micro-serviços** (22 pagos + `/api/v1/verify` gratuito), **25 ferramentas MCP** (incluindo `grid402_get_dossier_360`), **Multi-Chain USDC em 6 redes** (Base, Arbitrum, Polygon, Optimism, Ethereum + Solana SPL) e Sandbox `5 req/h por IP`.
 
 ---
 
-## Glama (glama.ai — “Add your server”)
-URL: https://glama.ai/mcp/servers/submit — na página inicial, botão “Add your server” (exige conta).
+## Status Atual dos Diretórios
 
-**Servidor:** `grid402-mcp`
+- **mcprush:** ✅ **Verificado — Grade A (25 tools)** — https://mcprush.com/to/grid402-brazil-public-data-network-oracle-mcp
+- **Glama:** ✅ **Verificado (ownership confirmado via `glama.json`)** — https://glama.ai/mcp/connectors/io.github.oliveiratc/grid402
+- **x402scan:** ✅ **Verified Server** — https://www.x402scan.com/server/00294038-51ff-4073-ab29-c59fca221a50
+- **PayAPI Market:** ✅ **Verified** — https://payapi.market/api/grid402-brazil-public-data-network-oracle
+- **mcptry:** ✅ **Listado** — https://mcptry.com/servers/io.github.oliveiratc/grid402
+- **xpaysh/awesome-x402:** PR #2222 aberto
+- **Recall-Kitchen/awesome-x402-mcp-services:** PR #153 aberto
+- **mcp.so:** formulário manual gratuito (não pagar plano pago) — https://mcp.so/submit?type=server
+
+---
+
+## Ficha Canônica para Novos Diretórios (Copiar e Colar)
+
+**Servidor / Nome:** `grid402-mcp`
 **Repo:** https://github.com/oliveiratc/Grid402
 **npm:** https://www.npmjs.com/package/grid402-mcp
 **Remote MCP (streamable HTTP):** https://grid402.online/mcp
 **PyPI (SDK):** https://pypi.org/project/grid402
 **URL produção:** https://grid402.online
-**Descrição curta:**
-Grid402 is an x402 pay-per-call API hub for AI agents: Brazilian public data (CNPJ, CEP/IBGE, CEIS/CNEP sanctions, ANBIMA banking calendar/workdays, Simples Nacional, Compliance 360, LEI, OFAC) plus network utilities (DNS, SSL, ASN, forex, crypto, indicators). No signup — agents pay per call in USDC on Base Mainnet, responses carry ECDSA oracle proofs verifiable offline. Free sandbox: `X-Payment: demo` (30 req/h). Session Pass for <15ms calls.
-**Type:** MCP Server — **remote, hosted** (`https://grid402.online/mcp`) + stdio (`npx grid402-mcp`)
-**Transport:** streamable HTTP (POST) — anonymous `initialize`/`tools/list`; tools/call free for `grid402_summary`/`grid402_verify`, others require x402 payment.
-**Custo:** pago por chamada via x402 (USDC on Base); sandbox grátis; verify e summary gratuitos.
+**Manifestos:**
+- `https://grid402.online/.well-known/mcp.json`
+- `https://grid402.online/.well-known/mcp/server-card.json`
+- `https://grid402.online/.well-known/x402.json`
+- `https://grid402.online/openapi.json`
+- `https://grid402.online/llms.txt`
 
----
+**Descrição curta (EN — sem `&`):**
+Grid402 is a Multi-Chain x402 pay-per-call verifiable data and network oracle for AI agents (23 microservices, 25 MCP tools — Grade A on mcprush, Glama and x402scan Verified). Features flagship `/api/v1/dossier` (KYB Dossier 360 with deterministic AI Verdict APPROVED/FLAGGED/REJECTED), CNPJ, Simples/MEI, CGU CEIS/CNEP sanctions, GLEIF LEI (CC0), OFAC/UN and Web3 AML, CEP/IBGE, ANBIMA banking calendar/workdays, ECB 30+ FX, crypto spot, ECDSA timestamp notarization, and DNS/SSL/ASN/domain-audit. Settles native USDC across 6 chains (Base, Arbitrum, Polygon, Optimism, Ethereum, and Solana SPL) or BRL Pix/Card, with ECDSA secp256k1 `_oracle_proof`, Zero-PII, free sandbox (`X-Payment: demo`, 5 req/h/IP), and `<15ms` prepaid Session Passes.
 
-## mcp.so (mcp.so/submit — exige conta; NÃO pagar os $39)
-URL: https://mcp.so/submit?type=server
-
-**Repository URL:** https://github.com/oliveiratc/Grid402
-**Name:** grid402-mcp
-**Description:**
-Brazilian public data & network utilities for AI agents, paid per call via x402 (USDC on Base). CNPJ, Simples Nacional, CEIS/CNEP sanctions, CEP/IBGE, ANBIMA banking calendar/workdays, Compliance 360, LEI, OFAC — plus DNS/SSL/ASN, forex, crypto, indicators. No signup or API keys. Remote MCP at https://grid402.online/mcp; free sandbox included.
-**Category:** Data APIs / Public Data (ou "Brazilian Data")
-**Install:** `npx grid402-mcp` (stdio) ou remoto `https://grid402.online/mcp`
-**Hosted:** sim, remoto público (`/mcp`), além do npm stdio.
-
----
-
-## Status (2026-11-14)
-- xpaysh/awesome-x402 → PR #2222 aberto (aguardando review)
-- Recall-Kitchen/awesome-x402-mcp-services → PR #153 aberto (aguardando review; MCP remoto construído hoje)
-- PulseMCP → submissões pausadas pela direção
-- Glama → formulário “Add your server” (ação manual sua)
-- mcp.so → formulário “Submit a server” (ação manual sua)
-- PayAPI Market → exige que o curador pague/teste (fora do nosso controle)
-
-## MCP remoto (produção)
-- `POST https://grid402.online/mcp` — JSON-RPC 2.0 stateless, `initialize`/`tools/list` livres, tools/call free para summary/verify; 402 com x402 accepts para pagos.
-- Deploy `3d8966d`; verificado ao vivo (initialize 200, tools/list 15 tools, cnpj unpaid → PaymentRequired com accepts).
+**Type:** MCP Server — **remote, hosted** (`https://grid402.online/mcp`) + stdio (`npx -y grid402-mcp`)
+**Transport:** Streamable HTTP (`POST https://grid402.online/mcp`) — anonymous `initialize`/`tools/list` (25 tools); `grid402_summary`, `grid402_verify`, and `grid402_pass_balance` are free; paid tools return HTTP 402 with x402 v2 accepts.
+**Custo:** `0.0050`–`0.0500 USDC` por chamada (`1 crédito = 0.0050 USDC`); Sandbox grátis (`5 req/h/IP`); `summary`, `verify` e `pass/balance` gratuitos.

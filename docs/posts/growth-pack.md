@@ -1,69 +1,77 @@
-# Growth pack — textos prontos para publicar enquanto o PR awesome-x402 estiver em revisão
-> Publicar é responsabilidade do mantenedor; todos os textos abaixo já são honestos e consistentes com a produção atual (preços, sandbox, payTo, SDKs).
+# Growth pack — textos prontos para Product Hunt, Reddit, Dev.to e GitHub Discussions
+> Todos os textos abaixo estão 100% sincronizados com a produção atual (`23` serviços, `25` ferramentas MCP, faixa `0.0050`–`0.0500 USDC`, Multi-Chain em 6 redes: 5 EVM + Solana SPL, Sandbox `5 req/h/IP`, Session Pass `1 crédito = 0.0050 USDC`).
 
 ---
 
 ## 1) Product Hunt (launch grátis)
 
-**Tagline:** Grid402 — Brazilian public data APIs for AI agents, pay-per-call in USDC on Base
+**Tagline:** Grid402 — Verifiable public data & KYB AI Verdict for agents, paid via Multi-Chain x402
 
 **Description:**
-Grid402 is the first pay-per-call data hub for autonomous AI agents built on Brazil's public registries.
-22 endpoints: CNPJ situation, Simples Nacional, CEIS/CNEP sanctions, CEP/IBGE, ANBIMA holidays/workdays, Compliance 360, forex, crypto, DNS/SSL/ASN.
-Built on x402 v2 (HTTP 402): your agent reads the price from the 402 response, pays micro-USDC on Base, and gets oracle-signed ECDSA proofs — no signup, no API keys, no contracts.
-Free sandbox (30 req/h), Session Pass (2 USDC = 400 calls) for <15ms latency.
-MCP server: `npx grid402-mcp` · Python: `pip install grid402`
+Grid402 is a verifiable pay-per-call data & network intelligence hub for autonomous AI agents (23 endpoints, 25 MCP tools — mcprush Grade A, Glama & x402scan Verified).
+Flagship `GET /api/v1/dossier` (`0.0500 USDC`) delivers a complete KYB corporate dossier (Federal Revenue CNPJ + Simples/MEI + CGU CEIS/CNEP sanctions) with a deterministic **AI Verdict** (`APPROVED` / `FLAGGED` / `REJECTED`), Zero-PII, and offline-verifiable ECDSA secp256k1 `_oracle_proof`.
+Also includes GLEIF LEI (CC0), OFAC SDN + Web3 AML, CEP/IBGE, ANBIMA holidays/workdays, ECB FX, crypto spot, and DNS/SSL/ASN/domain-audit.
+Pay per call (`0.0050`–`0.0500 USDC`) across **6 chains** (Base, Arbitrum, Polygon, Optimism, Ethereum + **Solana SPL USDC**) or top up `<15ms` Session Passes (Starter: 2 USDC / R$ 12 = 400 credits; Pro: 5 USDC = 1,000 credits; Fleet: 20 USDC = 4,000 base + 2,000 bonus = 6,000 credits).
+Free sandbox: `5 req/h per IP` via `X-Payment: demo`.
+MCP server: `npx -y grid402-mcp` · Remote MCP: `https://grid402.online/mcp` · Python: `pip install grid402`
 
-**CTA / first comment:** Try the sandbox free: `curl -H "X-Payment: demo" "https://grid402.online/api/v1/compliance?cnpj=00000000000191"`
+**CTA / first comment:** Try the free sandbox right now: `curl -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
 
 ---
 
-## 2) Reddit — r/LocalLLaMA (feedback honesto, sem parecer promoção)
+## 2) Reddit — r/LocalLLaMA / r/AI_Agents (feedback técnico, sem parecer propaganda)
 
-I built an open data hub for AI agents that pays per call using x402 (USDC on Base) — Brazilian public data mainly (CNPJ, Simples, CEIS/CNEP sanctions, CEP, ANBIMA calendar). Anonymous access, no API keys, free sandbox.
-Harsh feedback welcome especially on the x402 flow design — did the 402 response carry everything an agent needs to pay without human help?
+I built a verifiable open-data & KYB hub for AI agents paid per call via HTTP x402 — now supporting native USDC across **6 chains** (Base, Arbitrum, Polygon, Optimism, Ethereum + Solana SPL) plus a new single-call KYB Dossier (`/api/v1/dossier`) that returns a deterministic `APPROVED` / `FLAGGED` / `REJECTED` verdict with an offline-verifiable ECDSA `_oracle_proof` and Zero-PII.
 
-`curl -H "X-Payment: demo" "https://grid402.online/api/v1/compliance?cnpj=00000000000191"` works right now. Not trying to sell anything — genuinely want to know what breaks or is confusing.
+Harsh feedback welcome especially on two things:
+1. Does the HTTP 402 response carry everything an autonomous agent needs to settle without human intervention?
+2. Are the 25 MCP tool schemas (`npx -y grid402-mcp` or remote `https://grid402.online/mcp`) clear enough for tool-calling models?
 
-## Reddit — r/n8n (mesmo ângulo, caso de uso concreto)
+Free 5 req/h sandbox works right now with zero signup:
+`curl -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
 
-For anyone automating B2B enrichment in Brazil: I shipped a n8n template that does CNPJ + CEIS/CNEP + CEP with zero API keys (x402 micro-payment or free sandbox). Importable from `examples/n8n/` in the repo: https://github.com/oliveiratc/Grid402
+## Reddit — r/n8n (caso de uso concreto)
+
+For anyone automating B2B KYB enrichment in Brazil: I shipped a zero-API-key n8n workflow template (`examples/n8n_cnpj_compliance_pix.json`) that queries Federal Revenue CNPJ + Simples/MEI + CGU CEIS/CNEP sanctions (or the new `/api/v1/dossier` with an AI Verdict) + CEP/IBGE. Works with free sandbox (`X-Payment: demo`), Pix/Card Session Pass, or Multi-Chain USDC (Base/Arbitrum/Polygon/Optimism/Ethereum/Solana): https://github.com/oliveiratc/Grid402
 
 ---
 
 ## 3) Dev.to (artigo curto, canônico → grid402.online)
 
-**Title:** Brazilian Public Data for AI Agents via x402 — No Signup, No API Keys
+**Title:** Multi-Chain x402 & KYB AI Verdict: Verifiable Public Data for AI Agents (5 EVM + Solana)
 
-Brazil has rich, free public registries (Receita Federal, CGU, IBGE, ANBIMA) that are painful to automate — until now.
-Grid402 (https://grid402.online) is a pay-per-call API hub for agents: CNPJ situation, Simples Nacional, CEIS/CNEP sanctions, Compliance 360, CEP/IBGE, banking calendar — all oracle-signed, AI-readable.
+AI agents shouldn't scrape fragile government portals or hold static API keys just to verify a supplier.
+Grid402 (https://grid402.online) exposes 23 verifiable public-data & network intelligence endpoints (25 MCP tools — Grade A on mcprush, verified on Glama & x402scan), now accepting native USDC across **Base, Arbitrum, Polygon, Optimism, Ethereum, and Solana SPL** (plus BRL Pix/Card).
 
-Try: `curl -H "X-Payment: demo" "https://grid402.online/api/v1/compliance?cnpj=00000000000191"`
-MCP: `npx grid402-mcp` · Python: `pip install grid402`
+Flagship endpoint: `GET /api/v1/dossier?cnpj=00000000000191` (`0.0500 USDC` / 10 credits) — combines Federal Revenue CNPJ + Simples/MEI + CGU CEIS/CNEP sanctions into one Zero-PII JSON with a deterministic AI Verdict (`APPROVED`/`FLAGGED`/`REJECTED`) and ECDSA secp256k1 `_oracle_proof`.
+
+Try free (5 req/h sandbox):
+`curl -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
+
+MCP: `npx -y grid402-mcp` · Remote MCP: `https://grid402.online/mcp` · Python: `pip install grid402` · LangChain/CrewAI quickstart: `examples/langchain_quickstart.py`
 
 ---
 
 ## 4) GitHub Discussions (no seu próprio repo)
 
-**Title:** Ask Grid402 — Brazilian public data for your AI agents
+**Title:** Grid402 v3.4 Update — Multi-Chain USDC (5 EVM + Solana) + Dossier 360° KYB AI Verdict + 25 MCP Tools
 
-**Body:** If your agent needs CNPJ, sanctions, CEP, ANBIMA calendar or anything Brazilian — ask here, I'll answer with the exact curl. Pay-per-call via x402 (USDC on Base), sandbox is free.
+**Body:** We just shipped native Multi-Chain USDC support across 6 chains (Base, Arbitrum, Polygon, Optimism, Ethereum, and Solana SPL), our flagship `/api/v1/dossier` endpoint (AI Verdict `APPROVED`/`FLAGGED`/`REJECTED`, Zero-PII, ECDSA signed), and `grid402_get_dossier_360` as our 25th MCP tool (mcprush Grade A). Drop your agent use case below and I'll reply with the exact `curl` or MCP snippet!
 
 ---
 
 ## 5) Respostas-modelo para perguntas frequentes (colar nos comentários)
 
-- **“O que é x402?”** → Um protocolo HTTP 402 em que o agente paga em USDC na Base diretamente pelo recurso. Sem cadastro, sem chave: o preço vem no header 402 e a carteira do agente assina o pagamento.
-- **“X vs Stripe?”** → Stripe = humano, cartão, contrato. x402 = máquina, micro-USDC (centavos), sem conta — pensado para agentes autônomos.
-- **“Preciso de carteira?”** → Sim, na Base Mainnet (ex.: Coinbase Smart Wallet, MetaMask). Você pode testar sem pagar nada: `X-Payment: demo`.
-- **“Quanto custa?”** → 0,005–0,03 USDC por chamada; Session Pass 2 USDC = 400 chamadas.
+- **“O que é x402?”** → Protocolo HTTP 402 em que o agente paga em USDC diretamente pelo recurso. Sem cadastro, sem API key: o preço vem no header 402 e o agente liquida via EIP-3009, transferência Multi-Chain ou Session Pass `<15 ms`.
+- **“Preciso de USDC só na Base?”** → Não mais! Aceitamos USDC nativo em **6 redes** sem taxa de bridge: Base, Arbitrum, Polygon, Optimism, Ethereum e **Solana (SPL USDC)** — além de **Pix/Cartão** em Reais no `/pass`.
+- **“Qual a diferença entre `/api/v1/kyb-audit` e `/api/v1/dossier`?”** → `/api/v1/kyb-audit` (`0.0200 USDC` / 4 créditos) faz triagem global combinando CNPJ + OFAC/ONU + GLEIF LEI. Já `/api/v1/dossier` (`0.0500 USDC` / 10 créditos) é o dossiê corporativo 360º brasileiro aprofundado (RFB + Simples/MEI + CGU CEIS/CNEP + Score 0–100 + **AI Verdict** `APPROVED`/`FLAGGED`/`REJECTED`).
+- **“Quanto custa?”** → `0.0050` a `0.0500 USDC` por chamada (`1 crédito = 0.0050 USDC`). Session Pass: Starter `2 USDC / R$ 12` = 400 créditos; Pro `5 USDC / R$ 29` = 1.000 créditos; Fleet `20 USDC / R$ 115` = 4.000 base + 2.000 bônus (+50%) = 6.000 créditos. Sandbox grátis: `5 req/h` por IP via `X-Payment: demo`.
 
 ---
 
 ## Regras de ouro antes/durante publicar
 
-- Consistência com o site: nome, preço, payTo, wallet — tudo igual a produção.
-- Pitch honesto — o que é, o que faz, onde está. Sem “o melhor do Brasil”.
-- Responda cada comentário, mesmo que seja “thanks, I'll check”.
-- Sem promessas de desconto ou freebies complexos; o sandbox grátis já é o trial.
-- Sem spam nos mesmos grupos com variações do mesmo texto (plataforma bane).
+- Consistência com o site: nome, preço (`0.0050`–`0.0500 USDC`), carteiras EVM/Solana e cota Sandbox (`5 req/h/IP`) — tudo igual à produção.
+- Pitch honesto — o que é, o que faz, onde está. Sem hipérboles vazias.
+- Responda cada comentário rapidamente com exemplos reais de `curl`.
+- Sem spam repetitivo nos mesmos grupos no mesmo dia.

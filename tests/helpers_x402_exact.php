@@ -16,6 +16,8 @@ function t_bootstrap(string $mode = 'settle', ?string $storageDir = null, array 
     }
     putenv('GRID402_STORAGE_DIR=' . $dir);
     putenv('GRID402_FACILITATOR_MODE=' . $mode);
+    // Evita disparar notificacoes reais para o Telegram durante testes automatizados
+    putenv('GRID402_DISABLE_TELEGRAM=1');
     // Testes homologam o profile CDP (paths /v2/x402/*) independentemente
     // dos defaults de producao (PayAI /verify + /settle).
     putenv('GRID402_FACILITATOR_VERIFY_PATH=/v2/x402/verify');
