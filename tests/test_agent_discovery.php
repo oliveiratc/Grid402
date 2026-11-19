@@ -91,7 +91,7 @@ try {
     $mcpData = json_decode($resMcp['body'], true);
     assert_test(is_array($mcpData), "Manifesto MCP e um JSON valido");
     assert_test(($mcpData['name'] ?? '') === 'grid402-mcp', "Nome do servidor MCP e grid402-mcp");
-    assert_test(($mcpData['version'] ?? '') === '1.8.2', "Versao do manifesto MCP sincronizada em 1.8.2", "Recebido: " . ($mcpData['version'] ?? 'null'));
+    assert_test(($mcpData['version'] ?? '') === '1.9.0', "Versao do manifesto MCP sincronizada em 1.9.0", "Recebido: " . ($mcpData['version'] ?? 'null'));
     assert_test(is_string($mcpData['instructions'] ?? null) && str_contains($mcpData['instructions'], 'GRID402_SESSION_PASS'), "Campo instructions presente no manifesto MCP");
     assert_test(isset($mcpData['tools']) and is_array($mcpData['tools']), "Manifesto declara array de tools");
     assert_test(count($mcpData['tools'] ?? []) === 25, "Manifesto MCP declara exatamente 25 tools sincronizadas", "Contagem: " . count($mcpData['tools'] ?? []));
@@ -108,7 +108,7 @@ try {
     $resCard = test_http_request("{$baseUrl}/.well-known/mcp/server-card.json");
     assert_test($resCard['code'] === 200, "Status HTTP 200 para /.well-known/mcp/server-card.json", "Recebido: {$resCard['code']}");
     $cardData = json_decode($resCard['body'], true);
-    assert_test(is_array($cardData) && ($cardData['version'] ?? '') === '1.8.2', "Server Card MCP valido e sincronizado em 1.8.2");
+    assert_test(is_array($cardData) && ($cardData['version'] ?? '') === '1.9.0', "Server Card MCP valido e sincronizado em 1.9.0");
     assert_test(count($cardData['tools'] ?? []) === 25, "Server Card MCP declara exatamente 25 tools", "Contagem: " . count($cardData['tools'] ?? []));
     assert_test(is_string($cardData['instructions'] ?? null) && strlen($cardData['instructions']) > 40, "Server Card MCP expoe instructions");
 

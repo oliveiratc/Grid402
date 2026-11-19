@@ -1,7 +1,7 @@
 {
   "$schema": "https://modelcontextprotocol.io/schemas/mcp.json",
   "name": "grid402-mcp",
-  "version": "1.8.2",
+  "version": "1.9.0",
   "description": "Official Grid402 MCP Server - Verifiable Data and HTTP x402 Payment Layer for Autonomous AI Agents across Base, Arbitrum, Polygon, Optimism, Ethereum and Solana (25 tools with ECDSA secp256k1 Oracle Proof).",
   "instructions": "Use free tools first (grid402_summary, grid402_pass_balance, grid402_verify). Prefer composite bundles (grid402_get_dossier_360, grid402_domain_audit, grid402_kyb_audit, grid402_market_snapshot) to minimize cost and roundtrips. Set GRID402_SANDBOX=true (X-Payment: demo, 5 req/hour/IP) for testing, GRID402_SESSION_PASS for sub-15ms prepaid calls, or GRID402_PRIVATE_KEY with a low-balance operational Base wallet for automatic x402 settlement.",
   "homepage": "https://grid402.online",

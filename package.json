@@ -1,8 +1,8 @@
 {
   "name": "grid402-mcp",
-  "version": "1.8.2",
+  "version": "1.9.0",
   "type": "module",
-  "description": "Grid402 Official Model Context Protocol (MCP) Server for verifiable public open data and M2M network utilities with Base x402 settlement (24 tools)",
+  "description": "Grid402 Official Model Context Protocol (MCP) Server for verifiable public open data and M2M network utilities with Multi-Chain x402 settlement (25 tools)",
   "main": "mcp/index.mjs",
   "bin": {
     "grid402-mcp": "./mcp/index.mjs"

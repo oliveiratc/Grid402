@@ -115,7 +115,7 @@ async function runTests() {
     process.env.GRID402_SANDBOX = originalSandbox;
   }
 
-  console.log('\n[7/7] Testando handshake JSON-RPC stdio (instructions + version 1.8.2 + 25 tools)...');
+  console.log('\n[7/7] Testando handshake JSON-RPC stdio (instructions + version 1.9.0 + 25 tools)...');
   const { spawn } = await import('node:child_process');
   const { fileURLToPath } = await import('node:url');
   const { dirname, join } = await import('node:path');
@@ -181,11 +181,11 @@ async function runTests() {
     }) + '\n');
   });
 
-  assert.strictEqual(rpcResult.init?.result?.serverInfo?.version, '1.8.2', 'Versao MCP initialize deve ser 1.8.2');
+  assert.strictEqual(rpcResult.init?.result?.serverInfo?.version, '1.9.0', 'Versao MCP initialize deve ser 1.9.0');
   assert.ok(typeof rpcResult.init?.result?.instructions === 'string' && rpcResult.init.result.instructions.includes('GRID402_SESSION_PASS'), 'Handshake initialize deve retornar instructions com orientacoes de Session Pass e sandbox');
   assert.ok(rpcResult.init.result.instructions.includes('demo'), 'Instructions deve mencionar modo sandbox demo');
   assert.strictEqual(rpcResult.list?.result?.tools?.length, 25, 'tools/list via stdio deve expor exatamente 25 ferramentas');
-  console.log('  ✓ Handshake stdio retornou version=1.8.2, instructions nativas e 25 ferramentas!');
+  console.log('  ✓ Handshake stdio retornou version=1.9.0, instructions nativas e 25 ferramentas!');
 
   console.log('\n=== Todos os testes do MCP Server Grid402 foram APROVADOS com 100% de sucesso! ===');
 }

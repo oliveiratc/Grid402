@@ -142,7 +142,7 @@ O servidor MCP (`mcp/index.mjs`) SHALL declarar o campo `instructions` na inicia
 - **GIVEN** o codigo-fonte do servidor MCP em `mcp/index.mjs` e seus metadados em `mcp/package.json`
 - **WHEN** o servidor `grid402-mcp-server` e inicializado via stdio
 - **THEN** o objeto de configuracao passado ao `Server` SHALL conter `instructions` nao vazio documentando `demo`, Session Pass e `/api/v1/verify`
-- **AND** a versao declarada em `mcp/index.mjs`, `mcp/package.json` e `package.json` raiz SHALL estar sincronizada (`1.8.2`).
+- **AND** a versao declarada em `mcp/index.mjs`, `mcp/package.json` e `package.json` raiz SHALL estar sincronizada (`1.9.0`).
 
 ### Requirement: Ferramenta MCP `grid402_get_dossier_360`
 O servidor MCP oficial (`grid402-mcp`) MUST expor a ferramenta `grid402_get_dossier_360` com schema JSON exigindo o parâmetro `cnpj` (string) e roteando a chamada para `GET /api/v1/dossier?cnpj={cnpj}`.

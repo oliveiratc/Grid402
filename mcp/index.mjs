@@ -20,7 +20,7 @@ export const GRID402_MCP_INSTRUCTIONS = [
 const server = new Server(
   {
     name: 'grid402-mcp-server',
-    version: '1.8.2',
+    version: '1.9.0',
   },
   {
     capabilities: {
