@@ -13,6 +13,7 @@ if (!defined('GRID402_EXEC')) {
 }
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/facilitator.php';
+require_once __DIR__ . '/services/multichain.php';
 
 /**
  * Consulta recibo de transação via JSON-RPC com fallback de nós públicos da Base
@@ -299,14 +300,15 @@ function grid402_mark_transaction_used(string $txHash): bool {
  * 
  * Retorna array ['valid' => bool, 'reason' => string, 'code' => int]
  */
-function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null, ?string $clientIp = null, ?string $endpointId = null): array {
+function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null, ?string $clientIp = null, ?string $endpointId = null, ?string $paymentNetwork = null): array {
     // Payload x402 padrao (base64) e sensivel a maiusculas: classifica antes de normalizar
     if (grid402_classify_payment_proof($txHash) === 'x402_payload') {
         $resourceUrl = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '';
         return grid402_validate_exact_payment(trim($txHash), $requiredRawUnits ?? GRID402_USDC_REQUIRED_RAW, $resourceUrl);
     }
 
-    $txHash = strtolower(trim($txHash));
+    $rawProof = trim($txHash);
+    $txHash = strtolower($rawProof);
     $clientIp = $clientIp ?? (string)($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
 
     // 0. Verificacao instantanea de Passe de Sessao Pre-pago (pass_g402_...)
@@ -339,6 +341,52 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
             'limit' => $rate['limit'],
         ];
     }
+
+    // 1.5. Resolucao Multi-Chain (Arbitrum, Polygon, Optimism, Ethereum, Solana ou Base)
+    $headerNet = $paymentNetwork ?? (string) ($_SERVER['HTTP_X_PAYMENT_NETWORK'] ?? '');
+    $parsedNet = grid402_parse_network_proof($rawProof, $headerNet !== '' ? $headerNet : null);
+
+    if ($parsedNet['invalid_network'] !== null) {
+        return [
+            'valid' => false,
+            'error' => 'UnsupportedNetwork',
+            'reason' => "Rede de pagamento nao suportada: {$parsedNet['invalid_network']}. Redes aceitas: base, arbitrum, polygon, optimism, ethereum, solana.",
+            'category' => 'invalid_proof',
+            'code' => 400,
+        ];
+    }
+
+    if ($parsedNet['network'] !== 'base') {
+        $mcResult = grid402_verify_multichain_usdc_tx(
+            $parsedNet['network'],
+            $parsedNet['tx_hash'],
+            $requiredRawUnits ?? GRID402_USDC_REQUIRED_RAW
+        );
+        if (empty($mcResult['valid'])) {
+            return [
+                'valid' => false,
+                'error' => (string) ($mcResult['error'] ?? 'MultiChainVerificationFailed'),
+                'reason' => (string) ($mcResult['message'] ?? 'Falha na validacao multi-chain do pagamento.'),
+                'category' => (($mcResult['error'] ?? '') === 'TransactionAlreadyUsed') ? 'replay' : 'payment_rejected',
+                'code' => (int) ($mcResult['code'] ?? 403),
+                'network' => $parsedNet['network'],
+            ];
+        }
+        return [
+            'valid' => true,
+            'sandbox' => false,
+            'source' => (string) ($mcResult['source'] ?? ('multichain_' . $parsedNet['network'])),
+            'network' => $parsedNet['network'],
+            'chain_id' => $mcResult['chain_id'] ?? null,
+            'raw_amount' => (int) ($mcResult['raw_amount'] ?? 0),
+            'settlement_tx' => (string) ($mcResult['tx_hash'] ?? $parsedNet['tx_hash']),
+            'explorer_url' => (string) ($mcResult['explorer_url'] ?? ''),
+            'reason' => "Pagamento USDC verificado com sucesso na rede {$parsedNet['network']}.",
+            'code' => 200,
+        ];
+    }
+
+    $txHash = $parsedNet['tx_hash'];
 
     // 2. Validacao do formato (0x + 64 hex)
     if (!preg_match('/^0x[a-f0-9]{64}$/', $txHash)) {
@@ -684,6 +732,7 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         'price_raw_units' => $priceRawUnits,
         'credits_cost' => max(1, (int) ceil($priceRawUnits / 5000)),
         'recipient_wallet' => GRID402_WALLET_ADDRESS,
+        'supported_networks' => grid402_supported_networks_public_summary(),
         'extensions' => [
             'bazaar' => $bazaarInfo,
         ],
@@ -1108,7 +1157,7 @@ function grid402_notify_telegram_admin_password_reset(string $username, string $
  * Notificacao em tempo real de micropagamentos x402 no Telegram
  * Disparo nao-bloqueante (IPv4 forcado, timeout curto) com registro de diagnostico sem segredos.
  */
-function grid402_notify_telegram_purchase(string $service, float $priceUsdc, string $txHash, bool $isTest = false): bool {
+function grid402_notify_telegram_purchase(string $service, float $priceUsdc, string $txHash, bool $isTest = false, string $network = 'base'): bool {
     $cleanSvc = strtolower(trim($service));
     if ((string) grid402_env('GRID402_DISABLE_TELEGRAM', '') === '1') {
         return false;
@@ -1129,7 +1178,10 @@ function grid402_notify_telegram_purchase(string $service, float $priceUsdc, str
         return false;
     }
 
-    $isOnChainHash = (preg_match('/^0x[a-f0-9]{64}$/i', $cleanTx) === 1);
+    $netSlug = grid402_normalize_network_slug($network) ?? 'base';
+    $isEvmHash = (preg_match('/^0x[a-f0-9]{64}$/i', $cleanTx) === 1);
+    $isSolSig = ($netSlug === 'solana' and grid402_is_valid_solana_signature($cleanTx));
+    $isOnChainHash = ($isEvmHash or $isSolSig);
     $isPixOrderRef = (!$isOnChainHash and str_contains($cleanSvc, 'pix/mp') and preg_match('/^[a-zA-Z0-9_-]{4,64}$/', $cleanTx) === 1);
     if (!$isOnChainHash and !$isPixOrderRef) {
         return false;
@@ -1167,10 +1219,25 @@ function grid402_notify_telegram_purchase(string $service, float $priceUsdc, str
     $isTestTx = $isTest || ($isOnChainHash and preg_match('/^0x(a{64}|0{64}|f{64}|1{64}|demo)$/i', $cleanTx) === 1);
     $titleHeader = $isTestTx ? "🧪 *TESTE DO SISTEMA: Simulação de Compra no Grid402*" : "💰 *Nova Compra no Grid402!*";
 
-    $netLabel = $isPixOrderRef ? 'Pix / Mercado Pago (BRL)' : 'Base Mainnet (ChainID 8453)';
+    $netMetaMap = grid402_supported_networks();
+    $netMeta = $netMetaMap[$netSlug] ?? $netMetaMap['base'];
+    $explorerNames = [
+        'base' => 'BaseScan',
+        'arbitrum' => 'Arbiscan',
+        'polygon' => 'PolygonScan',
+        'optimism' => 'Optimistic Etherscan',
+        'ethereum' => 'Etherscan',
+        'solana' => 'Solscan',
+    ];
+    $explorerName = $explorerNames[$netSlug] ?? 'Explorer';
+    $explorerLink = grid402_explorer_tx_url($netSlug, $cleanTx);
+
+    $netLabel = $isPixOrderRef
+        ? 'Pix / Mercado Pago (BRL)'
+        : ($netMeta['display_name'] . (!empty($netMeta['chain_id']) ? (' (ChainID ' . $netMeta['chain_id'] . ')') : ''));
     $proofLine = $isPixOrderRef
         ? ("🧾 *Comprovante MP:* `" . $cleanTx . "`")
-        : ("🔗 *Transacao:* [BaseScan](https://basescan.org/tx/" . $cleanTx . ")");
+        : ("🔗 *Transacao:* [" . $explorerName . "](" . $explorerLink . ")");
 
     $text = $titleHeader . "\n\n"
           . "📦 *Servico:* " . $displayName . "\n"

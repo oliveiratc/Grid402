@@ -6,6 +6,7 @@ if (!defined('GRID402_EXEC')) {
 }
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/services/mercadopago.php';
+require_once __DIR__ . '/services/multichain.php';
 require_once __DIR__ . '/metrics.php';
 
 grid402_record_page_visit('/pass');
@@ -13,6 +14,7 @@ grid402_record_page_visit('/pass');
 $domain = defined('GRID402_CANONICAL_DOMAIN') ? rtrim(GRID402_CANONICAL_DOMAIN, '/') : 'https://grid402.online';
 $packages = grid402_mp_packages();
 $isSandbox = grid402_mp_is_sandbox();
+$supportedNets = grid402_supported_networks();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -144,6 +146,46 @@ $isSandbox = grid402_mp_is_sandbox();
         <?php endforeach; ?>
     </div>
 
+    <section id="multichain-web3" style="margin-top:2rem; background:var(--surface); border:1px solid rgba(0,240,255,.35); border-radius:14px; padding:1.5rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; margin-bottom:.75rem;">
+            <h2 style="margin:0; font-size:1.25rem;">⚡ Pagamento Web3 Multi-Chain (USDC)</h2>
+            <span style="font-size:.78rem; padding:.2rem .65rem; border-radius:999px; background:rgba(0,240,255,.12); color:var(--cyan); border:1px solid rgba(0,240,255,.3);">6 Redes Suportadas</span>
+        </div>
+        <p style="margin-top:0; color:var(--muted); font-size:.92rem;">
+            Escolha sua blockchain preferida para emitir um Session Pass (<strong>2 USDC</strong> Starter • <strong>5 USDC</strong> Pro • <strong>20 USDC</strong> Fleet) sem taxas de bridge:
+        </p>
+
+        <div id="pass-network-selector" role="radiogroup" aria-label="Selecionar rede Web3" style="display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1.1rem;">
+            <button type="button" class="btn btn-outline pass-net-btn" data-chain="base" onclick="selectPassNetwork('base')" style="width:auto; padding:.45rem .85rem; border-color:var(--cyan); background:rgba(0,240,255,.15); color:#fff;">🔵 Base</button>
+            <button type="button" class="btn btn-outline pass-net-btn" data-chain="arbitrum" onclick="selectPassNetwork('arbitrum')" style="width:auto; padding:.45rem .85rem;">🔷 Arbitrum</button>
+            <button type="button" class="btn btn-outline pass-net-btn" data-chain="polygon" onclick="selectPassNetwork('polygon')" style="width:auto; padding:.45rem .85rem;">🟣 Polygon</button>
+            <button type="button" class="btn btn-outline pass-net-btn" data-chain="optimism" onclick="selectPassNetwork('optimism')" style="width:auto; padding:.45rem .85rem;">🔴 Optimism</button>
+            <button type="button" class="btn btn-outline pass-net-btn" data-chain="ethereum" onclick="selectPassNetwork('ethereum')" style="width:auto; padding:.45rem .85rem;">⟠ Ethereum</button>
+            <button type="button" class="btn btn-outline pass-net-btn" data-chain="solana" onclick="selectPassNetwork('solana')" style="width:auto; padding:.45rem .85rem;">◎ Solana (SPL)</button>
+        </div>
+
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:.85rem; margin-bottom:1rem;">
+            <div style="background:#060B19; border:1px solid var(--border); border-radius:10px; padding:.85rem 1rem;">
+                <div style="font-size:.78rem; color:var(--muted); margin-bottom:.25rem;">Carteira EVM (Base, Arbitrum, Polygon, Optimism, Ethereum):</div>
+                <code id="pass-evm-addr" style="color:var(--cyan); font-size:.82rem; word-break:break-all;"><?php echo htmlspecialchars((string) $supportedNets['base']['recipient'], ENT_QUOTES, 'UTF-8'); ?></code>
+            </div>
+            <div style="background:#060B19; border:1px solid var(--border); border-radius:10px; padding:.85rem 1rem;">
+                <div style="font-size:.78rem; color:var(--muted); margin-bottom:.25rem;">Carteira Solana (SPL USDC):</div>
+                <code id="pass-sol-addr" style="color:#10B981; font-size:.82rem; word-break:break-all;"><?php echo htmlspecialchars((string) $supportedNets['solana']['recipient'], ENT_QUOTES, 'UTF-8'); ?></code>
+            </div>
+        </div>
+
+        <div id="pass-selected-net-info" style="font-size:.85rem; color:#CBD5E1; margin-bottom:.85rem;">
+            Rede ativa: <strong style="color:var(--cyan);">Base Mainnet</strong> • Contrato USDC: <code><?php echo htmlspecialchars((string) $supportedNets['base']['usdc_contract'], ENT_QUOTES, 'UTF-8'); ?></code>
+        </div>
+
+        <div style="display:flex; gap:.6rem; flex-wrap:wrap; align-items:center;">
+            <input type="text" id="pass-mc-tx-input" placeholder="Cole o tx_hash (0x...) ou assinatura Solana Base58" style="flex:1; min-width:240px; padding:.65rem .85rem; border-radius:8px; border:1px solid var(--border); background:#060B19; color:#fff; font-family:monospace; font-size:.86rem;">
+            <button type="button" class="btn btn-pix" style="width:auto;" onclick="validateMultiChainPass(this)">⚡ Validar Transação e Emitir Pass</button>
+        </div>
+        <div id="pass-mc-feedback" style="margin-top:.65rem; font-size:.86rem; color:var(--muted);"></div>
+    </section>
+
     <h2 data-i18n="pass.howto.title">How to use the token</h2>
     <pre>curl -s -H "X-Payment: pass_g402_YOUR_TOKEN_HERE" \
   "https://grid402.online/api/v1/cnpj?cnpj=00000000000191"</pre>
@@ -152,8 +194,70 @@ $isSandbox = grid402_mp_is_sandbox();
 </div>
 
 <script>
+const PASS_MULTICHAIN = <?php echo json_encode($supportedNets, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
+let selectedPassChain = 'base';
 let mpCurrentOrderId = null;
 let mpPollTimer = null;
+
+function selectPassNetwork(slug) {
+    if (!PASS_MULTICHAIN[slug]) return;
+    selectedPassChain = slug;
+    const cfg = PASS_MULTICHAIN[slug];
+    document.querySelectorAll('.pass-net-btn').forEach(btn => {
+        const active = btn.getAttribute('data-chain') === slug;
+        btn.style.borderColor = active ? 'var(--cyan)' : 'var(--border)';
+        btn.style.background = active ? 'rgba(0,240,255,.15)' : 'transparent';
+        btn.style.color = active ? '#fff' : 'var(--text)';
+    });
+    const info = document.getElementById('pass-selected-net-info');
+    if (info) {
+        info.innerHTML = 'Rede ativa: <strong style="color:var(--cyan);">' + cfg.display_name + '</strong> • Contrato/Mint USDC: <code>' + cfg.usdc_contract + '</code>';
+    }
+    const inp = document.getElementById('pass-mc-tx-input');
+    if (inp) {
+        inp.placeholder = cfg.type === 'solana'
+            ? 'Cole a assinatura Base58 da transação SPL USDC na Solana'
+            : ('Cole o tx_hash (0x...) da transferência USDC em ' + cfg.display_name);
+    }
+}
+
+async function validateMultiChainPass(btn) {
+    const inp = document.getElementById('pass-mc-tx-input');
+    const fb = document.getElementById('pass-mc-feedback');
+    const txHash = inp ? inp.value.trim() : '';
+    if (!txHash) {
+        if (fb) fb.textContent = 'Informe o hash ou assinatura da transação USDC.';
+        return;
+    }
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Validando on-chain...';
+    if (fb) fb.textContent = 'Auditando transação em ' + (PASS_MULTICHAIN[selectedPassChain]?.display_name || selectedPassChain) + '...';
+    try {
+        const res = await fetch('/api/v1/pass-emitir', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ txHash, chain: selectedPassChain }),
+        });
+        const data = await res.json();
+        if (data && data.ok && data.pass_token) {
+            if (fb) fb.textContent = '';
+            showIssuedPass({
+                pass_token: data.pass_token,
+                credits: data.credits_total,
+                ttl_days: 30,
+                sandbox: false,
+            });
+        } else {
+            if (fb) fb.textContent = 'Erro: ' + (data.message || data.error || 'Transação não confirmada.');
+        }
+    } catch (e) {
+        if (fb) fb.textContent = 'Erro de rede ao consultar /api/v1/pass-emitir.';
+    } finally {
+        btn.disabled = false;
+        btn.textContent = orig;
+    }
+}
 
 function showPanel(title, msg, isOk = false) {
     const panel = document.getElementById('mp-status-panel');

@@ -1,14 +1,9 @@
 <?php
 /**
- * Grid402 - Checkout de Passes de Sessão via Web3 (Base Mainnet)
- * Recebe um hash de transação USDC já confirmado on-chain, valida contra o
- * contrato USDC da Base, verifica anti-replay e emite o token pass_g402_...
- *
- * Fluxo Web3 One-Click Top-Up (PRD - Aceleração de Faturamento Web3, RF03):
- *   1. Usuário transfere USDC (2 / 5 / 20 USDC) para a carteira oráculo na Base
- *   2. Frontend envia o txHash para este endpoint
- *   3. Backend valida o recibo on-chain (RPC Base) e o evento ERC-20 Transfer
- *   4. Emite o passe em session_passes.json e retorna o token
+ * Grid402 - Checkout Multi-Chain de Passes de Sessão via Web3 (5 Redes EVM + Solana)
+ * Recebe um hash/assinatura de transação USDC já confirmado on-chain em qualquer uma das
+ * 6 redes suportadas (Base, Arbitrum, Polygon, Optimism, Ethereum ou Solana), valida contra
+ * o contrato/mint oficial de USDC da rede, verifica anti-replay atômico e emite o token pass_g402_...
  *
  * Zero-DB: persistência atômica via flock em arquivo JSON (sem SQL).
  */
@@ -20,120 +15,149 @@ if (!defined('GRID402_EXEC')) {
 }
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../x402.php';
+require_once __DIR__ . '/multichain.php';
 require_once __DIR__ . '/pass.php';
 
 /**
- * Valida o hash de transação USDC na Base Mainnet e emite um Session Pass.
+ * Valida o hash/assinatura de transação USDC na rede informada e emite um Session Pass.
  *
- * Passos:
- *   - Formato 0x + 64 hex
- *   - Trava atômica anti-replay (flock)
- *   - Recibo on-chain via eth_getTransactionReceipt (RPC Base com fallbacks)
- *   - Status 0x1 (sucesso)
- *   - Evento ERC-20 Transfer para GRID402_WALLET_ADDRESS com valor >= mínimo
- *   - Emissão do passe via grid402_issue_session_pass (inclui dedup por txHash)
- *
- * Retorna array com 'ok' => bool, 'pass_token', 'tier', 'credits', etc.
+ * @param string      $txHash  Hash EVM (0x + 64 hex), assinatura Solana Base58 ou formato "chain:tx".
+ * @param string|null $network Rede opcional (base, arbitrum, polygon, optimism, ethereum, solana).
+ * @return array<string, mixed>
  */
-function grid402_emitir_passe_por_tx(string $txHash): array {
-    $txHash = strtolower(trim($txHash));
+function grid402_emitir_passe_por_tx(string $txHash, ?string $network = null): array {
+    $parsed = grid402_parse_network_proof($txHash, $network);
 
-    // 1. Formato do hash
-    if (!preg_match('/^0x[a-f0-9]{64}$/', $txHash)) {
+    if ($parsed['invalid_network'] !== null) {
         return [
             'ok' => false,
-            'error' => 'InvalidTxHash',
-            'message' => 'Hash de transação inválido. Esperado 0x + 64 caracteres hexadecimais.',
+            'error' => 'UnsupportedNetwork',
+            'message' => "Rede não suportada: {$parsed['invalid_network']}. Redes aceitas: base, arbitrum, polygon, optimism, ethereum, solana.",
+            'supported_networks' => array_keys(grid402_supported_networks()),
             'code' => 400,
         ];
     }
 
-    // 2. Trava atômica anti-replay (mesma semântica de x402_validate_payment)
-    if (!grid402_claim_transaction_lock($txHash)) {
+    $slug = $parsed['network'];
+    $cleanTx = $parsed['tx_hash'];
+    $lockKey = $parsed['lock_key'];
+    $networks = grid402_supported_networks();
+    $netCfg = $networks[$slug];
+
+    // 1. Formato do hash/assinatura
+    if ($slug === 'solana') {
+        if (!grid402_is_valid_solana_signature($cleanTx)) {
+            return [
+                'ok' => false,
+                'error' => 'InvalidTxHash',
+                'message' => 'Assinatura de transação Solana inválida. Esperado Base58 com 64 a 90 caracteres.',
+                'code' => 400,
+            ];
+        }
+    } else {
+        if (preg_match('/^0x[a-f0-9]{64}$/', $cleanTx) !== 1) {
+            return [
+                'ok' => false,
+                'error' => 'InvalidTxHash',
+                'message' => "Hash de transação inválido para {$netCfg['display_name']}. Esperado 0x + 64 caracteres hexadecimais.",
+                'code' => 400,
+            ];
+        }
+    }
+
+    // 2. Trava atômica anti-replay isolada por rede (Base mantém chave legada)
+    if (!grid402_claim_transaction_lock($lockKey)) {
         return [
             'ok' => false,
             'error' => 'ReplayDetected',
-            'message' => 'Esta transação já foi utilizada para emitir um passe anteriormente.',
+            'message' => "Esta transação na rede {$netCfg['display_name']} já foi utilizada para emitir um passe anteriormente.",
             'code' => 403,
         ];
     }
 
     try {
-        // 3. Recibo on-chain na Base Mainnet
-        $receipt = grid402_rpc_get_receipt($txHash);
-        if ($receipt === null) {
-            grid402_release_transaction_lock($txHash);
-            return [
-                'ok' => false,
-                'error' => 'TxNotFound',
-                'message' => 'Transação não encontrada ou ainda não confirmada na rede Base Mainnet.',
-                'code' => 404,
-            ];
-        }
-
-        // 4. Status de execução (0x1 = sucesso)
-        if (($receipt['status'] ?? '') !== '0x1') {
-            grid402_release_transaction_lock($txHash);
-            return [
-                'ok' => false,
-                'error' => 'TxFailed',
-                'message' => 'A transação falhou na blockchain da Base (status diferente de 0x1).',
-                'code' => 402,
-            ];
-        }
-
-        // 5. Evento ERC-20 Transfer para a carteira oráculo
-        $transferTopic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
-        $usdcContract = strtolower(GRID402_USDC_CONTRACT);
-        $targetWallet = substr(strtolower(GRID402_WALLET_ADDRESS), 2); // sem 0x
-
         $rawAmount = 0;
         $payer = '';
-        $found = false;
-        foreach ((array)($receipt['logs'] ?? []) as $log) {
-            $contract = strtolower((string)($log['address'] ?? ''));
-            if ($contract !== $usdcContract) {
-                continue;
+
+        if ($slug === 'solana') {
+            $txData = grid402_rpc_get_solana_transaction($cleanTx);
+            if ($txData === null) {
+                grid402_release_transaction_lock($lockKey);
+                return [
+                    'ok' => false,
+                    'error' => 'TxNotFound',
+                    'message' => 'Transação não encontrada ou ainda não confirmada na rede Solana Mainnet.',
+                    'code' => 404,
+                ];
             }
-            $topics = (array)($log['topics'] ?? []);
-            if (count($topics) < 3 || strtolower((string)$topics[0] ?? '') !== $transferTopic) {
-                continue;
+
+            $check = grid402_verify_solana_tx_usdc($txData, 1);
+            if (empty($check['valid'])) {
+                grid402_release_transaction_lock($lockKey);
+                $errCode = (string) ($check['error'] ?? 'NoUsdcTransfer');
+                return [
+                    'ok' => false,
+                    'error' => ($errCode === 'TransactionFailedOnChain') ? 'TxFailed' : 'NoUsdcTransfer',
+                    'message' => (string) ($check['message'] ?? 'Nenhuma transferência válida de SPL USDC encontrada na Solana.'),
+                    'code' => 402,
+                ];
             }
-            $recipientTopic = strtolower((string)$topics[2] ?? '');
-            $recipientAddress = substr($recipientTopic, 26);
-            if ($recipientAddress !== $targetWallet) {
-                continue;
+            $rawAmount = (int) ($check['raw_amount'] ?? 0);
+            $payer = 'solana';
+        } else {
+            $receipt = ($slug === 'base')
+                ? grid402_rpc_get_receipt($cleanTx)
+                : grid402_rpc_get_evm_receipt($slug, $cleanTx);
+
+            if ($receipt === null) {
+                grid402_release_transaction_lock($lockKey);
+                return [
+                    'ok' => false,
+                    'error' => 'TxNotFound',
+                    'message' => "Transação não encontrada ou ainda não confirmada na rede {$netCfg['display_name']}.",
+                    'code' => 404,
+                ];
             }
-            $dataHex = (string)($log['data'] ?? '0x0');
-            $rawAmount = (int) hexdec(substr($dataHex, 2));
-            $payer = '0x' . substr(strtolower((string)($topics[1] ?? '')), -40);
-            $found = true;
-            break;
+
+            $check = grid402_verify_evm_receipt_usdc($receipt, $slug, 1);
+            if (empty($check['valid'])) {
+                grid402_release_transaction_lock($lockKey);
+                $errCode = (string) ($check['error'] ?? 'NoUsdcTransfer');
+                return [
+                    'ok' => false,
+                    'error' => ($errCode === 'TransactionFailedOnChain') ? 'TxFailed' : 'NoUsdcTransfer',
+                    'message' => (string) ($check['message'] ?? "Nenhuma transferência de USDC oficial encontrada na rede {$netCfg['display_name']}."),
+                    'code' => 402,
+                ];
+            }
+            $rawAmount = (int) ($check['raw_amount'] ?? 0);
+            $payer = strtolower((string) ($receipt['from'] ?? ''));
         }
 
-        if (!$found || $rawAmount <= 0) {
-            grid402_release_transaction_lock($txHash);
+        if ($rawAmount <= 0) {
+            grid402_release_transaction_lock($lockKey);
             return [
                 'ok' => false,
                 'error' => 'NoUsdcTransfer',
-                'message' => 'Nenhuma transferência de USDC para a carteira oráculo do Grid402 foi identificada nesta transação.',
+                'message' => 'Valor de USDC transferido inválido.',
                 'code' => 402,
             ];
         }
 
-        // 6. Emissão do passe (o issue_session_pass faz dedup por txHash e calcula tier)
-        $issued = grid402_issue_session_pass($txHash, $rawAmount, false);
+        // 3. Emissão do passe (o issue_session_pass faz dedup por lockKey e calcula tier)
+        $issued = grid402_issue_session_pass($lockKey, $rawAmount, false);
 
-        // Pagamento confirmado: trava retida. Retorna sucesso.
         return [
             'ok' => true,
             'error' => null,
-            'message' => 'Passe de sessão emitido com sucesso.',
+            'message' => "Passe de sessão emitido com sucesso via {$netCfg['display_name']}.",
             'code' => 200,
-            'network' => 'Base Mainnet',
-            'chain_id' => GRID402_CHAIN_ID,
+            'network' => $netCfg['display_name'],
+            'network_slug' => $slug,
+            'chain_id' => $netCfg['chain_id'],
             'payer' => $payer,
-            'tx_hash' => $txHash,
+            'tx_hash' => $cleanTx,
+            'explorer_url' => grid402_explorer_tx_url($slug, $cleanTx),
             'raw_usdc_units' => $rawAmount,
             'usdc_deposited' => number_format($rawAmount / 1e6, 4, '.', '') . ' USDC',
             'tier' => $issued['tier'] ?? 'standard',
@@ -147,7 +171,7 @@ function grid402_emitir_passe_por_tx(string $txHash): array {
         ];
 
     } catch (\Throwable $e) {
-        @grid402_release_transaction_lock($txHash);
+        @grid402_release_transaction_lock($lockKey);
         return [
             'ok' => false,
             'error' => 'InternalError',

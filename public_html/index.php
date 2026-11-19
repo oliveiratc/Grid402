@@ -966,7 +966,7 @@ if ($isValidApiAction) {
     }
 
     // 2.3. Verificação de Pagamento x402 para Micro-serviços Técnicos com Teaser Preview
-    if ($paymentProof === '') {
+    if ($paymentProof === '' && !$isPassEmitir) {
         $serviceLabel = $apiParam !== '' ? $apiParam : 'technical-utility';
         $previewData = null;
         $lockedFields = null;
@@ -1233,7 +1233,9 @@ if ($isValidApiAction) {
         ]);
 
         $errCategory = (string) ($validation['category'] ?? '');
-        if ($errCategory === 'daily_limit_exceeded') {
+        if (($validation['error'] ?? '') === 'UnsupportedNetwork') {
+            $errCodeLabel = 'UnsupportedNetwork';
+        } elseif ($errCategory === 'daily_limit_exceeded') {
             $errCodeLabel = 'PassDailyLimitExceeded';
         } elseif ($errCategory === 'endpoint_restricted') {
             $errCodeLabel = 'PassEndpointRestricted';
@@ -1325,8 +1327,11 @@ if ($isValidApiAction) {
         ['payment_source' => $validation['source'] ?? null, 'defer_latency_sample' => true]
     );
     $txForNotification = (string) ($settlementTx ?? $proofForLog ?? '');
-    if (!$isSandbox && !$isVerifyOnly && $paymentSourceVal !== 'pass' && preg_match('/^0x[a-f0-9]{64}$/i', $txForNotification) === 1) {
-        grid402_notify_telegram_purchase($apiParam, (float) $servicePriceDisplay, $txForNotification);
+    $validatedNetSlug = (string) ($validation['network'] ?? 'base');
+    $isValidNotifTx = (preg_match('/^0x[a-f0-9]{64}$/i', $txForNotification) === 1)
+        || ($validatedNetSlug === 'solana' && function_exists('grid402_is_valid_solana_signature') && grid402_is_valid_solana_signature($txForNotification));
+    if (!$isSandbox && !$isVerifyOnly && $paymentSourceVal !== 'pass' && !$isPassEmitir && $isValidNotifTx) {
+        grid402_notify_telegram_purchase($apiParam, (float) $servicePriceDisplay, $txForNotification, false, $validatedNetSlug);
     }
     http_response_code(200);
     header('Content-Type: application/json; charset=utf-8');
@@ -1343,7 +1348,12 @@ if ($isValidApiAction) {
     } else {
         header('X-Payment-Mode: production');
         header('X-Payment-Amount: ' . $servicePriceDisplay . ' USDC');
-        header('X-Payment-Network: Base (ChainID 8453)');
+        $netMapHeader = function_exists('grid402_supported_networks') ? grid402_supported_networks() : [];
+        $normNetHeader = function_exists('grid402_normalize_network_slug') ? (grid402_normalize_network_slug($validatedNetSlug) ?? 'base') : 'base';
+        $netDisplayHeader = isset($netMapHeader[$normNetHeader])
+            ? ($netMapHeader[$normNetHeader]['display_name'] . (!empty($netMapHeader[$normNetHeader]['chain_id']) ? (' (ChainID ' . $netMapHeader[$normNetHeader]['chain_id'] . ')') : ''))
+            : 'Base (ChainID 8453)';
+        header('X-Payment-Network: ' . $netDisplayHeader);
     }
     if (!empty($validation['session_pass'])) {
         $creditsRemaining = (int)($validation['credits_remaining'] ?? 0);
@@ -1521,30 +1531,41 @@ if ($isValidApiAction) {
             $result = grid402_issue_session_pass($paymentProof, $rawUnitsPaid, $isSandbox);
             break;
 
-        // Web3 One-Click Top-Up: emite um Session Pass a partir de uma txHash USDC
-        // já confirmada on-chain (Base Mainnet). Não exige X-Payment prévio.
+        // Web3 One-Click Top-Up Multi-Chain: emite um Session Pass a partir de uma txHash/assinatura USDC
+        // já confirmada on-chain em Base, Arbitrum, Polygon, Optimism, Ethereum ou Solana.
         case 'pass-emitir':
-            $txParam = (string) ($_GET['tx'] ?? $_GET['txHash'] ?? $_GET['tx_hash'] ?? '');
-            if ($txParam === '' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+            $txParam = (string) ($_GET['tx'] ?? $_GET['txHash'] ?? $_GET['tx_hash'] ?? $_GET['signature'] ?? '');
+            $chainParam = (string) ($_GET['chain'] ?? $_GET['network'] ?? $_SERVER['HTTP_X_PAYMENT_NETWORK'] ?? '');
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $rawPost = (string) @file_get_contents('php://input');
                 $parsedPost = @json_decode($rawPost, true);
                 if (is_array($parsedPost)) {
-                    $txParam = trim((string) ($parsedPost['tx'] ?? $parsedPost['txHash'] ?? $parsedPost['tx_hash'] ?? ''));
+                    if ($txParam === '') {
+                        $txParam = trim((string) ($parsedPost['tx'] ?? $parsedPost['txHash'] ?? $parsedPost['tx_hash'] ?? $parsedPost['signature'] ?? ''));
+                    }
+                    if ($chainParam === '') {
+                        $chainParam = trim((string) ($parsedPost['chain'] ?? $parsedPost['network'] ?? ''));
+                    }
                 }
             }
-            $result = grid402_emitir_passe_por_tx($txParam);
+            $result = grid402_emitir_passe_por_tx($txParam, $chainParam !== '' ? $chainParam : null);
             if (!empty($result['ok'])) {
+                $deposited = ((int)($result['raw_usdc_units'] ?? 0)) / 1000000;
+                $passNetSlug = (string) ($result['network_slug'] ?? 'base');
                 grid402_growth_event('pass_purchase', [
                     'service' => 'pass',
+                    'network' => $passNetSlug,
                     'payer' => (string)($result['payer'] ?? ''),
-                    'amount_usdc' => ((int)($result['raw_usdc_units'] ?? 0)) / 1000000,
+                    'amount_usdc' => $deposited,
                     'proof' => (string)($result['tx_hash'] ?? ''),
                 ]);
+                if (function_exists('grid402_notify_telegram_purchase') && !empty($result['tx_hash'])) {
+                    grid402_notify_telegram_purchase('pass', $deposited, (string)$result['tx_hash'], false, $passNetSlug);
+                }
                 // O endpoint top-up já registrou $servicePriceDisplay (preço-tabela).
                 // Ajustamos pelo delta entre o valor real depositado e o preço-tabela
                 // para que o faturamento reportado reflita o USDC que entrou.
                 if (function_exists('grid402_metrics_adjust_revenue')) {
-                    $deposited = ((int)($result['raw_usdc_units'] ?? 0)) / 1000000;
                     grid402_metrics_adjust_revenue(max(0.0, $deposited - (float)$servicePriceDisplay));
                 }
             }
@@ -3186,8 +3207,18 @@ grid402_log_public_visit('/');
                 <div style="text-align:center; background: rgba(0,240,255,.08); border:1px solid rgba(0,240,255,.24); border-radius:8px; padding:.75rem .9rem; margin-bottom:1.2rem; font-size:.82rem; color:#CBD5E1;" data-i18n-html="topup.how_to_read">
                     <strong>How to read balances:</strong> 1 credit costs <strong>0.0050 USDC</strong> on standard endpoints; 0.0100 USDC endpoints consume 2 credits, 0.0200 USDC consume 4 credits, and 0.0300 USDC consume 6 credits.
                 </div>
-                <div style="display: flex; justify-content: center; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem; font-size: 0.85rem; color: #8FA2B9;" data-i18n-html="topup.network_bar">
+                <div style="display: flex; justify-content: center; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem; font-size: 0.85rem; color: #8FA2B9;" id="topup-active-net-summary" data-i18n-html="topup.network_bar">
                     <strong>Network:</strong> Base Mainnet (8453) • <strong>Token:</strong> USDC • <strong>Contract:</strong> <a href="https://basescan.org/token/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" target="_blank" rel="noopener noreferrer" style="color: #00F0FF; font-family: var(--font-mono); text-decoration: none;">0x8335...2913</a>
+                </div>
+
+                <!-- Seletor Visual Multi-Chain (5 Redes EVM + Solana SPL USDC) -->
+                <div id="topup-network-selector" role="radiogroup" aria-label="Selecionar blockchain para pagamento USDC" style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 1.15rem;">
+                    <button type="button" class="btn-sm btn-outline topup-net-btn" data-chain="base" onclick="selectTopupNetwork('base')" style="border-color: #00F0FF; background: rgba(0,240,255,0.16); color: #fff; font-weight: 700;">🔵 Base (Padrão)</button>
+                    <button type="button" class="btn-sm btn-outline topup-net-btn" data-chain="arbitrum" onclick="selectTopupNetwork('arbitrum')" style="border-color: var(--border); color: var(--text-muted);">🔷 Arbitrum</button>
+                    <button type="button" class="btn-sm btn-outline topup-net-btn" data-chain="polygon" onclick="selectTopupNetwork('polygon')" style="border-color: var(--border); color: var(--text-muted);">🟣 Polygon</button>
+                    <button type="button" class="btn-sm btn-outline topup-net-btn" data-chain="optimism" onclick="selectTopupNetwork('optimism')" style="border-color: var(--border); color: var(--text-muted);">🔴 Optimism</button>
+                    <button type="button" class="btn-sm btn-outline topup-net-btn" data-chain="ethereum" onclick="selectTopupNetwork('ethereum')" style="border-color: var(--border); color: var(--text-muted);">⟠ Ethereum</button>
+                    <button type="button" class="btn-sm btn-outline topup-net-btn" data-chain="solana" onclick="selectTopupNetwork('solana')" style="border-color: var(--border); color: var(--text-muted);">◎ Solana (SPL)</button>
                 </div>
             </div>
 
@@ -3317,7 +3348,7 @@ grid402_log_public_visit('/');
 
                 <div style="background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
                     <div style="font-size: 0.82rem; color: #8FA2B9;">
-                        <span data-i18n="topup.manual.addr_label">1. Oracle Address (Base Network):</span><br>
+                        <span id="oracle-wallet-net-label" data-i18n="topup.manual.addr_label">1. Oracle Address (Base Network):</span><br>
                         <code id="oracle-wallet-addr" style="color: #00F0FF; font-weight: 700; word-break: break-all;">0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90</code>
                     </div>
                     <button class="btn-sm btn-outline" onclick="copyOracleAddress()" id="btn-copy-oracle" style="border-color: rgba(0,240,255,0.4); color: #00F0FF; white-space: nowrap;" data-i18n="topup.manual.copy_addr">📋 Copy Address</button>
@@ -5561,7 +5592,43 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             });
         }
 
-        // Web3 One-Click Top-Up (Session Passes)
+        // Configuração Multi-Chain (5 Redes EVM + Solana SPL USDC) para Web3 Top-Up
+        const GRID402_MULTICHAIN_CONFIG = <?php echo json_encode(grid402_supported_networks(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
+        let GRID402_SELECTED_TOPUP_NET = 'base';
+
+        function selectTopupNetwork(slug) {
+            if (!GRID402_MULTICHAIN_CONFIG[slug]) return;
+            GRID402_SELECTED_TOPUP_NET = slug;
+            const cfg = GRID402_MULTICHAIN_CONFIG[slug];
+
+            document.querySelectorAll('.topup-net-btn').forEach(btn => {
+                const isSelected = btn.getAttribute('data-chain') === slug;
+                btn.style.borderColor = isSelected ? '#00F0FF' : 'var(--border)';
+                btn.style.background = isSelected ? 'rgba(0,240,255,0.16)' : 'transparent';
+                btn.style.color = isSelected ? '#fff' : 'var(--text-muted)';
+                btn.style.fontWeight = isSelected ? '700' : '500';
+            });
+
+            const summaryEl = document.getElementById('topup-active-net-summary');
+            if (summaryEl) {
+                const shortContract = cfg.usdc_contract.slice(0, 6) + '...' + cfg.usdc_contract.slice(-4);
+                const chainSuffix = cfg.chain_id ? (' (' + cfg.chain_id + ')') : ' (SPL)';
+                summaryEl.innerHTML = '<strong>Network:</strong> ' + cfg.display_name + chainSuffix + ' • <strong>Token:</strong> USDC • <strong>Contract:</strong> <code style="color:#00F0FF;">' + shortContract + '</code>';
+            }
+
+            const addrEl = document.getElementById('oracle-wallet-addr');
+            const labelEl = document.getElementById('oracle-wallet-net-label');
+            const txInput = document.getElementById('manual-pass-tx-input');
+            if (addrEl) addrEl.textContent = cfg.recipient;
+            if (labelEl) labelEl.textContent = '1. Endereço Oficial (' + cfg.display_name + ' - USDC):';
+            if (txInput) {
+                txInput.placeholder = (cfg.type === 'solana')
+                    ? 'Cole a assinatura Base58 da transação SPL USDC na Solana...'
+                    : ('0x... (Cole o hash da transferência USDC na rede ' + cfg.display_name + ')');
+            }
+        }
+
+        // Web3 One-Click Top-Up Multi-Chain (Session Passes)
         async function startWeb3Topup(amountUsdc, tierName, customProvider = null) {
             const btnId = 'btn-topup-' + tierName;
             const btn = document.getElementById(btnId);
@@ -5571,9 +5638,25 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             const statusTitle = document.getElementById('topup-status-title');
             const statusMsg = document.getElementById('topup-status-msg');
             const successCard = document.getElementById('topup-success-card');
+            const netSlug = GRID402_SELECTED_TOPUP_NET || 'base';
+            const netCfg = GRID402_MULTICHAIN_CONFIG[netSlug] || GRID402_MULTICHAIN_CONFIG.base;
 
             if (statusBox) statusBox.style.display = 'block';
             if (successCard) successCard.style.display = 'none';
+
+            // Fluxo dedicado para Solana (SPL USDC)
+            if (netCfg.type === 'solana') {
+                if (statusTitle) statusTitle.textContent = 'Pagamento via Solana (SPL USDC) — ' + amountUsdc + ' USDC';
+                if (statusMsg) {
+                    statusMsg.innerHTML = 'Transfira exatamente <strong>' + amountUsdc + ' USDC (SPL)</strong> na Solana Mainnet para:<br>'
+                        + '<code style="color:#00F0FF;font-weight:700;">' + netCfg.recipient + '</code><br>'
+                        + 'Mint USDC: <code style="color:#94A3B8;">' + netCfg.usdc_contract + '</code><br>'
+                        + 'Depois, cole a assinatura Base58 na caixa abaixo e clique em <strong>Validar e Ativar Passe</strong>.';
+                }
+                const manualBox = document.getElementById('manual-topup-box');
+                if (manualBox) manualBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
 
             let provider = customProvider;
             if (!provider) {
@@ -5583,7 +5666,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     if (e && e.code === 'CHOOSER_CANCELLED') return;
                     if (statusTitle) statusTitle.textContent = 'Carteira Web3 não detectada';
                     if (statusMsg) {
-                        statusMsg.innerHTML = 'Nenhuma extensão de carteira (MetaMask, Coinbase Wallet, Rabby) detectada neste navegador.<br><span style="color: #00F0FF; font-weight: 600;">Sem problemas!</span> Você pode transferir USDC diretamente pelo seu app (ou exchange) e ativar o passe colando o Hash na caixa logo abaixo.';
+                        statusMsg.innerHTML = 'Nenhuma extensão de carteira (MetaMask, Coinbase Wallet, Rabby) detectada neste navegador.<br><span style="color: #00F0FF; font-weight: 600;">Sem problemas!</span> Você pode transferir USDC na rede <strong>' + netCfg.display_name + '</strong> diretamente pelo seu app e ativar o passe colando o Hash na caixa logo abaixo.';
                     }
                     const manualBox = document.getElementById('manual-topup-box');
                     if (manualBox) manualBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -5596,7 +5679,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     btn.disabled = true;
                     btn.textContent = 'Conectando...';
                 }
-                if (statusTitle) statusTitle.textContent = '1/3 Conectando carteira na Base...';
+                if (statusTitle) statusTitle.textContent = '1/3 Conectando carteira em ' + netCfg.display_name + '...';
                 if (statusMsg) statusMsg.textContent = 'Solicitando conexão com sua carteira Web3...';
 
                 // 1. Conexão de contas
@@ -5606,23 +5689,24 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 }
                 const userAddress = accounts[0];
 
-                // 2. Garantir rede Base Mainnet (0x2105 = 8453)
-                if (statusTitle) statusTitle.textContent = '2/3 Verificando rede Base Mainnet...';
+                // 2. Garantir rede EVM selecionada (Base, Arbitrum, Polygon, Optimism ou Ethereum)
+                if (statusTitle) statusTitle.textContent = '2/3 Verificando rede ' + netCfg.display_name + '...';
                 try {
                     await provider.request({
                         method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: '0x2105' }],
+                        params: [{ chainId: netCfg.chain_id_hex }],
                     });
                 } catch (switchError) {
                     if (switchError.code === 4902) {
+                        const explorerBase = netCfg.explorer_tx_url.replace(/\/tx\/$/, '');
                         await provider.request({
                             method: 'wallet_addEthereumChain',
                             params: [{
-                                chainId: '0x2105',
-                                chainName: 'Base Mainnet',
-                                nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-                                rpcUrls: ['https://mainnet.base.org'],
-                                blockExplorerUrls: ['https://basescan.org'],
+                                chainId: netCfg.chain_id_hex,
+                                chainName: netCfg.display_name,
+                                nativeCurrency: netCfg.native_currency || { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                                rpcUrls: [netCfg.rpcs[0]],
+                                blockExplorerUrls: [explorerBase],
                             }],
                         });
                     } else {
@@ -5630,18 +5714,18 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     }
                 }
 
-                // 3. Monta a transação ERC-20 transfer(to, amount)
+                // 3. Monta a transação ERC-20 transfer(to, amount) no contrato USDC da rede selecionada
                 const amountRaw = Math.round(Number(amountUsdc) * 1e6);
-                const recipient = '<?php echo GRID402_WALLET_ADDRESS; ?>'.toLowerCase().replace('0x', '');
-                const usdcContract = '<?php echo GRID402_USDC_CONTRACT; ?>';
+                const recipient = netCfg.recipient.toLowerCase().replace('0x', '');
+                const usdcContract = netCfg.usdc_contract;
 
                 const recipientPadded = recipient.padStart(64, '0');
                 const amountHex = amountRaw.toString(16).padStart(64, '0');
                 const data = '0xa9059cbb' + recipientPadded + amountHex;
 
                 if (btn) btn.textContent = 'Assinando ' + amountUsdc + ' USDC...';
-                if (statusTitle) statusTitle.textContent = '3/3 Aguardando confirmação...';
-                if (statusMsg) statusMsg.textContent = 'Confirme a transferência de ' + amountUsdc + ' USDC na sua carteira para a infraestrutura do Grid402.';
+                if (statusTitle) statusTitle.textContent = '3/3 Aguardando confirmação em ' + netCfg.display_name + '...';
+                if (statusMsg) statusMsg.textContent = 'Confirme a transferência de ' + amountUsdc + ' USDC (' + netCfg.display_name + ') na sua carteira para o Grid402.';
 
                 const txHash = await provider.request({
                     method: 'eth_sendTransaction',
@@ -5652,13 +5736,13 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     }],
                 });
 
-                if (statusTitle) statusTitle.textContent = 'Transação enviada! Confirmando no bloco Base...';
-                if (statusMsg) statusMsg.innerHTML = 'Tx enviada: <a href="https://basescan.org/tx/' + txHash + '" target="_blank" style="color: #00F0FF; text-decoration: underline;">' + txHash + '</a><br>Aguardando 3.5 segundos para emissão do seu Session Pass...';
+                if (statusTitle) statusTitle.textContent = 'Transação enviada! Confirmando em ' + netCfg.display_name + '...';
+                if (statusMsg) statusMsg.innerHTML = 'Tx enviada: <a href="' + netCfg.explorer_tx_url + txHash + '" target="_blank" style="color: #00F0FF; text-decoration: underline;">' + txHash + '</a><br>Aguardando 3.5 segundos para emissão do seu Session Pass...';
 
                 await new Promise(r => setTimeout(r, 3500));
 
-                // 4. Chama o checkout Web3 para validar on-chain e emitir o Session Pass
-                const resp = await fetch('/api/v1/pass-emitir?tx=' + encodeURIComponent(txHash));
+                // 4. Chama o checkout Web3 Multi-Chain para validar on-chain e emitir o Session Pass
+                const resp = await fetch('/api/v1/pass-emitir?chain=' + encodeURIComponent(netSlug) + '&tx=' + encodeURIComponent(txHash));
                 const passData = await resp.json();
 
                 if (passData && (passData.status === 'ACTIVE' || passData.pass_token)) {
@@ -5667,7 +5751,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
                     document.getElementById('topup-result-token').textContent = passData.pass_token;
                     document.getElementById('topup-result-credits').textContent = Number(passData.credits_total || 0).toLocaleString();
-                    document.getElementById('topup-result-tier').textContent = (passData.tier || tierName).toUpperCase();
+                    document.getElementById('topup-result-tier').textContent = (passData.tier || tierName).toUpperCase() + ' (' + netCfg.name + ')';
                     document.getElementById('topup-result-expires').textContent = passData.expires_at || '30 dias';
 
                     const exampleCurl = 'curl "https://grid402.online/api/v1/forex" -H "X-Payment: ' + passData.pass_token + '"';
@@ -5679,7 +5763,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
                     successCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 } else {
-                    throw new Error(passData.message || passData.error || 'A transação foi transmitida, mas o bloco ainda está propagando no RPC. Aguarde alguns segundos e consulte: /api/v1/pass?tx=' + txHash);
+                    throw new Error(passData.message || passData.error || 'A transação foi transmitida, mas o bloco ainda está propagando no RPC. Aguarde alguns segundos e clique em Validar na caixa manual.');
                 }
             } catch (err) {
                 if (statusTitle) statusTitle.textContent = 'Operação cancelada ou falhou';
@@ -5693,7 +5777,8 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
         }
 
         function copyOracleAddress() {
-            const addr = '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90';
+            const netCfg = GRID402_MULTICHAIN_CONFIG[GRID402_SELECTED_TOPUP_NET] || GRID402_MULTICHAIN_CONFIG.base;
+            const addr = netCfg.recipient;
             navigator.clipboard.writeText(addr).then(() => {
                 const btn = document.getElementById('btn-copy-oracle');
                 if (btn) {
@@ -5707,25 +5792,31 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
         async function activateManualPass() {
             const input = document.getElementById('manual-pass-tx-input');
             const tx = input ? input.value.trim() : '';
+            const netSlug = GRID402_SELECTED_TOPUP_NET || 'base';
+            const netCfg = GRID402_MULTICHAIN_CONFIG[netSlug] || GRID402_MULTICHAIN_CONFIG.base;
             const statusBox = document.getElementById('topup-status-box');
             const statusTitle = document.getElementById('topup-status-title');
             const statusMsg = document.getElementById('topup-status-msg');
             const successCard = document.getElementById('topup-success-card');
             const btn = document.getElementById('btn-manual-activate');
 
-            if (!tx || !/^0x[a-fA-F0-9]{64}$/.test(tx)) {
-                alert('Por favor, informe um hash de transação válido na rede Base (ex: 0x... com 64 caracteres hexadecimais).');
+            const isValidEvm = /^0x[a-fA-F0-9]{64}$/.test(tx);
+            const isValidSol = /^[1-9A-HJ-NP-Za-km-z]{64,90}$/.test(tx);
+            if (!tx || (netCfg.type === 'solana' ? !isValidSol : !isValidEvm)) {
+                alert(netCfg.type === 'solana'
+                    ? 'Informe uma assinatura Solana válida (Base58 de 64 a 90 caracteres).'
+                    : ('Informe um hash de transação válido na rede ' + netCfg.display_name + ' (ex: 0x... com 64 caracteres hexadecimais).'));
                 return;
             }
 
             if (statusBox) statusBox.style.display = 'block';
             if (successCard) successCard.style.display = 'none';
-            if (statusTitle) statusTitle.textContent = 'Validando transação na Base...';
-            if (statusMsg) statusMsg.textContent = 'Consultando recibo on-chain e confirmando saldo de USDC emitido...';
+            if (statusTitle) statusTitle.textContent = 'Validando transação em ' + netCfg.display_name + '...';
+            if (statusMsg) statusMsg.textContent = 'Consultando recibo on-chain e confirmando transferência de USDC oficial...';
             if (btn) { btn.disabled = true; btn.textContent = 'Validando...'; }
 
             try {
-                const resp = await fetch('/api/v1/pass-emitir?tx=' + encodeURIComponent(tx));
+                const resp = await fetch('/api/v1/pass-emitir?chain=' + encodeURIComponent(netSlug) + '&tx=' + encodeURIComponent(tx));
                 const passData = await resp.json();
 
                 if (passData && (passData.status === 'ACTIVE' || passData.pass_token)) {
@@ -5734,7 +5825,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
                     document.getElementById('topup-result-token').textContent = passData.pass_token;
                     document.getElementById('topup-result-credits').textContent = Number(passData.credits_total || 0).toLocaleString();
-                    document.getElementById('topup-result-tier').textContent = (passData.tier || 'PRO').toUpperCase();
+                    document.getElementById('topup-result-tier').textContent = (passData.tier || 'PRO').toUpperCase() + ' (' + netCfg.name + ')';
                     document.getElementById('topup-result-expires').textContent = passData.expires_at || '30 dias';
 
                     const exampleCurl = 'curl "https://grid402.online/api/v1/forex" -H "X-Payment: ' + passData.pass_token + '"';
@@ -5746,7 +5837,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
                     successCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 } else {
-                    throw new Error(passData.message || passData.error || 'Transação não encontrada ou ainda não propagada no RPC da Base. Aguarde alguns segundos e tente novamente.');
+                    throw new Error(passData.message || passData.error || 'Transação não encontrada ou ainda não propagada no RPC de ' + netCfg.display_name + '. Aguarde alguns segundos e tente novamente.');
                 }
             } catch (err) {
                 if (statusTitle) statusTitle.textContent = 'Falha ao ativar passe';

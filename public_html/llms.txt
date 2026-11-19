@@ -54,12 +54,13 @@
 - [Coinbase AgentKit Providers](https://github.com/oliveiratc/Grid402/tree/main/integrations/agentkit): Provedores de acoes com autoliquidacao on-chain para carteiras CDP
 
 ## Micropayment Protocol Details
-- Rede e Chain ID: Base Mainnet (Chain ID 8453)
+- Rede Principal x402: Base Mainnet (Chain ID 8453)
+- Redes Multi-Chain Suportadas para USDC (Session Pass e Transferencia Direta): Base (8453), Arbitrum One (42161), Polygon PoS (137), Optimism (10), Ethereum Mainnet (1) — carteira EVM `0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90` — e Solana Mainnet (SPL USDC `EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`) — carteira Solana `CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C`.
 - Tarifa Padrao por Requisicao: 0.0050 USDC = 1 credito (Sancoes e Simples: 0.0100 USDC = 2 creditos, Domain Audit e Market Snapshot: 0.0150 USDC = 3 creditos, CNPJ, LEI, OFAC e KYB Audit: 0.0200 USDC = 4 creditos, Compliance 360: 0.0300 USDC = 6 creditos, Dossie 360 KYB + Veredito IA: 0.0500 USDC = 10 creditos)
 - Formas de Liquidacao Suportadas:
   1) Protocolo x402 v2 padrao (M2M Gasless): Envie a autorizacao assinada EIP-3009 em base64 no cabecalho `PAYMENT-SIGNATURE` ou `X-Payment` (esquema `exact`). O Grid402 valida e liquida via facilitador retornando o recibo em `PAYMENT-RESPONSE`.
-  2) Session Pass Pre-Pago (<15ms, `1 credito = 0.0050 USDC`): Adquira creditos em lote (Starter 2 USDC = 400 creditos, Pro 5 USDC = 1.000 creditos, Fleet 20 USDC = 5.000 + 1.000 bonus = 6.000 creditos) e reutilize o token `pass_g402_...` no cabecalho `X-Payment` sem latencia on-chain. Suporta teto diario (`daily_credit_limit`), whitelist de rotas (`allowed_endpoints`) e consulta gratuita de saldo em `GET /api/v1/pass/balance`.
-  3) Transferencia Direta On-Chain: Envie o valor em USDC na Base para a carteira do oraculo (`0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`) e repita a chamada com `X-Payment: 0x<tx_hash>`.
+  2) Session Pass Pre-Pago Multi-Chain (<15ms, `1 credito = 0.0050 USDC`): Adquira creditos em lote em qualquer uma das 6 redes via `POST /api/v1/pass-emitir` (`{"txHash": "...", "chain": "base|arbitrum|polygon|optimism|ethereum|solana"}`) ou Pix (Starter 2 USDC = 400 creditos, Pro 5 USDC = 1.000 creditos, Fleet 20 USDC = 6.000 creditos) e reutilize o token `pass_g402_...` no cabecalho `X-Payment` ou `X-Session-Pass`.
+  3) Transferencia Direta On-Chain Multi-Chain: Envie USDC na rede desejada e repita a chamada com `X-Payment: <chain>:<tx_hash>` (ou cabecalho `X-Payment-Network: arbitrum|polygon|optimism|ethereum|solana|base`). Na Base, `X-Payment: 0x<tx_hash>` continua funcionando sem prefixo.
 - Idempotencia Financeira M2M (`Idempotency-Key`): Envie `Idempotency-Key: <uuid>` nas rotas pagas `/api/v1/*` (TTL 300s) para garantir que retentativas de rede devolvam a mesma resposta assinada (`X-Idempotent-Replay: true`) sem debitar creditos duplicados.
 - Proveniencia e Auditoria (`_meta` + `_oracle_proof`): Toda resposta HTTP 200 paga inclui o bloco `_meta` (`upstream_source`, `fetched_at`, `cache_ttl_sec`, `operator`, `oracle_wallet`) assinado dentro do digest canonico ECDSA secp256k1.
 - [Base Mainnet Scanner](https://basescan.org/address/0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90): Carteira oraculo recebedora de micropagamentos (0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90)

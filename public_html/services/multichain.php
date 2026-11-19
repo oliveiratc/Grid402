@@ -1,0 +1,656 @@
+<?php
+/**
+ * Grid402 - Motor de Verificação Multi-Chain (5 Redes EVM + Solana SPL USDC)
+ *
+ * Suporta auditoria nativa on-chain de transferências USDC (6 decimais) sem custódia
+ * e sem bridge intermediária em:
+ * - Base Mainnet (Chain ID 8453)
+ * - Arbitrum One (Chain ID 42161)
+ * - Polygon PoS (Chain ID 137)
+ * - Optimism (Chain ID 10)
+ * - Ethereum Mainnet (Chain ID 1)
+ * - Solana Mainnet (SPL USDC Mint EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v)
+ */
+
+declare(strict_types=1);
+
+if (!defined('GRID402_EXEC')) {
+    define('GRID402_EXEC', true);
+}
+
+require_once __DIR__ . '/../config.php';
+
+/**
+ * Registro canônico das 6 redes suportadas para pagamentos USDC no Grid402.
+ *
+ * @return array<string, array<string, mixed>>
+ */
+function grid402_supported_networks(): array {
+    $evmWallet = strtolower(defined('GRID402_WALLET_ADDRESS') ? (string) GRID402_WALLET_ADDRESS : '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90');
+    $solWallet = defined('GRID402_SOLANA_WALLET_ADDRESS') ? trim((string) GRID402_SOLANA_WALLET_ADDRESS) : 'CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C';
+    $solMint = defined('GRID402_SOLANA_USDC_MINT') ? trim((string) GRID402_SOLANA_USDC_MINT) : 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+
+    $envRpc = static function (string $envKey, array $defaults): array {
+        $custom = function_exists('grid402_env') ? trim((string) grid402_env($envKey, '')) : '';
+        if ($custom !== '' && str_starts_with($custom, 'https://')) {
+            return array_values(array_unique(array_merge([$custom], $defaults)));
+        }
+        return $defaults;
+    };
+
+    $baseRpc = defined('GRID402_BASE_RPC_URL') ? (string) GRID402_BASE_RPC_URL : 'https://mainnet.base.org';
+    $baseUsdc = strtolower(defined('GRID402_USDC_CONTRACT') ? (string) GRID402_USDC_CONTRACT : '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913');
+
+    return [
+        'base' => [
+            'slug' => 'base',
+            'name' => 'Base',
+            'display_name' => 'Base Mainnet',
+            'type' => 'evm',
+            'chain_id' => 8453,
+            'chain_id_hex' => '0x2105',
+            'caip2' => 'eip155:8453',
+            'usdc_contract' => $baseUsdc,
+            'usdc_contracts' => [$baseUsdc],
+            'decimals' => 6,
+            'recipient' => $evmWallet,
+            'rpcs' => $envRpc('GRID402_RPC_BASE', [$baseRpc, 'https://base.llamarpc.com', 'https://1rpc.io/base']),
+            'explorer_tx_url' => 'https://basescan.org/tx/',
+            'native_currency' => ['name' => 'Ether', 'symbol' => 'ETH', 'decimals' => 18],
+        ],
+        'arbitrum' => [
+            'slug' => 'arbitrum',
+            'name' => 'Arbitrum',
+            'display_name' => 'Arbitrum One',
+            'type' => 'evm',
+            'chain_id' => 42161,
+            'chain_id_hex' => '0xa4b1',
+            'caip2' => 'eip155:42161',
+            'usdc_contract' => '0xaf88d065e77c8cc2239327c5edb3a432268e5831',
+            'usdc_contracts' => [
+                '0xaf88d065e77c8cc2239327c5edb3a432268e5831', // Circle Native USDC
+                '0xff970a61a04b1ca14834a43f5de4533ebddb5cc8', // Circle Bridged USDC.e
+            ],
+            'decimals' => 6,
+            'recipient' => $evmWallet,
+            'rpcs' => $envRpc('GRID402_RPC_ARBITRUM', ['https://arb1.arbitrum.io/rpc', 'https://1rpc.io/arb', 'https://arbitrum-one-rpc.publicnode.com']),
+            'explorer_tx_url' => 'https://arbiscan.io/tx/',
+            'native_currency' => ['name' => 'Ether', 'symbol' => 'ETH', 'decimals' => 18],
+        ],
+        'polygon' => [
+            'slug' => 'polygon',
+            'name' => 'Polygon',
+            'display_name' => 'Polygon PoS',
+            'type' => 'evm',
+            'chain_id' => 137,
+            'chain_id_hex' => '0x89',
+            'caip2' => 'eip155:137',
+            'usdc_contract' => '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359',
+            'usdc_contracts' => [
+                '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359', // Circle Native USDC
+                '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', // Circle Bridged USDC.e
+            ],
+            'decimals' => 6,
+            'recipient' => $evmWallet,
+            'rpcs' => $envRpc('GRID402_RPC_POLYGON', ['https://polygon-rpc.com', 'https://1rpc.io/matic', 'https://polygon-bor-rpc.publicnode.com']),
+            'explorer_tx_url' => 'https://polygonscan.com/tx/',
+            'native_currency' => ['name' => 'POL', 'symbol' => 'POL', 'decimals' => 18],
+        ],
+        'optimism' => [
+            'slug' => 'optimism',
+            'name' => 'Optimism',
+            'display_name' => 'OP Mainnet',
+            'type' => 'evm',
+            'chain_id' => 10,
+            'chain_id_hex' => '0xa',
+            'caip2' => 'eip155:10',
+            'usdc_contract' => '0x0b2c639c533813f4aa9d7837caf62653d097ff85',
+            'usdc_contracts' => [
+                '0x0b2c639c533813f4aa9d7837caf62653d097ff85', // Circle Native USDC
+                '0x7f5c764cbc14f9669b88837ca1490cca17c31607', // Circle Bridged USDC.e
+            ],
+            'decimals' => 6,
+            'recipient' => $evmWallet,
+            'rpcs' => $envRpc('GRID402_RPC_OPTIMISM', ['https://mainnet.optimism.io', 'https://1rpc.io/op', 'https://optimism-rpc.publicnode.com']),
+            'explorer_tx_url' => 'https://optimistic.etherscan.io/tx/',
+            'native_currency' => ['name' => 'Ether', 'symbol' => 'ETH', 'decimals' => 18],
+        ],
+        'ethereum' => [
+            'slug' => 'ethereum',
+            'name' => 'Ethereum',
+            'display_name' => 'Ethereum Mainnet',
+            'type' => 'evm',
+            'chain_id' => 1,
+            'chain_id_hex' => '0x1',
+            'caip2' => 'eip155:1',
+            'usdc_contract' => '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+            'usdc_contracts' => ['0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'],
+            'decimals' => 6,
+            'recipient' => $evmWallet,
+            'rpcs' => $envRpc('GRID402_RPC_ETHEREUM', ['https://ethereum-rpc.publicnode.com', 'https://1rpc.io/eth', 'https://eth.llamarpc.com']),
+            'explorer_tx_url' => 'https://etherscan.io/tx/',
+            'native_currency' => ['name' => 'Ether', 'symbol' => 'ETH', 'decimals' => 18],
+        ],
+        'solana' => [
+            'slug' => 'solana',
+            'name' => 'Solana',
+            'display_name' => 'Solana Mainnet',
+            'type' => 'solana',
+            'chain_id' => null,
+            'chain_id_hex' => null,
+            'caip2' => 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
+            'usdc_contract' => $solMint,
+            'usdc_contracts' => [$solMint],
+            'decimals' => 6,
+            'recipient' => $solWallet,
+            'rpcs' => $envRpc('GRID402_RPC_SOLANA', ['https://api.mainnet-beta.solana.com', 'https://solana-rpc.publicnode.com']),
+            'explorer_tx_url' => 'https://solscan.io/tx/',
+            'native_currency' => ['name' => 'Solana', 'symbol' => 'SOL', 'decimals' => 9],
+        ],
+    ];
+}
+
+/**
+ * Normaliza apelidos, Chain IDs e CAIP-2 para o slug canônico da rede suportada.
+ * Retorna null se a rede não for suportada.
+ */
+function grid402_normalize_network_slug(?string $raw): ?string {
+    $val = strtolower(trim((string) $raw));
+    if ($val === '') {
+        return null;
+    }
+
+    return match ($val) {
+        'base', 'base-mainnet', 'eip155:8453', '8453' => 'base',
+        'arbitrum', 'arb', 'arbitrum-one', 'arb1', 'eip155:42161', '42161' => 'arbitrum',
+        'polygon', 'matic', 'pol', 'polygon-pos', 'eip155:137', '137' => 'polygon',
+        'optimism', 'op', 'op-mainnet', 'eip155:10', '10' => 'optimism',
+        'ethereum', 'eth', 'mainnet', 'eth-mainnet', 'eip155:1', '1' => 'ethereum',
+        'solana', 'sol', 'solana-mainnet', 'solana:5eykt4usfv8p8njdtrepy1vzqkqzkvdp' => 'solana',
+        default => null,
+    };
+}
+
+/**
+ * Valida formato Base58 de uma assinatura de transação Solana (64 a 90 caracteres).
+ */
+function grid402_is_valid_solana_signature(string $sig): bool {
+    return preg_match('/^[1-9A-HJ-NP-Za-km-z]{64,90}$/', trim($sig)) === 1;
+}
+
+/**
+ * Faz o parsing do comprovante de pagamento e resolve rede canônica, tx_hash e chave de trava anti-replay.
+ *
+ * Aceita:
+ * - Prefixo explícito: "arbitrum:0x...", "solana:<base58>", "polygon:0x..."
+ * - Cabeçalho X-Payment-Network ou parâmetro chain/network
+ * - Detecção automática de assinatura Solana (Base58) quando não começa com 0x
+ * - Fallback retrocompatível para 'base'
+ */
+function grid402_parse_network_proof(string $rawProof, ?string $headerNetwork = null): array {
+    $proof = trim($rawProof);
+    $explicitNetwork = false;
+    $resolvedNetwork = null;
+    $invalidNetwork = null;
+
+    // 1. Prefixo explícito "chain:tx" (ex: arbitrum:0x..., solana:5x...)
+    if (preg_match('/^([a-zA-Z0-9_-]{2,20}):(.+)$/', $proof, $m) === 1) {
+        $prefix = strtolower(trim($m[1]));
+        $rest = trim($m[2]);
+        // Evita confundir tokens ou esquemas conhecidos
+        if (!in_array($prefix, ['http', 'https', 'pass_g402', 'bearer', 'x402'], true)) {
+            $norm = grid402_normalize_network_slug($prefix);
+            if ($norm !== null) {
+                $resolvedNetwork = $norm;
+                $proof = $rest;
+                $explicitNetwork = true;
+            } else {
+                $invalidNetwork = $prefix;
+                $proof = $rest;
+                $explicitNetwork = true;
+            }
+        }
+    }
+
+    // 2. Cabeçalho X-Payment-Network ou parâmetro chain explícito
+    if ($resolvedNetwork === null && $invalidNetwork === null && $headerNetwork !== null && trim($headerNetwork) !== '') {
+        $norm = grid402_normalize_network_slug($headerNetwork);
+        if ($norm !== null) {
+            $resolvedNetwork = $norm;
+            $explicitNetwork = true;
+        } else {
+            $invalidNetwork = strtolower(trim($headerNetwork));
+            $explicitNetwork = true;
+        }
+    }
+
+    // 3. Auto-detecção Solana Base58 quando nenhum cabeçalho foi enviado
+    if ($resolvedNetwork === null && $invalidNetwork === null) {
+        if (!str_starts_with(strtolower($proof), '0x') && !str_starts_with(strtolower($proof), 'pass_g402_') && strtolower($proof) !== 'demo' && grid402_is_valid_solana_signature($proof)) {
+            $resolvedNetwork = 'solana';
+        } else {
+            $resolvedNetwork = 'base';
+        }
+    }
+
+    $finalNet = $resolvedNetwork ?? 'base';
+    $normalizedTx = ($finalNet === 'solana') ? $proof : strtolower($proof);
+    // Retrocompatibilidade: na Base a chave anti-replay continua sendo apenas o hash 0x lowercase
+    $lockKey = ($finalNet === 'base') ? $normalizedTx : ($finalNet . ':' . $normalizedTx);
+
+    return [
+        'network' => $finalNet,
+        'tx_hash' => $normalizedTx,
+        'lock_key' => $lockKey,
+        'explicit_network' => $explicitNetwork,
+        'invalid_network' => $invalidNetwork,
+    ];
+}
+
+/**
+ * Retorna a URL completa da transação no block explorer oficial da rede.
+ */
+function grid402_explorer_tx_url(string $network, string $txHash): string {
+    $networks = grid402_supported_networks();
+    $slug = grid402_normalize_network_slug($network) ?? 'base';
+    $base = (string) ($networks[$slug]['explorer_tx_url'] ?? 'https://basescan.org/tx/');
+    return $base . $txHash;
+}
+
+/**
+ * Resumo público compacto das 6 redes suportadas (exposto no desafio HTTP 402 e em /api/v1/pass).
+ */
+function grid402_supported_networks_public_summary(): array {
+    $out = [];
+    foreach (grid402_supported_networks() as $slug => $net) {
+        $out[$slug] = [
+            'name' => $net['display_name'],
+            'type' => $net['type'],
+            'chain_id' => $net['chain_id'],
+            'caip2' => $net['caip2'],
+            'token' => 'USDC',
+            'usdc_contract' => $net['usdc_contract'],
+            'recipient_wallet' => $net['recipient'],
+            'explorer' => $net['explorer_tx_url'],
+        ];
+    }
+    return $out;
+}
+
+/**
+ * Consulta eth_getTransactionReceipt em qualquer rede EVM suportada com failover automático de RPC.
+ */
+function grid402_rpc_get_evm_receipt(string $network, string $txHash): ?array {
+    $networks = grid402_supported_networks();
+    $slug = grid402_normalize_network_slug($network);
+    if ($slug === null || !isset($networks[$slug]) || ($networks[$slug]['type'] ?? '') !== 'evm') {
+        return null;
+    }
+
+    $rpcs = $networks[$slug]['rpcs'] ?? [];
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'eth_getTransactionReceipt',
+        'params' => [$txHash],
+    ]);
+
+    foreach ($rpcs as $rpcUrl) {
+        $ch = curl_init((string) $rpcUrl);
+        if (!$ch) {
+            continue;
+        }
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_TIMEOUT => 5,
+            CURLOPT_CONNECTTIMEOUT => 3,
+            CURLOPT_USERAGENT => 'Grid402-MultiChain-Verifier/1.0',
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode === 200 && is_string($response) && $response !== '') {
+            $decoded = @json_decode($response, true);
+            if (is_array($decoded) && array_key_exists('result', $decoded) && is_array($decoded['result'])) {
+                return $decoded['result'];
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Valida puramente um recibo EVM (logs ERC-20 Transfer) contra a allowlist de contratos USDC da rede.
+ */
+function grid402_verify_evm_receipt_usdc(array $receipt, string $network, int $requiredRawUnits, ?string $expectedRecipient = null): array {
+    $networks = grid402_supported_networks();
+    $slug = grid402_normalize_network_slug($network);
+    if ($slug === null || !isset($networks[$slug]) || ($networks[$slug]['type'] ?? '') !== 'evm') {
+        return [
+            'valid' => false,
+            'error' => 'UnsupportedNetwork',
+            'message' => "Rede EVM não suportada: {$network}.",
+            'code' => 400,
+        ];
+    }
+
+    if (strtolower((string) ($receipt['status'] ?? '0x0')) !== '0x1') {
+        return [
+            'valid' => false,
+            'error' => 'TransactionFailedOnChain',
+            'message' => "A transação foi revertida ou falhou na rede {$networks[$slug]['display_name']}.",
+            'code' => 403,
+        ];
+    }
+
+    $allowedContracts = array_map('strtolower', (array) ($networks[$slug]['usdc_contracts'] ?? []));
+    $recipient = strtolower($expectedRecipient ?? (string) $networks[$slug]['recipient']);
+    $expectedRecipientHex = str_starts_with($recipient, '0x') ? substr($recipient, 2) : $recipient;
+    $transferTopic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+
+    $totalUsdcRaw = 0;
+    $matchedContract = null;
+    $logs = is_array($receipt['logs'] ?? null) ? $receipt['logs'] : [];
+
+    foreach ($logs as $log) {
+        if (!is_array($log)) {
+            continue;
+        }
+        $logAddr = strtolower((string) ($log['address'] ?? ''));
+        if (!in_array($logAddr, $allowedContracts, true)) {
+            continue;
+        }
+        $topics = is_array($log['topics'] ?? null) ? $log['topics'] : [];
+        if (count($topics) < 3) {
+            continue;
+        }
+        if (strtolower((string) $topics[0]) !== $transferTopic) {
+            continue;
+        }
+        $toTopic = strtolower((string) $topics[2]);
+        $toAddrHex = substr(str_starts_with($toTopic, '0x') ? substr($toTopic, 2) : $toTopic, -40);
+        if ($toAddrHex !== $expectedRecipientHex) {
+            continue;
+        }
+
+        $dataHex = strtolower((string) ($log['data'] ?? '0x0'));
+        $cleanHex = str_starts_with($dataHex, '0x') ? substr($dataHex, 2) : $dataHex;
+        $cleanHex = ltrim($cleanHex, '0');
+        $val = ($cleanHex === '') ? 0 : (int) hexdec($cleanHex);
+        if ($val > 0) {
+            $totalUsdcRaw += $val;
+            $matchedContract = $logAddr;
+        }
+    }
+
+    if ($totalUsdcRaw < $requiredRawUnits) {
+        $reqFormatted = number_format($requiredRawUnits / 1000000, 4, '.', '');
+        $gotFormatted = number_format($totalUsdcRaw / 1000000, 4, '.', '');
+        return [
+            'valid' => false,
+            'error' => 'InsufficientOrMissingUsdcTransfer',
+            'message' => "Transferência de USDC oficial insuficiente na rede {$networks[$slug]['display_name']}. Exigido: {$reqFormatted} USDC, encontrado: {$gotFormatted} USDC.",
+            'code' => 403,
+            'network' => $slug,
+            'raw_amount' => $totalUsdcRaw,
+        ];
+    }
+
+    return [
+        'valid' => true,
+        'network' => $slug,
+        'chain_id' => $networks[$slug]['chain_id'],
+        'contract' => $matchedContract,
+        'raw_amount' => $totalUsdcRaw,
+        'usdc_amount' => round($totalUsdcRaw / 1000000, 6),
+        'block_number' => isset($receipt['blockNumber']) ? hexdec((string) $receipt['blockNumber']) : null,
+        'source' => ($slug === 'base') ? 'tx_hash' : ('evm_' . $slug),
+    ];
+}
+
+/**
+ * Consulta getTransaction (jsonParsed) na Solana Mainnet com failover automático de RPC.
+ */
+function grid402_rpc_get_solana_transaction(string $signature): ?array {
+    if (!grid402_is_valid_solana_signature($signature)) {
+        return null;
+    }
+
+    $networks = grid402_supported_networks();
+    $rpcs = $networks['solana']['rpcs'] ?? [];
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'getTransaction',
+        'params' => [
+            $signature,
+            [
+                'encoding' => 'jsonParsed',
+                'commitment' => 'confirmed',
+                'maxSupportedTransactionVersion' => 0,
+            ],
+        ],
+    ]);
+
+    foreach ($rpcs as $rpcUrl) {
+        $ch = curl_init((string) $rpcUrl);
+        if (!$ch) {
+            continue;
+        }
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_TIMEOUT => 6,
+            CURLOPT_CONNECTTIMEOUT => 3,
+            CURLOPT_USERAGENT => 'Grid402-Solana-Verifier/1.0',
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode === 200 && is_string($response) && $response !== '') {
+            $decoded = @json_decode($response, true);
+            if (is_array($decoded) && array_key_exists('result', $decoded) && is_array($decoded['result'])) {
+                return $decoded['result'];
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Valida puramente o retorno JSON-RPC getTransaction da Solana computando o delta líquido
+ * de SPL USDC creditado na conta pertencente à carteira oficial do Grid402.
+ */
+function grid402_verify_solana_tx_usdc(array $txResult, int $requiredRawUnits, ?string $expectedRecipient = null, ?string $expectedMint = null): array {
+    $networks = grid402_supported_networks();
+    $solCfg = $networks['solana'];
+    $recipient = $expectedRecipient ?? (string) $solCfg['recipient'];
+    $mint = $expectedMint ?? (string) $solCfg['usdc_contract'];
+
+    $meta = is_array($txResult['meta'] ?? null) ? $txResult['meta'] : null;
+    if ($meta === null) {
+        return [
+            'valid' => false,
+            'error' => 'InvalidSolanaTransaction',
+            'message' => 'Metadados da transação Solana ausentes.',
+            'code' => 403,
+        ];
+    }
+
+    if (array_key_exists('err', $meta) && $meta['err'] !== null) {
+        return [
+            'valid' => false,
+            'error' => 'TransactionFailedOnChain',
+            'message' => 'A transação falhou na blockchain Solana (meta.err != null).',
+            'code' => 403,
+        ];
+    }
+
+    $preMap = [];
+    foreach ((array) ($meta['preTokenBalances'] ?? []) as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        if ((string) ($entry['mint'] ?? '') !== $mint) {
+            continue;
+        }
+        if ((string) ($entry['owner'] ?? '') !== $recipient) {
+            continue;
+        }
+        $idx = (int) ($entry['accountIndex'] ?? -1);
+        $rawAmt = (int) ($entry['uiTokenAmount']['amount'] ?? 0);
+        if ($idx >= 0) {
+            $preMap[$idx] = $rawAmt;
+        }
+    }
+
+    $netCreditedRaw = 0;
+    foreach ((array) ($meta['postTokenBalances'] ?? []) as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        if ((string) ($entry['mint'] ?? '') !== $mint) {
+            continue;
+        }
+        if ((string) ($entry['owner'] ?? '') !== $recipient) {
+            continue;
+        }
+        $idx = (int) ($entry['accountIndex'] ?? -1);
+        $postAmt = (int) ($entry['uiTokenAmount']['amount'] ?? 0);
+        $preAmt = $preMap[$idx] ?? 0;
+        if ($postAmt > $preAmt) {
+            $netCreditedRaw += ($postAmt - $preAmt);
+        }
+    }
+
+    if ($netCreditedRaw < $requiredRawUnits) {
+        $reqFormatted = number_format($requiredRawUnits / 1000000, 4, '.', '');
+        $gotFormatted = number_format($netCreditedRaw / 1000000, 4, '.', '');
+        return [
+            'valid' => false,
+            'error' => 'InsufficientOrMissingUsdcTransfer',
+            'message' => "Transferência de SPL USDC insuficiente na Solana para {$recipient}. Exigido: {$reqFormatted} USDC, creditado: {$gotFormatted} USDC.",
+            'code' => 403,
+            'network' => 'solana',
+            'raw_amount' => $netCreditedRaw,
+        ];
+    }
+
+    return [
+        'valid' => true,
+        'network' => 'solana',
+        'chain_id' => null,
+        'contract' => $mint,
+        'raw_amount' => $netCreditedRaw,
+        'usdc_amount' => round($netCreditedRaw / 1000000, 6),
+        'slot' => isset($txResult['slot']) ? (int) $txResult['slot'] : null,
+        'source' => 'solana_spl',
+    ];
+}
+
+/**
+ * Orquestrador unificado de validação on-chain multi-chain com trava atômica anti-replay Zero-DB.
+ */
+function grid402_verify_multichain_usdc_tx(string $network, string $txHash, int $requiredRawUnits): array {
+    $slug = grid402_normalize_network_slug($network);
+    if ($slug === null) {
+        return [
+            'valid' => false,
+            'error' => 'UnsupportedNetwork',
+            'message' => "Rede não suportada: {$network}. Redes aceitas: base, arbitrum, polygon, optimism, ethereum, solana.",
+            'code' => 400,
+        ];
+    }
+
+    $networks = grid402_supported_networks();
+    $netCfg = $networks[$slug];
+    $cleanTx = ($slug === 'solana') ? trim($txHash) : strtolower(trim($txHash));
+
+    if ($slug === 'solana') {
+        if (!grid402_is_valid_solana_signature($cleanTx)) {
+            return [
+                'valid' => false,
+                'error' => 'InvalidTransactionFormat',
+                'message' => 'Assinatura de transação Solana inválida. Deve ser uma string Base58 de 64 a 90 caracteres.',
+                'code' => 400,
+            ];
+        }
+    } else {
+        if (preg_match('/^0x[a-f0-9]{64}$/', $cleanTx) !== 1) {
+            return [
+                'valid' => false,
+                'error' => 'InvalidTransactionFormat',
+                'message' => "Formato de hash de transação EVM inválido para {$netCfg['display_name']}. Esperado 0x seguido de 64 caracteres hexadecimais.",
+                'code' => 400,
+            ];
+        }
+    }
+
+    $lockKey = ($slug === 'base') ? $cleanTx : ($slug . ':' . $cleanTx);
+
+    if (function_exists('grid402_claim_transaction_lock') && !grid402_claim_transaction_lock($lockKey)) {
+        return [
+            'valid' => false,
+            'error' => 'TransactionAlreadyUsed',
+            'message' => "Esta transação na rede {$netCfg['display_name']} já foi utilizada anteriormente (proteção anti-replay).",
+            'code' => 403,
+        ];
+    }
+
+    if ($slug === 'solana') {
+        $txData = grid402_rpc_get_solana_transaction($cleanTx);
+        if ($txData === null) {
+            if (function_exists('grid402_release_transaction_lock')) {
+                grid402_release_transaction_lock($lockKey);
+            }
+            return [
+                'valid' => false,
+                'error' => 'TransactionNotFound',
+                'message' => 'Transação não encontrada ou ainda não confirmada na Solana Mainnet. Aguarde alguns segundos e tente novamente.',
+                'code' => 402,
+            ];
+        }
+        $check = grid402_verify_solana_tx_usdc($txData, $requiredRawUnits);
+    } else {
+        $receipt = grid402_rpc_get_evm_receipt($slug, $cleanTx);
+        if ($receipt === null) {
+            if (function_exists('grid402_release_transaction_lock')) {
+                grid402_release_transaction_lock($lockKey);
+            }
+            return [
+                'valid' => false,
+                'error' => 'TransactionNotFound',
+                'message' => "Transação não encontrada ou ainda não minerada na rede {$netCfg['display_name']}.",
+                'code' => 402,
+            ];
+        }
+        $check = grid402_verify_evm_receipt_usdc($receipt, $slug, $requiredRawUnits);
+    }
+
+    if (empty($check['valid'])) {
+        if (function_exists('grid402_release_transaction_lock')) {
+            grid402_release_transaction_lock($lockKey);
+        }
+        return $check;
+    }
+
+    $check['tx_hash'] = $cleanTx;
+    $check['lock_key'] = $lockKey;
+    $check['explorer_url'] = grid402_explorer_tx_url($slug, $cleanTx);
+    return $check;
+}

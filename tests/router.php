@@ -34,6 +34,7 @@ $localPages = [
     '/payment-dashboard' => 'payment_dashboard.php',
     '/reputation' => 'builder_reputation.php',
     '/growth_admin' => 'growth_admin.php',
+    '/pass' => 'pass.php',
     '/mcp' => 'mcp.php',
 ];
 

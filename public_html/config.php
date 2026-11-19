@@ -185,6 +185,8 @@ define('GRID402_PRICE_CNPJ', (string) grid402_env('GRID402_PRICE_CNPJ', '0.0200'
 define('GRID402_USDC_CNPJ_RAW', (int) grid402_env('GRID402_USDC_CNPJ_RAW', 20000)); // 0.020000 USDC
 define('GRID402_PRICE_DOSSIER', (string) grid402_env('GRID402_PRICE_DOSSIER', '0.0500'));
 define('GRID402_USDC_DOSSIER_RAW', (int) grid402_env('GRID402_USDC_DOSSIER_RAW', 50000)); // 0.050000 USDC (10 créditos)
+define('GRID402_SOLANA_WALLET_ADDRESS', trim((string) grid402_env('GRID402_SOLANA_WALLET_ADDRESS', 'CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C')));
+define('GRID402_SOLANA_USDC_MINT', trim((string) grid402_env('GRID402_SOLANA_USDC_MINT', 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v')));
 define('GRID402_CRON_SECRET', (string) grid402_env('GRID402_CRON_SECRET', 'grid402_secret_token_change_me'));
 
 // 2.2. Notificacoes de Pagamento em Tempo Real no Telegram (Opcional)

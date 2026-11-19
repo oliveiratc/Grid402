@@ -145,16 +145,16 @@ print("USD/BRL:", forex["rates"]["USD"]["bid"])
 
 Exemplo completo com wrappers prontos para `@tool` em [`examples/langchain_quickstart.py`](examples/langchain_quickstart.py).
 
-### 6. Recarga Web3 em 1 Clique (Session Passes na Base)
+### 6. Recarga Web3 Multi-Chain em 1 Clique (EVM + Solana SPL USDC)
 
-Para agentes e desenvolvedores que buscam alta frequência (abaixo de 15ms) sem o custo e atrito de assinar 1 transação a cada `GET`:
-- Acesse a interface web em [https://grid402.online/#topup](https://grid402.online/#topup)
-- Conecte sua carteira (MetaMask, Coinbase Smart Wallet com Passkey, Rainbow) na rede Base
-- Selecione seu pacote (`1 crédito = 0.0050 USDC` / 1 chamada padrão):
+Para agentes e desenvolvedores que buscam alta frequência (abaixo de 15ms) sem o custo e atrito de assinar 1 transação a cada `GET`, o Grid402 aceita USDC nativamente em **6 redes** (sem taxa de bridge):
+- **5 Redes EVM** (`0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`): **Base**, **Arbitrum One**, **Polygon PoS**, **Optimism** e **Ethereum Mainnet**
+- **Solana Mainnet** (`CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C`): **SPL USDC** (`EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`)
+- Acesse [https://grid402.online/pass](https://grid402.online/pass) ou [https://grid402.online/#topup](https://grid402.online/#topup), escolha a rede e selecione seu pacote (`1 crédito = 0.0050 USDC`):
   - **Starter:** 2 USDC / R$ 12 $\rightarrow$ 400 créditos (= 400 chamadas padrão, validade 30 dias)
   - **Pro:** 5 USDC / R$ 29 $\rightarrow$ 1.000 créditos (= 1.000 chamadas padrão, validade 30 dias)
   - **Fleet:** 20 USDC / R$ 115 $\rightarrow$ 6.000 créditos (5.000 + 1.000 bônus = 6.000 chamadas padrão, validade 60 dias)
-- Receba instantaneamente seu token `pass_g402_live...` para usar no cabeçalho `X-Payment`, consulte o saldo gratuitamente em `GET /api/v1/pass/balance` e envie `Idempotency-Key: <uuid>` para retentativas seguras sem débito duplicado.
+- Para pagamentos avulsos multi-chain por chamada, envie `X-Payment: arbitrum:0x...`, `X-Payment: polygon:0x...`, `X-Payment: solana:<assinatura>` ou o cabeçalho `X-Payment-Network`. Na Base, `X-Payment: 0x...` permanece como padrão retrocompatível.
 
 ### 7. Dossiê Institucional Base Grants e Coinbase CDP
 
