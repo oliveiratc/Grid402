@@ -1272,6 +1272,13 @@ if ($isValidApiAction) {
         }
         if (isset($validation['sandbox'])) {
             $errPayload['sandbox'] = true;
+            if (!empty($validation['upgrade_url'])) {
+                $errPayload['upgrade_to_production'] = [
+                    'session_pass_url' => $validation['upgrade_url'],
+                    'starter_tier' => 'R$ 12,00 (Pix/Cartao) ou 2.0000 USDC = 400 creditos',
+                    'supported_chains' => ['base', 'arbitrum', 'polygon', 'optimism', 'ethereum', 'solana'],
+                ];
+            }
         }
         $logPaySource = $proofIsPayload
             ? 'facilitator'
@@ -1610,10 +1617,20 @@ if ($isValidApiAction) {
 
     if ($isSandbox && is_array($result)) {
         $result['sandbox'] = true;
+        $remQuota = (int) ($validation['remaining'] ?? 0);
+        $limQuota = (int) ($validation['limit'] ?? GRID402_SANDBOX_RATE_LIMIT);
         $result['sandbox_info'] = [
-            'quota_remaining_this_hour' => $validation['remaining'] ?? 0,
-            'quota_limit_per_hour' => $validation['limit'] ?? 20,
-            'message' => 'Consulta executada no Modo Sandbox de testes. Para chamadas em produção, utilize a Base Mainnet.',
+            'quota_remaining_this_hour' => $remQuota,
+            'quota_limit_per_hour' => $limQuota,
+            'message' => "Consulta executada no Modo Sandbox de testes ({$remQuota}/{$limQuota} restantes nesta hora). Para chamadas em produção sem rate-limit (<15ms), adquira um Session Pass via Pix/Cartão (a partir de R$ 12 = 400 créditos) ou Multi-Chain USDC.",
+            'upgrade_to_production' => [
+                'session_pass_pix_and_multichain_url' => 'https://grid402.online/pass',
+                'starter_tier' => 'R$ 12,00 (Pix/Cartão) ou 2.0000 USDC = 400 créditos (30 dias)',
+                'pro_tier' => 'R$ 29,00 (Pix/Cartão) ou 5.0000 USDC = 1.000 créditos (30 dias)',
+                'fleet_tier' => 'R$ 115,00 (Pix/Cartão) ou 20.0000 USDC = 6.000 créditos (4.000 + 2.000 bônus, 60 dias)',
+                'supported_chains' => ['base', 'arbitrum', 'polygon', 'optimism', 'ethereum', 'solana'],
+                'header_example' => 'X-Payment: pass_g402_<id>_<hmac>',
+            ],
         ];
     }
 

@@ -12,6 +12,7 @@ if (!defined('GRID402_EXEC')) {
     define('GRID402_EXEC', true);
 }
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/metrics.php';
 require_once __DIR__ . '/services/forex.php';
 require_once __DIR__ . '/services/crypto.php';
 
@@ -47,6 +48,19 @@ if (!$isAuthorized) {
         'error' => 'Forbidden',
         'message' => 'Acesso não autorizado ao coletor de utilitários.',
     ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+    exit;
+}
+
+if (!$isCli && !defined('GRID402_INTERNAL_BOOTSTRAP') && (($_GET['action'] ?? '') === 'metrics')) {
+    header('Content-Type: application/json; charset=utf-8');
+    $metricsData = grid402_get_metrics();
+    $todayKey = grid402_metrics_today();
+    echo json_encode([
+        'status' => 'success',
+        'today_brt' => $todayKey,
+        'today_stats' => $metricsData['daily'][$todayKey] ?? ['requests' => 0, 'page_views' => 0, 'paid' => 0, 'usdc' => 0.0],
+        'metrics' => $metricsData,
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
 }
 

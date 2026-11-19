@@ -15,7 +15,7 @@ Pay per call (`0.0050`–`0.0500 USDC`) across **6 chains** (Base, Arbitrum, Pol
 Free sandbox: `5 req/h per IP` via `X-Payment: demo`.
 MCP server: `npx -y grid402-mcp` · Remote MCP: `https://grid402.online/mcp` · Python: `pip install grid402`
 
-**CTA / first comment:** Try the free sandbox right now: `curl -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
+**CTA / first comment:** Try the free sandbox right now: `curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
 
 ---
 
@@ -28,7 +28,7 @@ Harsh feedback welcome especially on two things:
 2. Are the 25 MCP tool schemas (`npx -y grid402-mcp` or remote `https://grid402.online/mcp`) clear enough for tool-calling models?
 
 Free 5 req/h sandbox works right now with zero signup:
-`curl -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
+`curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
 
 ## Reddit — r/n8n (caso de uso concreto)
 
@@ -46,7 +46,7 @@ Grid402 (https://grid402.online) exposes 23 verifiable public-data & network int
 Flagship endpoint: `GET /api/v1/dossier?cnpj=00000000000191` (`0.0500 USDC` / 10 credits) — combines Federal Revenue CNPJ + Simples/MEI + CGU CEIS/CNEP sanctions into one Zero-PII JSON with a deterministic AI Verdict (`APPROVED`/`FLAGGED`/`REJECTED`) and ECDSA secp256k1 `_oracle_proof`.
 
 Try free (5 req/h sandbox):
-`curl -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
+`curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
 
 MCP: `npx -y grid402-mcp` · Remote MCP: `https://grid402.online/mcp` · Python: `pip install grid402` · LangChain/CrewAI quickstart: `examples/langchain_quickstart.py`
 

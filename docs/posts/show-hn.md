@@ -11,7 +11,7 @@ No signup, no API keys, no contracts — an HTTP 402 response carries the exact 
 
 Example (free 5 req/hour sandbox, no wallet needed):
 
-    curl -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
+    curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
 
 Pricing: `0.0050`–`0.0500` USDC per call (`1 credit = 0.0050 USDC`), or `<15ms` prepaid Session Passes (Starter: 2 USDC = 400 credits; Pro: 5 USDC = 1,000 credits; Fleet: 20 USDC = 4,000 base + 2,000 bonus = 6,000 credits) with `Idempotency-Key` and Spend Controls (`daily_credit_limit`, `allowed_endpoints`). `/status`, `/api/v1/verify`, and `/api/v1/pass/balance` are free.
 

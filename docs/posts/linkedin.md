@@ -5,7 +5,7 @@ Toda automação de KYB/KYC no Brasil esbarra no mesmo gargalo: CEP, CNPJ, Simpl
 
 Esta semana subimos uma atualização grande no **Grid402** — nossa infraestrutura de 23 APIs de dados públicos e rede para agentes de IA, acessível por um único `curl`, sem cadastro, sem contrato e sem chave de API:
 
-    curl -H "X-Payment: demo" \
+    curl -sL -H "X-Payment: demo" \
       "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
 
 O que entrou no ar:
@@ -34,7 +34,7 @@ Teste grátis no sandbox (5 req/h, sem cartão): links no primeiro comentário.
 
 Tudo via API pública, um `curl`, sem cadastro nem chave:
 
-    curl -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
+    curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
 
 Pagamento por chamada via x402 em USDC (6 redes: Base, Arbitrum, Polygon, Optimism, Ethereum e Solana) ou Session Pass via Pix (a partir de R$ 12 = 400 créditos) · prova criptográfica ECDSA do oráculo · zero PII (LGPD).
 

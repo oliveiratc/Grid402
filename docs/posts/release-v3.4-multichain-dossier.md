@@ -43,7 +43,7 @@ Verified across the agent ecosystem:
 Test free right now (5 req/hour sandbox, no wallet needed):
 
 ```bash
-curl -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
+curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
 ```
 
 • Portal & Playground: https://grid402.online
@@ -85,7 +85,7 @@ Funciona no Claude Desktop, Cursor, n8n, LangChain, CrewAI, ElizaOS e Coinbase A
 Teste grátis agora mesmo no terminal (Sandbox 5 req/h por IP, sem carteira):
 
 ```bash
-curl -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
+curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
 ```
 
 🌐 https://grid402.online
@@ -104,7 +104,7 @@ curl -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=0000000000
 > • **25 MCP tools — Grade A on mcprush**, verified on Glama, x402scan & PayAPI Market
 >
 > Try free (5 req/h sandbox):
-> `curl -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
+> `curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
 
 ### Cast `/solana`
 > Solana agents can now pay natively in **SPL USDC** on Grid402 ⚡
@@ -113,7 +113,7 @@ curl -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=0000000000
 >
 > Connect Phantom/Solflare at https://grid402.online/pass for `<15ms` Session Passes or pay per call with `X-Payment: solana:<tx_sig>`.
 >
-> Free sandbox: `curl -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
+> Free sandbox: `curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
 
 ### Cast `/ai-agents`
 > Your AI agent shouldn't scrape 4 government portals just to verify a supplier.
@@ -146,7 +146,7 @@ O servidor MCP oficial (`grid402-mcp`) agora entrega **25 ferramentas** — incl
 Quer testar em 10 segundos no terminal sem cadastro e sem cartão?
 
 ```bash
-curl -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
+curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
 ```
 
 Vou deixar o link do portal, do Playground interativo e do repositório GitHub no primeiro comentário. Se você está construindo agentes de IA ou automação de KYB/compliance no Brasil, me conta nos comentários qual fonte pública ainda dói mais na sua operação.
@@ -172,7 +172,7 @@ Links oficiais:
 > • **Verified listings:** mcprush **Grade A (25 tools)**, Glama Verified MCP, x402scan Verified Server, PayAPI Market Verified + LangChain/CrewAI Python quickstart.
 >
 > Free sandbox (5 req/h/IP, no wallet):
-> `curl -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
+> `curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
 >
 > Repo: https://github.com/oliveiratc/Grid402 — feedback on the Multi-Chain x402 UX & MCP tool schemas is super welcome!
 
@@ -184,6 +184,6 @@ Links oficiais:
 > • **MCP com 25 ferramentas (Nota A no mcprush + verificado no Glama e x402scan)** e exemplo pronto para LangChain/CrewAI e n8n.
 >
 > Dá pra testar grátis agora no terminal (5 req/h):
-> `curl -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
+> `curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
 >
 > Feedback técnico é muito bem-vindo!

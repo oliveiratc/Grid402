@@ -31,7 +31,7 @@ O **Grid402** (https://grid402.online) resolve isso para agentes de IA e pipelin
 ## Teste grátis em 30 segundos (ou n8n com Pix)
 
 ```bash
-curl -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
+curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
 ```
 
 (Cota de sandbox: **5 chamadas/hora por IP**, sem cadastro e sem carteira.)

@@ -324,10 +324,11 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
             return [
                 'valid' => false,
                 'sandbox' => true,
-                'reason' => "Limite de {$rate['limit']} consultas gratuitas de sandbox por hora atingido para este IP. Para chamadas em producao sem limite de taxa, utilize micropagamentos em USDC na Base Mainnet.",
+                'reason' => "Limite de {$rate['limit']} consultas gratuitas de sandbox por hora atingido para este IP. Para continuar agora sem limite de taxa (<15ms), emita um Session Pass via Pix/Cartao (a partir de R$ 12 = 400 creditos) ou Multi-Chain USDC em https://grid402.online/pass",
                 'code' => 429,
                 'retry_after' => $rate['retry_after'],
                 'remaining' => 0,
+                'upgrade_url' => 'https://grid402.online/pass',
             ];
         }
 
