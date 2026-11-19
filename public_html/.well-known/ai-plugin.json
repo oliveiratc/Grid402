@@ -2,8 +2,8 @@
   "schema_version": "v1",
   "name_for_model": "grid402_brazil_data",
   "name_for_human": "Grid402 Brasil Data e Oraculo",
-  "description_for_model": "Microservicos de dados publicos brasileiros (CNPJ da Receita Federal, CEP, Selic, CDI, PTAX, Feriados ANBIMA) sob o protocolo x402 com prova de oraculo criptografico.",
-  "description_for_human": "Hub de dados abertos brasileiros e oraculo criptografico para agentes de IA sob protocolo HTTP 402 com liquidacao em USDC na rede Base.",
+  "description_for_model": "Hub de 23 microservicos de dados publicos verificaveis e utilitarios de rede (Dossie 360 KYB com veredito deterministico APPROVED/FLAGGED/REJECTED, CNPJ Receita Federal, Simples/MEI, CGU CEIS/CNEP, GLEIF LEI, OFAC AML, Selic/CDI/IPCA, PTAX, ANBIMA, DNS/SSL/ASN e Notarizacao) sob o protocolo HTTP x402 v2 com assinatura criptografica ECDSA secp256k1 (_oracle_proof) e suporte a Session Pass e Multi-Chain USDC.",
+  "description_for_human": "Hub de 23 APIs verificaveis, Dossie 360 KYB e 25 ferramentas MCP para agentes de IA sob protocolo HTTP 402 com liquidacao Multi-Chain USDC (Base, Arbitrum, Polygon, Optimism, Ethereum, Solana) e Pix/Cartao.",
   "auth": {
     "type": "none"
   },

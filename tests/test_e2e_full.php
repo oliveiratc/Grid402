@@ -80,7 +80,19 @@ $robotsContent = (string)file_get_contents($robotsPath);
 assert(str_contains($robotsContent, 'GPTBot'), 'robots.txt deve permitir GPTBot');
 assert(str_contains($robotsContent, 'ClaudeBot'), 'robots.txt deve permitir ClaudeBot');
 
-echo "  ✓ Arquivos de Descoberta M2M (llms.txt, openapi.json, robots.txt, sitemap.xml) íntegros!\n\n";
+// Verificação anti-regressão de manifestos públicos .well-known contra bloqueio HTTP 403 no .htaccess
+$htaccessPath = __DIR__ . '/../public_html/.htaccess';
+$wellKnownHtaccessPath = __DIR__ . '/../public_html/.well-known/.htaccess';
+assert(file_exists($htaccessPath), '.htaccess principal não encontrado');
+assert(file_exists($wellKnownHtaccessPath), '.well-known/.htaccess não encontrado');
+$htaccessContent = (string)file_get_contents($htaccessPath);
+$wellKnownHtaccessContent = (string)file_get_contents($wellKnownHtaccessPath);
+assert(str_contains($wellKnownHtaccessContent, 'Require all granted'), '.well-known/.htaccess deve conter Require all granted');
+foreach (['x402', 'mcp', 'glama', 'ai-plugin', 'server-card'] as $wkManifest) {
+    assert(str_contains($htaccessContent, $wkManifest), ".htaccess deve liberar {$wkManifest}.json na FilesMatch");
+}
+
+echo "  ✓ Arquivos de Descoberta M2M (llms.txt, openapi.json, robots.txt, sitemap.xml e .well-known) íntegros!\n\n";
 
 // 3. Teste do Servidor HTTP e Ciclo de Vida M2M
 echo "[PASSO {$step}] Subindo servidor web local para simular tráfego HTTP real...\n";

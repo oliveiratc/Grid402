@@ -3,6 +3,9 @@ startCommand:
   configSchema:
     type: object
     properties:
+      sessionPass:
+        type: string
+        description: Token pre-pago Session Pass (pass_g402_...) adquirido via Pix, Cartao ou Multi-Chain USDC para execucao sub-15ms.
       privateKey:
         type: string
         description: Chave privada EVM com saldo em USDC e gas na Base para auto-liquidacao de consultas.

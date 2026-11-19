@@ -4,7 +4,7 @@ description: >-
   Conhecimento arquitetural completo, regras invariantes, protocolo HTTP x402 v2
   (Base Mainnet USDC), Session Pass, Spend Controls, Idempotency-Key, assinatura
   de oráculo ECDSA secp256k1 (_oracle_proof + _meta), armazenamento Zero-DB,
-  servidor MCP (24 tools), SDKs e fluxo de testes/deploy da plataforma Grid402
+  servidor MCP (25 tools), SDKs e fluxo de testes/deploy da plataforma Grid402
   (https://grid402.online). Use sempre que criar, manter, auditar, testar ou
   integrar endpoints, micro-serviços, MCP, SDKs ou páginas do projeto Grid402.
 ---
@@ -42,16 +42,17 @@ Esta skill consolida todo o conhecimento técnico, regras de negócio, invariant
   - **Fleet:** `20.0000 USDC` (`20.000.000 raw units` / `R$ 115,00`) $\rightarrow$ **6.000 créditos** (`5.000 + 1.000 de bônus`, validade 60 dias)
 - **Retrocompatibilidade (`grid402_normalize_pass_entry`):** Passes antigos gravados na escala legada `100x` (sem `'credit_scale' => 'v2_5000'`) são normalizados automaticamente em tempo de leitura dividindo `credits_total` e `credits_remaining` por `100`.
 
-### Tabela de Custo por Endpoint (22 Micro-Serviços no Catálogo)
+### Tabela de Custo por Endpoint (23 Micro-Serviços no Catálogo)
 Consulte a tabela completa com fontes *upstream* e TTL de cache em [`references/catalog-and-pricing.md`](./references/catalog-and-pricing.md):
 - **1 crédito (`0.0050 USDC` / `5000 raw`):** `forex`, `crypto`, `dns`, `ssl`, `asn`, `cep`, `indicators`, `holidays`, `workdays`, `notarize`, `global-markets`
 - **2 créditos (`0.0100 USDC` / `10000 raw`):** `sanctions`, `simples`
 - **3 créditos (`0.0150 USDC` / `15000 raw`):** `domain-audit`, `market-snapshot`
 - **4 créditos (`0.0200 USDC` / `20000 raw`):** `cnpj`, `lei`, `ofac`, `kyb-audit`
 - **6 créditos (`0.0300 USDC` / `30000 raw`):** `compliance` (Compliance Score 360)
+- **10 créditos (`0.0500 USDC` / `50000 raw`):** `dossier` (Dossiê 360° KYB + Veredito Determinístico para IA: `APPROVED`, `FLAGGED`, `REJECTED`)
 - **Gratuitos (`0 USDC`):** `/status` (`/api/v1/summary`), `/api/v1/verify`, `/api/v1/pass/balance` (ou `/api/v1/pass?status=...`), `/api/v1/pass/statement` (`format=json|csv`), `/catalog`, `/trust`, `/payment-dashboard`
 
-> **REGRA DE OURO #2 (`22/22 UP`):** Sempre que adicionar ou alterar um serviço em `grid402_get_utility_services()` (`public_html/config.php`), atualize também:
+> **REGRA DE OURO #2 (`23/23 UP`):** Sempre que adicionar ou alterar um serviço em `grid402_get_utility_services()` (`public_html/config.php`), atualize também:
 > 1. `public_html/collector.php` (para popular `summary_free.json` com `status: "UP"`, `upstream_source`, `cache_ttl_sec`, `latency_ms`)
 > 2. `public_html/index.php` (roteamento `$apiParam`, preços `$servicePrices`, teasers HTTP 402 e enriquecimento de `/status`)
 > 3. `public_html/catalog.php` e `public_html/trust.php`
@@ -102,28 +103,28 @@ c:\Antigravity\Projetos\Grid402
 ├── README.md                             # Documentação principal (ATENÇÃO: proibido usar '&')
 ├── smithery.yaml                         # Manifesto Smithery.ai para instalação MCP em 1 clique
 ├── public_html/                          # DocumentRoot de produção (Hostinger)
-│   ├── config.php                        # Constantes, 22 serviços, _meta, uptime_30d, idempotência
+│   ├── config.php                        # Constantes, 23 serviços, _meta, uptime_30d, idempotência
 │   ├── index.php                         # Porteiro x402, roteador de APIs e Landing Page / Playground
-│   ├── x402.php                          # Validador on-chain Base RPC + Replay Protection
+│   ├── x402.php                          # Validador on-chain Multi-Chain RPC (6 redes) + Replay Protection
 │   ├── facilitator.php                   # Liquidação EIP-3009 gasless (x402 v2 exact)
 │   ├── collector.php                     # Cron collector (<400ms) -> summary_free.json + uptime_history.json
-│   ├── catalog.php                       # Catálogo público HTML/M2M (/catalog) com 22 serviços UP
+│   ├── catalog.php                       # Catálogo público HTML/M2M (/catalog) com 23 serviços UP
 │   ├── trust.php                         # Trust Center (/trust): governança, SLA 30d, proveniência, p95
 │   ├── pass.php                          # Portal Web3/Pix de compra e gestão de Session Pass
 │   ├── payment_dashboard.php             # Painel de acompanhamento e extrato Zero-PII CSV/JSON por Session Pass
 │   ├── logger.php                        # Observabilidade estruturada JSONL Zero-PII (X-Request-Id + rotação 10 MB)
-│   ├── mcp.php                           # Servidor MCP HTTP Streamable público (/mcp - 24 tools)
+│   ├── mcp.php                           # Servidor MCP HTTP Streamable público (/mcp - 25 tools)
 │   ├── openapi.json                      # Especificação OpenAPI 3.1.0
 │   ├── llms.txt / llms-full.txt          # Manifestos de descoberta para LLMs e agentes
 │   ├── robots.txt / robots.php           # Diretivas RFC 9309 permitindo GPTBot, ClaudeBot, OAI-SearchBot
 │   ├── .well-known/security.txt          # Política de divulgação de vulnerabilidades RFC 9116
 │   └── services/                         # Micro-serviços, pass_repository.php (PassStorageInterface) e oracle_signer.php
 ├── mcp/                                  # Pacote npm oficial grid402-mcp (stdio)
-│   ├── index.mjs                         # Servidor MCP stdio (24 ferramentas + instructions)
-│   ├── tools.mjs                         # Definições MCP_TOOLS_DEFINITIONS (24) e cliente HTTP x402
+│   ├── index.mjs                         # Servidor MCP stdio (25 ferramentas + instructions)
+│   ├── tools.mjs                         # Definições MCP_TOOLS_DEFINITIONS (25) e cliente HTTP x402
 │   └── test_mcp.mjs                      # Bateria de testes automatizados do MCP
 ├── scripts/
-│   ├── verify_storage_integrity.php      # Verifica UTF-8/JSON e 22/22 UP em GRID402_PRIVATE_DIR (+ --backup)
+│   ├── verify_storage_integrity.php      # Verifica UTF-8/JSON e 23/23 UP em GRID402_PRIVATE_DIR (+ --backup)
 │   └── package_deploy.ps1                # Gera dist/grid402_hostinger_deploy.zip com caminhos POSIX
 └── tests/
     ├── test_maturity_and_m2m_controls.php # Suíte de maturidade, passes, Spend Controls, Idempotency e _meta
@@ -143,8 +144,8 @@ Antes de concluir qualquer alteração no projeto, verifique estas 5 regras crí
    - O teste `tests/test_agentkit_integration.php` falha se encontrar o caractere `&` em `README.md`, `mcp/README.md`, `integrations/agentkit/README.md` ou `smithery.yaml`. Sempre escreva `e` ou `and` (nunca `&`) nesses 4 arquivos!
 2. **Assinatura por Referência em `grid402_sign_data`:**
    - `grid402_sign_data(array &$data, bool $isSandbox = false): void` modifica `$data` **por referência** e retorna `void`. Nunca faça `$signed = grid402_sign_data($data)`.
-3. **Paridade de 24 Ferramentas MCP:**
-   - `mcp/tools.mjs`, `mcp/index.mjs`, `mcp/test_mcp.mjs` e `public_html/mcp.php` devem expor exatamente as mesmas **24 ferramentas** (`grid402_summary` + 22 micro-serviços + `grid402_pass_balance`).
+3. **Paridade de 25 Ferramentas MCP:**
+   - `mcp/tools.mjs`, `mcp/index.mjs`, `mcp/test_mcp.mjs`, `public_html/mcp.php`, `public_html/.well-known/mcp.json` e `public_html/.well-known/mcp/server-card.json` devem expor exatamente as mesmas **25 ferramentas** (`grid402_summary` + 23 micro-serviços + `grid402_pass_balance`).
 4. **Execução da Bateria de Homologação (PowerShell):**
    ```powershell
    php scripts/verify_storage_integrity.php
