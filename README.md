@@ -7,9 +7,9 @@
 [![CI](https://github.com/oliveiratc/Grid402/actions/workflows/ci.yml/badge.svg)](https://github.com/oliveiratc/Grid402/actions)
 [![PayAPI Market](https://img.shields.io/badge/PayAPI_Market-Verified-10B981?logo=checkmarx)](https://payapi.market/api/grid402-brazil-public-data-network-oracle)
 [![x402scan](https://img.shields.io/badge/x402scan-Verified_Server-00F0FF)](https://www.x402scan.com/server/00294038-51ff-4073-ab29-c59fca221a50)
-[![Glama](https://img.shields.io/badge/Glama-Verified_MCP-0052FF)](https://glama.ai/mcp/servers/oliveiratc/Grid402)
-![Network](https://img.shields.io/badge/Network-Base_Mainnet_(8453)-0052FF?logo=coinbase)
-![Payment](https://img.shields.io/badge/Payment-0.0050_a_0.0300_USDC-2775CA?logo=usd-coin)
+[![Glama](https://img.shields.io/badge/Glama-Verified_MCP-0052FF)](https://glama.ai/mcp/connectors/io.github.oliveiratc/grid402)
+![Network](https://img.shields.io/badge/Network-Multi--Chain_(5_EVM_+_Solana)-0052FF?logo=coinbase)
+![Payment](https://img.shields.io/badge/Payment-0.0050_a_0.0500_USDC-2775CA?logo=usd-coin)
 ![Protocol](https://img.shields.io/badge/Protocol-HTTP_x402-00F0FF)
 ![SDK License](https://img.shields.io/badge/SDKs_%26_MCP-MIT_License-10B981)
 ![Core License](https://img.shields.io/badge/Gateway_Core-Proprietary-64748B)
@@ -17,6 +17,8 @@
 ![PHP](https://img.shields.io/badge/PHP-8.1%20%7C%208.2%20%7C%208.3-777BB4?logo=php)
 ![Server](https://img.shields.io/badge/Server-Hostinger_LiteSpeed-blue)
 [![mcptry](https://mcptry.com/badge/io.github.oliveiratc/grid402)](https://mcptry.com/servers/io.github.oliveiratc/grid402)
+
+[![Grid402 — Brazil Public Data and Network Oracle MCP server](https://mcprush.com/badge/grid402-brazil-public-data-network-oracle-mcp/card.svg)](https://mcprush.com/to/grid402-brazil-public-data-network-oracle-mcp?ref=badge)
 
 > **The Verifiable Data and x402 Payment Layer for Autonomous AI Agents.** Infraestrutura M2M de dados públicos verificáveis com assinatura ECDSA secp256k1 (`_oracle_proof`) e liquidação instantânea via HTTP x402 (USDC na rede Base) ou Session Passes pré-pagos sub-15ms.
 

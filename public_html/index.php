@@ -3056,6 +3056,14 @@ grid402_log_public_visit('/');
                     <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#10B981;box-shadow:0 0 6px #10B981;"></span>
                     <span>PayAPI Market • Verified</span>
                 </a>
+                <a href="https://mcprush.com/to/grid402-brazil-public-data-network-oracle-mcp?ref=badge" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;background:rgba(163,230,53,0.12);border:1px solid rgba(163,230,53,0.4);border-radius:999px;padding:0.3rem 0.75rem;font-size:0.75rem;font-family:var(--font-mono);font-weight:700;color:#BEF264;transition:all 0.2s;" onmouseover="this.style.background='rgba(163,230,53,0.22)'" onmouseout="this.style.background='rgba(163,230,53,0.12)'">
+                    <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#A3E635;box-shadow:0 0 6px #A3E635;"></span>
+                    <span>mcprush • Grade A (25 Tools)</span>
+                </a>
+                <a href="https://glama.ai/mcp/connectors/io.github.oliveiratc/grid402" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;background:rgba(0,82,255,0.15);border:1px solid rgba(0,240,255,0.4);border-radius:999px;padding:0.3rem 0.75rem;font-size:0.75rem;font-family:var(--font-mono);font-weight:700;color:#00F0FF;transition:all 0.2s;" onmouseover="this.style.background='rgba(0,82,255,0.28)'" onmouseout="this.style.background='rgba(0,82,255,0.15)'">
+                    <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#00F0FF;box-shadow:0 0 6px #00F0FF;"></span>
+                    <span>Glama • Verified MCP</span>
+                </a>
                 <div class="badge-live">
                     <span class="badge-pulse"></span>
                     <span data-i18n-count="<?php echo count($servicesCatalog); ?>" id="badge-live-text">Base Mainnet (8453) • <?php echo count($servicesCatalog); ?>/<?php echo count($servicesCatalog); ?> Services Operational</span>
@@ -3764,6 +3772,13 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 </div>
                 <pre id="badge-markdown-code" class="code-block">[![Grid402 Hub](https://www.grid402.online/badge/system.svg)](https://www.grid402.online)</pre>
             </div>
+        </section>
+
+        <!-- Selo Oficial Verificado mcprush (Grade A • 25 Tools) -->
+        <section aria-label="Verified MCP Directory Listings" style="display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:1rem; margin:2rem 0 2.5rem;">
+            <a href="https://mcprush.com/to/grid402-brazil-public-data-network-oracle-mcp?ref=badge" target="_blank" rel="noopener noreferrer" style="display:inline-block; line-height:0; border-radius:12px; transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                <img src="https://mcprush.com/badge/grid402-brazil-public-data-network-oracle-mcp/card.svg" alt="Grid402 — Brazil Public Data and Network Oracle MCP server" loading="lazy" style="max-width:100%; height:auto; border-radius:12px;">
+            </a>
         </section>
 
         <footer>
