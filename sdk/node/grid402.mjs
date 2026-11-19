@@ -441,6 +441,22 @@ export class Grid402Client {
   }
 
   /**
+   * Dossie 360 KYB com Veredito Deterministico para IA (APPROVED, FLAGGED, REJECTED)
+   * @param {string} cnpj
+   * @param {string} [paymentTxHash]
+   * @returns {Promise<Object>}
+   */
+  async getDossier360(cnpj, paymentTxHash = null) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    const clean = String(cnpj || '').replace(/\D/g, '');
+    return this._request(`/api/v1/dossier?cnpj=${encodeURIComponent(clean)}`, headers);
+  }
+
+  async getDossier(cnpj, paymentTxHash = null) {
+    return this.getDossier360(cnpj, paymentTxHash);
+  }
+
+  /**
    * Valida a prova criptografica de oraculo de uma resposta do Grid402
    * @param {Object} response
    * @param {string} [expectedOracleAddress]
@@ -666,6 +682,11 @@ export class Grid402ActionProvider {
     return this._executeWithSettlement('/api/v1/compliance', { cnpj: clean }, walletProvider);
   }
 
+  async queryDossier360(cnpj, walletProvider = null) {
+    const clean = String(cnpj || '').replace(/\D/g, '');
+    return this._executeWithSettlement('/api/v1/dossier', { cnpj: clean }, walletProvider);
+  }
+
   // Aliases de conveniencia
   get getCnpj() { return this.queryCnpj; }
   get getCep() { return this.queryCep; }
@@ -680,4 +701,6 @@ export class Grid402ActionProvider {
   get getSanctions() { return this.querySanctions; }
   get getSimples() { return this.querySimples; }
   get getCompliance() { return this.queryCompliance; }
+  get getDossier360() { return this.queryDossier360; }
+  get getDossier() { return this.queryDossier360; }
 }

@@ -1,7 +1,7 @@
 {
   "name": "grid402",
-  "version": "2.7.0",
-  "description": "Official client SDK for Grid402 - Public Open Data and Network Utilities Hub with x402 Base micropayments and Cryptographic Oracle Proof for AI Agents, Node.js and TypeScript.",
+  "version": "2.8.0",
+  "description": "Official client SDK for Grid402 - Public Open Data and Network Utilities Hub with Multi-Chain x402 micropayments, KYB 360 AI Dossier and Cryptographic Oracle Proof for AI Agents, Node.js and TypeScript.",
   "main": "./grid402.cjs",
   "module": "./grid402.mjs",
   "types": "./grid402.d.ts",

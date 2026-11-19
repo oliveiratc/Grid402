@@ -221,6 +221,10 @@ class Grid402ActionProvider:
         """Compliance Score 360 consolidado (Receita Federal, CGU e historico)."""
         return self._execute_with_settlement("/api/v1/compliance", {"cnpj": cnpj}, wallet_provider)
 
+    def query_dossier_360(self, cnpj: str, wallet_provider: Any = None) -> Dict[str, Any]:
+        """Dossie 360 KYB com Veredito Deterministico para IA (APPROVED, FLAGGED, REJECTED)."""
+        return self._execute_with_settlement("/api/v1/dossier", {"cnpj": cnpj}, wallet_provider)
+
     def verify_proof(self, payload: Any) -> Dict[str, Any]:
         """Validacao sem estado de prova criptografica de oraculo (_oracle_proof)."""
         url = f"{self.base_url}/api/v1/verify"
@@ -253,4 +257,5 @@ class Grid402ActionProvider:
     get_sanctions = query_sanctions
     get_simples = query_simples
     get_compliance = query_compliance
+    get_dossier_360 = query_dossier_360
     verify_proof_alias = verify_proof

@@ -197,6 +197,13 @@ export class Grid402ActionProvider {
   }
 
   /**
+   * Dossie 360 KYB com Veredito Deterministico para IA (APPROVED, FLAGGED, REJECTED)
+   */
+  async queryDossier360(cnpj: string, walletProvider?: any): Promise<any> {
+    return this.executeWithAutoSettlement('/api/v1/dossier', { cnpj }, walletProvider);
+  }
+
+  /**
    * Validacao de oraculo criptografico secp256k1 (_oracle_proof)
    */
   async verifyProof(payload: any): Promise<any> {
@@ -235,6 +242,7 @@ export class Grid402ActionProvider {
   get_sanctions = this.querySanctions.bind(this);
   get_simples = this.querySimples.bind(this);
   get_compliance = this.queryCompliance.bind(this);
+  get_dossier_360 = this.queryDossier360.bind(this);
   verify_proof = this.verifyProof.bind(this);
 }
 

@@ -336,11 +336,13 @@ test('Grid402Client - Metodos de Compliance, Sancoes e Simples Nacional', async 
     await client.getSanctions('00.000.000/0001-91');
     await client.getSimples('00.000.000/0001-91');
     await client.getCompliance('00.000.000/0001-91');
+    await client.getDossier360('00.000.000/0001-91');
 
-    assert.equal(recordedUrls.length, 3);
+    assert.equal(recordedUrls.length, 4);
     assert(recordedUrls[0].includes('/api/v1/sanctions?cnpj=00000000000191'));
     assert(recordedUrls[1].includes('/api/v1/simples?cnpj=00000000000191'));
     assert(recordedUrls[2].includes('/api/v1/compliance?cnpj=00000000000191'));
+    assert(recordedUrls[3].includes('/api/v1/dossier?cnpj=00000000000191'));
   } finally {
     globalThis.fetch = originalFetch;
   }

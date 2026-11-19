@@ -198,6 +198,17 @@ class Grid402Client:
         q = urllib.parse.urlencode({"cnpj": clean})
         return self._request(f"/api/v1/compliance?{q}", headers=headers)
 
+    def get_dossier_360(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Dossiê 360 KYB + Veredito Determinístico para IA (APPROVED, FLAGGED, REJECTED)."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        clean = "".join(ch for ch in str(cnpj or "") if ch.isdigit())
+        q = urllib.parse.urlencode({"cnpj": clean})
+        return self._request(f"/api/v1/dossier?{q}", headers=headers)
+
+    def get_dossier(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Alias para get_dossier_360."""
+        return self.get_dossier_360(cnpj, payment_tx_hash=payment_tx_hash)
+
     def is_healthy(self, service_name: str = "forex") -> bool:
         """Verifica se um serviço específico ou o hub está operacional."""
         summary = self.get_summary()

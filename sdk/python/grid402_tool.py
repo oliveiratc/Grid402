@@ -77,6 +77,15 @@ def create_grid402_tools(base_url: Optional[str] = None, verify_ssl: Optional[bo
         except Exception as e:
             return json.dumps({"error": str(e)}, ensure_ascii=False)
 
+    def get_dossier_360(cnpj: str, payment_tx_hash: Optional[str] = None) -> str:
+        """Consulta o Dossiê 360 KYB com veredito determinístico (APPROVED, FLAGGED, REJECTED) para um CNPJ."""
+        try:
+            return json.dumps(client.get_dossier_360(cnpj, payment_tx_hash=payment_tx_hash), ensure_ascii=False)
+        except PaymentRequiredError as p:
+            return json.dumps({"payment_required": True, "challenge": p.challenge}, ensure_ascii=False)
+        except Exception as e:
+            return json.dumps({"error": str(e)}, ensure_ascii=False)
+
     return {
         "get_summary": get_summary,
         "get_forex": get_forex,
@@ -85,6 +94,7 @@ def create_grid402_tools(base_url: Optional[str] = None, verify_ssl: Optional[bo
         "get_ssl": get_ssl,
         "get_asn": get_asn,
         "get_cep": get_cep,
+        "get_dossier_360": get_dossier_360,
     }
 
 
@@ -124,8 +134,12 @@ def create_grid402_tool(base_url: Optional[str] = None, verify_ssl: Optional[boo
             if not target:
                 return json.dumps({"error": "Parâmetro 'target' (CEP) é obrigatório para CEP"})
             return tools["get_cep"](target, payment_tx_hash)
+        elif srv in ("dossier", "dossier_360"):
+            if not target:
+                return json.dumps({"error": "Parâmetro 'target' (CNPJ) é obrigatório para dossier"})
+            return tools["get_dossier_360"](target, payment_tx_hash)
         else:
-            return json.dumps({"error": f"Serviço desconhecido '{service}'. Opções: summary, forex, crypto, dns, ssl, asn, cep"})
+            return json.dumps({"error": f"Serviço desconhecido '{service}'. Opções: summary, forex, crypto, dns, ssl, asn, cep, dossier"})
 
     return grid402_query_hub
 

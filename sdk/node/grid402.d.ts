@@ -303,6 +303,26 @@ export interface ComplianceResponse {
     error?: string;
 }
 
+export interface Dossier360Response {
+    status: string;
+    service: string;
+    cnpj: string;
+    integrity_score: number;
+    verdict: {
+        decision: 'APPROVED' | 'FLAGGED' | 'REJECTED' | string;
+        risk_level: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | string;
+        flags: string[];
+        summary_for_ai: string;
+    };
+    company: Record<string, any>;
+    tax_regime: Record<string, any>;
+    sanctions: Record<string, any>;
+    tariff_usdc: string;
+    cached?: boolean;
+    sandbox?: boolean;
+    error?: string;
+}
+
 export interface OracleProof {
     oracle_address: string;
     timestamp: number;
@@ -378,6 +398,8 @@ export declare class Grid402Client {
     getSanctions(cnpj: string, paymentTxHash?: string): Promise<SanctionsResponse>;
     getSimples(cnpj: string, paymentTxHash?: string): Promise<SimplesResponse>;
     getCompliance(cnpj: string, paymentTxHash?: string): Promise<ComplianceResponse>;
+    getDossier360(cnpj: string, paymentTxHash?: string): Promise<Dossier360Response>;
+    getDossier(cnpj: string, paymentTxHash?: string): Promise<Dossier360Response>;
     verifyProof(response: Record<string, any>, expectedOracleAddress?: string): OracleVerificationResult;
     isHealthy(serviceName?: string): Promise<boolean>;
     guard<T>(serviceName: string, action: () => Promise<T> | T, fallback?: () => Promise<T> | T): Promise<T>;
@@ -412,6 +434,7 @@ export declare class Grid402ActionProvider {
     querySanctions(cnpj: string, walletProvider?: WalletProvider): Promise<SanctionsResponse>;
     querySimples(cnpj: string, walletProvider?: WalletProvider): Promise<SimplesResponse>;
     queryCompliance(cnpj: string, walletProvider?: WalletProvider): Promise<ComplianceResponse>;
+    queryDossier360(cnpj: string, walletProvider?: WalletProvider): Promise<Dossier360Response>;
 
     getCnpj(cnpj: string, walletProvider?: WalletProvider): Promise<CnpjResponse>;
     getCep(code: string, walletProvider?: WalletProvider): Promise<CepResponse>;
@@ -426,6 +449,8 @@ export declare class Grid402ActionProvider {
     getSanctions(cnpj: string, walletProvider?: WalletProvider): Promise<SanctionsResponse>;
     getSimples(cnpj: string, walletProvider?: WalletProvider): Promise<SimplesResponse>;
     getCompliance(cnpj: string, walletProvider?: WalletProvider): Promise<ComplianceResponse>;
+    getDossier360(cnpj: string, walletProvider?: WalletProvider): Promise<Dossier360Response>;
+    getDossier(cnpj: string, walletProvider?: WalletProvider): Promise<Dossier360Response>;
 }
 
 export declare function verifyOracleProof(

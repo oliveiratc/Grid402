@@ -36,7 +36,7 @@
 ## 7. Integração e homologação
 
 - [x] 7.1 Executar a suíte `tests/*.php` completa e `openspec validate add-x402-exact-facilitator-payments --strict`; verificar que tudo passa
-- [ ] 7.2 Homologar em Base Sepolia com credenciais de teste do facilitador e um cliente x402 padrão, verificando HTTP 200, `PAYMENT-RESPONSE` e a contabilização no painel
+- [x] 7.2 Homologar em Base Sepolia com credenciais de teste do facilitador e um cliente x402 padrão, verificando HTTP 200, `PAYMENT-RESPONSE` e a contabilização no painel
 
 ## Workflow follow-up
 

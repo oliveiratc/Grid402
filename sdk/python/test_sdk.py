@@ -79,6 +79,12 @@ with patch("urllib.request.urlopen", return_value=mock_cm) as mock_open:
     req = mock_open.call_args[0][0]
     assert "/api/v1/compliance?cnpj=00000000000191" in req.full_url
 
-print("  ✓ Metodos get_sanctions, get_simples e get_compliance validados com sucesso!")
+    mock_response.seek(0)
+    dossier = sandbox_client.get_dossier_360("00.000.000/0001-91")
+    assert dossier["status"] == "success"
+    req = mock_open.call_args[0][0]
+    assert "/api/v1/dossier?cnpj=00000000000191" in req.full_url
+
+print("  ✓ Metodos get_sanctions, get_simples, get_compliance e get_dossier_360 validados com sucesso!")
 
 print("\n✓ Todos os testes do SDK Python passaram com 100% de sucesso!")
