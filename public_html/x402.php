@@ -528,7 +528,7 @@ function grid402_bazaar_default_query_params(?string $serviceName): array {
         'ssl' => ['host' => 'base.org'],
         'asn' => ['ip' => '1.1.1.1'],
         'cep' => ['code' => '01310100'],
-        'cnpj', 'sanctions', 'simples', 'compliance', 'kyb-audit' => ['cnpj' => '00000000000191'],
+        'cnpj', 'sanctions', 'simples', 'compliance', 'kyb-audit', 'dossier' => ['cnpj' => '00000000000191'],
         'holidays' => ['year' => '2026'],
         'workdays' => ['start_date' => '2026-12-23', 'end_date' => '2026-12-28'],
         'lei' => ['lei' => '5493006MHB84DD0ZWV18'],
@@ -682,6 +682,7 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         'token_contract' => GRID402_X402_USDC_CONTRACT,
         'price_usdc' => $priceDisplay,
         'price_raw_units' => $priceRawUnits,
+        'credits_cost' => max(1, (int) ceil($priceRawUnits / 5000)),
         'recipient_wallet' => GRID402_WALLET_ADDRESS,
         'extensions' => [
             'bazaar' => $bazaarInfo,
@@ -698,6 +699,7 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
 
     if ($preview !== null and !empty($preview)) {
         $payload['preview'] = $preview;
+        $payload['teaser_data'] = $preview;
     }
     if ($lockedFields !== null and !empty($lockedFields)) {
         $payload['locked_fields'] = $lockedFields;
@@ -1154,6 +1156,7 @@ function grid402_notify_telegram_purchase(string $service, float $priceUsdc, str
         'pass' => 'Session Pass x402',
         'domain-audit' => 'Auditoria Completa de Dominio (DNS + SSL + ASN)',
         'kyb-audit' => 'Auditoria KYB e Compliance (CNPJ + OFAC + LEI)',
+        'dossier' => 'Dossie 360 KYB + Veredito IA (CNPJ + Simples + CGU + Score)',
         'market-snapshot' => 'Snapshot Consolidado de Mercado (Forex + Crypto + Indicadores)',
     ];
 

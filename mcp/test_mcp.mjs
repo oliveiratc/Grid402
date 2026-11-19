@@ -10,8 +10,8 @@ async function runTests() {
   console.log('=== Testando Servidor MCP Grid402 ===\n');
 
   // 1. Validação de Schemas das Ferramentas
-  console.log('[1/6] Validando registro e schemas das 24 ferramentas MCP...');
-  assert.strictEqual(MCP_TOOLS_DEFINITIONS.length, 24, 'Deve conter exatamente 24 ferramentas registradas');
+  console.log('[1/6] Validando registro e schemas das 25 ferramentas MCP...');
+  assert.strictEqual(MCP_TOOLS_DEFINITIONS.length, 25, 'Deve conter exatamente 25 ferramentas registradas');
 
   const toolNames = MCP_TOOLS_DEFINITIONS.map(t => t.name);
   const expectedTools = [
@@ -23,6 +23,7 @@ async function runTests() {
     'grid402_asn',
     'grid402_domain_audit',
     'grid402_kyb_audit',
+    'grid402_get_dossier_360',
     'grid402_market_snapshot',
     'grid402_cep',
     'grid402_cnpj',
@@ -183,8 +184,8 @@ async function runTests() {
   assert.strictEqual(rpcResult.init?.result?.serverInfo?.version, '1.8.2', 'Versao MCP initialize deve ser 1.8.2');
   assert.ok(typeof rpcResult.init?.result?.instructions === 'string' && rpcResult.init.result.instructions.includes('GRID402_SESSION_PASS'), 'Handshake initialize deve retornar instructions com orientacoes de Session Pass e sandbox');
   assert.ok(rpcResult.init.result.instructions.includes('demo'), 'Instructions deve mencionar modo sandbox demo');
-  assert.strictEqual(rpcResult.list?.result?.tools?.length, 24, 'tools/list via stdio deve expor exatamente 24 ferramentas');
-  console.log('  ✓ Handshake stdio retornou version=1.8.2, instructions nativas e 24 ferramentas!');
+  assert.strictEqual(rpcResult.list?.result?.tools?.length, 25, 'tools/list via stdio deve expor exatamente 25 ferramentas');
+  console.log('  ✓ Handshake stdio retornou version=1.8.2, instructions nativas e 25 ferramentas!');
 
   console.log('\n=== Todos os testes do MCP Server Grid402 foram APROVADOS com 100% de sucesso! ===');
 }

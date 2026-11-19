@@ -93,6 +93,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'grid402_kyb_audit':
         service = 'kyb-audit';
         break;
+      case 'grid402_get_dossier_360':
+        service = 'dossier';
+        break;
       case 'grid402_market_snapshot':
         service = 'market-snapshot';
         break;

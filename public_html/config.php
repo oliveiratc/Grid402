@@ -183,6 +183,8 @@ define('GRID402_USDC_REQUIRED_RAW', (int) grid402_env('GRID402_USDC_REQUIRED_RAW
 define('GRID402_PRICE_DISPLAY', (string) grid402_env('GRID402_PRICE_DISPLAY', '0.0050'));
 define('GRID402_PRICE_CNPJ', (string) grid402_env('GRID402_PRICE_CNPJ', '0.0200'));
 define('GRID402_USDC_CNPJ_RAW', (int) grid402_env('GRID402_USDC_CNPJ_RAW', 20000)); // 0.020000 USDC
+define('GRID402_PRICE_DOSSIER', (string) grid402_env('GRID402_PRICE_DOSSIER', '0.0500'));
+define('GRID402_USDC_DOSSIER_RAW', (int) grid402_env('GRID402_USDC_DOSSIER_RAW', 50000)); // 0.050000 USDC (10 créditos)
 define('GRID402_CRON_SECRET', (string) grid402_env('GRID402_CRON_SECRET', 'grid402_secret_token_change_me'));
 
 // 2.2. Notificacoes de Pagamento em Tempo Real no Telegram (Opcional)
@@ -380,6 +382,17 @@ function grid402_get_utility_services(): array {
             'price_usdc' => '0.0200',
             'upstream_source' => 'Composite Registry: Receita Federal (CNPJ) + US Treasury OFAC SDN + GLEIF LEI',
             'cache_ttl_sec' => 3600,
+        ],
+        'dossier' => [
+            'id' => 'dossier',
+            'name' => 'KYB 360 Dossier and AI Verdict (CNPJ + Simples + CGU + Score)',
+            'description' => 'All-in-one Brazilian corporate risk dossier with deterministic AI verdict (APPROVED, FLAGGED, REJECTED), score 0-100, RFB registry, Simples/MEI and CGU CEIS/CNEP sanctions',
+            'endpoint' => '/api/v1/dossier',
+            'category' => 'Compliance Premium',
+            'type' => 'on_demand',
+            'price_usdc' => GRID402_PRICE_DOSSIER,
+            'upstream_source' => 'Composite Oracle: Receita Federal (CNPJ + Simples/MEI) + CGU (CEIS/CNEP) + AI Verdict Engine',
+            'cache_ttl_sec' => 86400,
         ],
         'market-snapshot' => [
             'id' => 'market-snapshot',

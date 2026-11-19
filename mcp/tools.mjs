@@ -138,6 +138,24 @@ export const MCP_TOOLS_DEFINITIONS = [
     },
   },
   {
+    name: 'grid402_get_dossier_360',
+    description: 'Dossiê 360º KYB Premium com Veredito Sintetizado para IA (APPROVED, FLAGGED, REJECTED), score 0-100, Receita Federal (CNPJ), Simples/MEI e Sanções CGU (CEIS/CNEP) em chamada única (0.0500 USDC / 10 créditos).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        cnpj: {
+          type: 'string',
+          description: 'CNPJ de 14 dígitos da empresa brasileira (com ou sem pontuação, ex: "00000000000191").',
+        },
+        payment_tx_hash: {
+          type: 'string',
+          description: 'Hash opcional de transação na Base Mainnet com 0.0500 USDC ou token pass_g402_...',
+        },
+      },
+      required: ['cnpj'],
+    },
+  },
+  {
     name: 'grid402_market_snapshot',
     description: 'Panorama financeiro e macroeconômico consolidado em chamada única: Câmbio + Cripto + Selic/CDI/IPCA + Calendário ANBIMA (0.0150 USDC / 3 créditos).',
     inputSchema: {
@@ -460,6 +478,11 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
     case 'kyb-audit':
     case 'kyb_audit':
       path = '/api/v1/kyb-audit';
+      if (params.cnpj) queryParams.set('cnpj', params.cnpj);
+      break;
+    case 'dossier':
+    case 'get_dossier_360':
+      path = '/api/v1/dossier';
       if (params.cnpj) queryParams.set('cnpj', params.cnpj);
       break;
     case 'market-snapshot':

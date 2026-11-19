@@ -35,6 +35,7 @@ require_once __DIR__ . '/services/workdays.php';
 require_once __DIR__ . '/services/compliance.php';
 require_once __DIR__ . '/services/domain_audit.php';
 require_once __DIR__ . '/services/kyb_audit.php';
+require_once __DIR__ . '/services/dossier.php';
 require_once __DIR__ . '/services/market_snapshot.php';
 require_once __DIR__ . '/services/lei.php';
 require_once __DIR__ . '/services/ofac.php';
@@ -191,6 +192,7 @@ function mcp_tools_definitions(): array {
         ['name' => 'grid402_asn', 'description' => 'BGP routing intelligence: ASN, IP prefix, organization and country (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['ip' => ['type' => 'string', 'description' => 'Optional IPv4/IPv6 address (defaults to 1.1.1.1).'], 'payment_tx_hash' => $payProp], 'required' => []], 'annotations' => $roAnn],
         ['name' => 'grid402_domain_audit', 'description' => 'Consolidated Domain Audit bundle (DNS + TLS/SSL + BGP/ASN) with risk score (0.0150 USDC / 3 credits).', 'inputSchema' => ['type' => 'object', 'properties' => ['domain' => ['type' => 'string', 'description' => 'Domain name to audit (e.g. base.org).'], 'payment_tx_hash' => $payProp], 'required' => ['domain']], 'annotations' => $roAnn],
         ['name' => 'grid402_kyb_audit', 'description' => 'Consolidated Corporate KYB Dossier (CNPJ + OFAC/UN Sanctions + GLEIF LEI) (0.0200 USDC / 4 credits).', 'inputSchema' => ['type' => 'object', 'properties' => ['cnpj' => ['type' => 'string', 'description' => '14-digit Brazilian CNPJ number (e.g. 00000000000191).'], 'name' => ['type' => 'string', 'description' => 'Optional legal entity name for OFAC screening.'], 'lei' => ['type' => 'string', 'description' => 'Optional 20-char ISO 17442 LEI code.'], 'payment_tx_hash' => $payProp], 'required' => ['cnpj']], 'annotations' => $roAnn],
+        ['name' => 'grid402_get_dossier_360', 'description' => 'Premium KYB 360 Dossier with deterministic AI Verdict (APPROVED, FLAGGED, REJECTED), score 0-100, Receita Federal CNPJ, Simples/MEI and CGU CEIS/CNEP sanctions (0.0500 USDC / 10 credits).', 'inputSchema' => ['type' => 'object', 'properties' => ['cnpj' => ['type' => 'string', 'description' => '14-digit Brazilian CNPJ number (with or without mask, e.g. 00000000000191).'], 'payment_tx_hash' => $payProp], 'required' => ['cnpj']], 'annotations' => $roAnn],
         ['name' => 'grid402_market_snapshot', 'description' => 'Consolidated Financial and Macro Snapshot (PTAX Forex + Crypto Spot + Selic/CDI/IPCA + ANBIMA) (0.0150 USDC / 3 credits).', 'inputSchema' => ['type' => 'object', 'properties' => ['payment_tx_hash' => $payProp], 'required' => []], 'annotations' => $roAnn],
         ['name' => 'grid402_cep', 'description' => 'Brazilian CEP postal lookup: street, neighborhood, city, state and IBGE code (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['code' => ['type' => 'string', 'description' => '8-digit Brazilian CEP postal code (e.g. 01310100).'], 'payment_tx_hash' => $payProp], 'required' => ['code']], 'annotations' => $roAnn],
         ['name' => 'grid402_cnpj', 'description' => 'Brazilian Receita Federal CNPJ lookup: registration status, legal name, CNAE and address (0.0200 USDC / 4 credits).', 'inputSchema' => ['type' => 'object', 'properties' => ['cnpj' => ['type' => 'string', 'description' => '14-digit Brazilian CNPJ number (e.g. 00000000000191).'], 'payment_tx_hash' => $payProp], 'required' => ['cnpj']], 'annotations' => $roAnn],
@@ -269,6 +271,7 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
         'grid402_asn' => ['asn', 'ip', 5000],
         'grid402_domain_audit' => ['domain-audit', 'domain', 15000],
         'grid402_kyb_audit' => ['kyb-audit', 'cnpj', 20000],
+        'grid402_get_dossier_360' => ['dossier', 'cnpj', 50000],
         'grid402_market_snapshot' => ['market-snapshot', null, 15000],
         'grid402_cep' => ['cep', 'code', 5000],
         'grid402_cnpj' => ['cnpj', 'cnpj', 20000],
@@ -293,7 +296,7 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
     }
 
     // Validação prévia de parâmetros antes de cobrar / liquidar
-    if (in_array($service, ['cnpj', 'sanctions', 'simples', 'compliance', 'kyb-audit'], true) && !empty($arguments['cnpj'])) {
+    if (in_array($service, ['cnpj', 'sanctions', 'simples', 'compliance', 'kyb-audit', 'dossier'], true) && !empty($arguments['cnpj'])) {
         $cnpjDigits = preg_replace('/\D/', '', (string)$arguments['cnpj']);
         if ($cnpjDigits === '' || !grid402_validate_cnpj_digits($cnpjDigits)) {
             mcp_error($responseId, -32602, 'InvalidArguments', ['error' => 'InvalidCNPJ', 'message' => 'O CNPJ informado e matematicamente invalido.']);
@@ -393,6 +396,7 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
             (string)($arguments['name'] ?? ''),
             (string)($arguments['lei'] ?? '')
         ),
+        'dossier' => grid402_service_dossier((string)$arguments['cnpj']),
         'market-snapshot' => grid402_service_market_snapshot(),
         'lei' => grid402_service_lei((string)$arguments['lei']),
         'ofac' => (static function () use ($arguments): array {

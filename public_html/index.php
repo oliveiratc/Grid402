@@ -23,6 +23,7 @@ require_once __DIR__ . '/services/dns.php';
 require_once __DIR__ . '/services/ssl.php';
 require_once __DIR__ . '/services/domain_audit.php';
 require_once __DIR__ . '/services/kyb_audit.php';
+require_once __DIR__ . '/services/dossier.php';
 require_once __DIR__ . '/services/market_snapshot.php';
 require_once __DIR__ . '/services/asn.php';
 require_once __DIR__ . '/services/cep.php';
@@ -89,11 +90,11 @@ if (str_contains($acceptHeader, 'text/markdown') || str_contains($acceptHeader, 
     exit;
 }
 
-// Extração do comprovante de pagamento X-Payment
-$paymentProof = (string) ($_SERVER['HTTP_X_PAYMENT'] ?? '');
+// Extração do comprovante de pagamento X-Payment (ou alias X-Session-Pass)
+$paymentProof = (string) ($_SERVER['HTTP_X_PAYMENT'] ?? $_SERVER['HTTP_X_SESSION_PASS'] ?? '');
 if ($paymentProof === '' && function_exists('apache_request_headers')) {
     $reqHeaders = apache_request_headers();
-    $paymentProof = (string) ($reqHeaders['X-Payment'] ?? $reqHeaders['x-payment'] ?? '');
+    $paymentProof = (string) ($reqHeaders['X-Payment'] ?? $reqHeaders['x-payment'] ?? $reqHeaders['X-Session-Pass'] ?? $reqHeaders['x-session-pass'] ?? '');
 }
 if ($paymentProof === '') {
     // Clientes x402 v2 padrao enviam a prova no cabecalho PAYMENT-SIGNATURE
@@ -127,7 +128,7 @@ if ($paymentProof === '') {
 header('Vary: Accept, User-Agent');
 header('Link: </openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json", </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp/server-card.json>; rel="service-meta"; type="application/json", </sitemap.xml>; rel="sitemap"; type="application/xml", </terms>; rel="terms-of-service"; type="text/html", </privacy>; rel="privacy-policy"; type="text/html"');
 header('X-Agent-Protocol: x402; network=base; chain_id=8453');
-header('X-Micropayment-Pricing: 0.0050-0.0300 USDC; token=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913; pricing=/catalog');
+header('X-Micropayment-Pricing: 0.0050-0.0500 USDC; token=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913; pricing=/catalog');
 header('X-Data-Protection-Policy: Zero-PII; Corporate-Entities-Only; LGPD-Art1-Compliant; GDPR-Recital14-Compliant; CCPA-Compliant');
 header('X-Open-Data-Licenses: CC0-1.0, US-Public-Domain-17USC105, BR-LAI-12527, EU-Open-Data-2019-1024, IETF-Public-Standards');
 header('X-Copyright: Copyright (c) ' . date('Y') . ' Grid402 Network Intelligence. All rights reserved. Proprietary Software & Architecture (Law 9.609/1998 & Law 9.610/1998).');
@@ -517,7 +518,7 @@ if (str_starts_with($requestPath, '/api/v1/pass/mp-')) {
 $isStatusRoute = ($requestPath === '/status' || $requestPath === '/api/v1/summary' || $requestPath === '/telemetry');
 $isHomeRoute = ($requestPath === '/' || $requestPath === '/index.php');
 $isVerifyRoute = ($requestPath === '/api/v1/verify' || $apiParam === 'verify');
-$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'domain-audit', 'kyb-audit', 'market-snapshot', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays', 'sanctions', 'simples', 'compliance', 'lei', 'ofac', 'notarize', 'global-markets', 'pass', 'pass-emitir', 'pass-balance', 'pass-limits', 'pass-statement'];
+$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'domain-audit', 'kyb-audit', 'dossier', 'market-snapshot', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays', 'sanctions', 'simples', 'compliance', 'lei', 'ofac', 'notarize', 'global-markets', 'pass', 'pass-emitir', 'pass-balance', 'pass-limits', 'pass-statement'];
 $isValidApiAction = in_array($apiParam, $validApiEndpoints, true);
 $isInstitutionalRoute = in_array($requestPath, ['/about', '/contact', '/terms', '/privacy', '/admin', '/dashboard', '/agents'], true);
 
@@ -862,6 +863,7 @@ if ($isValidApiAction) {
     // 2.2. Definição de Preço Escalonado por Serviço e Verificação Prévia Defensiva
     $isPass = ($apiParam === 'pass');
     $isPassEmitir = ($apiParam === 'pass-emitir');
+    $isDossier = ($apiParam === 'dossier');
     $isCompliance = ($apiParam === 'compliance');
     $isSanctionsOrSimples = in_array($apiParam, ['sanctions', 'simples'], true);
     $isCompositeMedium = in_array($apiParam, ['domain-audit', 'market-snapshot'], true);
@@ -870,6 +872,9 @@ if ($isValidApiAction) {
     if ($isPass) {
         $servicePriceDisplay = '2.0000';
         $servicePriceRaw = 2000000; // 2.000000 USDC (Starter Pass = 400 creditos)
+    } elseif ($isDossier) {
+        $servicePriceDisplay = GRID402_PRICE_DOSSIER;
+        $servicePriceRaw = GRID402_USDC_DOSSIER_RAW; // 0.050000 USDC (10 creditos)
     } elseif ($isCompliance) {
         $servicePriceDisplay = '0.0300';
         $servicePriceRaw = 30000; // 0.030000 USDC (6 creditos)
@@ -889,7 +894,7 @@ if ($isValidApiAction) {
 
     // Validação prévia defensiva de parâmetros (só rejeita se o parâmetro foi explicitamente enviado e é inválido;
     // quando omitido, o desafio 402 e a execução usam o identificador showcase padrão).
-    $isCnpjEndpoint = in_array($apiParam, ['cnpj', 'sanctions', 'simples', 'compliance'], true);
+    $isCnpjEndpoint = in_array($apiParam, ['cnpj', 'sanctions', 'simples', 'compliance', 'dossier'], true);
     if ($isCnpjEndpoint) {
         $cnpjInputRaw = trim((string) ($_GET['cnpj'] ?? $_GET['code'] ?? ''));
         if ($cnpjInputRaw !== '') {
@@ -1022,6 +1027,11 @@ if ($isValidApiAction) {
                 'credits' => 4,
             ];
             $lockedFields = ['audit.cnpj', 'audit.ofac_sanctions', 'audit.lei', 'checked_at', '_oracle_proof'];
+        } elseif ($apiParam === 'dossier') {
+            $dossierCnpj = (string) ($_GET['cnpj'] ?? $_GET['code'] ?? '00000000000191');
+            $teaser = grid402_teaser_dossier($dossierCnpj);
+            $previewData = $teaser['preview'];
+            $lockedFields = $teaser['locked_fields'];
         } elseif ($apiParam === 'market-snapshot') {
             $previewData = [
                 'market' => (string) ($_GET['market'] ?? 'US'),
@@ -1391,6 +1401,13 @@ if ($isValidApiAction) {
             $leiVal = (string) ($_GET['lei'] ?? '');
             $addrVal = (string) ($_GET['address'] ?? '');
             $result = grid402_service_kyb_audit($cnpjVal, $nameVal, $leiVal, $addrVal);
+            if (isset($result['code']) && $result['code'] !== 200) {
+                http_response_code($result['code']);
+            }
+            break;
+        case 'dossier':
+            $cnpjVal = (string) ($_GET['cnpj'] ?? $_GET['code'] ?? '00000000000191');
+            $result = grid402_service_dossier($cnpjVal);
             if (isset($result['code']) && $result['code'] !== 200) {
                 http_response_code($result['code']);
             }
@@ -3970,6 +3987,15 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     { key: 'address', label: 'Carteira EVM (opcional)', value: '' }
                 ]
             },
+            'dossier': {
+                name: 'Dossie 360 KYB + Veredito IA',
+                icon: '🛡️',
+                endpoint: '/api/v1/dossier',
+                desc: 'Dossie corporativo premium em 1 chamada: Receita Federal + Simples/MEI + Sancoes CGU + Veredito IA (APPROVED/FLAGGED/REJECTED).',
+                params: [
+                    { key: 'cnpj', label: 'CNPJ (14 digitos)', value: '00000000000191' }
+                ]
+            },
             'market-snapshot': {
                 name: 'Snapshot Macro e Tesouraria',
                 icon: '📈',
@@ -5028,6 +5054,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             'lei': { amountRaw: 20000, priceUsdc: '0.0200' },
             'ofac': { amountRaw: 20000, priceUsdc: '0.0200' },
             'kyb-audit': { amountRaw: 20000, priceUsdc: '0.0200' },
+            'dossier': { amountRaw: 50000, priceUsdc: '0.0500' },
         };
 
         function resolveWeb3Price(serviceSlug) {

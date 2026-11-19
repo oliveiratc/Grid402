@@ -72,6 +72,15 @@
       ]
     },
     {
+      "resource": "https://grid402.online/api/v1/dossier",
+      "type": "http",
+      "method": "GET",
+      "description": "Premium KYB 360 Dossier with deterministic AI Verdict (APPROVED, FLAGGED, REJECTED), score 0-100, Receita Federal CNPJ, Simples/MEI and CGU CEIS/CNEP sanctions.",
+      "accepts": [
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "50000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
+      ]
+    },
+    {
       "resource": "https://grid402.online/api/v1/market-snapshot",
       "type": "http",
       "method": "GET",

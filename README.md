@@ -46,6 +46,7 @@
 | **Inteligência ASN** | `GET /api/v1/asn?ip=...` | 0.0050 USDC (1 crédito) | BGP, número ASN, organização detentora e país |
 | **Auditoria de Domínio** | `GET /api/v1/domain-audit?domain=...` | 0.0150 USDC (3 créditos) | Bundle consolidado DNS + TLS/SSL + BGP/ASN em chamada única |
 | **Dossiê KYB Audit** | `GET /api/v1/kyb-audit?cnpj=...` | 0.0200 USDC (4 créditos) | Dossiê corporativo unificado: CNPJ + Simples + Sanções + Score 360 |
+| **Dossiê 360º KYB + Veredito IA** | `GET /api/v1/dossier?cnpj=...` | 0.0500 USDC (10 créditos) | Dossiê corporativo premium: RFB + Simples/MEI + CGU CEIS/CNEP + Veredito IA (APPROVED/FLAGGED/REJECTED) |
 | **Market Snapshot** | `GET /api/v1/market-snapshot` | 0.0150 USDC (3 créditos) | Panorama macro e financeiro: Câmbio + Cripto + Selic/CDI/IPCA + ANBIMA |
 | **Consulta Postal CEP** | `GET /api/v1/cep?code=...` | 0.0050 USDC (1 crédito) | Logradouro, bairro, cidade, UF e código IBGE oficial |
 | **Consulta CNPJ** | `GET /api/v1/cnpj?cnpj=...` | 0.0200 USDC (4 créditos) | Razão social, status cadastral, CNAE e dados da Receita Federal |
