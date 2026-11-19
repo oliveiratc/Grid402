@@ -45,7 +45,7 @@ async function runTests() {
   for (const expected of expectedTools) {
     assert.ok(toolNames.includes(expected), `Ferramenta ${expected} deve estar presente`);
   }
-  console.log('  ✓ Todas as 24 ferramentas MCP validadas com sucesso!');
+  console.log('  ✓ Todas as 25 ferramentas MCP validadas com sucesso!');
 
   // 2. Teste de Consulta Gratuita (summary)
   console.log('\n[2/5] Testando consulta à ferramenta gratuita grid402_summary...');
@@ -115,7 +115,7 @@ async function runTests() {
     process.env.GRID402_SANDBOX = originalSandbox;
   }
 
-  console.log('\n[7/7] Testando handshake JSON-RPC stdio (instructions + version 1.8.2 + 24 tools)...');
+  console.log('\n[7/7] Testando handshake JSON-RPC stdio (instructions + version 1.8.2 + 25 tools)...');
   const { spawn } = await import('node:child_process');
   const { fileURLToPath } = await import('node:url');
   const { dirname, join } = await import('node:path');

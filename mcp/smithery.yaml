@@ -1,6 +1,6 @@
 name: "grid402-mcp"
 version: 1.0.0
-description: "Official Model Context Protocol (MCP) Server for Grid402 - Public Open Data e Network Utilities Hub (Forex, Crypto, DNS, SSL, ASN, CEP) with Base x402 micropayments."
+description: "Official Model Context Protocol (MCP) Server for Grid402 - 25 on-chain oracle tools and 23 public open-data microservices (KYB Dossier 360, CNPJ, GLEIF LEI, OFAC, Forex, Crypto, DNS, SSL, ASN, CEP) with Multi-Chain x402 USDC micropayments."
 startCommand:
   type: stdio
   config:
@@ -13,7 +13,14 @@ startCommand:
         type: string
         description: "Grid402 Hub API Endpoint"
         default: "https://grid402.online"
+      GRID402_SANDBOX:
+        type: string
+        description: "Set to 'true' for free Sandbox Mode (5 queries per hour per IP) without a wallet"
+        default: "false"
+      GRID402_SESSION_PASS:
+        type: string
+        description: "Prepaid Session Pass token (pass_g402_...) for sub-15ms calls (optional)"
       GRID402_PRIVATE_KEY:
         type: string
-        description: "EVM private key on Base Mainnet for automated 0.0050 USDC x402 payment settlement (optional)"
+        description: "EVM private key on Base Mainnet for automated 0.0050 to 0.0500 USDC x402 payment settlement (optional)"
 

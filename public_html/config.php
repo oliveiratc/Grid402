@@ -305,7 +305,7 @@ define('GRID402_FACILITATOR_SETTLE_PATH', (string) grid402_env('GRID402_FACILITA
 define('GRID402_CDP_API_KEY_ID', (string) grid402_env('GRID402_CDP_API_KEY_ID', ''));
 define('GRID402_CDP_API_KEY_SECRET', (string) grid402_env('GRID402_CDP_API_KEY_SECRET', ''));
 
-// 5. Catálogo Oficial dos 22 Micro-Serviços Core de Dados Públicos e Rede
+// 5. Catálogo Oficial dos 23 Micro-Serviços Core de Dados Públicos e Rede
 function grid402_get_utility_services(): array {
     return [
         'forex' => [

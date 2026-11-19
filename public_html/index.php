@@ -172,7 +172,7 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
           "email": "contato@grid402.online",
           "telephone": "+55-11-95832-5848",
           "description": "Hub de micro-servicos publicos e oraculo de utilitarios de rede para agentes autonomos de IA sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.",
-          "priceRange": "$0.0050 - $0.0300",
+          "priceRange": "$0.0050 - $0.0500",
           "areaServed": "Worldwide",
           "address": {
             "@type": "PostalAddress",
@@ -283,7 +283,7 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
             <div data-i18n="inst.footer.copy">© <?php echo date('Y'); ?> Grid402 Network Intelligence. All rights reserved.</div>
         </footer>
     </div>
-    <script src="/assets/js/i18n.js?v=3.2.0"></script>
+    <script src="/assets/js/i18n.js?v=3.3.0"></script>
 </body>
 </html>
     <?php
@@ -1135,9 +1135,9 @@ if ($isValidApiAction) {
                 'credit_unit' => '1 credit = 0.0050 USDC (5,000 raw units) = 1 standard API call',
                 'tier_starter' => '2.0000 USDC (or R$ 12 Pix) = 400 credits (<15ms latency, 30 days validity)',
                 'tier_pro' => '5.0000 USDC (or R$ 29 Pix) = 1,000 credits (<15ms latency, 30 days validity)',
-                'tier_fleet' => '20.0000 USDC (or R$ 115 Pix) = 5,000 + 1,000 bonus = 6,000 credits (<15ms latency, 60 days validity)',
+                'tier_fleet' => '20.0000 USDC (or R$ 115 Pix) = 4,000 base + 2,000 bonus (+50%) = 6,000 credits (<15ms latency, 60 days validity)',
                 'spend_controls' => 'Supports daily_credit_limit, allowed_endpoints, and free balance check via GET /api/v1/pass/balance',
-                'network' => 'Base Mainnet (Chain ID 8453)',
+                'network' => 'Multi-Chain USDC: Base (8453), Arbitrum (42161), Polygon (137), Optimism (10), Ethereum (1), and Solana SPL USDC',
                 'token' => 'USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)',
                 'recipient' => GRID402_WALLET_ADDRESS,
             ];
@@ -1694,7 +1694,7 @@ grid402_log_public_visit('/');
           "email": "contato@grid402.online",
           "telephone": "+55-11-95832-5848",
           "description": "Hub de micro-servicos publicos e oraculo de utilitarios de rede para agentes autonomos de IA sob o protocolo HTTP 402 com liquidacao em USDC na rede Base.",
-          "priceRange": "$0.0050 - $0.0300",
+          "priceRange": "$0.0050 - $0.0500",
           "areaServed": "Worldwide",
           "address": {
             "@type": "PostalAddress",
@@ -3074,7 +3074,7 @@ grid402_log_public_visit('/');
         <section class="hero">
             <div class="hero-tag" data-i18n="hero.tag">Global Microservices and M2M Oracle Hub for Autonomous AI Agents</div>
             <h1 data-i18n="hero.title">Grid402: Global Open-Data and Network Utilities Infrastructure for AI Agents</h1>
-            <p data-i18n="hero.desc">Access 22 global and regional endpoints: worldwide corporate identity (GLEIF LEI across 200+ countries), US Treasury OFAC SDN sanctions + Base Web3 AML, ECDSA timestamp notarization, full KYB audit (CNPJ + OFAC + LEI), full domain audit (DNS + SSL + ASN), consolidated market snapshot (FX + crypto + indicators), world exchange calendars and 30+ ECB currencies, live FX, crypto spot, Compliance 360, DNS, SSL, BGP/ASN, CEP, and CNPJ in milliseconds with zero signup or API keys. Settled via x402 on Base or Prepaid Session Pass (&lt;15ms).</p>
+            <p data-i18n="hero.desc">Access 23 global and regional endpoints: KYB 360 AI Dossier (verdict APPROVED/FLAGGED/REJECTED), worldwide corporate identity (GLEIF LEI across 200+ countries), US Treasury OFAC SDN sanctions + Base Web3 AML, ECDSA timestamp notarization, global KYB audit (CNPJ + OFAC + LEI), full domain audit (DNS + SSL + ASN), consolidated market snapshot (FX + crypto + indicators), world exchange calendars and 30+ ECB currencies, live FX, crypto spot, Compliance 360, DNS, SSL, BGP/ASN, CEP, and CNPJ in milliseconds with zero signup or API keys. Settled via HTTP x402 across 6 chains (Base, Arbitrum, Polygon, Optimism, Ethereum, Solana) or Prepaid Session Pass (&lt;15ms).</p>
             <div class="cta-group">
                 <a href="#playground" class="btn btn-primary" style="background: linear-gradient(135deg, #0052FF 0%, #00F0FF 100%); font-weight: 800; box-shadow: 0 4px 15px rgba(0, 82, 255, 0.4);" data-i18n="hero.btn.playground">⚡ Test now (Sandbox)</a>
                 <a href="/catalog" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary); font-weight: 700;" data-i18n="hero.btn.catalog">See pricing, limits and examples →</a>
@@ -3103,7 +3103,7 @@ grid402_log_public_visit('/');
         <section id="comparador" class="roi-calculator-box">
             <div class="playground-header-wrap">
                 <div class="hero-tag" style="margin-bottom: 0.4rem; background: rgba(0, 240, 255, 0.12); color: var(--accent); border: 1px solid rgba(0, 240, 255, 0.3);" data-i18n="roi.tag">Real Cost Reduction for Startups and Autonomous Agents</div>
-                <h2 data-i18n="roi.title">Why pay $100+/month when your agent can pay $0.001 per query?</h2>
+                <h2 data-i18n="roi.title">Why pay $100+/month when your agent can pay from $0.0050 per query?</h2>
                 <p data-i18n="roi.desc">Compare traditional data bureaus (mandatory monthly retainers, credit checks, and 12-month lock-in contracts) with Grid402’s open M2M model settled via x402 on Base.</p>
             </div>
 
@@ -3127,7 +3127,7 @@ grid402_log_public_visit('/');
                                     <tr>
                                         <td><strong data-i18n="roi.table.cnpj">CNPJ Query</strong></td>
                                         <td class="col-trad" data-i18n="roi.table.cnpj.trad">$0.10 to $0.50</td>
-                                        <td class="col-grid" data-i18n="roi.table.cnpj.grid">$0.0200 USDC (~$0.002)</td>
+                                        <td class="col-grid" data-i18n="roi.table.cnpj.grid">$0.0200 USDC (~$0.02)</td>
                                     </tr>
                                     <tr>
                                         <td><strong data-i18n="roi.table.monthly">Minimum Monthly Fee</strong></td>
@@ -3213,7 +3213,7 @@ grid402_log_public_visit('/');
                 <h2 style="font-size: 1.8rem; letter-spacing: -0.5px; margin-bottom: 0.75rem;" data-i18n="topup.title">1-Click Web3 Credit Top-Up (Session Passes)</h2>
                 <p style="text-align: center; color: var(--text-muted); font-size: 0.98rem; line-height: 1.6;" data-i18n="topup.desc">Pay once in USDC on Base Mainnet and instantly receive a pass_g402_... token with thousands of high-speed (&lt;15ms) requests without signing transactions on every single GET.</p>
                 <div style="text-align:center; background: rgba(0,240,255,.08); border:1px solid rgba(0,240,255,.24); border-radius:8px; padding:.75rem .9rem; margin-bottom:1.2rem; font-size:.82rem; color:#CBD5E1;" data-i18n-html="topup.how_to_read">
-                    <strong>How to read balances:</strong> 1 credit costs <strong>0.0050 USDC</strong> on standard endpoints; 0.0100 USDC endpoints consume 2 credits, 0.0200 USDC consume 4 credits, and 0.0300 USDC consume 6 credits.
+                    <strong>How to read balances:</strong> 1 credit costs <strong>0.0050 USDC</strong> on standard endpoints; 0.0100 USDC = 2 credits, 0.0150 USDC = 3 credits, 0.0200 USDC = 4 credits, 0.0300 USDC = 6 credits, and 0.0500 USDC (KYB 360 AI Dossier) = 10 credits.
                 </div>
                 <div style="display: flex; justify-content: center; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem; font-size: 0.85rem; color: #8FA2B9;" id="topup-active-net-summary" data-i18n-html="topup.network_bar">
                     <strong>Network:</strong> Base Mainnet (8453) • <strong>Token:</strong> USDC • <strong>Contract:</strong> <a href="https://basescan.org/token/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" target="_blank" rel="noopener noreferrer" style="color: #00F0FF; font-family: var(--font-mono); text-decoration: none;">0x8335...2913</a>
@@ -3282,7 +3282,7 @@ grid402_log_public_visit('/');
 
                 <!-- Card 3: Fleet / Enterprise -->
                 <div class="topup-card" style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.75rem 1.5rem; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
-                    <div style="position: absolute; top: -12px; right: 20px; background: rgba(0, 240, 255, 0.2); border: 1px solid #00F0FF; color: #00F0FF; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; padding: 3px 10px; border-radius: 20px;" data-i18n="topup.fleet.badge">+1,000 Bonus</div>
+                    <div style="position: absolute; top: -12px; right: 20px; background: rgba(0, 240, 255, 0.2); border: 1px solid #00F0FF; color: #00F0FF; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; padding: 3px 10px; border-radius: 20px;" data-i18n="topup.fleet.badge">+2,000 Bonus (+50%)</div>
                     <div>
                         <div style="font-size: 0.85rem; text-transform: uppercase; font-weight: 700; color: #8FA2B9; letter-spacing: 1px; margin-bottom: 0.5rem;" data-i18n="topup.fleet.tag">Fleet / Enterprise</div>
                         <div style="display: flex; align-items: baseline; gap: 0.35rem; margin-bottom: 0.2rem;">
@@ -3292,7 +3292,7 @@ grid402_log_public_visit('/');
                         <div style="font-size: 0.82rem; color: #10B981; font-weight: 600; margin-bottom: 0.75rem;" data-i18n="topup.fleet.pix_label">or R$ 115.00 via Pix / Card</div>
                         <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;" data-i18n="topup.fleet.desc">Autonomous agent fleets, enterprise ERPs, and heavy-duty pipelines.</p>
                         <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; font-size: 0.88rem; color: #d1d5db; line-height: 1.8;">
-                            <li data-i18n-html="topup.fleet.b1">✓ <strong>6,000 credits</strong> (20% bonus; 1 credit = 0.0050 USDC)</li>
+                            <li data-i18n-html="topup.fleet.b1">✓ <strong>6,000 credits</strong> (4,000 base + 2,000 bonus; 1 credit = 0.0050 USDC)</li>
                             <li data-i18n-html="topup.fleet.b2">✓ Valid for <strong>60 days</strong></li>
                             <li data-i18n-html="topup.fleet.b3">✓ Effective rate: 0.0033 USDC / credit</li>
                             <li data-i18n-html="topup.fleet.b4">✓ Top priority on atomic cache</li>
@@ -3653,7 +3653,7 @@ grid402_log_public_visit('/');
                         <strong style="color: #fff;">💡 Supported Parameters in smithery.yaml:</strong>
                         <ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;">
                             <li><code>sandbox: true</code> — Enables free Sandbox Mode (5 queries per hour per IP) for testing without a wallet.</li>
-                            <li><code>privateKey: 0x...</code> — Optional EVM private key for auto-settlement in USDC on Base (0.0050 to 0.0200 USDC per call).</li>
+                            <li><code>privateKey: 0x...</code> — Optional EVM private key for auto-settlement in USDC on Base (0.0050 to 0.0500 USDC per call).</li>
                         </ul>
                     </div>
                 </div>
@@ -4023,10 +4023,10 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 ]
             },
             'kyb-audit': {
-                name: 'Dossie Corporativo Global KYB',
+                name: 'Auditoria Global KYB (CNPJ + OFAC + LEI)',
                 icon: '🏛️',
                 endpoint: '/api/v1/kyb-audit',
-                desc: 'Bundle composto em 1 chamada: LEI Global + OFAC/ONU + Compliance BR 360 com veredicto unificado.',
+                desc: 'Bundle composto em 1 chamada: Receita Federal CNPJ + Sancoes OFAC/ONU + Identidade Global GLEIF LEI (0.0200 USDC).',
                 params: [
                     { key: 'cnpj', label: 'CNPJ (14 digitos)', value: '00000000000191' },
                     { key: 'lei', label: 'Codigo LEI (opcional)', value: '' },
@@ -5884,9 +5884,9 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 <h3>1. Objeto e Fornecimento AS-IS</h3>
                 <p>O <strong>Grid402</strong> é uma infraestrutura global de micro-serviços de dados públicos e utilitários M2M para agentes autônomos e desenvolvedores, fornecida "NO ESTADO EM QUE SE ENCONTRA" (AS-IS).</p>
                 <h3>2. Direito de Uso de Informações Públicas e Licenças Abertas</h3>
-                <p>Todas as 22 APIs operam estritamente sobre fontes públicas abertas e fatos não passíveis de reserva proprietária: <strong>GLEIF LEI</strong> (CC0 1.0 Universal), <strong>OFAC SDN / ONU</strong> (Domínio Público 17 U.S.C. § 105), <strong>BCE / BCB / IBGE</strong> (Diretiva UE 2019/1024, Lei nº 12.527/2011 - LAI e Decreto nº 8.777/2016), <strong>Fatos Econômicos e Algoritmos de Calendário</strong> (Lei nº 9.610/1998 Art. 8º, I, II e IV) e <strong>Protocolos IETF</strong> (DNS, TLS, BGP/ASN, RFC 8785).</p>
+                <p>Todas as 23 APIs operam estritamente sobre fontes públicas abertas e fatos não passíveis de reserva proprietária: <strong>GLEIF LEI</strong> (CC0 1.0 Universal), <strong>OFAC SDN / ONU</strong> (Domínio Público 17 U.S.C. § 105), <strong>BCE / BCB / IBGE</strong> (Diretiva UE 2019/1024, Lei nº 12.527/2011 - LAI e Decreto nº 8.777/2016), <strong>Fatos Econômicos e Algoritmos de Calendário</strong> (Lei nº 9.610/1998 Art. 8º, I, II e IV) e <strong>Protocolos IETF</strong> (DNS, TLS, BGP/ASN, RFC 8785).</p>
                 <h3>3. Pagamentos x402 e Session Passes</h3>
-                <p>Os micropagamentos e passes pré-pagos em USDC na Base Mainnet (8453) remuneram exclusivamente o processamento computacional e a assinatura criptográfica ECDSA do Oráculo, sendo definitivos e irreversíveis.</p>
+                <p>Os micropagamentos e passes pré-pagos em USDC Multi-Chain (Base, Arbitrum, Polygon, Optimism, Ethereum e Solana SPL) remuneram exclusivamente o processamento computacional e a assinatura criptográfica ECDSA do Oráculo, sendo definitivos e irreversíveis.</p>
                 <h3>4. Direitos Autorais e Propriedade Intelectual Reservados</h3>
                 <p>© 2026 <strong>Grid402 Network Intelligence</strong>. <strong>Todos os direitos reservados.</strong> O software da plataforma, motor de liquidação HTTP 402, arquitetura de Session Pass, design visual e marca são protegidos pela Lei do Software (Lei nº 9.609/1998), Lei de Direitos Autorais (Lei nº 9.610/1998) e Convenção de Berna, sendo proibida a reprodução ou redistribuição sem autorização expressa.</p>
             `,
@@ -5902,9 +5902,9 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 <h3>1. Purpose and "AS-IS" Provision</h3>
                 <p><strong>Grid402</strong> is a global open-data microservices and M2M network utility gateway for autonomous AI agents and developers, provided strictly "AS-IS".</p>
                 <h3>2. Open Data Legal Basis and Public Domain Rights</h3>
-                <p>All 22 endpoints process strictly public-domain and open-licensed records: <strong>GLEIF LEI</strong> (CC0 1.0 Universal), <strong>US Treasury OFAC SDN / UN</strong> (Public Domain under 17 U.S.C. § 105), <strong>ECB / Central Bank Indicators</strong> (EU Open Data Directive 2019/1024 & Brazilian Open Data Decree 8.777/2016), <strong>Market Facts & Statutory Calendars</strong> (17 U.S.C. § 102(b) & Law 9.610/1998 Art. 8), and <strong>IETF Standards</strong> (DNS, TLS, BGP/ASN, RFC 8785).</p>
+                <p>All 23 endpoints process strictly public-domain and open-licensed records: <strong>GLEIF LEI</strong> (CC0 1.0 Universal), <strong>US Treasury OFAC SDN / UN</strong> (Public Domain under 17 U.S.C. § 105), <strong>ECB / Central Bank Indicators</strong> (EU Open Data Directive 2019/1024 & Brazilian Open Data Decree 8.777/2016), <strong>Market Facts & Statutory Calendars</strong> (17 U.S.C. § 102(b) & Law 9.610/1998 Art. 8), and <strong>IETF Standards</strong> (DNS, TLS, BGP/ASN, RFC 8785).</p>
                 <h3>3. x402 Micropayments and Session Passes</h3>
-                <p>USDC micropayments and Session Passes settled on Base Mainnet (Chain ID 8453) compensate strictly for computational processing and ECDSA cryptographic attestation, with immediate on-chain finality.</p>
+                <p>USDC micropayments and Session Passes settled across supported chains (Base, Arbitrum, Polygon, Optimism, Ethereum, and Solana SPL) compensate strictly for computational processing and ECDSA cryptographic attestation, with immediate on-chain finality.</p>
                 <h3>4. Copyright and All Rights Reserved</h3>
                 <p>© 2026 <strong>Grid402 Network Intelligence</strong>. <strong>All rights reserved.</strong> The Grid402 platform software, HTTP 402 settlement engine, Session Pass architecture, visual design, and brand are proprietary and protected by copyright and intellectual property laws (Brazilian Laws 9.609/1998 & 9.610/1998 and Berne Convention). Unauthorized reproduction or redistribution of the platform is strictly prohibited.</p>
             `,
@@ -6015,7 +6015,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             const tradEl = document.getElementById('roi-cost-trad');
             const gridEl = document.getElementById('roi-cost-grid');
             const savingsEl = document.getElementById('roi-savings-val');
-            const descEl = document.getElementById('roi-savings-sub');
+            const descEl = document.getElementById('roi-savings-desc') || document.getElementById('roi-savings-sub');
             const slider = document.getElementById('roi-slider-input');
 
             const isEn = (typeof currentLanguage !== 'undefined' && currentLanguage === 'en');
@@ -6173,6 +6173,6 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             }
         }
     </script>
-    <script src="/assets/js/i18n.js?v=3.2.0"></script>
+    <script src="/assets/js/i18n.js?v=3.3.0"></script>
 </body>
 </html>

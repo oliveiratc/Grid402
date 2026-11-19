@@ -53,7 +53,7 @@ Existem 3 formas de liquidacao suportadas pelo Grid402:
    - Compre creditos pre-pagos no portal `/pass` (Pix/Cartao ou USDC) ou via `POST /api/v1/pass`:
      - **Starter Pass (2 USDC / R$ 12):** `400 creditos` (validade 30 dias)
      - **Pro / Agent Pass (5 USDC / R$ 29):** `1.000 creditos` (validade 30 dias)
-     - **Fleet / Enterprise Pass (20 USDC / R$ 115):** `5.000 + 1.000 bonus = 6.000 creditos` (validade 60 dias)
+     - **Fleet / Enterprise Pass (20 USDC / R$ 115):** `4.000 base + 2.000 bonus (+50%) = 6.000 creditos` (validade 60 dias)
    - Reenvie as consultas incluindo `X-Payment: pass_g402_...`.
    - Consulte saldo gratuitamente em `GET /api/v1/pass/balance?token=pass_g402_...` e configure Spend Controls (`daily_credit_limit` e `allowed_endpoints`) em `POST /api/v1/pass/limits`.
 
@@ -229,8 +229,16 @@ Resposta de verificacao:
 - Tarifa: 0.0150 USDC (3 creditos)
 - Descricao: Panorama financeiro unificado combinando cambio PTAX, criptoativos spot e indicadores Selic/CDI/IPCA.
 
-### 23. Session Pass Pre-Pago e Spend Controls
-- Emissao: `GET/POST /api/v1/pass` (2 USDC = 400 creditos, 5 USDC = 1.000 creditos, 20 USDC = 6.000 creditos)
+### 23. Dossie 360 KYB Premium + Veredito IA (APPROVED / FLAGGED / REJECTED)
+- Rota: `GET /api/v1/dossier?cnpj={cnpj}`
+- Tarifa: 0.0500 USDC (10 creditos)
+- Exemplo: `/api/v1/dossier?cnpj=00000000000191`
+- Descricao: Dossie corporativo premium em 1 chamada consolidando Receita Federal (CNPJ), Simples Nacional/MEI, Sancoes CGU (CEIS/CNEP), Compliance Score 360 e bloco estruturado `verdict` (`APPROVED`, `FLAGGED`, `REJECTED`), estritamente Zero-PII e assinado com `_oracle_proof`.
+
+### 24. Session Pass Pre-Pago Multi-Chain (5 Redes EVM + Solana) e Spend Controls
+- Emissao Multi-Chain: `POST /api/v1/pass-emitir` (`{"txHash": "...", "chain": "base|arbitrum|polygon|optimism|ethereum|solana"}`) ou `GET /api/v1/pass` (Starter 2 USDC = 400 creditos, Pro 5 USDC = 1.000 creditos, Fleet 20 USDC = 4.000 base + 2.000 bonus = 6.000 creditos).
+- Redes EVM (`0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`): Base (8453), Arbitrum One (42161), Polygon PoS (137), Optimism (10) e Ethereum Mainnet (1).
+- Rede Solana (`CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C`): SPL USDC (`EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`).
 - Consulta Gratuita de Saldo: `GET /api/v1/pass/balance?token=pass_g402_...` (0.0000 USDC)
 - Configuracao Gratuita de Spend Controls: `POST /api/v1/pass/limits` com `token`, `daily_credit_limit` e `allowed_endpoints`.
 - Extrato Zero-PII CSV/JSON (Gratuito): `GET /api/v1/pass/statement?token=pass_g402_...` (parametros opcionais: `format=json` ou `csv`, `endpoint`, `outcome`; retem ate 200 eventos recentes por passe) e painel visual em `/payment-dashboard`.

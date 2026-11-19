@@ -105,7 +105,7 @@ $checkedAt = $summary['timestamp'] ?? gmdate('Y-m-d\TH:i:s\Z');
     </div>
 
     <h2 data-i18n="trust.s2.title">2. Availability History (Last 30 Days)</h2>
-    <p><span data-i18n="trust.s2.desc">Continuous monitoring of all 22 microservices.</span> (<code><?php echo htmlspecialchars((string)$checkedAt); ?></code> · <a href="/status">/status</a>)</p>
+    <p><span data-i18n="trust.s2.desc">Continuous monitoring of all 23 microservices.</span> (<code><?php echo htmlspecialchars((string)$checkedAt); ?></code> · <a href="/status">/status</a>)</p>
     <div class="uptime-strip" role="img" aria-label="30-day availability history">
         <?php foreach ($uptimeDays as $day):
             $dayStatus = (string)($day['status'] ?? 'UP');
@@ -152,14 +152,14 @@ $checkedAt = $summary['timestamp'] ?? gmdate('Y-m-d\TH:i:s\Z');
                 </tr>
                 <tr>
                     <td><strong>Commercial Model</strong></td>
-                    <td>Zero sign-up, zero monthly fee. Per-request settlement via HTTP 402 (<code>0.0050 to 0.0300 USDC</code>) or prepaid Session Pass (<code>1 credit = 0.0050 USDC</code>).</td>
+                    <td>Zero sign-up, zero monthly fee. Per-request settlement via HTTP 402 (<code>0.0050 to 0.0500 USDC</code> across 6 chains) or prepaid Session Pass (<code>1 credit = 0.0050 USDC</code>).</td>
                     <td>Annual contracts with minimum monthly commitment, manual onboarding approval, and postpaid billing.</td>
                 </tr>
             </tbody>
         </table>
     </div>
 
-    <h2 data-i18n="trust.s4.title">4. Provenance and Freshness (TTL) Matrix of All 22 Services</h2>
+    <h2 data-i18n="trust.s4.title">4. Provenance and Freshness (TTL) Matrix of All 23 Services</h2>
     <p data-i18n-html="trust.s4.desc">Every paid or sandbox HTTP 200 response includes the <code>_meta</code> object signed alongside <code>_oracle_proof</code>, attesting the exact upstream source and cache policy:</p>
     <div class="table-wrap">
         <table>
@@ -193,7 +193,9 @@ $checkedAt = $summary['timestamp'] ?? gmdate('Y-m-d\TH:i:s\Z');
     <h2 data-i18n="trust.s5.title">5. Version and Pricing History (Public Changelog)</h2>
     <div class="card">
         <ul data-i18n-html="trust.s5.list">
-            <li><strong>v3.1.0 (2026-11):</strong> Unified official Session Pass math (<code>1 credit = 0.0050 USDC</code>: Starter 2 USDC = 400 credits, Pro 5 USDC = 1,000 credits, Fleet 20 USDC = 6,000 credits), <code>Idempotency-Key</code> support (300s TTL), per-pass Spend Controls (<code>daily_credit_limit</code>, <code>allowed_endpoints</code>, and <code>GET /api/v1/pass/balance</code>), signed <code>_meta</code> block injection, 30-day uptime history, and 22-tool coverage in the MCP server.</li>
+            <li><strong>v3.3.0 (2026-11):</strong> Launch of premium <code>/api/v1/dossier</code> (<code>0.0500 USDC</code> / 10 credits, AI Verdict <code>APPROVED</code>/<code>FLAGGED</code>/<code>REJECTED</code>), 25th MCP tool (<code>grid402_get_dossier_360</code>), Multi-Chain USDC payments across 6 networks (Base, Arbitrum, Polygon, Optimism, Ethereum, Solana SPL USDC), and Fleet Pass bonus math clarification (<code>4,000 base + 2,000 bonus = 6,000 credits</code>).</li>
+            <li><strong>v3.2.0 (2026-11):</strong> Structured JSONL Zero-PII observability (<code>requests.jsonl</code> + <code>X-Request-Id</code>), live <code>p95</code> latency tracking, MCP handshake <code>instructions</code>, explicit Dual-License (MIT SDKs + Proprietary Gateway), and parallel concurrency load test suite.</li>
+            <li><strong>v3.1.0 (2026-11):</strong> Unified official Session Pass math (<code>1 credit = 0.0050 USDC</code>: Starter 2 USDC = 400 credits, Pro 5 USDC = 1,000 credits, Fleet 20 USDC = 6,000 credits), <code>Idempotency-Key</code> support (300s TTL), per-pass Spend Controls (<code>daily_credit_limit</code>, <code>allowed_endpoints</code>, and <code>GET /api/v1/pass/balance</code>), signed <code>_meta</code> block injection, and 30-day uptime history.</li>
             <li><strong>v3.0.0 (2026-11):</strong> Expansion to 22 services with composite endpoints (<code>/api/v1/domain-audit</code>, <code>/api/v1/kyb-audit</code>, <code>/api/v1/market-snapshot</code>), native x402 v2 facilitator integration (EIP-3009), and hybrid Pix/Card + USDC checkout.</li>
             <li><strong>v2.4.0 (2026-10):</strong> Launch of global GLEIF LEI (CC0), OFAC SDN + Web3 AML on Base, ECDSA secp256k1 Notarization, and ECB Global Exchange Calendar endpoints.</li>
         </ul>
@@ -207,6 +209,6 @@ $checkedAt = $summary['timestamp'] ?? gmdate('Y-m-d\TH:i:s\Z');
         <li><strong>Credit Decision Disclaimer:</strong> Grid402 provides verifiable public technical data and does not grant credit, provide legal advice, or approve onboarding.</li>
     </ul>
 </div>
-<script src="/assets/js/i18n.js?v=3.2.0"></script>
+<script src="/assets/js/i18n.js?v=3.3.0"></script>
 </body>
 </html>

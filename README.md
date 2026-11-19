@@ -26,7 +26,7 @@
 
 ## ⚡ Destaques da Arquitetura
 
-* **Monetização Nativa via HTTP x402 (v2 Exact):** Cobrança por chamada (0.0050 a 0.0300 USDC) liquidada diretamente em USDC na rede Base (Chain ID 8453) via autorizações gasless EIP-3009 (`PAYMENT-SIGNATURE`), Session Passes pré-pagos ou transferências on-chain, sem necessidade de chaves de API estáticas.
+* **Monetização Nativa via HTTP x402 (v2 Exact + Multi-Chain):** Cobrança por chamada (0.0050 a 0.0500 USDC) liquidada diretamente em USDC em 6 redes (Base, Arbitrum, Polygon, Optimism, Ethereum e Solana SPL) via autorizações gasless EIP-3009 (`PAYMENT-SIGNATURE`), Session Passes pré-pagos ou transferências on-chain, sem necessidade de chaves de API estáticas.
 * **Amostras Gratuitas no HTTP 402 (Teaser Data):** O desafio 402 inclui uma prévia segura dos dados públicos encontrados (ex: razão social, município e UF no CNPJ; logradouro e bairro no CEP; status TLS no SSL) antes da liquidação financeira.
 * **Modo Sandbox para Testes e CI/CD:** Permite simulação técnica via cabeçalho `X-Payment: demo` (cota defensiva por IP), facilitando desenvolvimento local e pipelines de homologação antes de operar em produção.
 * **Zero Banco de Dados (Zero-DB):** Arquitetura ultraleve baseada em arquivos JSON planos com travamento concorrente (`flock`) e escrita atômica (`grid402_atomic_write`), sem sobrecarga de conexões SQL.
@@ -40,14 +40,14 @@
 
 | Serviço | Rota da API | Custo M2M | Descrição Técnica |
 |---|---|---|---|
-| **Resumo Operacional** | `GET /status` | Gratuito | Saúde geral, latências médias, uptime 30d e 22 serviços operantes |
+| **Resumo Operacional** | `GET /status` | Gratuito | Saúde geral, latências médias, uptime 30d e 23 serviços operantes |
 | **Câmbio Comercial** | `GET /api/v1/forex` | 0.0050 USDC (1 crédito) | Cotações em tempo real de USD, EUR e GBP para BRL |
 | **Preços Cripto** | `GET /api/v1/crypto` | 0.0050 USDC (1 crédito) | Cotações spot e variação 24h de BTC, ETH, SOL, USDC e BASE |
 | **Resolução DNS** | `GET /api/v1/dns?domain=...` | 0.0050 USDC (1 crédito) | Registros A, AAAA, MX, TXT, NS e CNAME com latência |
 | **Inspetor SSL/TLS** | `GET /api/v1/ssl?host=...` | 0.0050 USDC (1 crédito) | Emissor, validade, dias restantes e cipher suite |
 | **Inteligência ASN** | `GET /api/v1/asn?ip=...` | 0.0050 USDC (1 crédito) | BGP, número ASN, organização detentora e país |
 | **Auditoria de Domínio** | `GET /api/v1/domain-audit?domain=...` | 0.0150 USDC (3 créditos) | Bundle consolidado DNS + TLS/SSL + BGP/ASN em chamada única |
-| **Dossiê KYB Audit** | `GET /api/v1/kyb-audit?cnpj=...` | 0.0200 USDC (4 créditos) | Dossiê corporativo unificado: CNPJ + Simples + Sanções + Score 360 |
+| **Dossiê KYB Audit** | `GET /api/v1/kyb-audit?cnpj=...` | 0.0200 USDC (4 créditos) | Auditoria corporativa global: Receita Federal CNPJ + Sanções OFAC/ONU + GLEIF LEI |
 | **Dossiê 360º KYB + Veredito IA** | `GET /api/v1/dossier?cnpj=...` | 0.0500 USDC (10 créditos) | Dossiê corporativo premium: RFB + Simples/MEI + CGU CEIS/CNEP + Veredito IA (APPROVED/FLAGGED/REJECTED) |
 | **Market Snapshot** | `GET /api/v1/market-snapshot` | 0.0150 USDC (3 créditos) | Panorama macro e financeiro: Câmbio + Cripto + Selic/CDI/IPCA + ANBIMA |
 | **Consulta Postal CEP** | `GET /api/v1/cep?code=...` | 0.0050 USDC (1 crédito) | Logradouro, bairro, cidade, UF e código IBGE oficial |
@@ -155,7 +155,7 @@ Para agentes e desenvolvedores que buscam alta frequência (abaixo de 15ms) sem 
 - Acesse [https://grid402.online/pass](https://grid402.online/pass) ou [https://grid402.online/#topup](https://grid402.online/#topup), escolha a rede e selecione seu pacote (`1 crédito = 0.0050 USDC`):
   - **Starter:** 2 USDC / R$ 12 $\rightarrow$ 400 créditos (= 400 chamadas padrão, validade 30 dias)
   - **Pro:** 5 USDC / R$ 29 $\rightarrow$ 1.000 créditos (= 1.000 chamadas padrão, validade 30 dias)
-  - **Fleet:** 20 USDC / R$ 115 $\rightarrow$ 6.000 créditos (5.000 + 1.000 bônus = 6.000 chamadas padrão, validade 60 dias)
+  - **Fleet:** 20 USDC / R$ 115 $\rightarrow$ 6.000 créditos (4.000 base + 2.000 bônus (+50%) = 6.000 chamadas padrão, validade 60 dias)
 - Para pagamentos avulsos multi-chain por chamada, envie `X-Payment: arbitrum:0x...`, `X-Payment: polygon:0x...`, `X-Payment: solana:<assinatura>` ou o cabeçalho `X-Payment-Network`. Na Base, `X-Payment: 0x...` permanece como padrão retrocompatível.
 
 ### 7. Dossiê Institucional Base Grants e Coinbase CDP
@@ -198,7 +198,7 @@ curl "https://grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 ├── mcp/                               # Pacote oficial Model Context Protocol (grid402-mcp)
 │   ├── package.json                   # Configuração e dependências do servidor MCP
 │   ├── index.mjs                      # Ponto de entrada do protocolo MCP
-│   ├── tools.mjs                      # Implementação das 24 ferramentas MCP e cliente HTTP x402
+│   ├── tools.mjs                      # Implementação das 25 ferramentas MCP e cliente HTTP x402
 │   ├── test_mcp.mjs                   # Suíte de testes automatizados do MCP
 │   └── README.md                      # Documentação de configuração do servidor MCP
 ├── public_html/                       # Raiz pública servida na Hostinger

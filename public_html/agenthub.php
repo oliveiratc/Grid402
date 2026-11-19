@@ -84,6 +84,6 @@ while (budget > spent) {
         <li>Validate <code>_oracle_proof</code> for sensitive responses.</li>
     </ul>
 </main>
-<script src="/assets/js/i18n.js?v=3.2.0"></script>
+<script src="/assets/js/i18n.js?v=3.3.0"></script>
 </body>
 </html>

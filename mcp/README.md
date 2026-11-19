@@ -1,26 +1,39 @@
 # grid402-mcp ⚡
 
-Servidor oficial do **Model Context Protocol (MCP)** para o **Grid402** — Hub de Utilitários de Rede e Dados Públicos Abertos com liquidação de micropagamentos x402 em USDC na rede Base.
+Servidor oficial do **Model Context Protocol (MCP)** para o **Grid402** — Hub de 23 Micro-Serviços de Dados Públicos Abertos e Utilitários de Rede (25 ferramentas MCP) com liquidação de micropagamentos x402 em USDC Multi-Chain (Base, Arbitrum, Polygon, Optimism, Ethereum e Solana SPL).
 
-Compatível nativamente com **Claude Desktop**, **Cursor**, **Smithery.ai**, **Coinbase AgentKit** e qualquer orquestrador compatível com a especificação MCP da Anthropic.
+Compatível nativamente com **Claude Desktop**, **Cursor**, **Smithery.ai**, **Glama**, **Coinbase AgentKit** e qualquer orquestrador compatível com a especificação MCP da Anthropic.
 
 ---
 
-## 🛠️ Ferramentas Disponíveis
+## 🛠️ Ferramentas Disponíveis (25 Tools)
 
 | Ferramenta | Descrição | Modalidade | Custo |
 |---|---|---|---|
-| `grid402_summary` | Resumo consolidado de saúde dos serviços | Direto | Gratuito |
-| `grid402_forex` | Cotações em tempo real de USD, EUR e GBP para BRL | On-Demand | 0.0050 USDC |
-| `grid402_crypto` | Preços spot de BTC, ETH, SOL, USDC e BASE | On-Demand | 0.0050 USDC |
-| `grid402_dns` | Resolução autoritativa de DNS (A, AAAA, MX, TXT, NS, CNAME) | On-Demand | 0.0050 USDC |
-| `grid402_ssl` | Inspeção de validade, emissor e dias restantes de certificados TLS/SSL | On-Demand | 0.0050 USDC |
-| `grid402_asn` | Inteligência BGP, número ASN, organização e país de bloco IP | On-Demand | 0.0050 USDC |
-| `grid402_cep` | Consulta de endereço postal brasileiro e código IBGE oficial | On-Demand | 0.0050 USDC |
-| `grid402_cnpj` | Consulta cadastral de CNPJ da Receita Federal com status e CNAE | On-Demand | 0.0200 USDC |
-| `grid402_indicators` | Indicadores macroeconômicos oficiais (Selic meta e diária, CDI anual e IPCA) | On-Demand | 0.0050 USDC |
-| `grid402_holidays` | Calendário oficial de feriados nacionais e bancários ANBIMA por ano | On-Demand | 0.0050 USDC |
-| `grid402_workdays` | Calculadora de dias úteis financeiros e projeção de vencimentos ANBIMA | On-Demand | 0.0050 USDC |
+| `grid402_summary` | Resumo consolidado de saúde dos 23 serviços | Direto | Gratuito |
+| `grid402_forex` | Cotações em tempo real de USD, EUR e GBP para BRL | On-Demand | 0.0050 USDC (1 cr) |
+| `grid402_crypto` | Preços spot de BTC, ETH, SOL, USDC e BASE | On-Demand | 0.0050 USDC (1 cr) |
+| `grid402_dns` | Resolução autoritativa de DNS (A, AAAA, MX, TXT, NS, CNAME) | On-Demand | 0.0050 USDC (1 cr) |
+| `grid402_ssl` | Inspeção de validade, emissor e dias restantes de certificados TLS/SSL | On-Demand | 0.0050 USDC (1 cr) |
+| `grid402_asn` | Inteligência BGP, número ASN, organização e país de bloco IP | On-Demand | 0.0050 USDC (1 cr) |
+| `grid402_domain_audit` | Bundle consolidado de domínio (DNS + TLS/SSL + BGP/ASN) | On-Demand | 0.0150 USDC (3 cr) |
+| `grid402_kyb_audit` | Auditoria global KYB em 1 chamada (Receita Federal CNPJ + OFAC/ONU + GLEIF LEI) | On-Demand | 0.0200 USDC (4 cr) |
+| `grid402_get_dossier_360` | Dossiê 360º KYB Premium com Veredito IA (APPROVED/FLAGGED/REJECTED), RFB, Simples/MEI e CGU CEIS/CNEP | On-Demand | 0.0500 USDC (10 cr) |
+| `grid402_market_snapshot` | Panorama macro consolidado (Câmbio + Cripto + Selic/CDI/IPCA + ANBIMA) | On-Demand | 0.0150 USDC (3 cr) |
+| `grid402_cep` | Consulta de endereço postal brasileiro e código IBGE oficial | On-Demand | 0.0050 USDC (1 cr) |
+| `grid402_cnpj` | Consulta cadastral de CNPJ da Receita Federal com status e CNAE | On-Demand | 0.0200 USDC (4 cr) |
+| `grid402_indicators` | Indicadores macroeconômicos oficiais (Selic meta e diária, CDI anual e IPCA) | On-Demand | 0.0050 USDC (1 cr) |
+| `grid402_holidays` | Calendário oficial de feriados nacionais e bancários ANBIMA por ano | On-Demand | 0.0050 USDC (1 cr) |
+| `grid402_workdays` | Calculadora de dias úteis financeiros e projeção de vencimentos ANBIMA | On-Demand | 0.0050 USDC (1 cr) |
+| `grid402_sanctions` | Checagem de sanções administrativas nos cadastros CEIS e CNEP da CGU | On-Demand | 0.0100 USDC (2 cr) |
+| `grid402_simples` | Enquadramento tributário oficial no Simples Nacional e MEI (SIMEI) | On-Demand | 0.0100 USDC (2 cr) |
+| `grid402_compliance` | Compliance Score 360 (0 a 100) cruzando Receita Federal e CGU | On-Demand | 0.0300 USDC (6 cr) |
+| `grid402_lei` | Identidade corporativa global ISO 17442 via GLEIF (200+ jurisdições) | On-Demand | 0.0200 USDC (4 cr) |
+| `grid402_ofac` | Triagem OFAC SDN / ONU e risco AML Web3 na Base Mainnet | On-Demand | 0.0200 USDC (4 cr) |
+| `grid402_notarize` | Carimbo do tempo criptográfico SHA-256 e prova de existência ECDSA | On-Demand | 0.0050 USDC (1 cr) |
+| `grid402_global_markets` | Calendário de bolsas (US/EU/UK/BR) e 30+ taxas de câmbio do BCE | On-Demand | 0.0050 USDC (1 cr) |
+| `grid402_pass` | Emissão de Session Pass pré-pago (Starter 400 cr / Pro 1.000 cr / Fleet 6.000 cr) | Pré-Pago | 2 / 5 / 20 USDC |
+| `grid402_pass_balance` | Consulta de saldo, validade e Spend Controls de um Session Pass | Direto | Gratuito |
 | `grid402_verify` | Validação matemática de prova criptográfica de oráculo (_oracle_proof) secp256k1 | Direto | Gratuito |
 
 ---
@@ -66,7 +79,7 @@ Adicione ao seu arquivo de configuração (`claude_desktop_config.json`):
 }
 ```
 
-> 💡 **Modo Sandbox Gratuito:** Você pode definir `"GRID402_SANDBOX": "true"` para testar todas as ferramentas sem gastar USDC nem configurar chave privada (limite de 3 consultas por hora por IP).
+> 💡 **Modo Sandbox Gratuito:** Você pode definir `"GRID402_SANDBOX": "true"` para testar todas as ferramentas sem gastar USDC nem configurar chave privada (limite de 5 consultas por hora por IP).
 >
 > 💡 **Session Pass (Sem Chave Privada):** Se preferir não informar `GRID402_PRIVATE_KEY`, adquira um passe pré-pago em `https://grid402.online/#topup` e defina `"GRID402_SESSION_PASS": "pass_g402_..."` para execução em `<15ms`.
 >

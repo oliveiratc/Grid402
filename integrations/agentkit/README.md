@@ -2,7 +2,7 @@
 
 Este modulo fornece a integracao oficial do **Grid402** com o ecossistema **Coinbase Developer Platform (CDP) AgentKit** na rede **Base**.
 
-Com este provedor, qualquer agente de IA (LangChain, CrewAI, AutoGen ou ElizaOS) dotado de uma carteira CDP na Base pode realizar consultas tecnicas e cadastrais enriquecidas, liquidando automaticamente as micro-tarifas x402 (0.0050 a 0.0300 USDC) diretamente on-chain.
+Com este provedor, qualquer agente de IA (LangChain, CrewAI, AutoGen ou ElizaOS) dotado de uma carteira CDP na Base pode realizar consultas tecnicas e cadastrais enriquecidas, liquidando automaticamente as micro-tarifas x402 (0.0050 a 0.0500 USDC) diretamente on-chain.
 
 ---
 

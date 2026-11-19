@@ -38,10 +38,10 @@ function assert_true(bool $condition, string $label): void {
 
 echo "=== Iniciando Testes: Global M2M Infrastructure & Session Pass ===\n\n";
 
-// 0. Verifica catalogo de 22 servicos
+// 0. Verifica catalogo de 23 servicos
 $catalog = grid402_get_utility_services();
-assert_true(count($catalog) === 22, 'Catalogo global possui exatamente 22 micro-servicos configurados');
-assert_true(isset($catalog['lei'], $catalog['ofac'], $catalog['notarize'], $catalog['global-markets'], $catalog['pass']), 'Todos os 5 novos endpoints globais constam no catalogo');
+assert_true(count($catalog) === 23, 'Catalogo global possui exatamente 23 micro-servicos configurados');
+assert_true(isset($catalog['lei'], $catalog['ofac'], $catalog['notarize'], $catalog['global-markets'], $catalog['pass'], $catalog['dossier']), 'Todos os endpoints globais e dossier constam no catalogo');
 
 // 1. Teste GLEIF LEI (CC0 1.0)
 $leiRes = grid402_service_lei('5493006MHB84DD0ZWV18');
@@ -82,30 +82,34 @@ assert_true(($gmHoliday['is_business_day'] ?? true) === false, '2026-07-03 (Inde
 assert_true(stripos((string) ($gmHoliday['holiday_name'] ?? ''), 'Independence') !== false, 'Nome do feriado Independence Day identificado na NYSE');
 assert_true(($gmHoliday['fx_reference']['currencies_count'] ?? 0) >= 15, 'Retorno ECB contem moedas mundiais de referencia');
 
-// 5. Teste Ciclo Completo do x402 Prepaid Session Pass
+// 5. Teste Ciclo Completo do x402 Prepaid Session Pass (1 credito = 5000 raw = 0.0050 USDC)
 $fakeTxHash = '0x' . bin2hex(random_bytes(32));
-$passIssue = grid402_issue_session_pass($fakeTxHash, 50000, false);
-assert_true(($passIssue['status'] ?? '') === 'ACTIVE', 'Emissao de Session Pass para 50000 raw (0.0500 USDC) retorna status=ACTIVE');
+$passIssue = grid402_issue_session_pass($fakeTxHash, 5000000, false);
+assert_true(($passIssue['status'] ?? '') === 'ACTIVE', 'Emissao de Session Pass para 5000000 raw (5.0000 USDC Pro) retorna status=ACTIVE');
 $passToken = (string) ($passIssue['pass_token'] ?? '');
 assert_true(str_starts_with($passToken, 'pass_g402_'), 'Token emitido segue formato pass_g402_<id>_<hmac>');
-assert_true(($passIssue['credits_total'] ?? 0) === 1000, '50000 raw USDC emitem exatamente 1000 creditos M2M');
+assert_true(($passIssue['credits_total'] ?? 0) === 1000, '5000000 raw USDC emitem exatamente 1000 creditos M2M');
 
 // Consulta gratuita de saldo
 $passStatus = grid402_get_session_pass_status($passToken);
 assert_true(($passStatus['valid'] ?? false) === true && ($passStatus['credits_remaining'] ?? 0) === 1000, 'Consulta gratuita de status confirma 1000 creditos disponiveis');
 
-// Consumo via grid402_validate_payment em servico de 0.0200 USDC (2000 raw = 40 creditos)
-$val2000 = grid402_validate_payment($passToken, 2000);
-assert_true(($val2000['valid'] ?? false) === true && ($val2000['session_pass'] ?? false) === true, 'grid402_validate_payment aprova Session Pass instantaneamente');
-assert_true(($val2000['credits_debited'] ?? 0) === 40 && ($val2000['credits_remaining'] ?? 0) === 960, 'Debito proporcional desconta 40 creditos (2000 raw) e restam 960 creditos');
+// Consumo via grid402_validate_payment em servico de 0.0200 USDC (20000 raw = 4 creditos)
+$val20000 = grid402_validate_payment($passToken, 20000);
+assert_true(($val20000['valid'] ?? false) === true && ($val20000['session_pass'] ?? false) === true, 'grid402_validate_payment aprova Session Pass instantaneamente');
+assert_true(($val20000['credits_debited'] ?? 0) === 4 && ($val20000['credits_remaining'] ?? 0) === 996, 'Debito proporcional desconta 4 creditos (20000 raw) e restam 996 creditos');
 
-// Consumo em servico de 0.0050 USDC (500 raw = 10 creditos)
-$val500 = grid402_validate_payment($passToken, 500);
-assert_true(($val500['valid'] ?? false) === true && ($val500['credits_remaining'] ?? 0) === 950, 'Debito de 10 creditos (500 raw) deixa 950 creditos restantes');
+// Consumo em servico de 0.0050 USDC (5000 raw = 1 credito)
+$val5000 = grid402_validate_payment($passToken, 5000);
+assert_true(($val5000['valid'] ?? false) === true && ($val5000['credits_remaining'] ?? 0) === 995, 'Debito de 1 credito (5000 raw) deixa 995 creditos restantes');
+
+// Consumo em servico premium de 0.0500 USDC (50000 raw = 10 creditos, ex: /api/v1/dossier)
+$val50000 = grid402_validate_payment($passToken, 50000);
+assert_true(($val50000['valid'] ?? false) === true && ($val50000['credits_debited'] ?? 0) === 10 && ($val50000['credits_remaining'] ?? 0) === 985, 'Debito de 10 creditos (50000 raw / dossier) deixa 985 creditos restantes');
 
 // Rejeicao de token adulterado (HMAC invalido)
 $tamperedToken = substr($passToken, 0, -4) . 'ffff';
-$valTampered = grid402_validate_payment($tamperedToken, 500);
+$valTampered = grid402_validate_payment($tamperedToken, 5000);
 assert_true(($valTampered['valid'] ?? true) === false, 'Session Pass com assinatura HMAC adulterada e rejeitado imediatamente');
 
 echo "\n=== Resultado Final: {$passed} aprovados, {$failed} falhas ===\n";

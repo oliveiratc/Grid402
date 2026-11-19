@@ -125,7 +125,7 @@ $supportedNets = grid402_supported_networks();
             <div>
                 <div class="tag"><?php echo htmlspecialchars($pkg['label'], ENT_QUOTES, 'UTF-8'); ?></div>
                 <div class="price">R$ <?php echo number_format((float) $pkg['amount_brl'], 2, ',', '.'); ?></div>
-                <div class="price-sub" data-i18n="pass.pkg.<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>.sub">or <?php echo (int) ($pkg['raw_usdc_units'] / 1000000); ?> USDC on Base</div>
+                <div class="price-sub" data-i18n="pass.pkg.<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>.sub">or <?php echo (int) ($pkg['raw_usdc_units'] / 1000000); ?> USDC (6 chains)</div>
                 <div class="credits" data-i18n="pass.pkg.<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>.credits"><?php echo number_format((int) $pkg['credits'], 0, '.', ','); ?> credits (<?php echo number_format((int) $pkg['credits'], 0, '.', ','); ?> standard req)</div>
                 <p class="desc" data-i18n="pass.pkg.<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>.desc">
                     <?php if ($tier === 'starter'): ?>
@@ -133,7 +133,7 @@ $supportedNets = grid402_supported_networks();
                     <?php elseif ($tier === 'pro'): ?>
                         For autonomous AI agents and continuous automation pipelines (1 credit = 0.0050 USDC). Most popular. Valid for 30 days.
                     <?php else: ?>
-                        Agent fleets, corporate ERP systems, and high demand (5,000 + 1,000 bonus = 6,000 credits). Valid for 60 days.
+                        Agent fleets, corporate ERP systems, and high demand (4,000 base + 2,000 bonus = 6,000 credits). Valid for 60 days.
                     <?php endif; ?>
                 </p>
             </div>
@@ -404,6 +404,6 @@ function copyToken(btn) {
     startPolling(mpOrder);
 })();
 </script>
-<script src="/assets/js/i18n.js?v=3.2.0"></script>
+<script src="/assets/js/i18n.js?v=3.3.0"></script>
 </body>
 </html>

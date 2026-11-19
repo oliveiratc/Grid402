@@ -2,7 +2,7 @@
 
 /**
  * Grid402 Official Model Context Protocol (MCP) Server
- * Exposes 24 tools for real-time open data and M2M network utilities with Base x402 settlement.
+ * Exposes 25 tools for real-time open data and M2M network utilities with Multi-Chain x402 USDC settlement.
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -11,10 +11,10 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import { MCP_TOOLS_DEFINITIONS, executeGrid402Request, DEFAULT_ENDPOINT } from './tools.mjs';
 
 export const GRID402_MCP_INSTRUCTIONS = [
-  'Grid402 is a verifiable public-data and network utility M2M oracle on Base Mainnet (Chain ID 8453) settled via HTTP x402 (USDC).',
-  'Tool selection: use free tools first (`grid402_summary` for 22-service health, `grid402_pass_balance` for prepaid pass quota/spend-controls, `grid402_verify` for offline-equivalent ECDSA secp256k1 proof verification). Prefer composite bundles (`grid402_domain_audit`, `grid402_kyb_audit`, `grid402_market_snapshot`) over multiple separate calls to reduce cost and latency.',
-  'Authentication & Payment modes: (1) Set `GRID402_SANDBOX=true` for free sandbox testing via `X-Payment: demo` (5 queries/hour per IP); (2) Set `GRID402_SESSION_PASS=pass_g402_...` for <15ms prepaid calls (`1 credit = 0.0050 USDC`, zero per-call gas); (3) Set `GRID402_PRIVATE_KEY` using a dedicated low-balance operational Base wallet for automatic on-chain settlement.',
-  'Spend controls & error handling: paid tools return `_oracle_proof` (ECDSA secp256k1) and `_meta` (upstream source and TTL). When HTTP 402 (`payment_required: true`) is returned without credentials, present the fee (`0.0050`–`0.0300` USDC) and free `preview` teaser instead of retrying blindly. Respect HTTP 429 (`PassDailyLimitExceeded`, `SandboxRateLimitExceeded`) and HTTP 403 (`PassEndpointNotAllowed`).',
+  'Grid402 is a verifiable public-data and network utility M2M oracle settled via HTTP x402 (USDC across Base, Arbitrum, Polygon, Optimism, Ethereum, and Solana SPL).',
+  'Tool selection: use free tools first (`grid402_summary` for 23-service health, `grid402_pass_balance` for prepaid pass quota/spend-controls, `grid402_verify` for offline-equivalent ECDSA secp256k1 proof verification). Prefer composite bundles (`grid402_domain_audit`, `grid402_kyb_audit`, `grid402_get_dossier_360`, `grid402_market_snapshot`) over multiple separate calls to reduce cost and latency.',
+  'Authentication and Payment modes: (1) Set `GRID402_SANDBOX=true` for free sandbox testing via `X-Payment: demo` (5 queries/hour per IP); (2) Set `GRID402_SESSION_PASS=pass_g402_...` for <15ms prepaid calls (`1 credit = 0.0050 USDC`, zero per-call gas); (3) Set `GRID402_PRIVATE_KEY` using a dedicated low-balance operational Base wallet for automatic on-chain settlement.',
+  'Spend controls and error handling: paid tools return `_oracle_proof` (ECDSA secp256k1) and `_meta` (upstream source and TTL). When HTTP 402 (`payment_required: true`) is returned without credentials, present the fee (`0.0050`–`0.0500` USDC) and free `preview` teaser instead of retrying blindly. Respect HTTP 429 (`PassDailyLimitExceeded`, `SandboxRateLimitExceeded`) and HTTP 403 (`PassEndpointNotAllowed`).',
 ].join(' ');
 
 const server = new Server(

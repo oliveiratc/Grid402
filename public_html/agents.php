@@ -446,7 +446,7 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
     <div class="container">
 
         <section class="hero">
-            <div class="badge" data-i18n="agents.hero.badge">x402 Global Autonomous Agent Hub • 22 Services</div>
+            <div class="badge" data-i18n="agents.hero.badge">x402 Global Autonomous Agent Hub • 23 Services</div>
             <h1 data-i18n="agents.hero.title">Global Data and M2M Utility Infrastructure for AI Agents</h1>
             <p class="lead" data-i18n-html="agents.hero.lead">
                 Grid402 empowers autonomous AI agents (Claude, Cursor, LangChain, CrewAI, and Coinbase AgentKit) to query 22 global and Brazilian public-domain endpoints via <strong>HTTP 402</strong> or a <strong>Prepaid Session Pass (&lt;15ms)</strong>, settling USDC micropayments on Base with <strong>ECDSA cryptographic proof</strong>.
@@ -570,8 +570,8 @@ curl -X POST "https://grid402.online/api/v1/verify" \
         </div>
 
         <!-- Tabela de Endpoints -->
-        <h2 class="section-title" data-i18n="agents.table.title">Catalog of All 22 Global Endpoints and Fees</h2>
-        <p class="section-sub" data-i18n="agents.table.sub">Per-call pricing in USDC on Base Mainnet or in Session Pass credits.</p>
+        <h2 class="section-title" data-i18n="agents.table.title">Catalog of All 23 Global Endpoints and Fees</h2>
+        <p class="section-sub" data-i18n="agents.table.sub">Per-call pricing in USDC across 6 blockchains (Base, Arbitrum, Polygon, Optimism, Ethereum, Solana) or in Session Pass credits.</p>
 
         <div class="table-wrap">
         <table>
@@ -591,6 +591,12 @@ curl -X POST "https://grid402.online/api/v1/verify" \
                     <td><span class="proof-yes" data-i18n="agents.yes">✓ Yes</span></td>
                 </tr>
                 <tr>
+                    <td><span class="endpoint-name">/api/v1/dossier</span></td>
+                    <td data-i18n="svc.dossier.desc">Premium KYB 360 Dossier with deterministic AI Verdict (APPROVED, FLAGGED, REJECTED), score 0-100, Receita Federal CNPJ, Simples/MEI and CGU CEIS/CNEP sanctions.</td>
+                    <td><span class="tag-price">0.0500 USDC (10 cr)</span></td>
+                    <td><span class="proof-yes" data-i18n="agents.yes">✓ Yes</span></td>
+                </tr>
+                <tr>
                     <td><span class="endpoint-name">/api/v1/domain-audit</span></td>
                     <td data-i18n="svc.domain-audit.desc">Composite 1-call bundle: authoritative DNS resolution + port 443 SSL/TLS certificate audit + BGP/ASN routing intelligence with consolidated risk score (0-100).</td>
                     <td><span class="tag-price">0.0150 USDC (3 cr)</span></td>
@@ -598,14 +604,14 @@ curl -X POST "https://grid402.online/api/v1/verify" \
                 </tr>
                 <tr>
                     <td><span class="endpoint-name">/api/v1/kyb-audit</span></td>
-                    <td data-i18n="svc.kyb-audit.desc">Composite 1-call bundle: GLEIF Global LEI + OFAC/UN Sanctions and Web3 AML + Brazilian Compliance 360 with unified automated onboarding verdict.</td>
-                    <td><span class="tag-price">0.0300 USDC (6 cr)</span></td>
+                    <td data-i18n="svc.kyb-audit.desc">Composite 1-call global bundle: Receita Federal CNPJ + US Treasury OFAC/UN Sanctions + GLEIF Global LEI.</td>
+                    <td><span class="tag-price">0.0200 USDC (4 cr)</span></td>
                     <td><span class="proof-yes" data-i18n="agents.yes">✓ Yes</span></td>
                 </tr>
                 <tr>
                     <td><span class="endpoint-name">/api/v1/market-snapshot</span></td>
                     <td data-i18n="svc.market-snapshot.desc">Composite 1-call bundle: Global Exchanges and ECB FX + Official PTAX and BACEN Indicators + Spot Crypto Prices for autonomous treasury agents.</td>
-                    <td><span class="tag-price">0.0100 USDC (2 cr)</span></td>
+                    <td><span class="tag-price">0.0150 USDC (3 cr)</span></td>
                     <td><span class="proof-yes" data-i18n="agents.yes">✓ Yes</span></td>
                 </tr>
                 <tr>
@@ -777,7 +783,7 @@ curl -X POST "https://grid402.online/api/v1/verify" \
             });
         }
     </script>
-    <script src="/assets/js/i18n.js?v=3.2.0"></script>
+    <script src="/assets/js/i18n.js?v=3.3.0"></script>
 </body>
 </html>
 

@@ -72,12 +72,12 @@ ksort($services);
     <h2 data-i18n="catalog.limits.title">Limits and authentication</h2>
     <div class="grid">
         <div class="card"><h3 data-i18n="catalog.limits.c1.title">x402 micropayment</h3><p data-i18n-html="catalog.limits.c1.desc">Send <code>PAYMENT-SIGNATURE</code> (Base64, EIP-3009, facilitator token) or tx hash to the official wallet <code><?php echo htmlspecialchars(GRID402_WALLET_ADDRESS); ?></code>; the service responds in milliseconds.</p></div>
-        <div class="card"><h3 data-i18n="catalog.limits.c2.title">Session Pass (1 credit = 0.0050 USDC)</h3><p data-i18n-html="catalog.limits.c2.desc">Buy credits at <a href="/pass" style="color:var(--primary)">/pass</a>; send <code>X-Payment: pass_g402_...</code>. Starter (2 USDC = 400 credits), Pro (5 USDC = 1,000 credits), Fleet (20 USDC = 5,000 + 1,000 bonus = 6,000 credits).</p></div>
+        <div class="card"><h3 data-i18n="catalog.limits.c2.title">Session Pass (1 credit = 0.0050 USDC)</h3><p data-i18n-html="catalog.limits.c2.desc">Buy credits at <a href="/pass" style="color:var(--primary)">/pass</a>; send <code>X-Payment: pass_g402_...</code>. Starter (2 USDC = 400 credits), Pro (5 USDC = 1,000 credits), Fleet (20 USDC = 4,000 base + 2,000 bonus = 6,000 credits).</p></div>
         <div class="card"><h3 data-i18n="catalog.limits.c3.title">Sandbox &amp; Idempotency</h3><p data-i18n-html="catalog.limits.c3.desc">For testing: <code>X-Payment: demo</code> (5 req/hour per IP). In production, send <code>Idempotency-Key</code> for retries without duplicate billing (300s TTL).</p></div>
         <div class="card"><h3 data-i18n="catalog.limits.c4.title">Rate limit and Spend Controls</h3><p data-i18n-html="catalog.limits.c4.desc">Timeout: <?php echo GRID402_TIMEOUT_MS; ?> ms. Check balance for free at <code>GET /api/v1/pass/balance</code> and configure daily cap (<code>daily_credit_limit</code>) and route whitelist.</p></div>
     </div>
 
-    <h2 data-i18n="catalog.table.title">Endpoints, price, provenance, status (22/22 UP) and example</h2>
+    <h2 data-i18n="catalog.table.title">Endpoints, price, provenance, status (23/23 UP) and example</h2>
     <input class="search" id="filter" type="text" placeholder="Filter by endpoint, name, official source, or category…" aria-label="Filter services" data-i18n-placeholder="catalog.search.placeholder">
     <div class="table-wrap">
         <table id="catalog">
@@ -98,7 +98,7 @@ ksort($services);
                 elseif ($id === 'asn') $example .= '?ip=1.1.1.1';
                 elseif ($id === 'cep') $example .= '?code=01310100';
                 elseif ($id === 'cnpj') $example .= '?cnpj=00000000000191';
-                elseif (in_array($id, ['kyb-audit','compliance','sanctions','simples'], true)) $example .= '?cnpj=00000000000191';
+                elseif (in_array($id, ['kyb-audit','dossier','compliance','sanctions','simples'], true)) $example .= '?cnpj=00000000000191';
                 elseif ($id === 'domain-audit') $example .= '?domain=base.org';
                 elseif ($id === 'lei') $example .= '?lei=5493006MHB84DD0ZWV18';
                 elseif ($id === 'ofac') $example .= '?target=0x8589427373d6d84e98730d7795d8f6f8731fda16';
@@ -129,6 +129,6 @@ ksort($services);
 const input=document.getElementById('filter');
 input.addEventListener('input',()=>{const q=input.value.toLowerCase();document.querySelectorAll('#catalog tbody tr').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none');});
 </script>
-<script src="/assets/js/i18n.js?v=3.2.0"></script>
+<script src="/assets/js/i18n.js?v=3.3.0"></script>
 </body>
 </html>

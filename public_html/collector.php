@@ -140,6 +140,14 @@ $servicesSummary = [
         'category' => 'Compliance',
         'type' => 'on_demand',
     ],
+    'dossier' => [
+        'name' => 'Dossiê 360º KYB + Veredito IA',
+        'status' => 'UP',
+        'endpoint' => '/api/v1/dossier',
+        'category' => 'Compliance Premium',
+        'price_usdc' => GRID402_PRICE_DOSSIER,
+        'type' => 'on_demand',
+    ],
     'market-snapshot' => [
         'name' => 'Market Snapshot (Forex + Crypto + Indicators)',
         'status' => 'UP',

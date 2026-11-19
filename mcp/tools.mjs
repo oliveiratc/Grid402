@@ -7,12 +7,12 @@ import { settleX402Payment } from './x402_payer.mjs';
 export const DEFAULT_ENDPOINT = process.env.GRID402_ENDPOINT || process.env.GRID402_API_URL || 'https://grid402.online';
 
 /**
- * Definições formais das 24 ferramentas no padrão MCP (22 micro-serviços + summary + pass_balance)
+ * Definições formais das 25 ferramentas no padrão MCP (23 micro-serviços + summary + pass_balance)
  */
 export const MCP_TOOLS_DEFINITIONS = [
   {
     name: 'grid402_summary',
-    description: 'Consulta o resumo consolidado de saúde e disponibilidade dos 22 micro-serviços do Grid402 (gratuito, sem cobrança x402).',
+    description: 'Consulta o resumo consolidado de saúde e disponibilidade dos 23 micro-serviços do Grid402 (gratuito, sem cobrança x402).',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -121,7 +121,7 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_kyb_audit',
-    description: 'Dossiê corporativo KYB unificado em chamada única: Receita Federal CNPJ + Simples/MEI + Sanções CEIS/CNEP + Compliance Score 360 (0.0200 USDC / 4 créditos).',
+    description: 'Auditoria corporativa global KYB em chamada única: Receita Federal CNPJ + Sanções OFAC/ONU + Identidade Global GLEIF LEI (0.0200 USDC / 4 créditos).',
     inputSchema: {
       type: 'object',
       properties: {

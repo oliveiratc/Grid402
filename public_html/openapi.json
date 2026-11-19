@@ -55,7 +55,7 @@
     "/api/v1/summary": {
       "get": {
         "summary": "Consolidated Hub Status e Market Summary (Free)",
-        "description": "Returns operational health and latest cached sample metrics across all 22 micro-services. Zero payment required.",
+        "description": "Returns operational health and latest cached sample metrics across all 23 micro-services. Zero payment required.",
         "tags": ["Free"],
         "responses": {
           "200": {
@@ -797,8 +797,8 @@
     },
     "/api/v1/kyb-audit": {
       "get": {
-        "summary": "Consolidated Corporate KYB Dossier (CNPJ + Simples + Sanctions + Score 360)",
-        "description": "Single-call corporate due diligence dossier combining Receita Federal CNPJ registration, Simples Nacional/MEI regime, CGU CEIS/CNEP sanctions, and Compliance Score 360. Price: 0.0200 USDC (4 Session Pass credits).",
+        "summary": "Consolidated Global KYB Audit (CNPJ + OFAC/UN + GLEIF LEI)",
+        "description": "Single-call global corporate KYB audit combining Receita Federal CNPJ registration, US Treasury OFAC SDN / UN sanctions screening, and GLEIF LEI lookup. Price: 0.0200 USDC (4 Session Pass credits).",
         "tags": ["CNPJ", "Compliance"],
         "security": [{ "x402Payment": [] }],
         "parameters": [
@@ -810,7 +810,28 @@
           }
         ],
         "responses": {
-          "200": { "description": "Consolidated KYB dossier with ECDSA oracle proof" },
+          "200": { "description": "Consolidated global KYB audit with ECDSA oracle proof" },
+          "402": { "$ref": "#/components/responses/PaymentRequired" }
+        }
+      }
+    },
+    "/api/v1/dossier": {
+      "get": {
+        "summary": "Premium KYB 360 Dossier with AI Verdict (APPROVED, FLAGGED, REJECTED)",
+        "description": "Single-call Brazilian corporate risk dossier combining Receita Federal CNPJ, Simples Nacional/MEI, CGU CEIS/CNEP sanctions, Compliance Score 360 and deterministic AI Verdict (APPROVED, FLAGGED, REJECTED). Zero PII. Price: 0.0500 USDC (10 Session Pass credits).",
+        "tags": ["CNPJ", "Compliance"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "cnpj",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "example": "00000000000191" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Premium KYB 360 Dossier with structured AI verdict and ECDSA oracle proof" },
+          "400": { "description": "Invalid CNPJ check digits" },
           "402": { "$ref": "#/components/responses/PaymentRequired" }
         }
       }

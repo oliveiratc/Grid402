@@ -66,7 +66,7 @@
       "resource": "https://grid402.online/api/v1/kyb-audit",
       "type": "http",
       "method": "GET",
-      "description": "Consolidated corporate KYB dossier combining CNPJ, Simples/MEI, CGU sanctions and Compliance Score 360.",
+      "description": "Consolidated global KYB audit combining Receita Federal CNPJ, OFAC/UN sanctions and GLEIF LEI.",
       "accepts": [
         { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90" }
       ]
