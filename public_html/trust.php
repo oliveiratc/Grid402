@@ -47,6 +47,9 @@ $checkedAt = $summary['timestamp'] ?? gmdate('Y-m-d\TH:i:s\Z');
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=2">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=2">
     <meta name="description" content="Grid402 Trust Center: Institutional identity, technical SLA, 30-day availability history, public source provenance, and M2M governance.">
     <title>Grid402 // Trust Center, Governance &amp; Provenance</title>
     <style>
