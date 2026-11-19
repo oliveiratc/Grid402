@@ -3499,6 +3499,24 @@ grid402_log_public_visit('/');
                         </div>
                     </div>
 
+                    <!-- Banner de Conversão Pós-Sandbox (HTTP 200 demo) -->
+                    <div id="playground-sandbox-cta" style="display: none; margin-bottom: 0.75rem; padding: 0.85rem 1rem; border-radius: 10px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(0, 82, 255, 0.14)); border: 1px solid rgba(16, 185, 129, 0.45);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                            <div style="font-size: 0.84rem; color: #e2e8f0; line-height: 1.45;">
+                                <strong style="color: #34d399;">✅ Sandbox Verified!</strong>
+                                <span id="playground-sandbox-quota-text">Ready for production without rate limits (&lt;15 ms)?</span>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                <a href="/pass?tier=starter&amp;method=pix" class="btn-sm" style="text-decoration:none; background: linear-gradient(135deg, #059669, #10B981); color: #04120D; font-weight: 800; padding: 0.48rem 0.9rem; border-radius: 7px;">
+                                    ⚡ Gerar Pix Agora (R$ 12 = 400 créditos)
+                                </a>
+                                <a href="/pass" class="btn-sm btn-outline" style="text-decoration:none; border-color: rgba(0, 240, 255, 0.45); color: #00F0FF; font-weight: 700; padding: 0.48rem 0.85rem; border-radius: 7px;">
+                                    🌐 Multi-Chain USDC (6 redes)
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
                     <pre id="playground-json-viewer" class="json-viewer-pre" data-i18n="playground.viewer.placeholder">// Click "Run Query" or select a microservice above to audit...</pre>
 
                     <!-- Card de Auditoria em 3 Etapas -->
@@ -4412,9 +4430,11 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             const viewer = document.getElementById('playground-json-viewer');
             const runBtn = document.getElementById('btn-run-query');
             const unlockCard = document.getElementById('playground-unlock-card');
+            const sandboxCta = document.getElementById('playground-sandbox-cta');
 
             const isEn = (typeof currentLanguage !== 'undefined' && currentLanguage === 'en');
             if (unlockCard) unlockCard.style.display = 'none';
+            if (sandboxCta) sandboxCta.style.display = 'none';
             if (statusBadge) statusBadge.textContent = isEn ? 'Sending...' : 'Enviando...';
             if (latencyTag) latencyTag.style.display = 'none';
             if (viewer) viewer.textContent = isEn ? '// Awaiting response from Grid402 hub...' : '// Aguardando resposta do hub Grid402...';
@@ -4440,6 +4460,17 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
                 if (response.status === 200) {
                     if (statusBadge) statusBadge.textContent = 'HTTP 200 OK';
+                    if (sandboxCta && data && data.sandbox) {
+                        const rem = data.sandbox_info ? data.sandbox_info.quota_remaining_this_hour : null;
+                        const lim = data.sandbox_info ? data.sandbox_info.quota_limit_per_hour : 5;
+                        const qText = document.getElementById('playground-sandbox-quota-text');
+                        if (qText && rem !== null && rem !== undefined) {
+                            qText.textContent = isEn
+                                ? `(${rem}/${lim} free sandbox calls left this hour). Switch to production (<15 ms) in 1 click:`
+                                : `(${rem}/${lim} consultas grátis restantes nesta hora). Ative produção (<15 ms) em 1 clique:`;
+                        }
+                        sandboxCta.style.display = 'block';
+                    }
                     if (data && data._oracle_proof) {
                         auditOracleProof(data);
                     } else {

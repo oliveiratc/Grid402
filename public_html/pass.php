@@ -393,15 +393,27 @@ function copyToken(btn) {
     const mpOrder = params.get('mp_order');
     const paymentId = params.get('payment_id') || params.get('collection_id');
     const sandboxApprove = params.get('sandbox_approve');
-    if (!mpOrder) return;
-    mpCurrentOrderId = mpOrder;
-    showPanel('Verificando pagamento...', 'Consultando confirmação da ordem ' + mpOrder + '...');
-    if (sandboxApprove === '1') {
-        await approveSandboxOrder();
+    if (mpOrder) {
+        mpCurrentOrderId = mpOrder;
+        showPanel('Verificando pagamento...', 'Consultando confirmação da ordem ' + mpOrder + '...');
+        if (sandboxApprove === '1') {
+            await approveSandboxOrder();
+            return;
+        }
+        await pollOrderStatus(mpOrder, paymentId);
+        startPolling(mpOrder);
         return;
     }
-    await pollOrderStatus(mpOrder, paymentId);
-    startPolling(mpOrder);
+
+    // Conversão instantânea (1 clique vindo do Playground ou CTA externo): /pass?tier=starter&method=pix
+    const reqTier = (params.get('tier') || '').toLowerCase();
+    const reqMethod = (params.get('method') || '').toLowerCase();
+    if (reqMethod === 'pix' && ['starter', 'pro', 'fleet'].includes(reqTier)) {
+        const pixBtn = document.querySelector(`button[onclick*="startMpPix('${reqTier}'"]`);
+        if (pixBtn) {
+            setTimeout(() => startMpPix(reqTier, pixBtn), 250);
+        }
+    }
 })();
 </script>
 <script src="/assets/js/i18n.js?v=3.3.0"></script>
