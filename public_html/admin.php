@@ -37,7 +37,7 @@ function grid402_admin_runtime_status(): array {
         ? grid402_telegram_runtime_status()
         : ['configured' => false, 'disabled' => false, 'token_configured' => false, 'chat_id_configured' => false, 'last_status' => null];
 
-    $rapidApiConfigured = function_exists('grid402_rapidapi_secret') && grid402_rapidapi_secret() !== '';
+    $rapidApiConfigured = defined('GRID402_RAPIDAPI_PROXY_SECRET') && strlen((string) GRID402_RAPIDAPI_PROXY_SECRET) >= 16;
     $multiChainCount = function_exists('grid402_x402_accepts_list') ? count(grid402_x402_accepts_list('1.0000')) : 1;
 
     return [
