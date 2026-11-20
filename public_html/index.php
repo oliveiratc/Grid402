@@ -757,7 +757,7 @@ if ($isVerifyRoute) {
 if ($isValidApiAction) {
     header('Access-Control-Allow-Origin: *');
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment, x-payment, PAYMENT-SIGNATURE, payment-signature, Idempotency-Key, X-Request-Id');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment, x-payment, PAYMENT-SIGNATURE, payment-signature, Idempotency-Key, X-Request-Id, X-RapidAPI-Proxy-Secret, X-RapidAPI-Key, X-RapidAPI-Host');
     header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Payment-Required, payment-required, PAYMENT-RESPONSE, X-PAYMENT-RESPONSE, X-Idempotent-Replay, X-Request-Id');
     if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
         http_response_code(204);
@@ -1003,7 +1003,10 @@ if ($isValidApiAction) {
     }
 
     // 2.3. Verificação de Pagamento x402 para Micro-serviços Técnicos com Teaser Preview
-    if ($paymentProof === '' && !$isPassEmitir) {
+    // Nota de seguranca: X-RapidAPI-Proxy-Secret NUNCA libera emissao gratuita de Session Pass (/pass ou /pass-emitir)
+    $isRapidApiProxy = (!$isPass && !$isPassEmitir && function_exists('grid402_is_valid_rapidapi_proxy_request') && grid402_is_valid_rapidapi_proxy_request());
+
+    if ($paymentProof === '' && !$isPassEmitir && !$isRapidApiProxy) {
         $serviceLabel = $apiParam !== '' ? $apiParam : 'technical-utility';
         $previewData = null;
         $lockedFields = null;
@@ -1248,6 +1251,21 @@ if ($isValidApiAction) {
         $isRealPayment = true;
         $proofIsPayload = false;
         $proofForLog = null;
+    } elseif ($isRapidApiProxy && $paymentProof === '') {
+        // Chamada autenticada pelo proxy RapidAPI (faturamento em USD via assinatura RapidAPI)
+        $validation = [
+            'valid' => true,
+            'sandbox' => false,
+            'source' => 'rapidapi',
+            'payer' => 'rapidapi_proxy',
+            'settlement_tx' => null,
+            'network' => 'rapidapi',
+            'raw_amount' => $servicePriceRaw,
+        ];
+        $isSandbox = false;
+        $isRealPayment = true;
+        $proofIsPayload = false;
+        $proofForLog = null;
     } else {
         $validation = grid402_validate_payment($paymentProof, $servicePriceRaw, $clientIp, $apiParam);
         // Payload x402 padrao (base64) nunca e gravado em telemetria nem ecoado na resposta
@@ -1353,14 +1371,14 @@ if ($isValidApiAction) {
     $actualPaidUsdc = ($apiParam === 'pass' && !empty($validation['raw_amount']) && (int) $validation['raw_amount'] > 0)
         ? (((int) $validation['raw_amount']) / 1000000.0)
         : (float) $servicePriceDisplay;
-    $revenueUsdcToRecord = ($isSandbox || $isVerifyOnly || $paymentSourceVal === 'pass') ? 0.0 : $actualPaidUsdc;
+    $revenueUsdcToRecord = ($isSandbox || $isVerifyOnly || $paymentSourceVal === 'pass' || $paymentSourceVal === 'rapidapi') ? 0.0 : $actualPaidUsdc;
 
     if ($isRealPayment) {
         grid402_growth_event('paid_request', [
             'service' => $apiParam,
             'payer' => $validation['payer'] ?? '',
             'amount_usdc' => $revenueUsdcToRecord,
-            'type' => $paymentSourceVal === 'pass' ? 'pass' : 'x402',
+            'type' => $paymentSourceVal === 'pass' ? 'pass' : ($paymentSourceVal === 'rapidapi' ? 'rapidapi' : 'x402'),
         ]);
     } else {
         $growthType = $isSandbox ? 'sandbox_request' : 'verify_only';
@@ -1399,6 +1417,10 @@ if ($isValidApiAction) {
         header('X-Payment-Mode: sandbox');
         header('X-Payment-Amount: 0.0000 USDC (Sandbox)');
         header('X-Payment-Network: ' . ($validation['network'] ?? 'Simulation (demo)'));
+    } elseif ($paymentSourceVal === 'rapidapi') {
+        header('X-Payment-Mode: production');
+        header('X-Payment-Amount: RapidAPI Subscription');
+        header('X-Payment-Network: RapidAPI Proxy');
     } else {
         header('X-Payment-Mode: production');
         header('X-Payment-Amount: ' . $servicePriceDisplay . ' USDC');

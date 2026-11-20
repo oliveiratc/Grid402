@@ -190,6 +190,34 @@ define('GRID402_SOLANA_WALLET_ADDRESS', trim((string) grid402_env('GRID402_SOLAN
 define('GRID402_SOLANA_USDC_MINT', trim((string) grid402_env('GRID402_SOLANA_USDC_MINT', 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v')));
 define('GRID402_PAYAI_SOLANA_FEE_PAYER', trim((string) grid402_env('GRID402_PAYAI_SOLANA_FEE_PAYER', 'CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww')));
 define('GRID402_CRON_SECRET', (string) grid402_env('GRID402_CRON_SECRET', 'grid402_secret_token_change_me'));
+define('GRID402_RAPIDAPI_PROXY_SECRET', trim((string) grid402_env('GRID402_RAPIDAPI_PROXY_SECRET', '')));
+
+/**
+ * Valida se a requisicao chegou autenticada pelo proxy oficial da RapidAPI
+ * atraves do cabecalho secreto X-RapidAPI-Proxy-Secret (fail-closed quando nao configurado).
+ */
+function grid402_is_valid_rapidapi_proxy_request(): bool {
+    $expected = defined('GRID402_RAPIDAPI_PROXY_SECRET') ? GRID402_RAPIDAPI_PROXY_SECRET : '';
+    if ($expected === '' || strlen($expected) < 16) {
+        return false;
+    }
+    $provided = trim((string) ($_SERVER['HTTP_X_RAPIDAPI_PROXY_SECRET'] ?? ''));
+    if ($provided === '' && function_exists('apache_request_headers')) {
+        $hdrs = apache_request_headers();
+        if (is_array($hdrs)) {
+            foreach ($hdrs as $k => $v) {
+                if (strtolower((string) $k) === 'x-rapidapi-proxy-secret') {
+                    $provided = trim((string) $v);
+                    break;
+                }
+            }
+        }
+    }
+    if ($provided === '') {
+        return false;
+    }
+    return hash_equals($expected, $provided);
+}
 
 // 2.2. Notificacoes de Pagamento em Tempo Real no Telegram (Opcional)
 define('GRID402_TELEGRAM_BOT_TOKEN', (string) grid402_env('GRID402_TELEGRAM_BOT_TOKEN', ''));

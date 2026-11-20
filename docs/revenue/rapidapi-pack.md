@@ -2,14 +2,16 @@
 
 > **Objetivo:** Capturar compradores recorrentes em dólar (cartão de crédito internacional via RapidAPI) sem alterar o gateway Zero-DB do Grid402, expondo nossos endpoints de maior demanda global e B2B Brasil com faturamento mensal previsível.
 
-## 1. Estratégia de Autenticação (Ponte Segura RapidAPI -> Grid402)
-1. Gere um **Fleet Session Pass** dedicado (ou pass administrativo exclusivo para o proxy RapidAPI) com `daily_credit_limit` ajustado.
-2. No RapidAPI Provider Dashboard (`https://rapidapi.com/studio`), configure:
-   - **Base URL:** `https://grid402.online`
-   - **Secret / Transformation Header enviado pela RapidAPI ao seu origin:**
-     - Header: `X-Payment`
-     - Value: `pass_g402_<SEU_TOKEN_DEDICADO_RAPIDAPI>` *(nunca versionar este token no Git!)*
-3. Na sua aba **Gateway** da RapidAPI, confirme que a RapidAPI valida `X-RapidAPI-Key` e `X-RapidAPI-Proxy-Secret` antes de encaminhar ao Grid402.
+## 1. Estratégia de Autenticação (Ponte Nativa `X-RapidAPI-Proxy-Secret` — Zero Manutenção)
+1. No RapidAPI Provider Studio (`Hub Listing → Gateway → Firewall Settings`), copie o valor gerado automaticamente do **`X-RapidAPI-Proxy-Secret`**.
+2. Na Hostinger, adicione essa variável no arquivo `.env` seguro (fora de `public_html` ou em `private_data/.env` — **nunca** no Git):
+   ```env
+   GRID402_RAPIDAPI_PROXY_SECRET=<cole_aqui_o_proxy_secret_da_rapidapi>
+   ```
+3. O gateway Grid402 (`public_html/config.php` + `public_html/index.php`) valida o header em tempo constante (`hash_equals`):
+   - Assinantes dos planos pagos da RapidAPI recebem respostas `HTTP 200` com latência `<15ms`, **sem nunca esgotar créditos** e com rastreio separado (`payment_source: "rapidapi"`).
+   - **Proteção de segurança:** o `X-RapidAPI-Proxy-Secret` **jamais** libera emissão de Session Passes (`/api/v1/pass` e `/api/v1/pass-emitir` continuam exigindo pagamento real).
+   - *(Fallback opcional)* Caso prefira limitar volume via créditos, também é possível configurar `X-Payment: pass_g402_...` em `Gateway → Secret Headers & Parameters`.
 
 ## 2. Catálogo de 2 APIs Recomendadas para Listar Separadamente (Maior Descoberta por Busca)
 

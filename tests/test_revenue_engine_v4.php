@@ -247,6 +247,7 @@ t_assert('Zero-PII garantido: endereço de e-mail completo nunca é persistido e
 // -----------------------------------------------------------------
 echo "\n[5/7] Testes HTTP: /extract, /email-verify e Sandbox 3 req/dia:\n";
 $sandboxFile = $storageDir . DIRECTORY_SEPARATOR . 'sandbox_v4_test.json';
+$rapidSecretTest = 'rapidapi_test_secret_' . bin2hex(random_bytes(12));
 $server = grid402_start_server([
     'docroot' => __DIR__ . '/../public_html',
     'router' => __DIR__ . '/router.php',
@@ -255,6 +256,7 @@ $server = grid402_start_server([
         'GRID402_STORAGE_DIR' => $storageDir,
         'GRID402_FILE_SANDBOX_RATES' => $sandboxFile,
         'GRID402_DISABLE_TELEGRAM' => '1',
+        'GRID402_RAPIDAPI_PROXY_SECRET' => $rapidSecretTest,
     ],
 ]);
 $baseUrl = $server['base_url'];
@@ -422,6 +424,29 @@ try {
             $docBody !== '' && str_contains($docBody, 'R$ 12') && str_contains($docBody, '0.0050')
         );
     }
+
+    // -----------------------------------------------------------------
+    // 8. Ponte Nativa RapidAPI (X-RapidAPI-Proxy-Secret)
+    // -----------------------------------------------------------------
+    echo "\n[8/8] Ponte Nativa RapidAPI (X-RapidAPI-Proxy-Secret):\n";
+    $rRapidOk = $httpCall("{$baseUrl}/api/v1/holidays?year=2026", ["X-RapidAPI-Proxy-Secret: {$rapidSecretTest}"]);
+    $jRapidOk = json_decode($rRapidOk['body'], true);
+    t_assert('X-RapidAPI-Proxy-Secret válido libera consulta (HTTP 200, source=rapidapi, _oracle_proof)',
+        $rRapidOk['code'] === 200 &&
+        ($jRapidOk['_billing']['payment_source'] ?? '') === 'rapidapi' &&
+        !empty($jRapidOk['_oracle_proof']) &&
+        stripos($rRapidOk['headers'], 'X-Payment-Network: RapidAPI Proxy') !== false,
+        "Code={$rRapidOk['code']}"
+    );
+
+    $rRapidBad = $httpCall("{$baseUrl}/api/v1/holidays?year=2026", ['X-RapidAPI-Proxy-Secret: segredo_incorreto_1234567890']);
+    t_assert('X-RapidAPI-Proxy-Secret inválido retorna HTTP 402', $rRapidBad['code'] === 402, "Code={$rRapidBad['code']}");
+
+    $rRapidPassBlock = $httpCall("{$baseUrl}/api/v1/pass", ["X-RapidAPI-Proxy-Secret: {$rapidSecretTest}"]);
+    t_assert('X-RapidAPI-Proxy-Secret NUNCA libera emissão gratuita em /api/v1/pass (HTTP 402)',
+        $rRapidPassBlock['code'] === 402,
+        "Code={$rRapidPassBlock['code']}"
+    );
 } finally {
     grid402_stop_server($server);
     t_rmdir($storageDir);
