@@ -37,12 +37,16 @@ function grid402_admin_runtime_status(): array {
         ? grid402_telegram_runtime_status()
         : ['configured' => false, 'disabled' => false, 'token_configured' => false, 'chat_id_configured' => false, 'last_status' => null];
 
+    $rapidApiConfigured = function_exists('grid402_rapidapi_secret') && grid402_rapidapi_secret() !== '';
+    $multiChainCount = function_exists('grid402_x402_accepts_list') ? count(grid402_x402_accepts_list('1.0000')) : 1;
+
     return [
         'facilitator' => [
             'mode' => $facMode,
             'auth_mode' => $authMode,
             'host' => $facHost,
             'network' => $x402Network,
+            'multichain_accepts' => $multiChainCount,
         ],
         'collector' => [
             'summary_exists' => $summaryExists,
@@ -50,6 +54,9 @@ function grid402_admin_runtime_status(): array {
             'summary_stale' => ($summaryAgeSec === null || $summaryAgeSec > 600),
         ],
         'telegram' => $tg,
+        'rapidapi' => [
+            'configured' => $rapidApiConfigured,
+        ],
     ];
 }
 
@@ -1002,8 +1009,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $paymentSourceLabels = [
     'tx_hash' => 'TX hash (legado)',
     'pass' => 'Session pass',
-    'facilitator' => 'Facilitador (settle)',
+    'facilitator' => 'Facilitador x402 (settle)',
     'facilitator_verify_only' => 'Facilitador (verify only)',
+    'mercadopago' => 'Pix (Mercado Pago)',
+    'rapidapi' => 'RapidAPI Hub',
     'sandbox' => 'Sandbox',
     'unknown' => 'Não identificada',
 ];
@@ -1265,6 +1274,7 @@ if ($apiParam === 'stats') {
         'facilitator_status' => $runtimeStatus['facilitator'],
         'collector_status' => $runtimeStatus['collector'],
         'telegram_status' => $runtimeStatus['telegram'],
+        'rapidapi_status' => $runtimeStatus['rapidapi'],
         'oracle_configured' => $oracleConfigured,
         'status_counts' => $metrics['status_counts'] ?? [],
         'service_counts' => $metrics['service_counts'] ?? [],
@@ -1542,6 +1552,7 @@ $runtimeStatus = grid402_admin_runtime_status();
 $facStatus = $runtimeStatus['facilitator'];
 $colStatus = $runtimeStatus['collector'];
 $tgStatus = $runtimeStatus['telegram'];
+$rapidStatus = $runtimeStatus['rapidapi'];
 
 $revenueUsdc = (float)($metrics['total_revenue_usdc'] ?? 0.0);
 $revenueBrl = round($revenueUsdc * $usdRate, 2);
@@ -2198,7 +2209,10 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
         <div id="runtime-status-bar" style="display:flex;flex-wrap:wrap;gap:0.75rem 1.25rem;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0.7rem 1rem;margin-bottom:1.25rem;font-size:0.78rem;font-family:var(--font-mono);">
             <span id="runtime-facilitator-badge" style="color:<?php echo ($facStatus['mode'] === 'settle' ? '#10B981' : '#F59E0B'); ?>;">
                 Facilitador x402: <strong><?php echo htmlspecialchars($facStatus['mode'], ENT_QUOTES, 'UTF-8'); ?></strong>
-                (<?php echo htmlspecialchars(($facStatus['host'] !== '' ? $facStatus['host'] : 'local') . ' · ' . $facStatus['auth_mode'] . ' · ' . $facStatus['network'], ENT_QUOTES, 'UTF-8'); ?>)
+                (<?php echo htmlspecialchars(($facStatus['host'] !== '' ? $facStatus['host'] : 'local') . ' · ' . $facStatus['auth_mode'] . ' · ' . (int)($facStatus['multichain_accepts'] ?? 4) . ' chains', ENT_QUOTES, 'UTF-8'); ?>)
+            </span>
+            <span id="runtime-rapidapi-badge" style="color:<?php echo (!empty($rapidStatus['configured']) ? '#10B981' : '#94A3B8'); ?>;">
+                RapidAPI Bridge: <strong><?php echo !empty($rapidStatus['configured']) ? 'ativo' : 'inativo'; ?></strong>
             </span>
             <span id="runtime-collector-badge" style="color:<?php echo (!$colStatus['summary_stale'] ? '#10B981' : '#F59E0B'); ?>;">
                 Coletor (/status): <strong><?php
@@ -2432,10 +2446,10 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
         <!-- Linha Analítica 2: Volume por Micro-Serviço + Rentabilidade Estimada por Serviço -->
         <div class="analytics-row">
             <div class="panel">
-                <div class="panel-title">Volume por Micro-Serviço (23 Serviços)</div>
+                <div class="panel-title">Volume por Micro-Serviço (25 Serviços)</div>
                 <div id="service-bars-container">
                     <?php
-                    $servicesList = ['dossier', 'lei', 'ofac', 'notarize', 'global-markets', 'pass', 'compliance', 'sanctions', 'simples', 'workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'kyb-audit', 'domain-audit', 'market-snapshot', 'summary'];
+                    $servicesList = ['dossier', 'extract', 'email-verify', 'lei', 'ofac', 'notarize', 'global-markets', 'pass', 'compliance', 'sanctions', 'simples', 'workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'kyb-audit', 'domain-audit', 'market-snapshot', 'summary'];
                     $serviceCounts = $metrics['service_counts'] ?? [];
                     $maxSvc = max(array_values($serviceCounts) ?: [1]);
                     if ($maxSvc <= 0) $maxSvc = 1;
@@ -2671,10 +2685,20 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                                         $evTx = (string)($ev['tx_hash'] ?? '');
                                     }
                                     ?>
-                                    <?php if ($evTx !== ''): ?>
-                                        <a href="https://basescan.org/tx/<?php echo htmlspecialchars($evTx, ENT_QUOTES); ?>" target="_blank" class="tx-link">
-                                            <?php echo substr($evTx, 0, 8) . '...' . substr($evTx, -6); ?> ↗
-                                        </a>
+                                    <?php if ($evTx !== ''):
+                                        $isEvmHexTx = (bool) preg_match('/^0x[a-f0-9]{64}$/i', $evTx);
+                                        $isSolanaTx = !$isEvmHexTx && (bool) preg_match('/^[1-9A-HJ-NP-Za-km-z]{64,96}$/', $evTx);
+                                        $txExplorerUrl = $isSolanaTx
+                                            ? ('https://solscan.io/tx/' . rawurlencode($evTx))
+                                            : ('https://basescan.org/tx/' . rawurlencode($evTx));
+                                    ?>
+                                        <?php if ($isEvmHexTx || $isSolanaTx): ?>
+                                            <a href="<?php echo htmlspecialchars($txExplorerUrl, ENT_QUOTES); ?>" target="_blank" class="tx-link">
+                                                <?php echo htmlspecialchars(substr($evTx, 0, 8) . '...' . substr($evTx, -6), ENT_QUOTES); ?> ↗
+                                            </a>
+                                        <?php else: ?>
+                                            <span style="color: var(--text-muted);"><?php echo htmlspecialchars(substr($evTx, 0, 14), ENT_QUOTES); ?></span>
+                                        <?php endif; ?>
                                     <?php else: ?>
                                         <span style="color: var(--text-muted);">-</span>
                                     <?php endif; ?>
@@ -3169,11 +3193,20 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                     facBadgeEl.style.color = fs.mode === 'settle' ? '#10B981' : '#F59E0B';
                     const strong = document.createElement('strong');
                     strong.textContent = String(fs.mode || 'unknown');
+                    const chainCount = Number(fs.multichain_accepts || 4);
                     facBadgeEl.replaceChildren(
                         document.createTextNode('Facilitador x402: '),
                         strong,
-                        document.createTextNode(' (' + (fs.host || 'local') + ' · ' + (fs.auth_mode || '') + ' · ' + (fs.network || '') + ')')
+                        document.createTextNode(' (' + (fs.host || 'local') + ' · ' + (fs.auth_mode || '') + ' · ' + chainCount + ' chains)')
                     );
+                }
+                const rapidBadgeEl = document.getElementById('runtime-rapidapi-badge');
+                if (rapidBadgeEl && data.rapidapi_status) {
+                    const rOk = Boolean(data.rapidapi_status.configured);
+                    rapidBadgeEl.style.color = rOk ? '#10B981' : '#94A3B8';
+                    const strong = document.createElement('strong');
+                    strong.textContent = rOk ? 'ativo' : 'inativo';
+                    rapidBadgeEl.replaceChildren(document.createTextNode('RapidAPI Bridge: '), strong);
                 }
                 const colBadgeEl = document.getElementById('runtime-collector-badge');
                 if (colBadgeEl && data.collector_status) {
@@ -3230,11 +3263,11 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                     renderRecentPulse(data.recent_pulse);
                 }
 
-                // 3. Atualizar Barras de Servicos (22 Nós)
+                // 3. Atualizar Barras de Servicos (25 Nós)
                 const serviceBarsEl = document.getElementById('service-bars-container');
                 if (serviceBarsEl) {
                     if (data.service_counts) {
-                        const servicesList = ['lei', 'ofac', 'notarize', 'global-markets', 'pass', 'compliance', 'sanctions', 'simples', 'workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'summary'];
+                        const servicesList = ['dossier', 'extract', 'email-verify', 'lei', 'ofac', 'notarize', 'global-markets', 'pass', 'compliance', 'sanctions', 'simples', 'workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'kyb-audit', 'domain-audit', 'market-snapshot', 'summary'];
                         const sCounts = data.service_counts || {};
                         const maxS = Math.max(...Object.values(sCounts).concat([1]));
                         let sHtml = '';
@@ -3311,9 +3344,12 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
 
                             const rawTx = String(ev.settlement_tx || ev.tx_hash || '');
                             const isHexTx = /^0x[a-f0-9]{64}$/i.test(rawTx);
+                            const isSolTx = !isHexTx && /^[1-9A-HJ-NP-Za-km-z]{64,96}$/.test(rawTx);
                             const tx = isHexTx
                                 ? `<a href="https://basescan.org/tx/${encodeURIComponent(rawTx)}" target="_blank" class="tx-link">${safeHtmlText(rawTx.substr(0, 8))}...${safeHtmlText(rawTx.substr(-6))} ↗</a>`
-                                : '<span style="color: var(--text-muted);">-</span>';
+                                : (isSolTx
+                                    ? `<a href="https://solscan.io/tx/${encodeURIComponent(rawTx)}" target="_blank" class="tx-link">${safeHtmlText(rawTx.substr(0, 8))}...${safeHtmlText(rawTx.substr(-6))} ↗</a>`
+                                    : '<span style="color: var(--text-muted);">-</span>');
 
                             const cleanService = safeHtmlText(ev.service || '');
                             const cleanIp = safeHtmlText(ev.ip_masked || 'xxx.xxx.xxx.xxx');

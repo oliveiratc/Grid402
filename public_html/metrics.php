@@ -105,6 +105,12 @@ function grid402_default_metrics(): array {
             'notarize' => 0,
             'global-markets' => 0,
             'pass' => 0,
+            'dossier' => 0,
+            'kyb-audit' => 0,
+            'domain-audit' => 0,
+            'market-snapshot' => 0,
+            'extract' => 0,
+            'email-verify' => 0,
             'summary' => 0,
         ],
         'payment_sources' => [
@@ -113,6 +119,7 @@ function grid402_default_metrics(): array {
             'facilitator' => 0,
             'facilitator_verify_only' => 0,
             'mercadopago' => 0,
+            'rapidapi' => 0,
             'sandbox' => 0,
             'unknown' => 0,
         ],
@@ -303,6 +310,7 @@ function grid402_record_telemetry(
             'facilitator' => 0,
             'facilitator_verify_only' => 0,
             'mercadopago' => 0,
+            'rapidapi' => 0,
             'sandbox' => 0,
             'unknown' => 0,
         ];
@@ -801,14 +809,20 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
 
     // 6. Rentabilidade Estimada por Micro-Serviço
     $pricingTable = [
-        'notarize' => 0.0050,
+        'dossier' => 0.0500,
+        'kyb-audit' => 0.0300,
         'compliance' => 0.0300,
+        'domain-audit' => 0.0200,
+        'market-snapshot' => 0.0200,
         'ofac' => 0.0200,
         'lei' => 0.0200,
         'cnpj' => 0.0200,
         'sanctions' => 0.0100,
         'simples' => 0.0100,
         'pass' => 2.0000,
+        'extract' => 0.0050,
+        'email-verify' => 0.0050,
+        'notarize' => 0.0050,
         'forex' => 0.0050,
         'crypto' => 0.0050,
         'indicators' => 0.0050,
@@ -819,7 +833,7 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
         'ssl' => 0.0050,
         'asn' => 0.0050,
         'cep' => 0.0050,
-        'summary' => 0.0050,
+        'summary' => 0.0000,
     ];
 
     $serviceRevenue = [];
