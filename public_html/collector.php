@@ -295,6 +295,22 @@ $servicesSummary = [
         'category' => 'Mercado Global',
         'price_usdc' => '0.0050',
     ],
+    'extract' => [
+        'name' => 'Extrator Web para Markdown (LLM/RAG)',
+        'status' => 'UP',
+        'endpoint' => '/api/v1/extract',
+        'category' => 'IA / Web',
+        'price_usdc' => GRID402_PRICE_DISPLAY,
+        'type' => 'on_demand',
+    ],
+    'email-verify' => [
+        'name' => 'Auditoria de E-mail B2B (MX/SPF/DMARC)',
+        'status' => 'UP',
+        'endpoint' => '/api/v1/email-verify',
+        'category' => 'Rede / B2B',
+        'price_usdc' => GRID402_PRICE_DISPLAY,
+        'type' => 'on_demand',
+    ],
     'pass' => [
         'name' => 'x402 Prepaid Session Pass',
         'status' => 'UP',

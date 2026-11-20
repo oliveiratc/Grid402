@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Grid402 // Global M2M Open Data & Network Utilities Hub",
-    "version": "3.1.0",
-    "description": "High-performance autonomous M2M public data, global compliance (GLEIF LEI, OFAC SDN, Web3 AML), cryptographic notarization, world markets (ECB), and network utilities oracle designed for AI agents, crawlers, and automation pipelines. Settled via the x402 protocol with Base Mainnet USDC micropayments or Prepaid Session Passes (<15ms).",
+    "version": "3.4.0",
+    "description": "High-performance autonomous M2M public data, web-to-markdown extraction, Zero-PII email deliverability audit, global compliance (GLEIF LEI, OFAC SDN, Web3 AML), cryptographic notarization, world markets (ECB), and network utilities oracle designed for AI agents, crawlers, and automation pipelines. Settled via gasless HTTP x402 v2 (PayAI across Base, Polygon, Arbitrum, Solana) or Prepaid Session Passes (<15ms).",
     "contact": {
       "name": "Grid402 Support",
       "url": "https://grid402.online",
@@ -55,7 +55,7 @@
     "/api/v1/summary": {
       "get": {
         "summary": "Consolidated Hub Status e Market Summary (Free)",
-        "description": "Returns operational health and latest cached sample metrics across all 23 micro-services. Zero payment required.",
+        "description": "Returns operational health and latest cached sample metrics across all 25 micro-services. Zero payment required.",
         "tags": ["Free"],
         "responses": {
           "200": {
@@ -848,6 +848,57 @@
         }
       }
     },
+    "/api/v1/extract": {
+      "get": {
+        "summary": "SSRF-Hardened Web URL to Clean Markdown Extractor (LLM/RAG)",
+        "description": "Fetches a public HTTP/HTTPS webpage with strict SSRF protection (DNS pre-resolution blocking loopback/private/metadata IPs, max 3 redirects, 1 MB cap, 5s timeout) and converts HTML to clean Markdown with metadata and absolute links. Price: 0.0050 USDC (1 Session Pass credit).",
+        "tags": ["DNS"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "url",
+            "in": "query",
+            "required": true,
+            "description": "Public HTTP or HTTPS URL to extract",
+            "schema": { "type": "string", "format": "uri", "example": "https://example.com" }
+          },
+          {
+            "name": "max_chars",
+            "in": "query",
+            "required": false,
+            "description": "Optional max character length (500 to 25000, default 12000)",
+            "schema": { "type": "integer", "minimum": 500, "maximum": 25000, "default": 12000 }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Clean Markdown, metadata and absolute links with ECDSA oracle proof" },
+          "400": { "description": "InvalidUrlParameter or BlockedTargetAddress (SSRF protection)" },
+          "402": { "$ref": "#/components/responses/PaymentRequired" }
+        }
+      }
+    },
+    "/api/v1/email-verify": {
+      "get": {
+        "summary": "Zero-PII B2B Email Deliverability Audit (RFC/MX/SPF/DMARC/Disposable)",
+        "description": "Validates RFC syntax, DNS MX records, SPF/DMARC posture, disposable domain list, free provider detection and role-based address scoring without ever storing raw email addresses on disk. Price: 0.0050 USDC (1 Session Pass credit).",
+        "tags": ["DNS"],
+        "security": [{ "x402Payment": [] }],
+        "parameters": [
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "description": "Email address to audit (never persisted on disk)",
+            "schema": { "type": "string", "format": "email", "example": "contato@grid402.online" }
+          }
+        ],
+        "responses": {
+          "200": { "description": "Deliverability verdict (VALID/RISKY/INVALID), score 0-100, MX/SPF/DMARC telemetry and ECDSA oracle proof" },
+          "400": { "description": "InvalidEmailParameter" },
+          "402": { "$ref": "#/components/responses/PaymentRequired" }
+        }
+      }
+    },
     "/api/v1/verify": {
       "post": {
         "summary": "Stateless Oracle Proof Verification",
@@ -946,7 +997,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-Payment",
-        "description": "Transaction hash (0x + 64 hex characters) on Base Mainnet (Chain ID 8453) transferring 0.0050 USDC (standard) or 0.0200 USDC (CNPJ) to 0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90. For free testing and CI/CD, pass value 'demo' to simulate in Sandbox mode (up to 5 calls/hour per IP)."
+        "description": "Gasless x402 v2 PAYMENT-SIGNATURE (PayAI across Base, Polygon, Arbitrum, Solana), Session Pass token (pass_g402_...), or on-chain USDC transaction hash. For free testing and CI/CD, pass value 'demo' to simulate in Sandbox mode (up to 3 calls/day per IP)."
       }
     },
     "responses": {

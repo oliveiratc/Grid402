@@ -36,12 +36,15 @@ const QUERY_DEFAULTS = {
   'simples': { cnpj: '00000000000191' },
   'compliance': { cnpj: '00000000000191' },
   'kyb-audit': { cnpj: '00000000000191' },
+  'dossier': { cnpj: '00000000000191' },
   'holidays': { year: '2026' },
   'workdays': { start_date: '2026-12-23', end_date: '2026-12-28' },
   'lei': { lei: '5493006MHB84DD0ZWV18' },
   'ofac': { target: '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90' },
   'notarize': { content: 'Grid402-M2M-Contract-v1' },
   'global-markets': { market: 'US', base: 'USD' },
+  'extract': { url: 'https://example.com' },
+  'email-verify': { email: 'contato@grid402.online' },
 };
 
 function parseFlags(argv) {

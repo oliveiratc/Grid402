@@ -7,12 +7,12 @@ import { settleX402Payment } from './x402_payer.mjs';
 export const DEFAULT_ENDPOINT = process.env.GRID402_ENDPOINT || process.env.GRID402_API_URL || 'https://grid402.online';
 
 /**
- * Definições formais das 25 ferramentas no padrão MCP (23 micro-serviços + summary + pass_balance)
+ * Definições formais das 27 ferramentas no padrão MCP (25 micro-serviços + summary + pass_balance)
  */
 export const MCP_TOOLS_DEFINITIONS = [
   {
     name: 'grid402_summary',
-    description: 'Consulta o resumo consolidado de saúde e disponibilidade dos 23 micro-serviços do Grid402 (gratuito, sem cobrança x402).',
+    description: 'Consulta o resumo consolidado de saúde e disponibilidade dos 25 micro-serviços do Grid402 (gratuito, sem cobrança x402).',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -390,6 +390,46 @@ export const MCP_TOOLS_DEFINITIONS = [
     },
   },
   {
+    name: 'grid402_extract',
+    description: 'Extrai páginas web públicas HTTP/HTTPS com proteção SSRF e devolve Markdown limpo pronto para LLMs e RAG, incluindo título, descrição e links absolutos (0.0050 USDC / 1 crédito).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          description: 'URL pública HTTP ou HTTPS a ser extraída para Markdown limpo (ex: "https://example.com").',
+        },
+        max_chars: {
+          type: 'integer',
+          description: 'Limite opcional de caracteres no Markdown retornado (500 a 25000; padrão: 12000).',
+        },
+        payment_tx_hash: {
+          type: 'string',
+          description: 'Hash opcional de transação USDC ou token pass_g402_...',
+        },
+      },
+      required: ['url'],
+    },
+  },
+  {
+    name: 'grid402_email_verify',
+    description: 'Audita entregabilidade de e-mail B2B estritamente Zero-PII: sintaxe RFC, DNS MX, SPF, DMARC, detecção de domínio descartável (disposable), provedor gratuito e role-based (0.0050 USDC / 1 crédito).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        email: {
+          type: 'string',
+          description: 'Endereço de e-mail a auditar sem armazenamento em disco (ex: "contato@grid402.online").',
+        },
+        payment_tx_hash: {
+          type: 'string',
+          description: 'Hash opcional de transação USDC ou token pass_g402_...',
+        },
+      },
+      required: ['email'],
+    },
+  },
+  {
     name: 'grid402_pass',
     description: 'Emite um Session Pass pré-pago x402 (Starter 2 USDC = 400 créditos, Pro 5 USDC = 1.000 créditos, Fleet 20 USDC = 6.000 créditos; 1 crédito = 0.0050 USDC) ou consulta status via ?status=pass_g402_...',
     inputSchema: {
@@ -546,6 +586,16 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
       if (params.base) queryParams.set('base', params.base);
       if (params.date) queryParams.set('date', params.date);
       break;
+    case 'extract':
+      path = '/api/v1/extract';
+      if (params.url) queryParams.set('url', params.url);
+      if (params.max_chars !== undefined && params.max_chars !== null) queryParams.set('max_chars', String(params.max_chars));
+      break;
+    case 'email-verify':
+    case 'email_verify':
+      path = '/api/v1/email-verify';
+      if (params.email) queryParams.set('email', params.email);
+      break;
     case 'pass':
       path = '/api/v1/pass';
       if (params.status) queryParams.set('status', params.status);
@@ -570,7 +620,7 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'User-Agent': 'Grid402-MCP-Server/1.8',
+        'User-Agent': 'Grid402-MCP-Server/2.0.0',
       },
       body: postPayload,
     });
@@ -582,7 +632,7 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
 
   const headers = {
     'Accept': 'application/json',
-    'User-Agent': 'Grid402-MCP-Server/1.8',
+    'User-Agent': 'Grid402-MCP-Server/2.0.0',
   };
 
   if (params.idempotency_key) {

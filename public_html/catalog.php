@@ -28,7 +28,7 @@ ksort($services);
     <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=2">
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=2">
-    <meta name="description" content="Complete and live catalog of all 22 Grid402 microservices: pricing, limits, examples, and status.">
+    <meta name="description" content="Complete and live catalog of all 25 Grid402 microservices: pricing, limits, examples, and status.">
     <title>Grid402 // Complete Service Catalog</title>
     <style>
         :root { --bg:#060B19; --surface:#0B132B; --border:#1E2C4F; --text:#F8FAFC; --muted:#94A3B8; --primary:#00F0FF; --ok:#10B981; }
@@ -66,21 +66,21 @@ ksort($services);
         <p data-i18n-html="catalog.subtitle">Services, prices, limits, and examples on a single page. Paid queries via <code>POST</code>/<code>GET</code> with <code>X-Payment</code>.</p>
         <div class="meta">
             <span class="pill" data-i18n="catalog.pill.active"><?php echo count($services); ?> active endpoints</span>
-            <span class="pill">Base Mainnet · chain 8453</span>
+            <span class="pill">Base · Polygon · Arbitrum · Solana</span>
             <span class="pill" data-i18n="catalog.pill.price">0.0050 USDC standard</span>
-            <span class="pill" data-i18n="catalog.pill.sandbox">Free Sandbox: <?php echo GRID402_SANDBOX_RATE_LIMIT; ?> queries/hour per IP</span>
+            <span class="pill" data-i18n="catalog.pill.sandbox">Free Sandbox: <?php echo GRID402_SANDBOX_RATE_LIMIT; ?> queries/day per IP</span>
         </div>
     </header>
 
     <h2 data-i18n="catalog.limits.title">Limits and authentication</h2>
     <div class="grid">
-        <div class="card"><h3 data-i18n="catalog.limits.c1.title">x402 micropayment</h3><p data-i18n-html="catalog.limits.c1.desc">Send <code>PAYMENT-SIGNATURE</code> (Base64, EIP-3009, facilitator token) or tx hash to the official wallet <code><?php echo htmlspecialchars(GRID402_WALLET_ADDRESS); ?></code>; the service responds in milliseconds.</p></div>
-        <div class="card"><h3 data-i18n="catalog.limits.c2.title">Session Pass (1 credit = 0.0050 USDC)</h3><p data-i18n-html="catalog.limits.c2.desc">Buy credits at <a href="/pass" style="color:var(--primary)">/pass</a>; send <code>X-Payment: pass_g402_...</code>. Starter (2 USDC = 400 credits), Pro (5 USDC = 1,000 credits), Fleet (20 USDC = 4,000 base + 2,000 bonus = 6,000 credits).</p></div>
-        <div class="card"><h3 data-i18n="catalog.limits.c3.title">Sandbox &amp; Idempotency</h3><p data-i18n-html="catalog.limits.c3.desc">For testing: <code>X-Payment: demo</code> (5 req/hour per IP). In production, send <code>Idempotency-Key</code> for retries without duplicate billing (300s TTL).</p></div>
+        <div class="card"><h3 data-i18n="catalog.limits.c1.title">x402 micropayment</h3><p data-i18n-html="catalog.limits.c1.desc">Send <code>PAYMENT-SIGNATURE</code> (gasless PayAI x402 v2 across Base, Polygon, Arbitrum, and Solana) or tx hash to the official wallet <code><?php echo htmlspecialchars(GRID402_WALLET_ADDRESS); ?></code>; the service responds in milliseconds.</p></div>
+        <div class="card"><h3 data-i18n="catalog.limits.c2.title">Session Pass (1 credit = 0.0050 USDC)</h3><p data-i18n-html="catalog.limits.c2.desc">Buy credits at <a href="/pass" style="color:var(--primary)">/pass</a> (Pix from R$ 12 or USDC); send <code>X-Payment: pass_g402_...</code>. Starter (2 USDC = 400 credits), Pro (5 USDC = 1,000 credits), Fleet (20 USDC = 4,000 base + 2,000 bonus = 6,000 credits).</p></div>
+        <div class="card"><h3 data-i18n="catalog.limits.c3.title">Sandbox &amp; Idempotency</h3><p data-i18n-html="catalog.limits.c3.desc">For testing: <code>X-Payment: demo</code> (3 req/day per IP). In production, send <code>Idempotency-Key</code> for retries without duplicate billing (300s TTL).</p></div>
         <div class="card"><h3 data-i18n="catalog.limits.c4.title">Rate limit and Spend Controls</h3><p data-i18n-html="catalog.limits.c4.desc">Timeout: <?php echo GRID402_TIMEOUT_MS; ?> ms. Check balance for free at <code>GET /api/v1/pass/balance</code> and configure daily cap (<code>daily_credit_limit</code>) and route whitelist.</p></div>
     </div>
 
-    <h2 data-i18n="catalog.table.title">Endpoints, price, provenance, status (23/23 UP) and example</h2>
+    <h2 data-i18n="catalog.table.title">Endpoints, price, provenance, status (<?php echo count($services); ?>/<?php echo count($services); ?> UP) and example</h2>
     <input class="search" id="filter" type="text" placeholder="Filter by endpoint, name, official source, or category…" aria-label="Filter services" data-i18n-placeholder="catalog.search.placeholder">
     <div class="table-wrap">
         <table id="catalog">
@@ -109,6 +109,8 @@ ksort($services);
                 elseif ($id === 'holidays') $example .= '?year=2026';
                 elseif ($id === 'workdays') $example .= '?start_date=2026-01-01&days=5';
                 elseif ($id === 'global-markets') $example .= '?market=US&base=USD';
+                elseif ($id === 'extract') $example .= '?url=https://example.com';
+                elseif ($id === 'email-verify') $example .= '?email=contato@grid402.online';
                 $priceDisplay = ($price === 'Gratuito') ? 'Free' : (string)$price;
             ?>
                 <tr>

@@ -103,12 +103,12 @@ function grid402_rpc_get_sepolia_receipt(string $txHash): ?array {
 
 /**
  * Controle defensivo de taxa (Rate Limit) para requisicoes em Modo Sandbox
- * Permite ate 5 requisicoes por hora por IP
+ * Permite ate 3 requisicoes por dia (janela 24h) por IP por padrao
  */
 function grid402_check_sandbox_rate_limit(string $clientIp): array {
     $file = defined('GRID402_FILE_SANDBOX_RATES') ? GRID402_FILE_SANDBOX_RATES : (dirname(__DIR__) . '/private_data/sandbox_rates.json');
-    $maxRequests = defined('GRID402_SANDBOX_RATE_LIMIT') ? GRID402_SANDBOX_RATE_LIMIT : 5;
-    $windowSeconds = 3600;
+    $maxRequests = defined('GRID402_SANDBOX_RATE_LIMIT') ? GRID402_SANDBOX_RATE_LIMIT : 3;
+    $windowSeconds = defined('GRID402_SANDBOX_WINDOW_SECONDS') ? max(1, (int) GRID402_SANDBOX_WINDOW_SECONDS) : 86400;
     $now = time();
 
     $dir = dirname($file);
@@ -124,7 +124,7 @@ function grid402_check_sandbox_rate_limit(string $clientIp): array {
         }
     }
 
-    // Limpeza de IPs expirados (mais de 1 hora)
+    // Limpeza de IPs expirados fora da janela configurada
     $cleanRates = [];
     foreach ($rates as $ipKey => $data) {
         if (isset($data['first_request']) && ($now - $data['first_request']) < $windowSeconds) {
@@ -150,6 +150,7 @@ function grid402_check_sandbox_rate_limit(string $clientIp): array {
             'remaining' => 0,
             'retry_after' => $retryAfter,
             'limit' => $maxRequests,
+            'window_seconds' => $windowSeconds,
         ];
     }
 
@@ -169,6 +170,7 @@ function grid402_check_sandbox_rate_limit(string $clientIp): array {
         'remaining' => max(0, $maxRequests - $ipData['count']),
         'retry_after' => 0,
         'limit' => $maxRequests,
+        'window_seconds' => $windowSeconds,
     ];
 }
 
@@ -321,10 +323,11 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
     if ($txHash === 'demo' || $txHash === 'sandbox') {
         $rate = grid402_check_sandbox_rate_limit($clientIp);
         if (!$rate['allowed']) {
+            $periodLabel = (($rate['window_seconds'] ?? 86400) >= 86400) ? 'por dia' : 'por hora';
             return [
                 'valid' => false,
                 'sandbox' => true,
-                'reason' => "Limite de {$rate['limit']} consultas gratuitas de sandbox por hora atingido para este IP. Para continuar agora sem limite de taxa (<15ms), emita um Session Pass via Pix/Cartao (a partir de R$ 12 = 400 creditos) ou Multi-Chain USDC em https://grid402.online/pass",
+                'reason' => "Limite de {$rate['limit']} consultas gratuitas de sandbox {$periodLabel} atingido para este IP. Para continuar agora sem limite de taxa (<15ms), emita um Session Pass via Pix/Cartao (a partir de R$ 12 = 400 creditos) ou Multi-Chain USDC em https://grid402.online/pass",
                 'code' => 429,
                 'retry_after' => $rate['retry_after'],
                 'remaining' => 0,
@@ -340,6 +343,7 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
             'code' => 200,
             'remaining' => $rate['remaining'],
             'limit' => $rate['limit'],
+            'window_seconds' => $rate['window_seconds'] ?? 86400,
         ];
     }
 
@@ -523,20 +527,79 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
 
 /**
  * Monta a lista `accepts` padrão do fluxo x402 exact (usada no desafio 402 e na rejeição).
+ * Em produção (Base Mainnet), expõe as 4 redes gasless suportadas pelo PayAI Facilitator:
+ * Base (eip155:8453), Polygon (eip155:137), Arbitrum (eip155:42161) e Solana (solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp).
  */
 function grid402_build_accepts(int $priceRawUnits): array {
-    return [[
-        'scheme' => 'exact',
-        'network' => GRID402_X402_NETWORK_V2,
-        'asset' => GRID402_X402_USDC_CONTRACT,
-        'amount' => (string) $priceRawUnits,
-        'payTo' => GRID402_WALLET_ADDRESS,
-        'maxTimeoutSeconds' => 300,
-        'extra' => [
-            'name' => GRID402_X402_TOKEN_NAME,
-            'version' => GRID402_X402_TOKEN_VERSION,
+    $amountStr = (string) $priceRawUnits;
+    if (GRID402_X402_NETWORK === 'base-sepolia') {
+        return [[
+            'scheme' => 'exact',
+            'network' => GRID402_X402_NETWORK_V2,
+            'asset' => GRID402_X402_USDC_CONTRACT,
+            'amount' => $amountStr,
+            'payTo' => GRID402_WALLET_ADDRESS,
+            'maxTimeoutSeconds' => 300,
+            'extra' => [
+                'name' => GRID402_X402_TOKEN_NAME,
+                'version' => GRID402_X402_TOKEN_VERSION,
+            ],
+        ]];
+    }
+
+    $solWallet = defined('GRID402_SOLANA_WALLET_ADDRESS') ? (string) GRID402_SOLANA_WALLET_ADDRESS : 'CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C';
+    $solMint = defined('GRID402_SOLANA_USDC_MINT') ? (string) GRID402_SOLANA_USDC_MINT : 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+    $solFeePayer = defined('GRID402_PAYAI_SOLANA_FEE_PAYER') ? (string) GRID402_PAYAI_SOLANA_FEE_PAYER : 'CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww';
+
+    return [
+        [
+            'scheme' => 'exact',
+            'network' => 'eip155:8453',
+            'asset' => GRID402_X402_USDC_CONTRACT,
+            'amount' => $amountStr,
+            'payTo' => GRID402_WALLET_ADDRESS,
+            'maxTimeoutSeconds' => 300,
+            'extra' => [
+                'name' => GRID402_X402_TOKEN_NAME,
+                'version' => GRID402_X402_TOKEN_VERSION,
+            ],
         ],
-    ]];
+        [
+            'scheme' => 'exact',
+            'network' => 'eip155:137',
+            'asset' => '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359',
+            'amount' => $amountStr,
+            'payTo' => GRID402_WALLET_ADDRESS,
+            'maxTimeoutSeconds' => 300,
+            'extra' => [
+                'name' => 'USD Coin',
+                'version' => '2',
+            ],
+        ],
+        [
+            'scheme' => 'exact',
+            'network' => 'eip155:42161',
+            'asset' => '0xaf88d065e77c8cc2239327c5edb3a432268e5831',
+            'amount' => $amountStr,
+            'payTo' => GRID402_WALLET_ADDRESS,
+            'maxTimeoutSeconds' => 300,
+            'extra' => [
+                'name' => 'USD Coin',
+                'version' => '2',
+            ],
+        ],
+        [
+            'scheme' => 'exact',
+            'network' => 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
+            'asset' => $solMint,
+            'amount' => $amountStr,
+            'payTo' => $solWallet,
+            'maxTimeoutSeconds' => 300,
+            'extra' => [
+                'feePayer' => $solFeePayer,
+            ],
+        ],
+    ];
 }
 
 /**
@@ -584,6 +647,8 @@ function grid402_bazaar_default_query_params(?string $serviceName): array {
         'ofac' => ['target' => '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90'],
         'notarize' => ['content' => 'Grid402-M2M-Contract-v1'],
         'global-markets' => ['market' => 'US', 'base' => 'USD'],
+        'extract' => ['url' => 'https://example.com'],
+        'email-verify' => ['email' => 'contato@grid402.online'],
         default => [],
     };
 }
@@ -739,10 +804,10 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         ],
         'sandbox_test' => [
             'header' => 'X-Payment: demo',
-            'rate_limit' => GRID402_SANDBOX_RATE_LIMIT . ' req/hora por IP',
+            'rate_limit' => GRID402_SANDBOX_RATE_LIMIT . ' req/dia por IP',
             'description' => 'Teste a estrutura completa da resposta sem custo enviando o cabecalho X-Payment: demo.',
         ],
-        'action_required' => "1) Assine a autorizacao x402 v2 (cabecalho PAYMENT-SIGNATURE ou X-Payment em base64) para liquidacao automatica via facilitador, OU envie {$priceDisplay} USDC em qualquer rede suportada (Base, Arbitrum, Polygon, Optimism, Ethereum ou Solana — veja supported_networks) e refaca a requisicao com \"X-Payment: <tx_hash>\" (ou \"<chain>:<tx_hash>\"). 2) Para chamadas de alta frequencia sem latencia on-chain, adquira um Session Pass em " . (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . "/pass (pacotes Starter/Pro/Fleet) e utilize \"X-Payment: pass_g402_...\". 3) Para testar gratuitamente agora (cota de " . GRID402_SANDBOX_RATE_LIMIT . " req/hora por IP), envie \"X-Payment: demo\".",
+        'action_required' => "1) Assine a autorizacao x402 v2 (cabecalho PAYMENT-SIGNATURE ou X-Payment em base64) para liquidacao gasless via PayAI Facilitator em Base, Polygon, Arbitrum ou Solana, OU envie {$priceDisplay} USDC em qualquer rede suportada (veja supported_networks) e refaca a requisicao com \"X-Payment: <tx_hash>\" (ou \"<chain>:<tx_hash>\"). 2) Para chamadas de alta frequencia sem latencia on-chain, adquira um Session Pass via Pix/Cartao (R$ 12 = 400 creditos) ou USDC em " . (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . "/pass e utilize \"X-Payment: pass_g402_...\". 3) Para testar gratuitamente agora (cota de " . GRID402_SANDBOX_RATE_LIMIT . " req/dia por IP), envie \"X-Payment: demo\".",
         'conversion' => $conversionInfo,
         'docs' => (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . '/llms.txt',
     ];

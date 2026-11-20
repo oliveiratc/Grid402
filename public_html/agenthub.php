@@ -82,7 +82,7 @@ while (budget > spent) {
     <h2 data-i18n="agenthub.rules.title">Production rules</h2>
     <ul data-i18n-html="agenthub.rules.list">
         <li>Do not move funds without on-chain authorization compliant with your policies.</li>
-        <li>Prefer <code>demo</code> for sandbox testing (5 queries/h/IP).</li>
+        <li>Prefer <code>demo</code> for sandbox testing (3 queries/day/IP).</li>
         <li>Use a Session Pass to reduce latency and administrative cost.</li>
         <li>Validate <code>_oracle_proof</code> for sensitive responses.</li>
     </ul>

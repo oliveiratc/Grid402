@@ -1,0 +1,430 @@
+<?php
+/**
+ * Grid402 // Suíte Dedicada de Testes: Revenue Engine v4 (add-revenue-engine-v4)
+ *
+ * Valida todos os cenários das 5 delta specs:
+ * 1. Multi-Chain x402 accepts[] (4 redes PayAI em mainnet vs. 1 em base-sepolia)
+ * 2. Facilitador exact para Polygon, Arbitrum (EIP-3009) e Solana SVM (payload.transaction + anti-replay)
+ * 3. /api/v1/extract (SSRF block, 402 multi-chain teaser, extração HTML -> Markdown com mock)
+ * 4. /api/v1/email-verify (400 pré-cobrança, MX/SPF/DMARC VALID, disposable RISKY, estrito Zero-PII)
+ * 5. Sandbox rate-limit 3 req/dia (3 permitidas, 4ª retorna HTTP 429 + Retry-After + upgrade_to_production)
+ * 6. Hosted MCP POST /mcp (version 2.0.0 e 27 tools incluindo grid402_extract e grid402_email_verify)
+ * 7. Funil Web Humano SSR (/dossie-kyb, /api-cnpj, /api-sancoes-cgu, /api-dias-uteis-anbima, Home Hero, sitemap.xml e docs/revenue/)
+ */
+
+declare(strict_types=1);
+
+require_once __DIR__ . '/helpers_x402_exact.php';
+require_once __DIR__ . '/helpers_server.php';
+
+$storageDir = t_bootstrap('settle');
+
+require_once __DIR__ . '/../public_html/services/extract.php';
+require_once __DIR__ . '/../public_html/services/email_verify.php';
+
+echo "=================================================================\n";
+echo "  GRID402 // SUÍTE DE TESTES: REVENUE ENGINE V4\n";
+echo "=================================================================\n\n";
+
+// -----------------------------------------------------------------
+// 1. Multi-Chain accepts[] (Mainnet 4 redes vs. Sepolia 1 rede)
+// -----------------------------------------------------------------
+echo "[1/7] Multi-Chain x402 accepts[] (Base, Polygon, Arbitrum, Solana vs. Sepolia):\n";
+$acceptsMainnet = grid402_build_accepts(5000);
+t_assert('Mainnet emite exatamente 4 ofertas exact', count($acceptsMainnet) === 4, 'Got: ' . count($acceptsMainnet));
+$nets = array_column($acceptsMainnet, 'network');
+t_assert('Base (eip155:8453) é o primeiro item', ($nets[0] ?? '') === 'eip155:8453');
+t_assert('Polygon (eip155:137) presente com contrato oficial',
+    in_array('eip155:137', $nets, true) &&
+    strtolower((string) ($acceptsMainnet[1]['asset'] ?? '')) === strtolower('0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359')
+);
+t_assert('Arbitrum (eip155:42161) presente com contrato oficial',
+    in_array('eip155:42161', $nets, true) &&
+    strtolower((string) ($acceptsMainnet[2]['asset'] ?? '')) === strtolower('0xaf88d065e77c8cC2239327C5EDb3A432268e5831')
+);
+t_assert('Solana (solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp) presente com SPL USDC, payTo Solana e feePayer',
+    ($acceptsMainnet[3]['network'] ?? '') === 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp' &&
+    ($acceptsMainnet[3]['asset'] ?? '') === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' &&
+    ($acceptsMainnet[3]['payTo'] ?? '') === GRID402_SOLANA_WALLET_ADDRESS &&
+    !empty($acceptsMainnet[3]['extra']['feePayer'])
+);
+
+// Subprocesso isolado para validar GRID402_X402_NETWORK=base-sepolia
+$sepoliaCmd = sprintf(
+    '%s -r %s',
+    escapeshellarg(PHP_BINARY),
+    escapeshellarg("putenv('GRID402_X402_NETWORK=base-sepolia'); define('GRID402_EXEC', true); require '" . str_replace('\\', '/', __DIR__ . '/../public_html/config.php') . "'; require '" . str_replace('\\', '/', __DIR__ . '/../public_html/x402.php') . "'; echo json_encode(grid402_build_accepts(5000));")
+);
+$sepoliaOut = (string) shell_exec($sepoliaCmd);
+$sepoliaAccepts = json_decode($sepoliaOut, true);
+t_assert('Modo base-sepolia preserva oferta única eip155:84532',
+    is_array($sepoliaAccepts) && count($sepoliaAccepts) === 1 && ($sepoliaAccepts[0]['network'] ?? '') === 'eip155:84532',
+    $sepoliaOut
+);
+
+// -----------------------------------------------------------------
+// 2. Facilitador Multi-Chain (Polygon, Arbitrum EIP-3009 e Solana SVM)
+// -----------------------------------------------------------------
+echo "\n[2/7] Facilitador Multi-Chain (Polygon, Arbitrum EIP-3009 e Solana SVM + Anti-Replay):\n";
+
+$polygonPayload = t_payload([
+    'auth' => ['value' => '5000'],
+    'accepted' => [
+        'network' => 'eip155:137',
+        'asset' => '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
+        'amount' => '5000',
+    ],
+]);
+$decPoly = grid402_decode_x402_payload($polygonPayload);
+t_assert('Payload Polygon v2 decodificado corretamente', $decPoly['ok'] === true && $decPoly['network'] === 'eip155:137');
+$valPolyReq = grid402_validate_exact_requirements($decPoly, 5000);
+t_assert('Requisitos locais Polygon validados com sucesso', !empty($valPolyReq['valid']), json_encode($valPolyReq));
+
+$arbPayload = t_payload([
+    'auth' => ['value' => '5000'],
+    'accepted' => [
+        'network' => 'eip155:42161',
+        'asset' => '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+        'amount' => '5000',
+    ],
+]);
+$decArb = grid402_decode_x402_payload($arbPayload);
+t_assert('Payload Arbitrum v2 decodificado corretamente', $decArb['ok'] === true && $decArb['network'] === 'eip155:42161');
+$valArbReq = grid402_validate_exact_requirements($decArb, 5000);
+t_assert('Requisitos locais Arbitrum validados com sucesso', !empty($valArbReq['valid']), json_encode($valArbReq));
+
+// Solana SVM payload (>= 64 bytes binários como transação Solana real) + liquidação mockada + anti-replay
+$solTxBytes = base64_encode(random_bytes(160));
+$solEnvelope = [
+    'x402Version' => 2,
+    'accepted' => [
+        'scheme' => 'exact',
+        'network' => 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
+        'asset' => 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+        'amount' => '5000',
+        'payTo' => GRID402_SOLANA_WALLET_ADDRESS,
+        'extra' => ['feePayer' => GRID402_PAYAI_SOLANA_FEE_PAYER],
+    ],
+    'payload' => [
+        'transaction' => $solTxBytes,
+    ],
+];
+$solProofB64 = base64_encode((string) json_encode($solEnvelope));
+$decSol = grid402_decode_x402_payload($solProofB64);
+t_assert('Payload Solana SVM decodificado corretamente (kind=svm)', $decSol['ok'] === true && ($decSol['kind'] ?? '') === 'svm', json_encode($decSol));
+$valSolReq = grid402_validate_exact_requirements($decSol, 5000);
+t_assert('Requisitos locais Solana validados com sucesso', !empty($valSolReq['valid']), json_encode($valSolReq));
+
+$calls = [];
+t_install_transport([
+    '/v2/x402/verify' => ['status' => 200, 'body' => ['isValid' => true, 'payer' => 'So1anaPayerTestAddress111111111111111111111']],
+    '/v2/x402/settle' => ['status' => 200, 'body' => ['success' => true, 'transaction' => '5eyktSolanaTxSignatureMock11111111111111111111111111111111111111111111', 'network' => 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp']],
+], $calls);
+
+$solSettle1 = grid402_validate_exact_payment($solProofB64, 5000, 'extract');
+t_assert('Liquidação Solana via PayAI mock aprovada (HTTP 200, source=facilitator, network CAIP-2 Solana)',
+    !empty($solSettle1['valid']) &&
+    ($solSettle1['source'] ?? '') === 'facilitator' &&
+    ($solSettle1['network'] ?? '') === 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
+    json_encode($solSettle1)
+);
+$solReplay = grid402_validate_exact_payment($solProofB64, 5000, 'extract');
+t_assert('Replay da mesma transação Solana bloqueado com HTTP 403',
+    empty($solReplay['valid']) && ($solReplay['code'] ?? 0) === 403,
+    json_encode($solReplay)
+);
+
+// Rejeição de carteira/ativo inválido em Polygon
+$badPoly = t_payload([
+    'auth' => ['value' => '5000'],
+    'accepted' => [
+        'network' => 'eip155:137',
+        'asset' => '0x0000000000000000000000000000000000000001',
+        'amount' => '5000',
+    ],
+]);
+$badPolyRes = grid402_validate_exact_requirements(grid402_decode_x402_payload($badPoly), 5000);
+t_assert('Ativo incorreto em Polygon rejeitado com HTTP 402 antes do facilitador',
+    empty($badPolyRes['valid']) && ($badPolyRes['code'] ?? 0) === 402,
+    json_encode($badPolyRes)
+);
+
+// -----------------------------------------------------------------
+// 3. Serviço /api/v1/extract (SSRF Protection + Conversão Markdown)
+// -----------------------------------------------------------------
+echo "\n[3/7] /api/v1/extract — Proteção SSRF e Conversão HTML -> Markdown:\n";
+$ssrfUrls = [
+    'http://127.0.0.1/',
+    'http://localhost/admin',
+    'http://169.254.169.254/latest/meta-data/',
+    'file:///etc/passwd',
+    'http://10.0.0.1/internal',
+    'http://[::1]/',
+];
+foreach ($ssrfUrls as $badUrl) {
+    $chk = grid402_extract_validate_public_url($badUrl);
+    t_assert("SSRF bloqueado para {$badUrl}", $chk['ok'] === false && ($chk['code'] ?? 0) === 400, json_encode($chk));
+}
+
+$dnsPrivateMock = static fn(string $host): array => ['192.168.1.50'];
+$chkPrivateDns = grid402_extract_validate_public_url('https://internal.corp.example', $dnsPrivateMock);
+t_assert('Domínio resolvendo para IP privado RFC1918 bloqueado (BlockedTargetAddress)',
+    $chkPrivateDns['ok'] === false && ($chkPrivateDns['error'] ?? '') === 'BlockedTargetAddress'
+);
+
+$dnsPublicMock = static fn(string $host): array => ['93.184.216.34'];
+$httpMock = static fn(string $url): array => [
+    'ok' => true,
+    'final_url' => $url,
+    'http_status' => 200,
+    'content_type' => 'text/html; charset=utf-8',
+    'bytes_downloaded' => 380,
+    'body' => '<!doctype html><html lang="en"><head><title>Example Article</title><meta name="description" content="Clean summary"><link rel="canonical" href="https://example.com/article"></head><body><nav>Menu</nav><main><h1>Hello World</h1><p>First paragraph for RAG agents.</p><a href="/docs">Read Docs</a></main><script>alert(1)</script></body></html>',
+];
+$extRes = grid402_service_extract('https://example.com/article', 5000, $httpMock, $dnsPublicMock);
+t_assert('Extração HTML -> Markdown gera title, markdown sem <script>, word_count e links absolutos',
+    !empty($extRes['success']) &&
+    ($extRes['title'] ?? '') === 'Example Article' &&
+    str_contains((string) ($extRes['markdown'] ?? ''), '# Hello World') &&
+    !str_contains((string) ($extRes['markdown'] ?? ''), 'alert(1)') &&
+    ($extRes['word_count'] ?? 0) > 3 &&
+    ($extRes['links'][0]['url'] ?? '') === 'https://example.com/docs',
+    json_encode($extRes)
+);
+
+// -----------------------------------------------------------------
+// 4. Serviço /api/v1/email-verify (RFC, MX/SPF/DMARC, Disposable, Zero-PII)
+// -----------------------------------------------------------------
+echo "\n[4/7] /api/v1/email-verify — Validação, Disposable e Conformidade Zero-PII:\n";
+$badEmail = grid402_service_email_verify('nao-e-email');
+t_assert('E-mail inválido rejeitado com HTTP 400 (InvalidEmailParameter)',
+    empty($badEmail['success']) && ($badEmail['code'] ?? 0) === 400
+);
+
+$dnsCorpMock = static function (string $host, int $type): array {
+    if ($type === DNS_MX) {
+        return [['target' => 'mx1.grid402.online', 'pri' => 10]];
+    }
+    if ($type === DNS_TXT && str_starts_with($host, '_dmarc.')) {
+        return [['txt' => 'v=DMARC1; p=reject; rua=mailto:dmarc@grid402.online']];
+    }
+    if ($type === DNS_TXT) {
+        return [['txt' => 'v=spf1 include:_spf.hostinger.com ~all']];
+    }
+    return [['ip' => '93.184.216.34']];
+};
+$corpEmail = 'executivo.silva@empresavalida.com.br';
+$corpRes = grid402_service_email_verify($corpEmail, $dnsCorpMock);
+t_assert('E-mail corporativo com MX+SPF+DMARC retorna VALID, score=100 e email_hash_sha256',
+    !empty($corpRes['success']) &&
+    ($corpRes['verdict'] ?? '') === 'VALID' &&
+    ($corpRes['has_mx'] ?? false) === true &&
+    ($corpRes['has_spf'] ?? false) === true &&
+    ($corpRes['has_dmarc'] ?? false) === true &&
+    ($corpRes['disposable'] ?? true) === false &&
+    ($corpRes['deliverability_score'] ?? 0) === 100 &&
+    ($corpRes['email_hash_sha256'] ?? '') === hash('sha256', $corpEmail),
+    json_encode($corpRes)
+);
+
+$dispRes = grid402_service_email_verify('teste@mailinator.com', $dnsCorpMock);
+t_assert('Domínio descartável (mailinator.com) retorna disposable=true e verdict=RISKY',
+    !empty($dispRes['success']) && ($dispRes['disposable'] ?? false) === true && ($dispRes['verdict'] ?? '') === 'RISKY',
+    json_encode($dispRes)
+);
+
+// Garantia Zero-PII: nenhum arquivo no storageDir pode conter o e-mail completo
+$leakedEmail = false;
+foreach (glob($storageDir . DIRECTORY_SEPARATOR . '*') ?: [] as $storedFile) {
+    if (is_file($storedFile) && str_contains((string) file_get_contents($storedFile), $corpEmail)) {
+        $leakedEmail = true;
+    }
+}
+t_assert('Zero-PII garantido: endereço de e-mail completo nunca é persistido em disco', !$leakedEmail);
+
+// -----------------------------------------------------------------
+// 5, 6, 7. Testes HTTP E2E no servidor local (402, 400, Sandbox 3/dia, /mcp, SSR PT-BR)
+// -----------------------------------------------------------------
+echo "\n[5/7] Testes HTTP: /extract, /email-verify e Sandbox 3 req/dia:\n";
+$sandboxFile = $storageDir . DIRECTORY_SEPARATOR . 'sandbox_v4_test.json';
+$server = grid402_start_server([
+    'docroot' => __DIR__ . '/../public_html',
+    'router' => __DIR__ . '/router.php',
+    'probe' => '/status',
+    'env' => [
+        'GRID402_STORAGE_DIR' => $storageDir,
+        'GRID402_FILE_SANDBOX_RATES' => $sandboxFile,
+        'GRID402_DISABLE_TELEGRAM' => '1',
+    ],
+]);
+$baseUrl = $server['base_url'];
+
+$httpCall = static function (string $url, array $headers = [], ?string $postBody = null): array {
+    $ch = curl_init($url);
+    $opts = [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HEADER => true,
+        CURLOPT_HTTPHEADER => $headers,
+        CURLOPT_TIMEOUT => 6,
+    ];
+    if ($postBody !== null) {
+        $opts[CURLOPT_POST] = true;
+        $opts[CURLOPT_POSTFIELDS] = $postBody;
+    }
+    curl_setopt_array($ch, $opts);
+    $raw = (string) curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $hSize = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+    curl_close($ch);
+    return [
+        'code' => $code,
+        'headers' => substr($raw, 0, $hSize),
+        'body' => substr($raw, $hSize),
+    ];
+};
+
+try {
+    // SSRF pré-cobrança em /api/v1/extract
+    $rSsrf = $httpCall("{$baseUrl}/api/v1/extract?url=" . urlencode('http://127.0.0.1/'));
+    t_assert('HTTP GET /api/v1/extract?url=http://127.0.0.1/ retorna 400 antes do 402', $rSsrf['code'] === 400, "Code: {$rSsrf['code']}");
+
+    // Email inválido pré-cobrança em /api/v1/email-verify
+    $rBadEmail = $httpCall("{$baseUrl}/api/v1/email-verify?email=nao-e-email");
+    t_assert('HTTP GET /api/v1/email-verify?email=nao-e-email retorna 400 antes do 402', $rBadEmail['code'] === 400, "Code: {$rBadEmail['code']}");
+
+    // 402 multi-chain em /api/v1/extract
+    $r402Ext = $httpCall("{$baseUrl}/api/v1/extract?url=" . urlencode('https://example.com'));
+    $j402Ext = json_decode($r402Ext['body'], true);
+    t_assert('HTTP 402 em /api/v1/extract inclui price_usdc=0.0050, 4 redes em accepts[] e preview',
+        $r402Ext['code'] === 402 &&
+        ($j402Ext['price_usdc'] ?? '') === '0.0050' &&
+        count($j402Ext['accepts'] ?? []) === 4 &&
+        isset($j402Ext['preview'], $j402Ext['locked_fields']),
+        "Code={$r402Ext['code']}"
+    );
+
+    // Sandbox 3 req/dia -> 3x HTTP 200, 4ª retorna HTTP 429
+    $sbCodes = [];
+    $firstSbBody = null;
+    for ($i = 1; $i <= 4; $i++) {
+        $rSb = $httpCall("{$baseUrl}/api/v1/holidays?year=2026", ['X-Payment: demo']);
+        $sbCodes[] = $rSb['code'];
+        if ($i === 1) {
+            $firstSbBody = json_decode($rSb['body'], true);
+        }
+        if ($i === 4) {
+            $fourthSbHdrs = $rSb['headers'];
+            $fourthSbBody = json_decode($rSb['body'], true);
+        }
+    }
+    t_assert('Sandbox permite exatamente 3 chamadas (200, 200, 200) e bloqueia a 4ª com HTTP 429',
+        $sbCodes === [200, 200, 200, 429],
+        'Codes: ' . implode(',', $sbCodes)
+    );
+    t_assert('1ª chamada sandbox expõe quota_remaining_today=2 e quota_limit_per_day=3',
+        ($firstSbBody['sandbox_info']['quota_remaining_today'] ?? -1) === 2 &&
+        ($firstSbBody['sandbox_info']['quota_limit_per_day'] ?? -1) === 3
+    );
+    t_assert('4ª chamada sandbox retorna Retry-After e upgrade_to_production com /pass',
+        stripos($fourthSbHdrs ?? '', 'Retry-After:') !== false &&
+        str_contains((string) ($fourthSbBody['upgrade_to_production']['session_pass_url'] ?? ''), '/pass')
+    );
+
+    // -----------------------------------------------------------------
+    // 6. Hosted MCP POST /mcp (version 2.0.0 e 27 tools)
+    // -----------------------------------------------------------------
+    echo "\n[6/7] Hosted MCP POST /mcp (version 2.0.0 e 27 tools):\n";
+    $rMcpInit = $httpCall("{$baseUrl}/mcp", ['Content-Type: application/json'], json_encode([
+        'jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => [],
+    ]));
+    $jMcpInit = json_decode($rMcpInit['body'], true);
+    t_assert('POST /mcp initialize retorna version=2.0.0',
+        $rMcpInit['code'] === 200 && ($jMcpInit['result']['serverInfo']['version'] ?? '') === '2.0.0',
+        $rMcpInit['body']
+    );
+
+    $rMcpList = $httpCall("{$baseUrl}/mcp", ['Content-Type: application/json'], json_encode([
+        'jsonrpc' => '2.0', 'id' => 2, 'method' => 'tools/list', 'params' => [],
+    ]));
+    $jMcpList = json_decode($rMcpList['body'], true);
+    $mcpTools = $jMcpList['result']['tools'] ?? [];
+    $mcpNames = array_column($mcpTools, 'name');
+    t_assert('POST /mcp tools/list expõe exatamente 27 ferramentas incluindo extract e email_verify',
+        count($mcpTools) === 27 &&
+        in_array('grid402_extract', $mcpNames, true) &&
+        in_array('grid402_email_verify', $mcpNames, true),
+        'Count: ' . count($mcpTools)
+    );
+
+    // -----------------------------------------------------------------
+    // 7. Funil Web Humano SSR (/dossie-kyb, 3 páginas SEO, Home CTA, Sitemap, docs/revenue/)
+    // -----------------------------------------------------------------
+    echo "\n[7/7] Funil Web Humano PT-BR, SEO SSR, Home CTA, Sitemap e Pacotes Comerciais:\n";
+
+    $rHome = $httpCall("{$baseUrl}/", ['Accept: text/html']);
+    t_assert('Home (/) mantém SSR EN e inclui CTA Pix R$ 12 + link /dossie-kyb',
+        $rHome['code'] === 200 &&
+        str_contains($rHome['body'], '<html lang="en">') &&
+        str_contains($rHome['body'], '/pass?tier=starter') &&
+        str_contains($rHome['body'], '/dossie-kyb')
+    );
+
+    $rDossie = $httpCall("{$baseUrl}/dossie-kyb", ['Accept: text/html']);
+    $h1CountDossie = preg_match_all('/<h1\b/i', $rDossie['body']);
+    t_assert('/dossie-kyb retorna HTTP 200, lang="pt-BR", único <h1>, Pix R$ 12 e @media print',
+        $rDossie['code'] === 200 &&
+        str_contains($rDossie['body'], '<html lang="pt-BR">') &&
+        $h1CountDossie === 1 &&
+        str_contains($rDossie['body'], '/api/v1/pass/mp-pix') &&
+        str_contains($rDossie['body'], '@media print')
+    );
+
+    $titlesSeen = [];
+    foreach (['/api-cnpj', '/api-sancoes-cgu', '/api-dias-uteis-anbima'] as $seoPath) {
+        $rSeo = $httpCall("{$baseUrl}{$seoPath}", ['Accept: text/html']);
+        $h1Count = preg_match_all('/<h1\b/i', $rSeo['body']);
+        preg_match('/<title>(.*?)<\/title>/is', $rSeo['body'], $tm);
+        $titleVal = trim((string) ($tm[1] ?? ''));
+        $titlesSeen[$seoPath] = $titleVal;
+        $hasLd = preg_match('#<script type="application/ld\+json">(.*?)</script>#s', $rSeo['body'], $ldm) === 1
+            && is_array(json_decode($ldm[1], true));
+        t_assert("SEO {$seoPath} retorna HTTP 200, pt-BR, único <h1>, JSON-LD válido e CTA Pix",
+            $rSeo['code'] === 200 &&
+            str_contains($rSeo['body'], '<html lang="pt-BR">') &&
+            $h1Count === 1 &&
+            $titleVal !== '' &&
+            $hasLd &&
+            str_contains($rSeo['body'], '/pass?tier=starter') &&
+            str_contains($rSeo['body'], '/dossie-kyb')
+        );
+    }
+    t_assert('As 3 páginas SEO possuem <title> distintos entre si', count(array_unique(array_values($titlesSeen))) === 3);
+
+    $sitemap = (string) file_get_contents(__DIR__ . '/../public_html/sitemap.xml');
+    t_assert('sitemap.xml inclui /pass, /dossie-kyb, /api-cnpj, /api-sancoes-cgu e /api-dias-uteis-anbima',
+        str_contains($sitemap, 'https://grid402.online/pass') &&
+        str_contains($sitemap, 'https://grid402.online/dossie-kyb') &&
+        str_contains($sitemap, 'https://grid402.online/api-cnpj') &&
+        str_contains($sitemap, 'https://grid402.online/api-sancoes-cgu') &&
+        str_contains($sitemap, 'https://grid402.online/api-dias-uteis-anbima')
+    );
+
+    $revDocs = [
+        'rapidapi-pack.md',
+        'n8n-creator-submission.md',
+        'b2b-outbound-playbook.md',
+        'directory-checklist.md',
+    ];
+    foreach ($revDocs as $docName) {
+        $docPath = __DIR__ . '/../docs/revenue/' . $docName;
+        $docBody = is_file($docPath) ? (string) file_get_contents($docPath) : '';
+        t_assert("Pacote comercial docs/revenue/{$docName} existe e contém pricing coerente",
+            $docBody !== '' && str_contains($docBody, 'R$ 12') && str_contains($docBody, '0.0050')
+        );
+    }
+} finally {
+    grid402_stop_server($server);
+    t_rmdir($storageDir);
+}
+
+t_finish('RESULTADO FINAL (Revenue Engine v4)');

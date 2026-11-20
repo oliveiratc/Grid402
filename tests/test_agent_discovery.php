@@ -91,15 +91,17 @@ try {
     $mcpData = json_decode($resMcp['body'], true);
     assert_test(is_array($mcpData), "Manifesto MCP e um JSON valido");
     assert_test(($mcpData['name'] ?? '') === 'grid402-mcp', "Nome do servidor MCP e grid402-mcp");
-    assert_test(($mcpData['version'] ?? '') === '1.9.0', "Versao do manifesto MCP sincronizada em 1.9.0", "Recebido: " . ($mcpData['version'] ?? 'null'));
+    assert_test(($mcpData['version'] ?? '') === '2.0.0', "Versao do manifesto MCP sincronizada em 2.0.0", "Recebido: " . ($mcpData['version'] ?? 'null'));
     assert_test(is_string($mcpData['instructions'] ?? null) && str_contains($mcpData['instructions'], 'GRID402_SESSION_PASS'), "Campo instructions presente no manifesto MCP");
     assert_test(isset($mcpData['tools']) and is_array($mcpData['tools']), "Manifesto declara array de tools");
-    assert_test(count($mcpData['tools'] ?? []) === 25, "Manifesto MCP declara exatamente 25 tools sincronizadas", "Contagem: " . count($mcpData['tools'] ?? []));
+    assert_test(count($mcpData['tools'] ?? []) === 27, "Manifesto MCP declara exatamente 27 tools sincronizadas", "Contagem: " . count($mcpData['tools'] ?? []));
 
     $toolNames = array_column($mcpData['tools'] ?? [], 'name');
     assert_test(in_array('grid402_summary', $toolNames, true), "Tool grid402_summary presente");
     assert_test(in_array('grid402_cnpj', $toolNames, true), "Tool grid402_cnpj presente");
     assert_test(in_array('grid402_get_dossier_360', $toolNames, true), "Tool grid402_get_dossier_360 presente");
+    assert_test(in_array('grid402_extract', $toolNames, true), "Tool grid402_extract presente");
+    assert_test(in_array('grid402_email_verify', $toolNames, true), "Tool grid402_email_verify presente");
     assert_test(in_array('grid402_indicators', $toolNames, true), "Tool grid402_indicators presente");
     assert_test(in_array('grid402_workdays', $toolNames, true), "Tool grid402_workdays presente");
     assert_test(in_array('grid402_verify', $toolNames, true), "Tool grid402_verify presente");
@@ -108,8 +110,8 @@ try {
     $resCard = test_http_request("{$baseUrl}/.well-known/mcp/server-card.json");
     assert_test($resCard['code'] === 200, "Status HTTP 200 para /.well-known/mcp/server-card.json", "Recebido: {$resCard['code']}");
     $cardData = json_decode($resCard['body'], true);
-    assert_test(is_array($cardData) && ($cardData['version'] ?? '') === '1.9.0', "Server Card MCP valido e sincronizado em 1.9.0");
-    assert_test(count($cardData['tools'] ?? []) === 25, "Server Card MCP declara exatamente 25 tools", "Contagem: " . count($cardData['tools'] ?? []));
+    assert_test(is_array($cardData) && ($cardData['version'] ?? '') === '2.0.0', "Server Card MCP valido e sincronizado em 2.0.0");
+    assert_test(count($cardData['tools'] ?? []) === 27, "Server Card MCP declara exatamente 27 tools", "Contagem: " . count($cardData['tools'] ?? []));
     assert_test(is_string($cardData['instructions'] ?? null) && strlen($cardData['instructions']) > 40, "Server Card MCP expoe instructions");
 
     // 4. Teste /.well-known/ai-plugin.json
@@ -130,7 +132,7 @@ try {
     assert_test(str_contains($resAgents['body'], 'grid402-mcp'), "Snippet do Claude Desktop MCP presente");
     assert_test(str_contains($resAgents['body'], 'query_oracle'), "Snippet Python para agentes presente");
     assert_test(str_contains($resAgents['body'], 'copySnippet'), "Script interativo de copia presente");
-    assert_test(str_contains($resAgents['body'], 'Catalog of All 23 Global Endpoints and Fees'), "Tabela de endpoints e precos presente");
+    assert_test(str_contains($resAgents['body'], 'Catalog of All 25 Global Endpoints and Fees'), "Tabela de endpoints e precos presente");
 
     // 6. Teste de Ausencia do Caractere Comercial Ampersand nos Arquivos
     echo "\n6. Validando conformidade estrita da regra de caracteres...\n";

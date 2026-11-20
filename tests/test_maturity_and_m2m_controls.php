@@ -79,11 +79,11 @@ check('llms.txt documenta 400 / 1.000 / 6.000 créditos',
 check('README.md documenta 400 / 1.000 / 6.000 créditos', str_contains($readmeMd, '400 créditos') && str_contains($readmeMd, '6.000 créditos'));
 
 // -----------------------------------------------------------------
-// 3. Cobertura 23/23 UP, Proveniência e Uptime 30d
+// 3. Cobertura 25/25 UP, Proveniência e Uptime 30d
 // -----------------------------------------------------------------
-echo "\n[3/7] Cobertura 23/23 Serviços UP, Proveniência e Histórico Uptime 30d:\n";
+echo "\n[3/7] Cobertura 25/25 Serviços UP, Proveniência e Histórico Uptime 30d:\n";
 $servicesCatalog = grid402_get_utility_services();
-check('Catálogo possui exatamente 23 micro-serviços', count($servicesCatalog) === 23, 'Got: ' . count($servicesCatalog));
+check('Catálogo possui exatamente 25 micro-serviços', count($servicesCatalog) === 25, 'Got: ' . count($servicesCatalog));
 
 if (!is_file(GRID402_FILE_FREE)) {
     ob_start();
@@ -101,8 +101,8 @@ foreach ($servicesCatalog as $key => $meta) {
         $allHaveProvenance = false;
     }
 }
-check('Todos os 23 micro-serviços estão UP em summary_free.json', $allUp);
-check('Todos os 23 micro-serviços possuem upstream_source e cache_ttl_sec', $allHaveProvenance);
+check('Todos os 25 micro-serviços estão UP em summary_free.json', $allUp);
+check('Todos os 25 micro-serviços possuem upstream_source e cache_ttl_sec', $allHaveProvenance);
 $uptimeDays = $summaryFree['uptime_30d']['days'] ?? $summaryFree['uptime_30d'] ?? [];
 check('summary_free.json inclui uptime_30d de 30 dias', is_array($uptimeDays) && count($uptimeDays) === 30);
 
@@ -176,7 +176,7 @@ check('Consulta de saldo gratuita (/api/v1/pass/balance) retorna telemetria comp
 // -----------------------------------------------------------------
 // 7. Governança, Transparência, robots.txt e MCP
 // -----------------------------------------------------------------
-echo "\n[7/7] Governança, security.txt, CHANGELOG.md, robots.txt e MCP 25 Tools:\n";
+echo "\n[7/7] Governança, security.txt, CHANGELOG.md, robots.txt e MCP 27 Tools:\n";
 check('CHANGELOG.md existe na raiz', file_exists($projectRoot . '/CHANGELOG.md'));
 check('public_html/.well-known/security.txt existe', file_exists($projectRoot . '/public_html/.well-known/security.txt'));
 $robotsTxt = (string) file_get_contents($projectRoot . '/public_html/robots.txt');
@@ -184,7 +184,7 @@ check('robots.txt começa com diretiva RFC 9309 válida e inclui OAI-SearchBot/C
     str_starts_with(trim($robotsTxt), '#') && str_contains($robotsTxt, 'OAI-SearchBot') && str_contains($robotsTxt, 'ClaudeBot')
 );
 $mcpToolsJs = (string) file_get_contents($projectRoot . '/mcp/tools.mjs');
-check('mcp/tools.mjs expõe todos os 23 micro-serviços + summary + pass_balance',
+check('mcp/tools.mjs expõe todos os 25 micro-serviços + summary + pass_balance',
     str_contains($mcpToolsJs, 'grid402_domain_audit') &&
     str_contains($mcpToolsJs, 'grid402_kyb_audit') &&
     str_contains($mcpToolsJs, 'grid402_get_dossier_360') &&
@@ -193,6 +193,8 @@ check('mcp/tools.mjs expõe todos os 23 micro-serviços + summary + pass_balance
     str_contains($mcpToolsJs, 'grid402_ofac') &&
     str_contains($mcpToolsJs, 'grid402_notarize') &&
     str_contains($mcpToolsJs, 'grid402_global_markets') &&
+    str_contains($mcpToolsJs, 'grid402_extract') &&
+    str_contains($mcpToolsJs, 'grid402_email_verify') &&
     str_contains($mcpToolsJs, 'grid402_pass_balance')
 );
 

@@ -108,7 +108,7 @@ $checkedAt = $summary['timestamp'] ?? gmdate('Y-m-d\TH:i:s\Z');
     </div>
 
     <h2 data-i18n="trust.s2.title">2. Availability History (Last 30 Days)</h2>
-    <p><span data-i18n="trust.s2.desc">Continuous monitoring of all 23 microservices.</span> (<code><?php echo htmlspecialchars((string)$checkedAt); ?></code> · <a href="/status">/status</a>)</p>
+    <p><span data-i18n="trust.s2.desc">Continuous monitoring of all <?php echo $servicesTotal; ?> microservices.</span> (<code><?php echo htmlspecialchars((string)$checkedAt); ?></code> · <a href="/status">/status</a>)</p>
     <div class="uptime-strip" role="img" aria-label="30-day availability history">
         <?php foreach ($uptimeDays as $day):
             $dayStatus = (string)($day['status'] ?? 'UP');
@@ -162,7 +162,7 @@ $checkedAt = $summary['timestamp'] ?? gmdate('Y-m-d\TH:i:s\Z');
         </table>
     </div>
 
-    <h2 data-i18n="trust.s4.title">4. Provenance and Freshness (TTL) Matrix of All 23 Services</h2>
+    <h2 data-i18n="trust.s4.title">4. Provenance and Freshness (TTL) Matrix of All <?php echo $servicesTotal; ?> Services</h2>
     <p data-i18n-html="trust.s4.desc">Every paid or sandbox HTTP 200 response includes the <code>_meta</code> object signed alongside <code>_oracle_proof</code>, attesting the exact upstream source and cache policy:</p>
     <div class="table-wrap">
         <table>
@@ -196,6 +196,7 @@ $checkedAt = $summary['timestamp'] ?? gmdate('Y-m-d\TH:i:s\Z');
     <h2 data-i18n="trust.s5.title">5. Version and Pricing History (Public Changelog)</h2>
     <div class="card">
         <ul data-i18n-html="trust.s5.list">
+            <li><strong>v3.4.0 (2026-11):</strong> Revenue Engine v4 — Gasless x402 v2 Multi-Chain PayAI settlement across 4 networks (Base, Polygon, Arbitrum, Solana), launch of global high-volume utilities <code>/api/v1/extract</code> (SSRF-hardened URL-to-Markdown) and <code>/api/v1/email-verify</code> (Zero-PII RFC/MX/SPF/DMARC audit), 27 MCP tools (<code>grid402-mcp@2.0.0</code>), self-service PT-BR KYB Dossier generator (<code>/dossie-kyb</code>), and Sandbox rate-limit tightened to <code>3 req/day</code> per IP.</li>
             <li><strong>v3.3.0 (2026-11):</strong> Launch of premium <code>/api/v1/dossier</code> (<code>0.0500 USDC</code> / 10 credits, AI Verdict <code>APPROVED</code>/<code>FLAGGED</code>/<code>REJECTED</code>), 25th MCP tool (<code>grid402_get_dossier_360</code>), Multi-Chain USDC payments across 6 networks (Base, Arbitrum, Polygon, Optimism, Ethereum, Solana SPL USDC), and Fleet Pass bonus math clarification (<code>4,000 base + 2,000 bonus = 6,000 credits</code>).</li>
             <li><strong>v3.2.0 (2026-11):</strong> Structured JSONL Zero-PII observability (<code>requests.jsonl</code> + <code>X-Request-Id</code>), live <code>p95</code> latency tracking, MCP handshake <code>instructions</code>, explicit Dual-License (MIT SDKs + Proprietary Gateway), and parallel concurrency load test suite.</li>
             <li><strong>v3.1.0 (2026-11):</strong> Unified official Session Pass math (<code>1 credit = 0.0050 USDC</code>: Starter 2 USDC = 400 credits, Pro 5 USDC = 1,000 credits, Fleet 20 USDC = 6,000 credits), <code>Idempotency-Key</code> support (300s TTL), per-pass Spend Controls (<code>daily_credit_limit</code>, <code>allowed_endpoints</code>, and <code>GET /api/v1/pass/balance</code>), signed <code>_meta</code> block injection, and 30-day uptime history.</li>

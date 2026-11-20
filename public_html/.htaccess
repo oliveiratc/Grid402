@@ -99,6 +99,8 @@ ServerSignature Off
     RewriteRule ^api/v1/indicators/?$ index.php?api=indicators [QSA,L]
     RewriteRule ^api/v1/holidays/?$ index.php?api=holidays [QSA,L]
     RewriteRule ^api/v1/workdays/?$ index.php?api=workdays [QSA,L]
+    RewriteRule ^api/v1/extract/?$ index.php?api=extract [QSA,L]
+    RewriteRule ^api/v1/email-verify/?$ index.php?api=email-verify [QSA,L]
     RewriteRule ^workdays/?$ index.php?api=workdays [QSA,L]
 
     # Manifestos well-known e Hosted MCP (streamable HTTP) publico e anonimo — /mcp
@@ -114,8 +116,12 @@ ServerSignature Off
     RewriteRule ^docs/?$ catalog.php [QSA,L]
     RewriteRule ^trust/?$ trust.php [QSA,L]
 
-    # Pagina de compra de Session Pass (linkavel na resposta HTTP 402)
+    # Pagina de compra de Session Pass (linkavel na resposta HTTP 402) e Funil Web PT-BR
     RewriteRule ^pass/?$ pass.php [QSA,L]
+    RewriteRule ^dossie-kyb/?$ dossie_kyb.php [QSA,L]
+    RewriteRule ^api-cnpj/?$ seo_landing.php?slug=api-cnpj [QSA,L]
+    RewriteRule ^api-sancoes-cgu/?$ seo_landing.php?slug=api-sancoes-cgu [QSA,L]
+    RewriteRule ^api-dias-uteis-anbima/?$ seo_landing.php?slug=api-dias-uteis-anbima [QSA,L]
 
     # Web3 Agent Growth Program
     RewriteRule ^growth/?$ growth_program.php [QSA,L]

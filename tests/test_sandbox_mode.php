@@ -43,8 +43,9 @@ assert_test(
 );
 
 assert_test(
-    "Cota horária defensiva definida em 5 consultas",
-    defined('GRID402_SANDBOX_RATE_LIMIT') && GRID402_SANDBOX_RATE_LIMIT === 5
+    "Cota diária defensiva definida em 3 consultas (janela 86400s)",
+    defined('GRID402_SANDBOX_RATE_LIMIT') && GRID402_SANDBOX_RATE_LIMIT === 3 &&
+    defined('GRID402_SANDBOX_WINDOW_SECONDS') && GRID402_SANDBOX_WINDOW_SECONDS === 86400
 );
 
 // 2. Autenticação via Cabeçalho 'demo' e 'sandbox'
@@ -73,12 +74,12 @@ assert_test(
 );
 
 // 3. Teste de Rate Limit Defensivo por IP
-echo "\n[3] Testando Bloqueio por Cota de Rate Limit (Max 5 req/hora):\n";
+echo "\n[3] Testando Bloqueio por Cota de Rate Limit (Max 3 req/dia):\n";
 $spamIp = '10.200.50.' . rand(1, 254);
 
-// Consome as 5 chamadas permitidas
+// Consome as 3 chamadas permitidas
 $allowedCount = 0;
-for ($i = 1; $i <= 5; $i++) {
+for ($i = 1; $i <= 3; $i++) {
     $res = grid402_check_sandbox_rate_limit($spamIp);
     if ($res['allowed']) {
         $allowedCount++;
@@ -86,24 +87,25 @@ for ($i = 1; $i <= 5; $i++) {
 }
 
 assert_test(
-    "Permite exatamente 5 requisições consecutivas no intervalo de 1 hora",
-    $allowedCount === 5,
+    "Permite exatamente 3 requisições consecutivas no intervalo de 24 horas",
+    $allowedCount === 3,
     "Requisições autorizadas: {$allowedCount}"
 );
 
-// A 6ª requisição DEVE ser recusada
+// A 4ª requisição DEVE ser recusada
 $resExceeded = grid402_check_sandbox_rate_limit($spamIp);
 assert_test(
-    "6ª requisição é rejeitada pelo rate limit (allowed=false)",
+    "4ª requisição é rejeitada pelo rate limit (allowed=false)",
     $resExceeded['allowed'] === false && $resExceeded['remaining'] === 0
 );
 
 // Valida que o gateway responde com HTTP 429
 $val429 = grid402_validate_payment('demo', null, $spamIp);
 assert_test(
-    "Requisição que excede o limite retorna HTTP 429 Too Many Requests",
+    "Requisição que excede o limite retorna HTTP 429 Too Many Requests com upgrade_url",
     isset($val429['valid']) && $val429['valid'] === false &&
-    isset($val429['code']) && $val429['code'] === 429,
+    isset($val429['code']) && $val429['code'] === 429 &&
+    str_contains((string) ($val429['upgrade_url'] ?? ''), '/pass'),
     json_encode($val429)
 );
 

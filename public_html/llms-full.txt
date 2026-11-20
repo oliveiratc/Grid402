@@ -44,10 +44,11 @@ X-Payment-Network: base-mainnet
 ### Como o Agente Autonomo Deve Proceder:
 Existem 3 formas de liquidacao suportadas pelo Grid402:
 
-1. **Protocolo x402 v2 Oficial (EIP-3009 - Recomendado para Agentes M2M):**
-   - Assine off-chain a autorizacao ERC-3009 para `recipient_wallet`.
+1. **Protocolo x402 v2 Oficial Multi-Chain Gasless via PayAI (Recomendado para Agentes M2M):**
+   - Aceita nativamente 4 redes em `accepts[]` (`exact`): Base (`eip155:8453`), Polygon (`eip155:137`), Arbitrum (`eip155:42161`) via EIP-3009 e Solana (`solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp`) via transacao SVM.
    - Reenvie a requisicao com o cabecalho `PAYMENT-SIGNATURE: <payload_base64>` ou `X-Payment: <payload_base64>`.
-   - O Grid402 liquida via facilitador e devolve HTTP 200 com o recibo de liquidacao no cabecalho `PAYMENT-RESPONSE`.
+   - O Grid402 liquida via PayAI Facilitator e devolve HTTP 200 com o recibo de liquidacao no cabecalho `PAYMENT-RESPONSE`.
+   - Modo Sandbox gratuito para desenvolvimento: `X-Payment: demo` (limite de 3 requisicoes por dia por IP).
 
 2. **Session Pass de Alta Frequencia (<15ms, sem espera de bloco, `1 credito = 0.0050 USDC`):**
    - Compre creditos pre-pagos no portal `/pass` (Pix/Cartao ou USDC) ou via `POST /api/v1/pass`:
@@ -235,7 +236,19 @@ Resposta de verificacao:
 - Exemplo: `/api/v1/dossier?cnpj=00000000000191`
 - Descricao: Dossie corporativo premium em 1 chamada consolidando Receita Federal (CNPJ), Simples Nacional/MEI, Sancoes CGU (CEIS/CNEP), Compliance Score 360 e bloco estruturado `verdict` (`APPROVED`, `FLAGGED`, `REJECTED`), estritamente Zero-PII e assinado com `_oracle_proof`.
 
-### 24. Session Pass Pre-Pago Multi-Chain (5 Redes EVM + Solana) e Spend Controls
+### 24. Extrator Web para Markdown Limpo (LLM/RAG)
+- Rota: `GET /api/v1/extract?url={url}` (parametro opcional: `max_chars=500..25000`)
+- Tarifa: 0.0050 USDC (1 credito)
+- Exemplo: `/api/v1/extract?url=https://example.com`
+- Descricao: Extrai paginas web publicas HTTP/HTTPS com protecao rigorosa contra SSRF (resolucao DNS previa bloqueando loopback/LAN/metadata, max 3 redirects, limite 1 MB, timeout 5s) e devolve Markdown limpo, titulo, descricao e links absolutos assinados com `_oracle_proof`.
+
+### 25. Auditoria de E-mail e Entregabilidade B2B (Zero-PII)
+- Rota: `GET /api/v1/email-verify?email={email}`
+- Tarifa: 0.0050 USDC (1 credito)
+- Exemplo: `/api/v1/email-verify?email=contato@grid402.online`
+- Descricao: Valida sintaxe RFC, registros DNS MX, politicas SPF e DMARC, dominios descartaveis (disposable), provedores gratuitos e enderecos role-based retornando `deliverability_score` (0 a 100) e `verdict` (`VALID`, `RISKY`, `INVALID`). Estritamente Zero-PII: nunca persiste o e-mail bruto em disco.
+
+### 26. Session Pass Pre-Pago Multi-Chain (5 Redes EVM + Solana) e Spend Controls
 - Emissao Multi-Chain: `POST /api/v1/pass-emitir` (`{"txHash": "...", "chain": "base|arbitrum|polygon|optimism|ethereum|solana"}`) ou `GET /api/v1/pass` (Starter 2 USDC = 400 creditos, Pro 5 USDC = 1.000 creditos, Fleet 20 USDC = 4.000 base + 2.000 bonus = 6.000 creditos).
 - Redes EVM (`0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`): Base (8453), Arbitrum One (42161), Polygon PoS (137), Optimism (10) e Ethereum Mainnet (1).
 - Rede Solana (`CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C`): SPL USDC (`EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`).

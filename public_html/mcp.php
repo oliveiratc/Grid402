@@ -41,12 +41,14 @@ require_once __DIR__ . '/services/lei.php';
 require_once __DIR__ . '/services/ofac.php';
 require_once __DIR__ . '/services/notarize.php';
 require_once __DIR__ . '/services/global_markets.php';
+require_once __DIR__ . '/services/extract.php';
+require_once __DIR__ . '/services/email_verify.php';
 require_once __DIR__ . '/services/pass.php';
 require_once __DIR__ . '/services/oracle_signer.php';
 
 const MCP_PROTOCOL_VERSION = '2024-11-05';
 const MCP_SERVER_NAME = 'grid402-mcp';
-const MCP_SERVER_VERSION = '1.9.0';
+const MCP_SERVER_VERSION = '2.0.0';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, no-store, must-revalidate');
@@ -184,7 +186,7 @@ function mcp_tools_definitions(): array {
     $writeAnn = ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => true];
 
     return [
-        ['name' => 'grid402_summary', 'description' => 'Consolidated health and availability summary for all 23 Grid402 services (free).', 'inputSchema' => ['type' => 'object', 'properties' => (object) [], 'required' => []], 'annotations' => $localRoAnn],
+        ['name' => 'grid402_summary', 'description' => 'Consolidated health and availability summary for all 25 Grid402 services (free).', 'inputSchema' => ['type' => 'object', 'properties' => (object) [], 'required' => []], 'annotations' => $localRoAnn],
         ['name' => 'grid402_forex', 'description' => 'Official BCB PTAX fiat exchange rates USD, EUR, GBP to BRL (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['payment_tx_hash' => $payProp], 'required' => []], 'annotations' => $roAnn],
         ['name' => 'grid402_crypto', 'description' => 'Real-time spot prices for BTC, ETH, SOL, USDC, BASE in USD and BRL (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['payment_tx_hash' => $payProp], 'required' => []], 'annotations' => $roAnn],
         ['name' => 'grid402_dns', 'description' => 'Authoritative DNS A, AAAA, MX, TXT, NS, CNAME record lookup (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['domain' => ['type' => 'string', 'description' => 'Domain name to resolve (e.g. github.com).'], 'payment_tx_hash' => $payProp], 'required' => ['domain']], 'annotations' => $roAnn],
@@ -206,6 +208,8 @@ function mcp_tools_definitions(): array {
         ['name' => 'grid402_ofac', 'description' => 'Global Sanctions (OFAC SDN / UN) and Base Mainnet EVM wallet AML inspection (0.0200 USDC / 4 credits).', 'inputSchema' => ['type' => 'object', 'properties' => ['target' => ['type' => 'string', 'description' => 'EVM address (0x...) or entity name to screen against OFAC/UN lists.'], 'payment_tx_hash' => $payProp], 'required' => ['target']], 'annotations' => $roAnn],
         ['name' => 'grid402_notarize', 'description' => 'M2M Cryptographic Timestamp and SHA-256 Proof-of-Existence signed with ECDSA secp256k1 (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['content' => ['type' => 'string', 'description' => 'Text or JSON payload to hash (SHA-256) and timestamp cryptographically.'], 'payment_tx_hash' => $payProp], 'required' => ['content']], 'annotations' => $localRoAnn],
         ['name' => 'grid402_global_markets', 'description' => 'World Exchange Settlement Calendar (US, EU, UK, BR) and 30+ ECB FX Reference Rates (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['market' => ['type' => 'string', 'description' => 'Market code: US, EU, UK or BR.'], 'base' => ['type' => 'string', 'description' => 'Base currency for ECB FX reference rates (e.g. USD, EUR, BRL).'], 'date' => ['type' => 'string', 'description' => 'Optional target date in YYYY-MM-DD format.'], 'payment_tx_hash' => $payProp], 'required' => []], 'annotations' => $roAnn],
+        ['name' => 'grid402_extract', 'description' => 'SSRF-hardened Web URL to LLM-ready clean Markdown extractor with metadata and absolute links (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['url' => ['type' => 'string', 'description' => 'Public HTTP or HTTPS URL to fetch and convert to clean Markdown (e.g. https://example.com).'], 'max_chars' => ['type' => 'integer', 'description' => 'Optional maximum output character length (500 to 25000, default 12000).'], 'payment_tx_hash' => $payProp], 'required' => ['url']], 'annotations' => $roAnn],
+        ['name' => 'grid402_email_verify', 'description' => 'Zero-PII B2B email deliverability audit: RFC syntax, DNS MX, SPF, DMARC, disposable domain and role-based score (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['email' => ['type' => 'string', 'description' => 'Email address to audit without persisting raw PII (e.g. contato@grid402.online).'], 'payment_tx_hash' => $payProp], 'required' => ['email']], 'annotations' => $roAnn],
         ['name' => 'grid402_pass', 'description' => 'x402 Prepaid Session Pass issuance (Starter 2 USDC = 400 credits, Pro 5 USDC = 1,000 credits, Fleet 20 USDC = 6,000 credits) or status check.', 'inputSchema' => ['type' => 'object', 'properties' => ['status' => ['type' => 'string', 'description' => 'Optional existing pass_g402_... token to check status without issuing a new pass.'], 'payment_tx_hash' => $payProp], 'required' => []], 'annotations' => $writeAnn],
         ['name' => 'grid402_pass_balance', 'description' => 'Free Session Pass balance and Spend Controls telemetry (free).', 'inputSchema' => ['type' => 'object', 'properties' => ['token' => ['type' => 'string', 'description' => 'Session Pass token (pass_g402_...) to inspect.']], 'required' => ['token']], 'annotations' => $localRoAnn],
         ['name' => 'grid402_verify', 'description' => 'Stateless verification of an _oracle_proof ECDSA secp256k1 signature (free).', 'inputSchema' => ['type' => 'object', 'properties' => ['payload' => ['type' => 'object', 'description' => 'Full JSON response object containing the _oracle_proof block to verify.']], 'required' => ['payload']], 'annotations' => $localRoAnn],
@@ -214,6 +218,7 @@ function mcp_tools_definitions(): array {
 
 function mcp_accepts_unpaid(string $service, ?int $requiredRawUnits = null): array {
     $price = match (true) {
+        $service === 'dossier' => '0.0500',
         in_array($service, ['cnpj', 'lei', 'ofac', 'kyb-audit'], true) => '0.0200',
         in_array($service, ['domain-audit', 'market-snapshot'], true) => '0.0150',
         in_array($service, ['sanctions', 'simples'], true) => '0.0100',
@@ -285,6 +290,8 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
         'grid402_ofac' => ['ofac', 'target', 20000],
         'grid402_notarize' => ['notarize', 'content', 5000],
         'grid402_global_markets' => ['global-markets', null, 5000],
+        'grid402_extract' => ['extract', 'url', 5000],
+        'grid402_email_verify' => ['email-verify', 'email', 5000],
         'grid402_pass' => ['pass', null, 2000000],
     ];
     if (!isset($map[$tool])) {
@@ -312,6 +319,18 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
         $cleanLeiArg = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', trim((string)$arguments['lei'])));
         if (strlen($cleanLeiArg) !== 20) {
             mcp_error($responseId, -32602, 'InvalidArguments', ['error' => 'InvalidLEI', 'message' => 'O codigo LEI deve conter exatamente 20 caracteres alfanumericos (ISO 17442).']);
+        }
+    }
+    if ($service === 'extract' && !empty($arguments['url'])) {
+        $urlCheck = grid402_extract_validate_public_url((string) $arguments['url']);
+        if (!$urlCheck['ok']) {
+            mcp_error($responseId, -32602, 'InvalidArguments', ['error' => $urlCheck['error'], 'message' => $urlCheck['message']]);
+        }
+    }
+    if ($service === 'email-verify' && !empty($arguments['email'])) {
+        $emailCheck = grid402_email_verify_validate_input((string) $arguments['email']);
+        if (!$emailCheck['ok']) {
+            mcp_error($responseId, -32602, 'InvalidArguments', ['error' => $emailCheck['error'], 'message' => $emailCheck['message']]);
         }
     }
 
@@ -413,6 +432,11 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
             isset($arguments['date']) ? (string)$arguments['date'] : '',
             isset($arguments['base']) ? (string)$arguments['base'] : 'USD'
         ),
+        'extract' => grid402_service_extract(
+            (string)($arguments['url'] ?? ''),
+            isset($arguments['max_chars']) ? (int)$arguments['max_chars'] : 12000
+        ),
+        'email-verify' => grid402_service_email_verify((string)($arguments['email'] ?? '')),
         'pass' => grid402_issue_session_pass(
             $settlementTx ?? ('mcp_' . bin2hex(random_bytes(8))),
             $actualRawPaid > 0 ? $actualRawPaid : (int)$rawCost,

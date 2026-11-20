@@ -178,7 +178,8 @@ if ($grid402X402Network === 'base-sepolia') {
 }
 unset($grid402X402Network);
 define('GRID402_SEPOLIA_USDC_CONTRACT', strtolower((string) grid402_env('GRID402_SEPOLIA_USDC_CONTRACT', '0x036cbd53842c5426634e7929541ec2318f3dcf7e')));
-define('GRID402_SANDBOX_RATE_LIMIT', (int) grid402_env('GRID402_SANDBOX_RATE_LIMIT', 5)); // 5 consultas gratuitas por hora por IP (converte para x402 pago)
+define('GRID402_SANDBOX_RATE_LIMIT', (int) grid402_env('GRID402_SANDBOX_RATE_LIMIT', 3)); // 3 consultas gratuitas por dia por IP (converte para Pix ou x402)
+define('GRID402_SANDBOX_WINDOW_SECONDS', (int) grid402_env('GRID402_SANDBOX_WINDOW_SECONDS', 86400)); // Janela de 24h (86400s) para cota sandbox
 define('GRID402_USDC_REQUIRED_RAW', (int) grid402_env('GRID402_USDC_REQUIRED_RAW', 5000)); // 0.005000 USDC
 define('GRID402_PRICE_DISPLAY', (string) grid402_env('GRID402_PRICE_DISPLAY', '0.0050'));
 define('GRID402_PRICE_CNPJ', (string) grid402_env('GRID402_PRICE_CNPJ', '0.0200'));
@@ -187,6 +188,7 @@ define('GRID402_PRICE_DOSSIER', (string) grid402_env('GRID402_PRICE_DOSSIER', '0
 define('GRID402_USDC_DOSSIER_RAW', (int) grid402_env('GRID402_USDC_DOSSIER_RAW', 50000)); // 0.050000 USDC (10 créditos)
 define('GRID402_SOLANA_WALLET_ADDRESS', trim((string) grid402_env('GRID402_SOLANA_WALLET_ADDRESS', 'CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C')));
 define('GRID402_SOLANA_USDC_MINT', trim((string) grid402_env('GRID402_SOLANA_USDC_MINT', 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v')));
+define('GRID402_PAYAI_SOLANA_FEE_PAYER', trim((string) grid402_env('GRID402_PAYAI_SOLANA_FEE_PAYER', 'CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww')));
 define('GRID402_CRON_SECRET', (string) grid402_env('GRID402_CRON_SECRET', 'grid402_secret_token_change_me'));
 
 // 2.2. Notificacoes de Pagamento em Tempo Real no Telegram (Opcional)
@@ -305,7 +307,7 @@ define('GRID402_FACILITATOR_SETTLE_PATH', (string) grid402_env('GRID402_FACILITA
 define('GRID402_CDP_API_KEY_ID', (string) grid402_env('GRID402_CDP_API_KEY_ID', ''));
 define('GRID402_CDP_API_KEY_SECRET', (string) grid402_env('GRID402_CDP_API_KEY_SECRET', ''));
 
-// 5. Catálogo Oficial dos 23 Micro-Serviços Core de Dados Públicos e Rede
+// 5. Catálogo Oficial dos 25 Micro-Serviços Core de Dados Públicos e Rede
 function grid402_get_utility_services(): array {
     return [
         'forex' => [
@@ -537,6 +539,28 @@ function grid402_get_utility_services(): array {
             'type' => 'cached',
             'price_usdc' => '0.0050',
             'upstream_source' => 'European Central Bank (ECB EuroFXRef) + NYSE/TARGET2/LSE/B3 Calendars',
+            'cache_ttl_sec' => 3600,
+        ],
+        'extract' => [
+            'id' => 'extract',
+            'name' => 'Web Page to Clean Markdown Extractor',
+            'description' => 'Fetches public HTTP/HTTPS pages with SSRF protection and extracts clean LLM-ready Markdown, metadata, word count, and links',
+            'endpoint' => '/api/v1/extract',
+            'category' => 'AI Utilities',
+            'type' => 'on_demand',
+            'price_usdc' => '0.0050',
+            'upstream_source' => 'Grid402 SSRF-Hardened HTTP Fetcher + Deterministic HTML-to-Markdown Engine',
+            'cache_ttl_sec' => 600,
+        ],
+        'email-verify' => [
+            'id' => 'email-verify',
+            'name' => 'B2B Email and Domain Deliverability Audit',
+            'description' => 'Zero-PII email audit: RFC syntax, MX records, SPF/DMARC policies, free/disposable detection, and deliverability verdict',
+            'endpoint' => '/api/v1/email-verify',
+            'category' => 'AI Utilities',
+            'type' => 'on_demand',
+            'price_usdc' => '0.0050',
+            'upstream_source' => 'Authoritative DNS (MX/SPF/DMARC) + Disposable Domain Intelligence (Zero-PII)',
             'cache_ttl_sec' => 3600,
         ],
         'pass' => [

@@ -35,8 +35,20 @@ $localPages = [
     '/reputation' => 'builder_reputation.php',
     '/growth_admin' => 'growth_admin.php',
     '/pass' => 'pass.php',
+    '/dossie-kyb' => 'dossie_kyb.php',
     '/mcp' => 'mcp.php',
 ];
+
+$seoLandingSlugs = [
+    '/api-cnpj' => 'api-cnpj',
+    '/api-sancoes-cgu' => 'api-sancoes-cgu',
+    '/api-dias-uteis-anbima' => 'api-dias-uteis-anbima',
+];
+if (isset($seoLandingSlugs[$uri])) {
+    $_GET['slug'] = $seoLandingSlugs[$uri];
+    require __DIR__ . '/../public_html/seo_landing.php';
+    return true;
+}
 
 if (isset($localPages[$uri])) {
     $file = $localPages[$uri];

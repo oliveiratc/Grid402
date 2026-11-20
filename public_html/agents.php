@@ -446,16 +446,16 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
     <div class="container">
 
         <section class="hero">
-            <div class="badge" data-i18n="agents.hero.badge">x402 Global Autonomous Agent Hub • 23 Services</div>
+            <div class="badge" data-i18n="agents.hero.badge">x402 Global Autonomous Agent Hub • 25 Services</div>
             <h1 data-i18n="agents.hero.title">Global Data and M2M Utility Infrastructure for AI Agents</h1>
             <p class="lead" data-i18n-html="agents.hero.lead">
-                Grid402 empowers autonomous AI agents (Claude, Cursor, LangChain, CrewAI, and Coinbase AgentKit) to query 22 global and Brazilian public-domain endpoints via <strong>HTTP 402</strong> or a <strong>Prepaid Session Pass (&lt;15ms)</strong>, settling USDC micropayments on Base with <strong>ECDSA cryptographic proof</strong>.
+                Grid402 empowers autonomous AI agents (Claude, Cursor, LangChain, CrewAI, and Coinbase AgentKit) to query 25 global and Brazilian public-domain endpoints via <strong>gasless HTTP x402 (Base, Polygon, Arbitrum, Solana)</strong> or a <strong>Prepaid Session Pass (&lt;15ms)</strong>, settling USDC micropayments with <strong>ECDSA cryptographic proof</strong>.
             </p>
         </section>
 
         <div class="card" style="margin: 0 0 1.5rem 0; border-color: rgba(0,240,255,.35);">
             <h2 style="margin-top:.2rem;" data-i18n="agents.nowallet.title">No-Wallet Onboarding — 3 minutes</h2>
-            <p style="color:#94A3B8;" data-i18n-html="agents.nowallet.desc">You can test right now with <code>X-Payment: demo</code> (5 queries per hour per IP). For production without managing transactions, install the SDK/MCP and configure the facilitator or a Session Pass; your agent simply calls the URL.</p>
+            <p style="color:#94A3B8;" data-i18n-html="agents.nowallet.desc">You can test right now with <code>X-Payment: demo</code> (3 queries per day per IP). For production without managing transactions, install the SDK/MCP and configure the PayAI facilitator or a Session Pass; your agent simply calls the URL.</p>
             <div class="code-box" style="margin:.75rem 0;"><pre><code>curl -H "X-Payment: demo" https://grid402.online/api/v1/cnpj?cnpj=00000000000191</code></pre></div>
             <a href="/catalog" style="color:#00F0FF;font-weight:700;" data-i18n="agents.nowallet.btn.catalog">View prices, limits and examples →</a> &nbsp;·&nbsp;
             <a href="/pass" style="color:#00F0FF;font-weight:700;" data-i18n="agents.nowallet.btn.pass">Buy Session Pass →</a>
@@ -478,7 +478,7 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
 
         <!-- 1. Model Context Protocol (MCP) -->
         <h2 class="section-title" data-i18n="agents.s1.title">1. Model Context Protocol (MCP) Integration</h2>
-        <p class="section-sub" data-i18n="agents.s1.sub">Add all 22 global and Brazilian tools to Claude Desktop or Cursor with 1 click.</p>
+        <p class="section-sub" data-i18n="agents.s1.sub">Add all 27 MCP tools (25 endpoints + summary + pass balance) to Claude Desktop or Cursor with 1 click.</p>
 
         <div class="code-box">
             <button class="copy-btn" onclick="copySnippet('code-mcp', this)" data-i18n="agents.btn.copy_json">Copy JSON</button>
@@ -570,8 +570,8 @@ curl -X POST "https://grid402.online/api/v1/verify" \
         </div>
 
         <!-- Tabela de Endpoints -->
-        <h2 class="section-title" data-i18n="agents.table.title">Catalog of All 23 Global Endpoints and Fees</h2>
-        <p class="section-sub" data-i18n="agents.table.sub">Per-call pricing in USDC across 6 blockchains (Base, Arbitrum, Polygon, Optimism, Ethereum, Solana) or in Session Pass credits.</p>
+        <h2 class="section-title" data-i18n="agents.table.title">Catalog of All 25 Global Endpoints and Fees</h2>
+        <p class="section-sub" data-i18n="agents.table.sub">Per-call pricing in USDC across 4 gasless PayAI x402 chains (Base, Polygon, Arbitrum, Solana) or in Session Pass credits.</p>
 
         <div class="table-wrap">
         <table>
@@ -714,6 +714,18 @@ curl -X POST "https://grid402.online/api/v1/verify" \
                     <td><span class="endpoint-name">/api/v1/compliance</span></td>
                     <td data-i18n="svc.compliance.desc">Consolidated Compliance 360 corporate risk score (0 to 100)</td>
                     <td><span class="tag-price">0.0300 USDC (6 cr)</span></td>
+                    <td><span class="proof-yes" data-i18n="agents.yes">✓ Yes</span></td>
+                </tr>
+                <tr>
+                    <td><span class="endpoint-name">/api/v1/extract</span></td>
+                    <td data-i18n="svc.extract.desc">SSRF-hardened webpage fetcher returning LLM-ready clean Markdown, metadata, and absolute links</td>
+                    <td><span class="tag-price">0.0050 USDC (1 cr)</span></td>
+                    <td><span class="proof-yes" data-i18n="agents.yes">✓ Yes</span></td>
+                </tr>
+                <tr>
+                    <td><span class="endpoint-name">/api/v1/email-verify</span></td>
+                    <td data-i18n="svc.email-verify.desc">Zero-PII B2B email audit: RFC syntax, DNS MX, SPF, DMARC, disposable domain detection, and deliverability score 0–100</td>
+                    <td><span class="tag-price">0.0050 USDC (1 cr)</span></td>
                     <td><span class="proof-yes" data-i18n="agents.yes">✓ Yes</span></td>
                 </tr>
                 <tr>

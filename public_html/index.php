@@ -36,6 +36,8 @@ require_once __DIR__ . '/services/lei.php';
 require_once __DIR__ . '/services/ofac.php';
 require_once __DIR__ . '/services/notarize.php';
 require_once __DIR__ . '/services/global_markets.php';
+require_once __DIR__ . '/services/extract.php';
+require_once __DIR__ . '/services/email_verify.php';
 require_once __DIR__ . '/services/pass.php';
 require_once __DIR__ . '/services/pass_checkout.php';
 require_once __DIR__ . '/services/oracle_signer.php';
@@ -518,7 +520,7 @@ if (str_starts_with($requestPath, '/api/v1/pass/mp-')) {
 $isStatusRoute = ($requestPath === '/status' || $requestPath === '/api/v1/summary' || $requestPath === '/telemetry');
 $isHomeRoute = ($requestPath === '/' || $requestPath === '/index.php');
 $isVerifyRoute = ($requestPath === '/api/v1/verify' || $apiParam === 'verify');
-$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'domain-audit', 'kyb-audit', 'dossier', 'market-snapshot', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays', 'sanctions', 'simples', 'compliance', 'lei', 'ofac', 'notarize', 'global-markets', 'pass', 'pass-emitir', 'pass-balance', 'pass-limits', 'pass-statement'];
+$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'domain-audit', 'kyb-audit', 'dossier', 'market-snapshot', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays', 'sanctions', 'simples', 'compliance', 'lei', 'ofac', 'notarize', 'global-markets', 'extract', 'email-verify', 'pass', 'pass-emitir', 'pass-balance', 'pass-limits', 'pass-statement'];
 $isValidApiAction = in_array($apiParam, $validApiEndpoints, true);
 $isInstitutionalRoute = in_array($requestPath, ['/about', '/contact', '/terms', '/privacy', '/admin', '/dashboard', '/agents'], true);
 
@@ -556,6 +558,9 @@ if (!$isHomeRoute && !$isStatusRoute && !$isValidApiAction && !$isInstitutionalR
                 '/api/v1/ofac',
                 '/api/v1/notarize',
                 '/api/v1/global-markets',
+                '/api/v1/extract',
+                '/api/v1/email-verify',
+                '/api/v1/dossier',
                 '/api/v1/pass',
                 '/api/v1/verify',
                 '/about',
@@ -963,6 +968,38 @@ if ($isValidApiAction) {
                 exit;
             }
         }
+    } elseif ($apiParam === 'extract') {
+        if (array_key_exists('url', $_GET)) {
+            $extractUrlRaw = trim((string) ($_GET['url'] ?? ''));
+            $urlCheck = grid402_extract_validate_public_url($extractUrlRaw);
+            if (!$urlCheck['ok']) {
+                http_response_code((int) ($urlCheck['code'] ?? 400));
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'success' => false,
+                    'error' => $urlCheck['error'],
+                    'message' => $urlCheck['message'],
+                    'code' => (int) ($urlCheck['code'] ?? 400),
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+        }
+    } elseif ($apiParam === 'email-verify') {
+        if (array_key_exists('email', $_GET)) {
+            $emailInputRaw = trim((string) ($_GET['email'] ?? ''));
+            $emailCheck = grid402_email_verify_validate_input($emailInputRaw);
+            if (!$emailCheck['ok']) {
+                http_response_code((int) ($emailCheck['code'] ?? 400));
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'success' => false,
+                    'error' => $emailCheck['error'],
+                    'message' => $emailCheck['message'],
+                    'code' => (int) ($emailCheck['code'] ?? 400),
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+        }
     }
 
     // 2.3. Verificação de Pagamento x402 para Micro-serviços Técnicos com Teaser Preview
@@ -1129,6 +1166,16 @@ if ($isValidApiAction) {
             $baseInput = (string) ($_GET['base'] ?? 'USD');
             $previewData = grid402_preview_global_markets($mktInput, $dtInput, $baseInput);
             $lockedFields = ['holiday_name', 'next_business_day', 'fx_reference.rates', 'market_holidays_calendar', '_oracle_proof'];
+        } elseif ($apiParam === 'extract') {
+            $extractUrlInput = (string) ($_GET['url'] ?? 'https://example.com');
+            $teaser = grid402_teaser_extract($extractUrlInput);
+            $previewData = $teaser['preview'];
+            $lockedFields = $teaser['locked_fields'];
+        } elseif ($apiParam === 'email-verify') {
+            $emailInput = (string) ($_GET['email'] ?? 'contato@grid402.online');
+            $teaser = grid402_teaser_email_verify($emailInput);
+            $previewData = $teaser['preview'];
+            $lockedFields = $teaser['locked_fields'];
         } elseif ($apiParam === 'pass') {
             $previewData = [
                 'product' => 'x402 Prepaid Session Pass (High-Frequency M2M & Web3 Top-Up)',
@@ -1533,6 +1580,21 @@ if ($isValidApiAction) {
                 http_response_code($result['code']);
             }
             break;
+        case 'extract':
+            $urlVal = (string) ($_GET['url'] ?? 'https://example.com');
+            $maxCharsVal = isset($_GET['max_chars']) ? (int) $_GET['max_chars'] : 12000;
+            $result = grid402_service_extract($urlVal, $maxCharsVal);
+            if (isset($result['code']) && $result['code'] !== 200) {
+                http_response_code($result['code']);
+            }
+            break;
+        case 'email-verify':
+            $emailVal = (string) ($_GET['email'] ?? 'contato@grid402.online');
+            $result = grid402_service_email_verify($emailVal);
+            if (isset($result['code']) && $result['code'] !== 200) {
+                http_response_code($result['code']);
+            }
+            break;
         case 'pass':
             $rawUnitsPaid = (int) ($validation['raw_amount'] ?? 2000000);
             $result = grid402_issue_session_pass($paymentProof, $rawUnitsPaid, $isSandbox);
@@ -1620,15 +1682,18 @@ if ($isValidApiAction) {
         $remQuota = (int) ($validation['remaining'] ?? 0);
         $limQuota = (int) ($validation['limit'] ?? GRID402_SANDBOX_RATE_LIMIT);
         $result['sandbox_info'] = [
+            'quota_remaining_today' => $remQuota,
+            'quota_limit_per_day' => $limQuota,
             'quota_remaining_this_hour' => $remQuota,
             'quota_limit_per_hour' => $limQuota,
-            'message' => "Consulta executada no Modo Sandbox de testes ({$remQuota}/{$limQuota} restantes nesta hora). Para chamadas em produção sem rate-limit (<15ms), adquira um Session Pass via Pix/Cartão (a partir de R$ 12 = 400 créditos) ou Multi-Chain USDC.",
+            'window_seconds' => defined('GRID402_SANDBOX_WINDOW_SECONDS') ? GRID402_SANDBOX_WINDOW_SECONDS : 86400,
+            'message' => "Consulta executada no Modo Sandbox de testes ({$remQuota}/{$limQuota} restantes hoje). Para chamadas em produção sem rate-limit (<15ms), adquira um Session Pass via Pix/Cartão (a partir de R$ 12 = 400 créditos) ou Multi-Chain USDC (Base, Polygon, Arbitrum, Solana).",
             'upgrade_to_production' => [
-                'session_pass_pix_and_multichain_url' => 'https://grid402.online/pass',
+                'session_pass_pix_and_multichain_url' => 'https://grid402.online/pass?tier=starter&method=pix',
                 'starter_tier' => 'R$ 12,00 (Pix/Cartão) ou 2.0000 USDC = 400 créditos (30 dias)',
                 'pro_tier' => 'R$ 29,00 (Pix/Cartão) ou 5.0000 USDC = 1.000 créditos (30 dias)',
                 'fleet_tier' => 'R$ 115,00 (Pix/Cartão) ou 20.0000 USDC = 6.000 créditos (4.000 + 2.000 bônus, 60 dias)',
-                'supported_chains' => ['base', 'arbitrum', 'polygon', 'optimism', 'ethereum', 'solana'],
+                'supported_chains' => ['base', 'polygon', 'arbitrum', 'solana', 'optimism', 'ethereum'],
                 'header_example' => 'X-Payment: pass_g402_<id>_<hmac>',
             ],
         ];
@@ -3075,7 +3140,7 @@ grid402_log_public_visit('/');
                 </a>
                 <a href="https://mcprush.com/to/grid402-brazil-public-data-network-oracle-mcp?ref=badge" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;background:rgba(163,230,53,0.12);border:1px solid rgba(163,230,53,0.4);border-radius:999px;padding:0.3rem 0.75rem;font-size:0.75rem;font-family:var(--font-mono);font-weight:700;color:#BEF264;transition:all 0.2s;" onmouseover="this.style.background='rgba(163,230,53,0.22)'" onmouseout="this.style.background='rgba(163,230,53,0.12)'">
                     <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#A3E635;box-shadow:0 0 6px #A3E635;"></span>
-                    <span>mcprush • Grade A (25 Tools)</span>
+                    <span>mcprush • Grade A (27 Tools)</span>
                 </a>
                 <a href="https://glama.ai/mcp/connectors/io.github.oliveiratc/grid402" target="_blank" rel="noopener noreferrer" style="text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;background:rgba(0,82,255,0.15);border:1px solid rgba(0,240,255,0.4);border-radius:999px;padding:0.3rem 0.75rem;font-size:0.75rem;font-family:var(--font-mono);font-weight:700;color:#00F0FF;transition:all 0.2s;" onmouseover="this.style.background='rgba(0,82,255,0.28)'" onmouseout="this.style.background='rgba(0,82,255,0.15)'">
                     <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#00F0FF;box-shadow:0 0 6px #00F0FF;"></span>
@@ -3083,7 +3148,7 @@ grid402_log_public_visit('/');
                 </a>
                 <div class="badge-live">
                     <span class="badge-pulse"></span>
-                    <span data-i18n-count="<?php echo count($servicesCatalog); ?>" id="badge-live-text">Base Mainnet (8453) • <?php echo count($servicesCatalog); ?>/<?php echo count($servicesCatalog); ?> Services Operational</span>
+                    <span data-i18n-count="<?php echo count($servicesCatalog); ?>" id="badge-live-text">Base · Polygon · Arbitrum · Solana • <?php echo count($servicesCatalog); ?>/<?php echo count($servicesCatalog); ?> Services Operational</span>
                 </div>
             </div>
         </div>
@@ -3091,14 +3156,16 @@ grid402_log_public_visit('/');
         <section class="hero">
             <div class="hero-tag" data-i18n="hero.tag">Global Microservices and M2M Oracle Hub for Autonomous AI Agents</div>
             <h1 data-i18n="hero.title">Grid402: Global Open-Data and Network Utilities Infrastructure for AI Agents</h1>
-            <p data-i18n="hero.desc">Access 23 global and regional endpoints: KYB 360 AI Dossier (verdict APPROVED/FLAGGED/REJECTED), worldwide corporate identity (GLEIF LEI across 200+ countries), US Treasury OFAC SDN sanctions + Base Web3 AML, ECDSA timestamp notarization, global KYB audit (CNPJ + OFAC + LEI), full domain audit (DNS + SSL + ASN), consolidated market snapshot (FX + crypto + indicators), world exchange calendars and 30+ ECB currencies, live FX, crypto spot, Compliance 360, DNS, SSL, BGP/ASN, CEP, and CNPJ in milliseconds with zero signup or API keys. Settled via HTTP x402 across 6 chains (Base, Arbitrum, Polygon, Optimism, Ethereum, Solana) or Prepaid Session Pass (&lt;15ms).</p>
+            <p data-i18n="hero.desc">Access 25 global and regional endpoints: LLM-ready Web-to-Markdown Extractor (/extract), Zero-PII B2B Email Verifier (/email-verify), KYB 360 AI Dossier (APPROVED/FLAGGED/REJECTED), worldwide corporate identity (GLEIF LEI across 200+ countries), US Treasury OFAC SDN sanctions + Base Web3 AML, ECDSA timestamp notarization, DNS/SSL/BGP audits, ECB FX, Compliance 360, CEP, and CNPJ in milliseconds with zero signup or API keys. Gasless HTTP x402 via PayAI across Base, Polygon, Arbitrum, and Solana — or Prepaid Session Pass via Pix from R$ 12 (&lt;15ms).</p>
             <div class="cta-group">
-                <a href="#playground" class="btn btn-primary" style="background: linear-gradient(135deg, #0052FF 0%, #00F0FF 100%); font-weight: 800; box-shadow: 0 4px 15px rgba(0, 82, 255, 0.4);" data-i18n="hero.btn.playground">⚡ Test now (Sandbox)</a>
-                <a href="/catalog" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary); font-weight: 700;" data-i18n="hero.btn.catalog">See pricing, limits and examples →</a>
+                <a href="/pass?tier=starter&amp;method=pix" class="btn btn-primary" style="background: linear-gradient(135deg, #059669 0%, #10B981 100%); color: #04120D; font-weight: 800; box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35);" data-i18n="hero.btn.pix">⚡ Pix R$ 12 (400 créditos)</a>
+                <a href="/dossie-kyb" class="btn btn-primary" style="background: linear-gradient(135deg, #0052FF 0%, #00F0FF 100%); font-weight: 800; box-shadow: 0 4px 15px rgba(0, 82, 255, 0.4);" data-i18n="hero.btn.dossier">📄 Gerar Dossiê KYB</a>
+                <a href="#playground" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary); font-weight: 700;" data-i18n="hero.btn.playground">⚡ Test Sandbox (3/day)</a>
+                <a href="/catalog" class="btn btn-outline" data-i18n="hero.btn.catalog">Pricing &amp; 25 Endpoints →</a>
                 <a href="/agents" class="btn btn-outline" data-i18n="hero.btn.agents">🤖 AI Agents Hub</a>
             </div>
             <p style="margin-top: .7rem; font-size: .82rem; color: var(--text-muted);" data-i18n-html="hero.subnote">
-                No credit card, no API key, no signup. Sandbox: <strong>5 queries per hour per IP</strong>. Production: x402 or Session Pass.
+                No credit card, no API key, no signup. Sandbox: <strong>3 queries per day per IP</strong>. Production: gasless x402 (Base, Polygon, Arbitrum, Solana) or Session Pass via Pix (R$ 12 = 400 credits).
             </p>
         </section>
 
@@ -3408,7 +3475,7 @@ grid402_log_public_visit('/');
             <div class="playground-toolbar">
                 <div class="mode-toggle-group">
                     <button type="button" class="mode-toggle-btn active" id="btn-mode-challenge" onclick="setPlaygroundMode('challenge')" data-i18n="playground.btn.challenge">🔒 x402 Challenge (HTTP 402)</button>
-                    <button type="button" class="mode-toggle-btn" id="btn-mode-sandbox" onclick="setPlaygroundMode('sandbox')" data-i18n="playground.btn.sandbox">🧪 Sandbox (5 queries/hr)</button>
+                    <button type="button" class="mode-toggle-btn" id="btn-mode-sandbox" onclick="setPlaygroundMode('sandbox')" data-i18n="playground.btn.sandbox">🧪 Sandbox (3 queries/day)</button>
                     <button type="button" class="mode-toggle-btn" id="btn-mode-manual" onclick="setPlaygroundMode('manual')" data-i18n="playground.btn.manual">✍️ Validate External JSON</button>
                 </div>
                 <div class="playground-url-bar">
@@ -3687,7 +3754,7 @@ grid402_log_public_visit('/');
                     <div style="background: rgba(0, 0, 0, 0.3); border-radius: 6px; padding: 0.75rem 1rem; font-size: 0.85rem; color: var(--text-muted);" data-i18n-html="console.smithery.params">
                         <strong style="color: #fff;">💡 Supported Parameters in smithery.yaml:</strong>
                         <ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;">
-                            <li><code>sandbox: true</code> — Enables free Sandbox Mode (5 queries per hour per IP) for testing without a wallet.</li>
+                            <li><code>sandbox: true</code> — Enables free Sandbox Mode (3 queries per day per IP) for testing without a wallet.</li>
                             <li><code>privateKey: 0x...</code> — Optional EVM private key for auto-settlement in USDC on Base (0.0050 to 0.0500 USDC per call).</li>
                         </ul>
                     </div>
@@ -3788,7 +3855,7 @@ curl -i "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191"
 curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
   -H "X-Payment: 0x&lt;base_tx_hash&gt;"
 
-# 4. Free Sandbox Mode for testing and CI/CD (5 req/hour per IP)
+# 4. Free Sandbox Mode for testing and CI/CD (3 req/day per IP)
 curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
   -H "X-Payment: demo"</div>
             </div>

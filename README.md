@@ -26,9 +26,9 @@
 
 ## ⚡ Destaques da Arquitetura
 
-* **Monetização Nativa via HTTP x402 (v2 Exact + Multi-Chain):** Cobrança por chamada (0.0050 a 0.0500 USDC) liquidada diretamente em USDC em 6 redes (Base, Arbitrum, Polygon, Optimism, Ethereum e Solana SPL) via autorizações gasless EIP-3009 (`PAYMENT-SIGNATURE`), Session Passes pré-pagos ou transferências on-chain, sem necessidade de chaves de API estáticas.
+* **Monetização Nativa via HTTP x402 (v2 Gasless Multi-Chain via PayAI):** Cobrança por chamada (0.0050 a 0.0500 USDC) com liquidação gasless nativa (`exact` via `PAYMENT-SIGNATURE`) em **4 redes** (**Base**, **Polygon**, **Arbitrum** via EIP-3009 e **Solana** via SVM), além de Session Passes pré-pagos (Pix R$ 12 ou USDC em 6 redes) sem necessidade de chaves de API estáticas.
 * **Amostras Gratuitas no HTTP 402 (Teaser Data):** O desafio 402 inclui uma prévia segura dos dados públicos encontrados (ex: razão social, município e UF no CNPJ; logradouro e bairro no CEP; status TLS no SSL) antes da liquidação financeira.
-* **Modo Sandbox para Testes e CI/CD:** Permite simulação técnica via cabeçalho `X-Payment: demo` (cota defensiva por IP), facilitando desenvolvimento local e pipelines de homologação antes de operar em produção.
+* **Modo Sandbox para Testes e CI/CD:** Permite simulação técnica via cabeçalho `X-Payment: demo` (cota defensiva de 3 consultas/dia por IP), facilitando desenvolvimento local e pipelines de homologação antes de operar em produção.
 * **Zero Banco de Dados (Zero-DB):** Arquitetura ultraleve baseada em arquivos JSON planos com travamento concorrente (`flock`) e escrita atômica (`grid402_atomic_write`), sem sobrecarga de conexões SQL.
 * **Distribuição Smithery.ai:** Manifesto `smithery.yaml` na raiz para instalação e configuração em 1 clique em clientes MCP como Claude Desktop e Cursor.
 * **Coinbase Developer Platform (CDP) AgentKit:** Provedor de ações pronto em TypeScript e Python (`integrations/agentkit/`) para auto-liquidação M2M por agentes autônomos baseados em LangChain e CrewAI.
@@ -40,7 +40,7 @@
 
 | Serviço | Rota da API | Custo M2M | Descrição Técnica |
 |---|---|---|---|
-| **Resumo Operacional** | `GET /status` | Gratuito | Saúde geral, latências médias, uptime 30d e 23 serviços operantes |
+| **Resumo Operacional** | `GET /status` | Gratuito | Saúde geral, latências médias, uptime 30d e 25 serviços operantes |
 | **Câmbio Comercial** | `GET /api/v1/forex` | 0.0050 USDC (1 crédito) | Cotações em tempo real de USD, EUR e GBP para BRL |
 | **Preços Cripto** | `GET /api/v1/crypto` | 0.0050 USDC (1 crédito) | Cotações spot e variação 24h de BTC, ETH, SOL, USDC e BASE |
 | **Resolução DNS** | `GET /api/v1/dns?domain=...` | 0.0050 USDC (1 crédito) | Registros A, AAAA, MX, TXT, NS e CNAME com latência |
@@ -62,6 +62,8 @@
 | **Sanções OFAC e AML** | `GET /api/v1/ofac?target=...` | 0.0200 USDC (4 créditos) | Triagem OFAC SDN, ONU e risco AML Web3 na Base Mainnet |
 | **Notarização SHA-256** | `GET /api/v1/notarize?content=...` | 0.0050 USDC (1 crédito) | Carimbo do tempo criptográfico e prova de existência ECDSA |
 | **Mercados Globais e BCE** | `GET /api/v1/global-markets` | 0.0050 USDC (1 crédito) | Calendário US/EU/UK/BR e 30+ taxas de câmbio do BCE |
+| **Extrator Web para Markdown** | `GET /api/v1/extract?url=...` | 0.0050 USDC (1 crédito) | Extração anti-SSRF de páginas HTTP/HTTPS para Markdown limpo (LLMs e RAG) |
+| **Auditoria de E-mail B2B** | `GET /api/v1/email-verify?email=...` | 0.0050 USDC (1 crédito) | Validação Zero-PII (RFC, MX, SPF, DMARC, disposable e score 0–100) |
 | **Session Pass x402** | `GET /api/v1/pass` | 2 / 5 / 20 USDC | Emissão de passe pré-pago de sub-15ms (400 / 1.000 / 6.000 créditos) |
 | **Saldo do Session Pass** | `GET /api/v1/pass/balance` | Gratuito | Consulta gratuita de créditos restantes, validade e Spend Controls |
 | **Verificador de Prova** | `POST /api/v1/verify` | Gratuito | Verificação matemática stateless da assinatura `_oracle_proof` |
@@ -198,7 +200,7 @@ curl "https://grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 ├── mcp/                               # Pacote oficial Model Context Protocol (grid402-mcp)
 │   ├── package.json                   # Configuração e dependências do servidor MCP
 │   ├── index.mjs                      # Ponto de entrada do protocolo MCP
-│   ├── tools.mjs                      # Implementação das 25 ferramentas MCP e cliente HTTP x402
+│   ├── tools.mjs                      # Implementação das 27 ferramentas MCP e cliente HTTP x402
 │   ├── test_mcp.mjs                   # Suíte de testes automatizados do MCP
 │   └── README.md                      # Documentação de configuração do servidor MCP
 ├── public_html/                       # Raiz pública servida na Hostinger

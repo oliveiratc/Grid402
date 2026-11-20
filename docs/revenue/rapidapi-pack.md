@@ -1,0 +1,56 @@
+# Pacote de Publicação — RapidAPI Hub (Grid402)
+
+> **Objetivo:** Capturar compradores recorrentes em dólar (cartão de crédito internacional via RapidAPI) sem alterar o gateway Zero-DB do Grid402, expondo nossos endpoints de maior demanda global e B2B Brasil com faturamento mensal previsível.
+
+## 1. Estratégia de Autenticação (Ponte Segura RapidAPI -> Grid402)
+1. Gere um **Fleet Session Pass** dedicado (ou pass administrativo exclusivo para o proxy RapidAPI) com `daily_credit_limit` ajustado.
+2. No RapidAPI Provider Dashboard (`https://rapidapi.com/studio`), configure:
+   - **Base URL:** `https://grid402.online`
+   - **Secret / Transformation Header enviado pela RapidAPI ao seu origin:**
+     - Header: `X-Payment`
+     - Value: `pass_g402_<SEU_TOKEN_DEDICADO_RAPIDAPI>` *(nunca versionar este token no Git!)*
+3. Na sua aba **Gateway** da RapidAPI, confirme que a RapidAPI valida `X-RapidAPI-Key` e `X-RapidAPI-Proxy-Secret` antes de encaminhar ao Grid402.
+
+## 2. Catálogo de 2 APIs Recomendadas para Listar Separadamente (Maior Descoberta por Busca)
+
+### Listagem A: `Grid402 Web-to-Markdown, Email Verify & Network Utilities` (Público Global)
+- **Categoria:** Data / Tools
+- **Subtítulo:** SSRF-hardened URL-to-Markdown for LLMs, Zero-PII B2B Email Verifier (MX/SPF/DMARC), DNS/SSL/ASN Audits & ECDSA Notarization.
+- **Endpoints incluídos:**
+  - `GET /api/v1/extract?url=https://example.com&max_chars=12000` *(custo interno Grid402: 0.0050 USDC / 1 cr)*
+  - `GET /api/v1/email-verify?email=contato@grid402.online` *(custo interno: 0.0050 USDC / 1 cr)*
+  - `GET /api/v1/domain-audit?domain=base.org` *(0.0150 USDC / 3 cr)*
+  - `GET /api/v1/dns?domain=base.org` *(0.0050 USDC / 1 cr)*
+  - `GET /api/v1/ssl?host=base.org` *(0.0050 USDC / 1 cr)*
+  - `GET /api/v1/asn?ip=1.1.1.1` *(0.0050 USDC / 1 cr)*
+  - `GET /api/v1/notarize?content=hello` *(0.0050 USDC / 1 cr)*
+  - `GET /api/v1/global-markets?market=US&base=USD` *(0.0050 USDC / 1 cr)*
+
+### Listagem B: `Brazil KYB, CNPJ, CGU Sanctions & ANBIMA Workdays API` (Público Brasil & LatAm Fintech)
+- **Categoria:** Business / Finance
+- **Subtítulo:** Verified Receita Federal CNPJ, Simples/MEI, CGU CEIS/CNEP Sanctions, KYB 360 AI Dossier & ANBIMA Workdays — Zero-PII (LGPD) with ECDSA Oracle Proof.
+- **Endpoints incluídos:**
+  - `GET /api/v1/dossier?cnpj=00000000000191` *(0.0500 USDC / 10 cr)*
+  - `GET /api/v1/cnpj?cnpj=00000000000191` *(0.0200 USDC / 4 cr)*
+  - `GET /api/v1/sanctions?cnpj=00000000000191` *(0.0100 USDC / 2 cr)*
+  - `GET /api/v1/simples?cnpj=00000000000191` *(0.0100 USDC / 2 cr)*
+  - `GET /api/v1/compliance?cnpj=00000000000191` *(0.0300 USDC / 6 cr)*
+  - `GET /api/v1/workdays?start_date=2026-12-23&days=5` *(0.0050 USDC / 1 cr)*
+  - `GET /api/v1/holidays?year=2026` *(0.0050 USDC / 1 cr)*
+  - `GET /api/v1/indicators` *(0.0050 USDC / 1 cr)*
+  - `GET /api/v1/cep?code=01310100` *(0.0050 USDC / 1 cr)*
+
+## 3. Tabela de Planos Recomendados na RapidAPI (Margem Saudável após 20% de Taxa RapidAPI)
+
+| Plano RapidAPI | Preço Mensal | Cota Mensal | Overage | Equivalente Direto Grid402 |
+|---|---|---|---|---|
+| **Basic (Free)** | $0/mês | 25 req/mês (rate limit 1 req/min) | Hard limit | Sandbox direto `3 req/dia` |
+| **Pro** | $9,90/mês | 1.500 req/mês | $0.010 / req | Starter Pass R$ 12 (400 cr) / Pro R$ 29 (1.000 cr) |
+| **Ultra** | $29,00/mês | 6.000 req/mês | $0.006 / req | Fleet Pass R$ 115 / 20 USDC (6.000 cr) |
+| **Mega** | $79,00/mês | 25.000 req/mês | $0.004 / req | Enterprise Custom |
+
+> **Dica de conversão cruzada:** Na descrição da API na RapidAPI, inclua o aviso: *"Need pay-per-call crypto settlement (Base, Polygon, Arbitrum, Solana) or Pix (R$ 12 = 400 credits) with zero monthly retainer? Visit https://grid402.online/pass"*.
+
+## 4. Importação Rápida via OpenAPI 3.1
+- Importe diretamente `https://grid402.online/openapi.json` no RapidAPI Studio para gerar todos os schemas, descrições e exemplos automaticamente.
+- Antes de publicar, rode pelo menos 1 teste de **200 OK** em cada rota no painel RapidAPI para ganhar o selo de **100% Test Coverage / Popularity Score inicial**.
