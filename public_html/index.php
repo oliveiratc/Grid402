@@ -3898,11 +3898,34 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             </div>
         </section>
 
-        <!-- Selo Oficial Verificado mcprush (Grade A • 25 Tools) -->
-        <section aria-label="Verified MCP Directory Listings" style="display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:1rem; margin:2rem 0 2.5rem;">
+        <!-- Selos Oficiais Verificados (Diretórios MCP, x402 & API Hubs) -->
+        <section aria-label="Verified MCP Directory Listings" style="display:flex; flex-direction:column; align-items:center; gap:1rem; margin:2rem 0 2.5rem;">
             <a href="https://mcprush.com/to/grid402-brazil-public-data-network-oracle-mcp?ref=badge" target="_blank" rel="noopener noreferrer" style="display:inline-block; line-height:0; border-radius:12px; transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
                 <img src="https://mcprush.com/badge/grid402-brazil-public-data-network-oracle-mcp/card.svg" alt="Grid402 — Brazil Public Data and Network Oracle MCP server" loading="lazy" style="max-width:100%; height:auto; border-radius:12px;">
             </a>
+            <div style="display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:0.65rem;">
+                <a href="https://sealkeeper.run/agents/grid402.online/grid402-online" target="_blank" rel="noopener noreferrer" style="display:inline-flex; line-height:0;">
+                    <img src="https://api.sealkeeper.run/v1/agents/lAUKg3u_xxQJvVJVhnI5rg_C9ARRcXDeSFynPf_mv_A/badge.svg" alt="SealKeeper Service SEAL" loading="lazy" style="height:22px;">
+                </a>
+                <a href="https://paycensus.com/s/0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90.html" target="_blank" rel="noopener noreferrer" style="display:inline-flex; line-height:0;">
+                    <img src="https://img.shields.io/badge/PayCensus_Trust-Verified_Domain-10B981" alt="PayCensus Trust Verified Domain" loading="lazy" style="height:22px;">
+                </a>
+                <a href="https://glama.ai/mcp/connectors/io.github.oliveiratc/grid402" target="_blank" rel="noopener noreferrer" style="display:inline-flex; line-height:0;">
+                    <img src="https://img.shields.io/badge/Glama-Verified_MCP_(27_Tools)-0052FF" alt="Glama Verified MCP" loading="lazy" style="height:22px;">
+                </a>
+                <a href="https://www.x402scan.com/server/00294038-51ff-4073-ab29-c59fca221a50" target="_blank" rel="noopener noreferrer" style="display:inline-flex; line-height:0;">
+                    <img src="https://img.shields.io/badge/x402scan-Verified_Server_(24_APIs)-00F0FF" alt="x402scan Verified Server" loading="lazy" style="height:22px;">
+                </a>
+                <a href="https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities" target="_blank" rel="noopener noreferrer" style="display:inline-flex; line-height:0;">
+                    <img src="https://img.shields.io/badge/RapidAPI-Live_API-0055DA?logo=rapidapi" alt="RapidAPI Live API" loading="lazy" style="height:22px;">
+                </a>
+                <a href="https://payapi.market/api/grid402-brazil-public-data-network-oracle" target="_blank" rel="noopener noreferrer" style="display:inline-flex; line-height:0;">
+                    <img src="https://img.shields.io/badge/PayAPI_Market-Verified-10B981?logo=checkmarx" alt="PayAPI Market Verified" loading="lazy" style="height:22px;">
+                </a>
+                <a href="https://mcptry.com/servers/io.github.oliveiratc/grid402" target="_blank" rel="noopener noreferrer" style="display:inline-flex; line-height:0;">
+                    <img src="https://mcptry.com/badge/io.github.oliveiratc/grid402" alt="mcptry Verified MCP" loading="lazy" style="height:22px;">
+                </a>
+            </div>
         </section>
 
         <footer>
