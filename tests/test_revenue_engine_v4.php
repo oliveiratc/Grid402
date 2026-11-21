@@ -406,13 +406,37 @@ try {
     }
     t_assert('As 3 páginas SEO possuem <title> distintos entre si', count(array_unique(array_values($titlesSeen))) === 3);
 
+    $enTitlesSeen = [];
+    foreach (['/url-to-markdown-api', '/global-kyb-api', '/zero-pii-email-verification-api'] as $enSeoPath) {
+        $rEnSeo = $httpCall("{$baseUrl}{$enSeoPath}", ['Accept: text/html']);
+        $enH1Count = preg_match_all('/<h1\b/i', $rEnSeo['body']);
+        preg_match('/<title>(.*?)<\/title>/is', $rEnSeo['body'], $etm);
+        $enTitleVal = trim((string) ($etm[1] ?? ''));
+        $enTitlesSeen[$enSeoPath] = $enTitleVal;
+        $enHasLd = preg_match('#<script type="application/ld\+json">(.*?)</script>#s', $rEnSeo['body'], $eldm) === 1
+            && is_array(json_decode($eldm[1], true));
+        t_assert("SEO Global EN {$enSeoPath} retorna HTTP 200, lang=\"en\", único <h1>, JSON-LD USD e CTA RapidAPI",
+            $rEnSeo['code'] === 200 &&
+            str_contains($rEnSeo['body'], '<html lang="en">') &&
+            $enH1Count === 1 &&
+            $enTitleVal !== '' &&
+            $enHasLd &&
+            str_contains($rEnSeo['body'], 'rapidapi.com') &&
+            str_contains($rEnSeo['body'], '/pass')
+        );
+    }
+    t_assert('As 3 páginas SEO Globais EN possuem <title> distintos entre si', count(array_unique(array_values($enTitlesSeen))) === 3);
+
     $sitemap = (string) file_get_contents(__DIR__ . '/../public_html/sitemap.xml');
-    t_assert('sitemap.xml inclui /pass, /dossie-kyb, /api-cnpj, /api-sancoes-cgu e /api-dias-uteis-anbima',
+    t_assert('sitemap.xml inclui as 6 páginas SEO (3 PT-BR + 3 Globais EN), /pass e /dossie-kyb',
         str_contains($sitemap, 'https://grid402.online/pass') &&
         str_contains($sitemap, 'https://grid402.online/dossie-kyb') &&
         str_contains($sitemap, 'https://grid402.online/api-cnpj') &&
         str_contains($sitemap, 'https://grid402.online/api-sancoes-cgu') &&
-        str_contains($sitemap, 'https://grid402.online/api-dias-uteis-anbima')
+        str_contains($sitemap, 'https://grid402.online/api-dias-uteis-anbima') &&
+        str_contains($sitemap, 'https://grid402.online/url-to-markdown-api') &&
+        str_contains($sitemap, 'https://grid402.online/global-kyb-api') &&
+        str_contains($sitemap, 'https://grid402.online/zero-pii-email-verification-api')
     );
 
     $revDocs = [

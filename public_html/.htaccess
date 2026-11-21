@@ -123,6 +123,9 @@ ServerSignature Off
     RewriteRule ^api-cnpj/?$ seo_landing.php?slug=api-cnpj [QSA,L]
     RewriteRule ^api-sancoes-cgu/?$ seo_landing.php?slug=api-sancoes-cgu [QSA,L]
     RewriteRule ^api-dias-uteis-anbima/?$ seo_landing.php?slug=api-dias-uteis-anbima [QSA,L]
+    RewriteRule ^url-to-markdown-api/?$ seo_landing.php?slug=url-to-markdown-api [QSA,L]
+    RewriteRule ^global-kyb-api/?$ seo_landing.php?slug=global-kyb-api [QSA,L]
+    RewriteRule ^zero-pii-email-verification-api/?$ seo_landing.php?slug=zero-pii-email-verification-api [QSA,L]
 
     # Web3 Agent Growth Program
     RewriteRule ^growth/?$ growth_program.php [QSA,L]

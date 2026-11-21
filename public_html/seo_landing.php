@@ -133,6 +133,120 @@ $pages = [
             ],
         ],
     ],
+    'url-to-markdown-api' => [
+        'lang' => 'en',
+        'path' => '/url-to-markdown-api',
+        'title' => 'SSRF-Safe URL to Clean Markdown API for LLMs & RAG ($0.005/page) | Grid402',
+        'description' => 'Convert any public HTTP/HTTPS web page into clean, LLM-ready Markdown with metadata and absolute links. SSRF-hardened, zero headless browser maintenance. Pay via RapidAPI Credit Card ($9.90/mo) or Multi-Chain x402 USDC (Base, Solana, Polygon, Arbitrum).',
+        'badge' => 'Web-to-Markdown · SSRF-Hardened · LLM & RAG Ready · ECDSA Signed',
+        'h1' => 'SSRF-Safe URL to Clean Markdown API for AI Agents & RAG',
+        'lead' => 'Turn public web pages into clean, token-efficient Markdown with title, description, word count, and absolute links — without managing Playwright, Puppeteer, or rotating proxies. $0.0050 per page via Multi-Chain x402 USDC or $9.90/mo via Credit Card on RapidAPI.',
+        'endpoint' => '/api/v1/extract?url=https://grid402.online&max_chars=12000',
+        'price_usdc' => '0.0050 USDC',
+        'credits' => '1 credit (400 pages for $2 USDC / 2,500 pages for $9.90/mo on RapidAPI)',
+        'rapidapi_url' => 'https://rapidapi.com/oliveiratc/api/grid402-web-to-markdown-email-verify-network-utilities',
+        'curl_example' => "curl -sL \"https://grid402.online/api/v1/extract?url=https%3A%2F%2Fexample.com&max_chars=8000\" \\\n  -H \"X-Payment: pass_g402_YOUR_TOKEN\"",
+        'python_example' => "from grid402 import Grid402Client\n\nclient = Grid402Client(session_pass=\"pass_g402_YOUR_TOKEN\")\nres = client.extract(\"https://example.com\", max_chars=8000)\nprint(res[\"title\"], res[\"word_count\"])\nprint(res[\"markdown\"][:500])",
+        'n8n_example' => "MCP Server (Claude / Cursor / Windsurf):\nnpx -y grid402-mcp  (Tool: grid402_extract)\n\nRapidAPI Credit Card Header:\nX-RapidAPI-Key: YOUR_RAPIDAPI_KEY\nX-RapidAPI-Host: grid402-web-to-markdown-email-verify-network-utilities.p.rapidapi.com",
+        'traditional_cost' => '$19 to $83/mo (Firecrawl / ScrapingBee / Browserless subscriptions)',
+        'grid_cost' => '$0.0050/page via x402 USDC (Base, Solana, Polygon, Arbitrum) or $9.90/mo on RapidAPI',
+        'features' => [
+            'Strict SSRF defense: blocks localhost, RFC1918 private IPs, link-local cloud metadata (169.254.169.254), and non-HTTP schemes before billing.',
+            'Strips scripts, navbars, styles, and boilerplate HTML to save up to 70% of LLM context tokens in RAG pipelines.',
+            'Cryptographic ECDSA secp256k1 attestation (_oracle_proof) proving timestamp and exact extracted output.',
+            'Zero-config MCP integration (`npx -y grid402-mcp` v2.0.2 with 3 free daily trial queries + Base/Solana/Polygon/Arbitrum auto-payer).',
+        ],
+        'faq' => [
+            [
+                'q' => 'How much does URL-to-Markdown extraction cost?',
+                'a' => 'Each extraction costs $0.0050 USDC (1 credit). You can pay per call with gasless x402 v2 (Base, Polygon, Arbitrum, Solana), buy a prepaid Session Pass (400 pages for $2 USDC), or subscribe with Credit Card on RapidAPI ($9.90/mo for 2,500 calls).',
+            ],
+            [
+                'q' => 'Does Grid402 store the extracted web pages?',
+                'a' => 'No. Processing is strictly stateless and Zero-Retention. Only public HTTP/HTTPS pages are fetched and converted on the fly.',
+            ],
+            [
+                'q' => 'Can AI agents use this directly via Model Context Protocol (MCP)?',
+                'a' => 'Yes. Install `npx -y grid402-mcp` and call the `grid402_extract` tool. New users get 3 free trial calls per day automatically.',
+            ],
+        ],
+    ],
+    'global-kyb-api' => [
+        'lang' => 'en',
+        'path' => '/global-kyb-api',
+        'title' => 'Global KYB API: GLEIF LEI, OFAC Sanctions & Brazil CNPJ Verification | Grid402',
+        'description' => 'Automate global and LatAm corporate KYB with public registries: GLEIF LEI (200+ jurisdictions, CC0 1.0), US OFAC SDN / UN Sanctions, and Brazil Receita Federal CNPJ + CGU Sanctions. GDPR Recital 14 Zero-PII compliant, ECDSA signed.',
+        'badge' => 'Global KYB · GLEIF LEI (CC0) · OFAC SDN · Brazil CNPJ · Zero-PII',
+        'h1' => 'Global & LatAm KYB API: GLEIF LEI, OFAC Sanctions & Brazil CNPJ',
+        'lead' => 'Verify corporate entities across 200+ jurisdictions without $1,000/mo enterprise contracts. Combine official GLEIF LEI, US Treasury OFAC SDN / UN Sanctions, Web3 AML screening, and Brazil Receita Federal + CGU compliance in a single cryptographically signed JSON response.',
+        'endpoint' => '/api/v1/kyb-audit?cnpj=00000000000191',
+        'price_usdc' => '0.0200 USDC',
+        'credits' => '4 credits ($0.02 per KYB audit / $9.90/mo on RapidAPI)',
+        'rapidapi_url' => 'https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities',
+        'curl_example' => "curl -sL \"https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18\" \\\n  -H \"X-Payment: pass_g402_YOUR_TOKEN\"",
+        'python_example' => "from grid402 import Grid402Client\n\nclient = Grid402Client(session_pass=\"pass_g402_YOUR_TOKEN\")\nlei = client.get_lei(\"5493006MHB84DD0ZWV18\")\nofac = client.get_ofac(\"0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90\")\nprint(lei[\"entity\"][\"legal_name\"], ofac[\"risk_level\"])",
+        'n8n_example' => "MCP Server (Claude / Cursor / AgentKit):\nnpx -y grid402-mcp  (Tools: grid402_lei, grid402_ofac, grid402_kyb_audit, grid402_get_dossier_360)\n\nRapidAPI Credit Card Hub:\nhttps://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities",
+        'traditional_cost' => '$0.50 to $2.00 per KYB check + $500+/mo minimum enterprise commitment',
+        'grid_cost' => '$0.0200 per LEI/OFAC/KYB check ($0.0500 for Dossier 360) via USDC or RapidAPI ($9.90/mo)',
+        'features' => [
+            '100% Public Corporate Registries & Open Licenses: GLEIF ISO 17442 (CC0 1.0), US OFAC SDN (17 U.S.C. § 105), UN Consolidated Lists, and Brazilian Public Registries (Law 12.527/2011).',
+            'Strict GDPR Recital 14 & LGPD Art. 1 Zero-PII compliance: strips individual shareholder CPFs, personal phones, and private emails at ingestion.',
+            'Cryptographic audit trail: every response carries _meta (source + UTC timestamp) and _oracle_proof (ECDSA secp256k1 signature verifiable offline).',
+            'PayCensus Multi-Chain Verified Seller (EVM + Solana proven=1) supporting Base, Polygon, Arbitrum, Solana USDC, and RapidAPI Credit Card.',
+        ],
+        'faq' => [
+            [
+                'q' => 'Are the KYB registries legally compliant for EU and US companies?',
+                'a' => 'Yes. Grid402 processes exclusively public-domain legal entity records (corporate data, not natural persons under GDPR Recital 14) and official government sanctions lists, stripping any personal identifiers at ingestion.',
+            ],
+            [
+                'q' => 'Can I pay with a corporate credit card in USD instead of crypto?',
+                'a' => 'Yes. Subscribe directly on RapidAPI Hub (PRO $9.90/mo, ULTRA $29.90/mo, or MEGA $79.90/mo) with instant credit card billing.',
+            ],
+            [
+                'q' => 'How can compliance teams prove what the API returned during an audit?',
+                'a' => 'Every HTTP 200 payload includes an ECDSA secp256k1 signature (_oracle_proof) over the canonical JSON payload and UTC timestamp, verifiable anytime via POST /api/v1/verify.',
+            ],
+        ],
+    ],
+    'zero-pii-email-verification-api' => [
+        'lang' => 'en',
+        'path' => '/zero-pii-email-verification-api',
+        'title' => 'GDPR-Safe Zero-PII B2B Email Verification API (MX, SPF, DMARC) | Grid402',
+        'description' => 'Audit B2B email deliverability (RFC syntax, authoritative DNS MX, SPF, DMARC, disposable domain & role-based detection) with 100% Zero-PII and Zero-Retention. Raw emails are never stored on disk. $0.005/check via x402 USDC or RapidAPI.',
+        'badge' => 'Zero-PII · Zero-Retention · MX / SPF / DMARC · GDPR Compliant',
+        'h1' => 'GDPR-Safe Zero-PII B2B Email Verification API (MX, SPF & DMARC)',
+        'lead' => 'Block disposable signups, detect broken mail servers, and score B2B lead deliverability (0–100) without sending raw customer emails to third-party data brokers. Processed strictly in volatile RAM with SHA-256 hashed output only.',
+        'endpoint' => '/api/v1/email-verify?email=contact@company.com',
+        'price_usdc' => '0.0050 USDC',
+        'credits' => '1 credit ($0.0050 per check / 2,500 checks for $9.90/mo on RapidAPI)',
+        'rapidapi_url' => 'https://rapidapi.com/oliveiratc/api/grid402-web-to-markdown-email-verify-network-utilities',
+        'curl_example' => "curl -sL \"https://grid402.online/api/v1/email-verify?email=dev%40company.com\" \\\n  -H \"X-Payment: pass_g402_YOUR_TOKEN\"",
+        'python_example' => "from grid402 import Grid402Client\n\nclient = Grid402Client(session_pass=\"pass_g402_YOUR_TOKEN\")\naudit = client.email_verify(\"dev@company.com\")\nprint(audit[\"verdict\"], audit[\"deliverability_score\"], audit[\"has_mx\"], audit[\"disposable\"])",
+        'n8n_example' => "MCP Server (Claude / Cursor / n8n):\nnpx -y grid402-mcp  (Tool: grid402_email_verify)\nn8n Community Node: @oliveiratco1/n8n-nodes-grid402",
+        'traditional_cost' => '$16 to $65/mo (ZeroBounce / NeverBounce) with server-side email logging',
+        'grid_cost' => '$0.0050/check via x402 USDC (Base, Solana, Polygon, Arbitrum) or $9.90/mo on RapidAPI',
+        'features' => [
+            'True Zero-PII & Zero-Retention: raw email addresses are never written to disk, logs, or databases — responses return only `email_hash_sha256` and domain technical signals.',
+            'Full DNS deliverability audit: RFC 5322 syntax, authoritative MX records, SPF policy, DMARC policy, free-provider flag, role-based flag, and disposable domain detection.',
+            'Pre-billing validation: malformed email syntax returns HTTP 400 before charging any credit.',
+            'Available via REST API, RapidAPI Credit Card ($9.90/mo), Multi-Chain x402 USDC, MCP (`grid402-mcp`), and n8n (`@oliveiratco1/n8n-nodes-grid402`).',
+        ],
+        'faq' => [
+            [
+                'q' => 'Does Grid402 log or store the email addresses I verify?',
+                'a' => 'Never. The endpoint operates strictly in volatile RAM, never persists the input email in logs or cache, and returns only the irreversible SHA-256 hash alongside technical DNS records (MX, SPF, DMARC).',
+            ],
+            [
+                'q' => 'How is pricing structured for high-volume B2B pipelines?',
+                'a' => 'Pay $0.0050 USDC per verification on Base, Polygon, Arbitrum, or Solana, buy a prepaid Session Pass (6,000 checks for $20 USDC), or subscribe on RapidAPI Hub starting at $9.90/mo.',
+            ],
+            [
+                'q' => 'Does it detect throwaway/disposable email domains?',
+                'a' => 'Yes. Known disposable domains (e.g., Mailinator, GuerrillaMail, 10MinuteMail, YOPmail) are flagged with `disposable: true` and `verdict: RISKY`.',
+            ],
+        ],
+    ],
 ];
 
 if (!isset($pages[$slug])) {
@@ -143,6 +257,9 @@ if (!isset($pages[$slug])) {
 }
 
 $page = $pages[$slug];
+$isEn = (($page['lang'] ?? 'pt-BR') === 'en');
+$htmlLang = $isEn ? 'en' : 'pt-BR';
+$rapidApiUrl = (string) ($page['rapidapi_url'] ?? 'https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities');
 
 if (function_exists('grid402_record_page_visit')) {
     grid402_record_page_visit($page['path'], grid402_get_trusted_client_ip(), (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''));
@@ -150,6 +267,24 @@ if (function_exists('grid402_record_page_visit')) {
 
 header('Content-Type: text/html; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
+
+$jsonLdOffer = $isEn
+    ? [
+        '@type' => 'Offer',
+        'name' => 'Grid402 RapidAPI PRO Plan & Multi-Chain x402 USDC',
+        'price' => '9.90',
+        'priceCurrency' => 'USD',
+        'availability' => 'https://schema.org/InStock',
+        'url' => $rapidApiUrl,
+    ]
+    : [
+        '@type' => 'Offer',
+        'name' => 'Grid402 Starter Session Pass (400 créditos via Pix)',
+        'price' => '12.00',
+        'priceCurrency' => 'BRL',
+        'availability' => 'https://schema.org/InStock',
+        'url' => $domain . '/pass?tier=starter&method=pix',
+    ];
 
 $jsonLd = [
     '@context' => 'https://schema.org',
@@ -159,17 +294,10 @@ $jsonLd = [
             'name' => $page['h1'],
             'applicationCategory' => 'DeveloperApplication',
             'operatingSystem' => 'Any (HTTP REST API)',
-            'inLanguage' => 'pt-BR',
+            'inLanguage' => $htmlLang,
             'url' => $domain . $page['path'],
             'description' => $page['description'],
-            'offers' => [
-                '@type' => 'Offer',
-                'name' => 'Grid402 Starter Session Pass (400 créditos via Pix)',
-                'price' => '12.00',
-                'priceCurrency' => 'BRL',
-                'availability' => 'https://schema.org/InStock',
-                'url' => $domain . '/pass?tier=starter&method=pix',
-            ],
+            'offers' => $jsonLdOffer,
         ],
         [
             '@type' => 'FAQPage',
@@ -186,7 +314,7 @@ $jsonLd = [
 ];
 ?>
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="<?php echo htmlspecialchars($htmlLang, ENT_QUOTES, 'UTF-8'); ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -241,68 +369,74 @@ $jsonLd = [
     <p style="font-size:1.05rem;max-width:800px;"><?php echo htmlspecialchars($page['lead'], ENT_QUOTES, 'UTF-8'); ?></p>
 
     <div class="cta-row">
+        <?php if ($isEn): ?>
+        <a class="btn btn-primary" href="<?php echo htmlspecialchars($rapidApiUrl, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">💳 Subscribe via Credit Card on RapidAPI ($9.90/mo)</a>
+        <a class="btn btn-pix" href="/pass">⚡ Buy Prepaid USDC Pass (Base / Solana / Polygon)</a>
+        <a class="btn btn-outline" href="/catalog">Explore all 25 endpoints →</a>
+        <?php else: ?>
         <a class="btn btn-pix" href="/pass?tier=starter&amp;method=pix">⚡ Comprar 400 Créditos via Pix (R$ 12)</a>
         <a class="btn btn-primary" href="/dossie-kyb">📄 Gerar Dossiê 360º KYB em PDF</a>
         <a class="btn btn-outline" href="/catalog">Ver todos os 25 endpoints →</a>
+        <?php endif; ?>
     </div>
 
     <div class="card">
-        <strong>Endpoint oficial:</strong> <code>GET https://grid402.online<?php echo htmlspecialchars($page['endpoint'], ENT_QUOTES, 'UTF-8'); ?></code><br>
-        <strong>Tarifa:</strong> <span class="ok"><?php echo htmlspecialchars($page['price_usdc'], ENT_QUOTES, 'UTF-8'); ?></span> · <?php echo htmlspecialchars($page['credits'], ENT_QUOTES, 'UTF-8'); ?> · Sandbox grátis: <code>X-Payment: demo</code> (3 req/dia por IP).
+        <strong><?php echo $isEn ? 'Official Endpoint:' : 'Endpoint oficial:'; ?></strong> <code>GET https://grid402.online<?php echo htmlspecialchars($page['endpoint'], ENT_QUOTES, 'UTF-8'); ?></code><br>
+        <strong><?php echo $isEn ? 'Pricing:' : 'Tarifa:'; ?></strong> <span class="ok"><?php echo htmlspecialchars($page['price_usdc'], ENT_QUOTES, 'UTF-8'); ?></span> · <?php echo htmlspecialchars($page['credits'], ENT_QUOTES, 'UTF-8'); ?> · <?php echo $isEn ? 'Free Sandbox:' : 'Sandbox grátis:'; ?> <code>X-Payment: demo</code> (<?php echo $isEn ? '3 req/day per IP' : '3 req/dia por IP'; ?>).
     </div>
 
-    <h2>Exemplos prontos: cURL, Python e n8n</h2>
+    <h2><?php echo $isEn ? 'Ready-to-Run Examples: cURL, Python & MCP / RapidAPI' : 'Exemplos prontos: cURL, Python e n8n'; ?></h2>
     <div class="code-grid">
         <div class="card">
             <strong>1. Terminal (cURL)</strong>
             <pre><?php echo htmlspecialchars($page['curl_example'], ENT_QUOTES, 'UTF-8'); ?></pre>
         </div>
         <div class="card">
-            <strong>2. Python (requests)</strong>
+            <strong>2. Python</strong>
             <pre><?php echo htmlspecialchars($page['python_example'], ENT_QUOTES, 'UTF-8'); ?></pre>
         </div>
         <div class="card">
-            <strong>3. Automação n8n / Make / Zapier</strong>
+            <strong>3. <?php echo $isEn ? 'MCP Server / RapidAPI Hub' : 'Automação n8n / Make / Zapier'; ?></strong>
             <pre><?php echo htmlspecialchars($page['n8n_example'], ENT_QUOTES, 'UTF-8'); ?></pre>
         </div>
     </div>
 
-    <h2>Comparativo de Custo: Bureaus Tradicionais vs. Grid402</h2>
+    <h2><?php echo $isEn ? 'Cost Comparison: Traditional Vendors vs. Grid402' : 'Comparativo de Custo: Bureaus Tradicionais vs. Grid402'; ?></h2>
     <div class="card" style="overflow-x:auto;">
         <table>
             <thead>
                 <tr>
-                    <th>Critério</th>
-                    <th>Fornecedores Tradicionais</th>
-                    <th>Grid402 (Pix / x402)</th>
+                    <th><?php echo $isEn ? 'Criteria' : 'Critério'; ?></th>
+                    <th><?php echo $isEn ? 'Traditional Vendors' : 'Fornecedores Tradicionais'; ?></th>
+                    <th><?php echo $isEn ? 'Grid402 (RapidAPI / x402 USDC)' : 'Grid402 (Pix / x402)'; ?></th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td><strong>Custo de entrada</strong></td>
+                    <td><strong><?php echo $isEn ? 'Entry Cost' : 'Custo de entrada'; ?></strong></td>
                     <td><?php echo htmlspecialchars($page['traditional_cost'], ENT_QUOTES, 'UTF-8'); ?></td>
                     <td class="ok"><?php echo htmlspecialchars($page['grid_cost'], ENT_QUOTES, 'UTF-8'); ?></td>
                 </tr>
                 <tr>
-                    <td><strong>Mensalidade / Fidelidade</strong></td>
-                    <td>Contrato anual com franquia fixa</td>
-                    <td class="ok">R$ 0,00 (Zero mensalidade, pague só o que usar)</td>
+                    <td><strong><?php echo $isEn ? 'Minimum Commitment' : 'Mensalidade / Fidelidade'; ?></strong></td>
+                    <td><?php echo $isEn ? 'Annual contract & fixed monthly minimums' : 'Contrato anual com franquia fixa'; ?></td>
+                    <td class="ok"><?php echo $isEn ? '$0 minimum (Pay-per-call USDC or cancel-anytime RapidAPI)' : 'R$ 0,00 (Zero mensalidade, pague só o que usar)'; ?></td>
                 </tr>
                 <tr>
-                    <td><strong>Ativação</strong></td>
-                    <td>Análise comercial de 2 a 5 dias úteis</td>
-                    <td class="ok">Imediata via Pix (token pass_g402_... na hora)</td>
+                    <td><strong><?php echo $isEn ? 'Activation Time' : 'Ativação'; ?></strong></td>
+                    <td><?php echo $isEn ? '2 to 5 business days sales review' : 'Análise comercial de 2 a 5 dias úteis'; ?></td>
+                    <td class="ok"><?php echo $isEn ? 'Instant (x402, RapidAPI Credit Card, or npx -y grid402-mcp)' : 'Imediata via Pix (token pass_g402_... na hora)'; ?></td>
                 </tr>
                 <tr>
-                    <td><strong>Auditoria e Privacidade</strong></td>
-                    <td>JSON simples sem prova criptográfica</td>
-                    <td class="ok">Assinatura ECDSA secp256k1 + Zero-PII (LGPD Art. 1º)</td>
+                    <td><strong><?php echo $isEn ? 'Audit & Privacy' : 'Auditoria e Privacidade'; ?></strong></td>
+                    <td><?php echo $isEn ? 'Unsigned JSON with server-side PII logging' : 'JSON simples sem prova criptográfica'; ?></td>
+                    <td class="ok"><?php echo $isEn ? 'ECDSA secp256k1 _oracle_proof + Zero-PII (GDPR Recital 14)' : 'Assinatura ECDSA secp256k1 + Zero-PII (LGPD Art. 1º)'; ?></td>
                 </tr>
             </tbody>
         </table>
     </div>
 
-    <h2>Diferenciais Técnicos</h2>
+    <h2><?php echo $isEn ? 'Technical Highlights' : 'Diferenciais Técnicos'; ?></h2>
     <div class="card">
         <ul class="feat">
             <?php foreach ($page['features'] as $feat): ?>
@@ -311,7 +445,7 @@ $jsonLd = [
         </ul>
     </div>
 
-    <h2>Perguntas Frequentes (FAQ)</h2>
+    <h2><?php echo $isEn ? 'Frequently Asked Questions (FAQ)' : 'Perguntas Frequentes (FAQ)'; ?></h2>
     <div class="card">
         <?php foreach ($page['faq'] as $faq): ?>
         <div class="faq-item">
@@ -322,21 +456,33 @@ $jsonLd = [
     </div>
 
     <div class="card" style="text-align:center;border-color:rgba(16,185,129,.45);">
+        <?php if ($isEn): ?>
+        <h2 style="margin-top:0;">Start in 30 Seconds — Credit Card (USD) or Multi-Chain USDC</h2>
+        <p style="margin-bottom:1rem;">Subscribe with Credit Card on RapidAPI Hub ($9.90/mo) or pay per call in USDC across Base, Polygon, Arbitrum, and Solana with <code>npx -y grid402-mcp</code>.</p>
+        <div class="cta-row" style="justify-content:center;margin-bottom:0;">
+            <a class="btn btn-primary" href="<?php echo htmlspecialchars($rapidApiUrl, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">💳 Open on RapidAPI Hub ($9.90/mo)</a>
+            <a class="btn btn-pix" href="/pass">⚡ Buy Prepaid USDC Pass</a>
+        </div>
+        <?php else: ?>
         <h2 style="margin-top:0;">Comece em menos de 30 segundos sem criar conta</h2>
         <p style="margin-bottom:1rem;">Gere seu Starter Pass via Pix por R$ 12 (400 créditos) e use em todos os 25 endpoints da plataforma ou no Gerador de Dossiê KYB em PDF.</p>
         <div class="cta-row" style="justify-content:center;margin-bottom:0;">
             <a class="btn btn-pix" href="/pass?tier=starter&amp;method=pix">⚡ Gerar Pix R$ 12 Agora</a>
             <a class="btn btn-primary" href="/dossie-kyb">📄 Abrir Gerador de Dossiê KYB</a>
         </div>
+        <?php endif; ?>
     </div>
 
-    <nav class="crosslinks" aria-label="Páginas relacionadas">
-        <strong>Explore também:</strong>
-        <a href="/dossie-kyb">Dossiê 360º KYB em PDF</a>
+    <nav class="crosslinks" aria-label="<?php echo $isEn ? 'Related pages' : 'Páginas relacionadas'; ?>">
+        <strong><?php echo $isEn ? 'Explore more:' : 'Explore também:'; ?></strong>
+        <a href="/url-to-markdown-api">URL-to-Markdown API</a>
+        <a href="/global-kyb-api">Global KYB API</a>
+        <a href="/zero-pii-email-verification-api">Zero-PII Email API</a>
+        <a href="/dossie-kyb">Dossiê 360º KYB</a>
         <a href="/api-cnpj">API CNPJ</a>
         <a href="/api-sancoes-cgu">API Sanções CGU</a>
-        <a href="/api-dias-uteis-anbima">API Dias Úteis ANBIMA</a>
-        <a href="/pass">Comprar Session Pass</a>
+        <a href="/api-dias-uteis-anbima">API ANBIMA</a>
+        <a href="/pass">Session Pass</a>
     </nav>
 </main>
 </body>

@@ -43,6 +43,9 @@ $seoLandingSlugs = [
     '/api-cnpj' => 'api-cnpj',
     '/api-sancoes-cgu' => 'api-sancoes-cgu',
     '/api-dias-uteis-anbima' => 'api-dias-uteis-anbima',
+    '/url-to-markdown-api' => 'url-to-markdown-api',
+    '/global-kyb-api' => 'global-kyb-api',
+    '/zero-pii-email-verification-api' => 'zero-pii-email-verification-api',
 ];
 if (isset($seoLandingSlugs[$uri])) {
     $_GET['slug'] = $seoLandingSlugs[$uri];
