@@ -67,6 +67,38 @@ function grid402_admin_runtime_status(): array {
 }
 
 /**
+ * Formata um timestamp ISO-8601 UTC exibindo o horario de Brasilia (BRT, America/Sao_Paulo)
+ * como linha principal e o horario UTC original como referencia secundaria.
+ *
+ * @return array{brt: string, utc: string}
+ */
+function grid402_admin_format_brt_utc(string $isoUtc, bool $timeOnly = false): array {
+    $trimmed = trim($isoUtc);
+    if ($trimmed === '') {
+        return ['brt' => '-', 'utc' => ''];
+    }
+    try {
+        $dtUtc = new DateTimeImmutable($trimmed, new DateTimeZone('UTC'));
+        $dtBrt = $dtUtc->setTimezone(new DateTimeZone('America/Sao_Paulo'));
+        if ($timeOnly) {
+            return [
+                'brt' => $dtBrt->format('H:i:s') . ' BRT',
+                'utc' => $dtUtc->format('H:i:s') . ' UTC',
+            ];
+        }
+        return [
+            'brt' => $dtBrt->format('d/m H:i:s') . ' BRT',
+            'utc' => $trimmed,
+        ];
+    } catch (Throwable $e) {
+        return [
+            'brt' => $timeOnly ? substr($trimmed, 11, 8) : $trimmed,
+            'utc' => '',
+        ];
+    }
+}
+
+/**
  * Consulta os saldos on-chain em USDC e ETH da carteira oficial na Base Mainnet com cache de 60s
  */
 function grid402_get_oracle_wallet_balances(): array {
@@ -2694,7 +2726,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 <table>
                     <thead>
                         <tr>
-                            <th>Horário (UTC)</th>
+                            <th>Horário (BRT · UTC)</th>
                             <th>Serviço</th>
                             <th>HTTP</th>
                             <th>Origem</th>
@@ -2707,9 +2739,16 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                             <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.25rem;">Nenhuma falha detalhada registrada recentemente em requests.jsonl.</td>
                         </tr>
                         <?php else: ?>
-                            <?php foreach ($recentPaymentFailures as $pf): ?>
+                            <?php foreach ($recentPaymentFailures as $pf):
+                                $pfDualTs = grid402_admin_format_brt_utc((string) ($pf['ts'] ?? ''), false);
+                            ?>
                             <tr>
-                                <td style="white-space: nowrap;"><?php echo htmlspecialchars((string) ($pf['ts'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td style="white-space: nowrap;">
+                                    <div><?php echo htmlspecialchars($pfDualTs['brt'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <?php if ($pfDualTs['utc'] !== ''): ?>
+                                    <div style="font-size: 0.7rem; color: var(--text-muted);"><?php echo htmlspecialchars($pfDualTs['utc'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <?php endif; ?>
+                                </td>
                                 <td><strong><?php echo htmlspecialchars((string) ($pf['service'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></td>
                                 <td><span class="tag-status status-<?php echo (int) ($pf['status'] ?? 402); ?>">HTTP <?php echo (int) ($pf['status'] ?? 402); ?></span></td>
                                 <td><?php echo htmlspecialchars((string) ($pf['payment_source'] ?? 'unknown'), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -2753,7 +2792,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 <table>
                     <thead>
                         <tr>
-                            <th>Horário (UTC)</th>
+                            <th>Horário (BRT · UTC)</th>
                             <th>Serviço</th>
                             <th>Status</th>
                             <th>Tipo</th>
@@ -2775,9 +2814,15 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                             <?php foreach ($events as $ev):
                                 $evType = $ev['type'] ?? ($ev['is_paid'] ? 'paid' : 'free');
                                 $st = (int)($ev['status'] ?? 200);
+                                $evDualTs = grid402_admin_format_brt_utc((string)($ev['timestamp'] ?? ''), true);
                             ?>
                             <tr class="event-row" data-type="<?php echo htmlspecialchars($evType, ENT_QUOTES); ?>">
-                                <td><?php echo substr($ev['timestamp'] ?? '', 11, 8); ?></td>
+                                <td style="white-space: nowrap;">
+                                    <div><?php echo htmlspecialchars($evDualTs['brt'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <?php if ($evDualTs['utc'] !== ''): ?>
+                                    <div style="font-size: 0.7rem; color: var(--text-muted);"><?php echo htmlspecialchars($evDualTs['utc'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <?php endif; ?>
+                                </td>
                                 <td><strong><?php echo htmlspecialchars((string)($ev['service'] ?? ''), ENT_QUOTES); ?></strong></td>
                                 <td>
                                     <span class="tag-status status-<?php echo $st; ?>">HTTP <?php echo $st; ?></span>
@@ -3469,7 +3514,10 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                     } else {
                         let rowsHtml = '';
                         events.forEach(ev => {
-                            const time = safeHtmlText((ev.timestamp || '').substr(11, 8));
+                            const dualTs = formatBrtUtcTimestamp(ev.timestamp || '', true);
+                            const timeHtml = dualTs.utc
+                                ? `<div>${safeHtmlText(dualTs.brt)}</div><div style="font-size: 0.7rem; color: var(--text-muted);">${safeHtmlText(dualTs.utc)}</div>`
+                                : safeHtmlText(dualTs.brt);
                             const st = Number(ev.status || 200);
                             const rawType = ev.type || (ev.is_paid ? 'paid' : 'free');
                             const safeType = safeHtmlText(rawType);
@@ -3510,7 +3558,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
 
                             rowsHtml += `
                             <tr class="event-row" data-type="${safeType}">
-                                <td>${time}</td>
+                                <td style="white-space: nowrap;">${timeHtml}</td>
                                 <td><strong>${cleanService}</strong></td>
                                 <td><span class="tag-status status-${st}">HTTP ${st}</span></td>
                                 <td>${typeBadge}</td>
@@ -3539,6 +3587,38 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             }
         }
 
+        function formatBrtUtcTimestamp(isoStr, timeOnly) {
+            const raw = String(isoStr || '').trim();
+            if (!raw) return { brt: '-', utc: '' };
+            const d = new Date(raw);
+            if (Number.isNaN(d.getTime())) {
+                return { brt: timeOnly ? raw.substr(11, 8) : raw, utc: '' };
+            }
+            const brtTime = d.toLocaleTimeString('pt-BR', {
+                timeZone: 'America/Sao_Paulo',
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+            });
+            if (timeOnly) {
+                const utcTime = d.toLocaleTimeString('pt-BR', {
+                    timeZone: 'UTC',
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                });
+                return { brt: brtTime + ' BRT', utc: utcTime + ' UTC' };
+            }
+            const brtDate = d.toLocaleDateString('pt-BR', {
+                timeZone: 'America/Sao_Paulo',
+                day: '2-digit',
+                month: '2-digit',
+            });
+            return { brt: brtDate + ' ' + brtTime + ' BRT', utc: raw };
+        }
+
         function renderRecentPaymentFailures(failures) {
             const tbody = document.getElementById('payment-failures-tbody');
             if (!tbody || !Array.isArray(failures)) return;
@@ -3560,7 +3640,17 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
 
                 const tdTs = document.createElement('td');
                 tdTs.style.whiteSpace = 'nowrap';
-                tdTs.textContent = String(pf.ts || '');
+                const dualTs = formatBrtUtcTimestamp(pf.ts || '', false);
+                const divBrt = document.createElement('div');
+                divBrt.textContent = dualTs.brt;
+                tdTs.appendChild(divBrt);
+                if (dualTs.utc) {
+                    const divUtc = document.createElement('div');
+                    divUtc.style.fontSize = '0.7rem';
+                    divUtc.style.color = 'var(--text-muted)';
+                    divUtc.textContent = dualTs.utc;
+                    tdTs.appendChild(divUtc);
+                }
 
                 const tdSvc = document.createElement('td');
                 const strongSvc = document.createElement('strong');

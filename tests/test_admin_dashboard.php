@@ -459,6 +459,7 @@ try {
     }
     assert(str_contains($dashResp['body'], 'runtime-telegram-badge') && str_contains($dashResp['body'], 'btn-test-telegram'), 'Dashboard deve exibir badge e botao de diagnostico do Telegram');
     assert(str_contains($dashResp['body'], 'payment-failures-panel') && str_contains($dashResp['body'], 'payment-failures-tbody'), 'Dashboard deve exibir painel de diagnostico real de falhas em requests.jsonl');
+    assert(str_contains($dashResp['body'], 'Horário (BRT · UTC)'), 'Dashboard deve exibir cabecalho Horário (BRT · UTC) nas tabelas de telemetria e falhas');
     assert(str_contains($dashResp['body'], 'btn-config-telegram') && str_contains($dashResp['body'], 'telegram-modal-overlay'), 'Dashboard deve exibir botao e modal de configuracao do Telegram');
     assert(str_contains($dashResp['body'], 'Sem erros 5xx'), 'Dashboard deve exibir SLA sem erros 5xx');
     assert(str_contains($dashResp['body'], 'Saldo On-Chain (Base)'), 'Deve conter card de Saldo On-Chain');
