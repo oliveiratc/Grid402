@@ -4,6 +4,13 @@ Todas as mudanças relevantes de arquitetura, catálogo de serviços, segurança
 
 ---
 
+## [Unreleased]
+
+### Adicionado
+- **Vinculação de endereço Solana ao perfil PayCensus Trust (`scripts/paycensus_bind_solana.py`):** assina a mensagem exata `paycensus-addr-proof=paycensus-verify=<nonce>` (UTF-8, vid=12) com keypair ed25519 e POSTa em `trust.paycensus.com/api/verify/addr-proof-solana`. O endereço `2omGBXvZgbnzq1mbcqSYcJAouSqNjSqRTwzNHKxGkd29` passou a constar com `proven=1` em `trust.paycensus.com/api/profile?domain=grid402.online`, tornando o perfil do grid402.online multi-chain verificado. A seed do keypair fica apenas em `GRID402_SOLANA_SIGNING_KEY` no `.env` (gitignored); para vincular a wallet de produção `CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C` (payTo do `.well-known/x402.json`), reutilizar o mesmo script com a chave real via `--keypair` ou env.
+
+---
+
 ## [3.3.0] - 2026-11-16
 
 ### Adicionado
