@@ -55,6 +55,7 @@ export async function settleX402Payment(challenge, privateKey, preferredRpc = nu
   const recipient = (challenge?.recipient_wallet || GRID402_RECIPIENT_WALLET).toLowerCase();
   const tokenContract = (challenge?.token_contract || USDC_CONTRACT_BASE).toLowerCase();
   const rawUnits = BigInt(challenge?.price_raw_units || REQUIRED_RAW_UNITS);
+  const formattedUsdc = (Number(rawUnits) / 1e6).toFixed(4);
 
   const provider = await getBaseProvider(preferredRpc);
   const wallet = new ethers.Wallet(privateKey, provider);
@@ -66,7 +67,7 @@ export async function settleX402Payment(challenge, privateKey, preferredRpc = nu
   try {
     const balance = await usdc.balanceOf(wallet.address);
     if (balance < rawUnits) {
-      throw new Error(`Saldo insuficiente de USDC na carteira ${wallet.address}. Requerido: 0.0050 USDC, Atual: ${ethers.formatUnits(balance, 6)} USDC.`);
+      throw new Error(`Saldo insuficiente de USDC na carteira ${wallet.address}. Requerido: ${formattedUsdc} USDC, Atual: ${ethers.formatUnits(balance, 6)} USDC.`);
     }
   } catch (err) {
     if (err.message.includes('Saldo insuficiente')) {
@@ -84,7 +85,7 @@ export async function settleX402Payment(challenge, privateKey, preferredRpc = nu
     blockNumber: receipt.blockNumber,
     from: wallet.address,
     to: recipient,
-    amountUsdc: '0.0050',
+    amountUsdc: formattedUsdc,
   };
 }
 

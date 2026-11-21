@@ -259,89 +259,97 @@ final class JsonFlockPassRepository implements PassStorageInterface {
 
         $record = null;
         $purgedPassIds = [];
-        if (flock($fp, LOCK_EX)) {
-            $store = grid402_read_locked_json($fp, []);
+        try {
+            if (flock($fp, LOCK_EX)) {
+                try {
+                    $store = grid402_read_locked_json($fp, []);
 
-            $cleanTx = strtolower(trim($txHash));
-            if (!$isSandbox && $cleanTx !== '') {
-                foreach ($store as $entry) {
-                    if (($entry['tx_hash'] ?? '') === $cleanTx) {
-                        $record = $entry;
-                        break;
-                    }
-                }
-            }
-
-            // FIX: Security gate - For non-sandbox passes with real-looking tx hashes
-            // (EVM: 0x + 64 hex, or Solana: Base58 64-90 chars), verify the tx hash
-            // was previously validated on-chain (exists in used_txs lock file).
-            // This prevents phantom passes from being created with fake tx hashes.
-            // FIX: Security gate - skip in CLI/test environments
-            $isTestEnv = (php_sapi_name() === 'cli') || function_exists('t_bootstrap') || defined('GRID402_TEST_MODE') || str_contains(GRID402_PRIVATE_DIR, 'tmp') || str_contains(GRID402_PRIVATE_DIR, 'temp');
-            if (!$isTestEnv && !$isSandbox && $record === null && $cleanTx !== '') {
-                $isEvmTx = (bool) preg_match('/^0x[a-f0-9]{64}$/', $cleanTx);
-                $isSolanaSig = (strlen($cleanTx) >= 64 && strlen($cleanTx) <= 90 && !str_starts_with($cleanTx, '0x'));
-                if ($isEvmTx || $isSolanaSig) {
-                    // Check if tx hash exists in the on-chain verification lock file
-                    $usedTxsFile = defined('GRID402_FILE_USED_TXS') ? GRID402_FILE_USED_TXS : (GRID402_PRIVATE_DIR . '/used_txs.json');
-                    $txs = [];
-                    if (file_exists($usedTxsFile)) {
-                        $txs = @json_decode((string) file_get_contents($usedTxsFile), true);
-                        if (!is_array($txs)) {
-                            $txs = [];
+                    $rawTxTrimmed = trim($txHash);
+                    $cleanTx = strtolower($rawTxTrimmed);
+                    if (!$isSandbox && $cleanTx !== '') {
+                        foreach ($store as $entry) {
+                            if (($entry['tx_hash'] ?? '') === $cleanTx) {
+                                $record = $entry;
+                                break;
+                            }
                         }
                     }
-                    if (!isset($txs[$cleanTx])) {
-                        throw new RuntimeException('Transação não verificada on-chain. O hash ' . $txHash . ' não foi validado contra a blockchain. Emissão de pass negada.');
+
+                    // FIX: Security gate - For non-sandbox passes with real-looking tx hashes
+                    // (EVM: [chain:]0x + 64 hex, or Solana: [solana:]Base58 64-90 chars), verify the tx hash
+                    // was previously validated on-chain (exists in used_txs lock file).
+                    // This prevents phantom passes from being created with fake tx hashes.
+                    // FIX: Security gate - skip in CLI/test environments
+                    $isTestEnv = (php_sapi_name() === 'cli') || function_exists('t_bootstrap') || defined('GRID402_TEST_MODE') || str_contains(GRID402_PRIVATE_DIR, 'tmp') || str_contains(GRID402_PRIVATE_DIR, 'temp');
+                    if (!$isTestEnv && !$isSandbox && $record === null && $cleanTx !== '') {
+                        $isEvmTx = (bool) preg_match('/^(?:(?:base|arbitrum|polygon|optimism|ethereum):)?0x[a-f0-9]{64}$/', $cleanTx);
+                        $isSolanaSig = (bool) preg_match('/^(?:solana:)?[1-9A-HJ-NP-Za-km-z]{64,90}$/', $rawTxTrimmed);
+                        if ($isEvmTx || $isSolanaSig) {
+                            // Check if tx hash exists in the on-chain verification lock file
+                            $usedTxsFile = defined('GRID402_FILE_USED_TXS') ? GRID402_FILE_USED_TXS : (GRID402_PRIVATE_DIR . '/used_txs.json');
+                            $txs = [];
+                            if (file_exists($usedTxsFile)) {
+                                $txs = @json_decode((string) file_get_contents($usedTxsFile), true);
+                                if (!is_array($txs)) {
+                                    $txs = [];
+                                }
+                            }
+                            $hasTx = isset($txs[$cleanTx])
+                                || ($isSolanaSig && !str_starts_with($cleanTx, 'solana:') && isset($txs['solana:' . $cleanTx]));
+                            if (!$hasTx) {
+                                throw new RuntimeException('Transação não verificada on-chain. O hash ' . $txHash . ' não foi validado contra a blockchain. Emissão de pass negada.');
+                            }
+                        }
                     }
+
+                    if ($record === null) {
+                        $prefix = $isSandbox ? 'demo' : 'live';
+                        $passId = $prefix . bin2hex(random_bytes(6));
+                        $hmac = grid402_pass_sign_id($passId);
+                        $token = "pass_g402_{$passId}_{$hmac}";
+
+                        $record = [
+                            'pass_id' => $passId,
+                            'pass_token' => $token,
+                            'tier' => $tier,
+                            'mode' => $isSandbox ? 'sandbox' : 'production',
+                            'tx_hash' => $cleanTx,
+                            'usdc_deposited' => $usdcAmount,
+                            'credit_scale' => 'v2_5000',
+                            'credits_total' => $credits,
+                            'credits_remaining' => $credits,
+                            'credits_used_today' => 0,
+                            'usage_day_utc' => gmdate('Y-m-d', $now),
+                            'daily_credit_limit' => null,
+                            'allowed_endpoints' => [],
+                            'issued_at' => gmdate('Y-m-d\TH:i:s\Z', $now),
+                            'expires_at' => gmdate('Y-m-d\TH:i:s\Z', $expiresAt),
+                            'expires_epoch' => $expiresAt,
+                            'usage_count' => 0,
+                        ];
+
+                        $cleaned = [];
+                        foreach ($store as $k => $v) {
+                            if ((int) ($v['expires_epoch'] ?? 0) > ($now - 604800)) {
+                                $cleaned[$k] = $v;
+                            } else {
+                                $purgedPassIds[] = (string) $k;
+                            }
+                        }
+                        $cleaned[$passId] = $record;
+
+                        ftruncate($fp, 0);
+                        rewind($fp);
+                        fwrite($fp, (string) json_encode($cleaned, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+                        fflush($fp);
+                    }
+                } finally {
+                    flock($fp, LOCK_UN);
                 }
             }
-
-            if ($record === null) {
-                $prefix = $isSandbox ? 'demo' : 'live';
-                $passId = $prefix . bin2hex(random_bytes(6));
-                $hmac = grid402_pass_sign_id($passId);
-                $token = "pass_g402_{$passId}_{$hmac}";
-
-                $record = [
-                    'pass_id' => $passId,
-                    'pass_token' => $token,
-                    'tier' => $tier,
-                    'mode' => $isSandbox ? 'sandbox' : 'production',
-                    'tx_hash' => $cleanTx,
-                    'usdc_deposited' => $usdcAmount,
-                    'credit_scale' => 'v2_5000',
-                    'credits_total' => $credits,
-                    'credits_remaining' => $credits,
-                    'credits_used_today' => 0,
-                    'usage_day_utc' => gmdate('Y-m-d', $now),
-                    'daily_credit_limit' => null,
-                    'allowed_endpoints' => [],
-                    'issued_at' => gmdate('Y-m-d\TH:i:s\Z', $now),
-                    'expires_at' => gmdate('Y-m-d\TH:i:s\Z', $expiresAt),
-                    'expires_epoch' => $expiresAt,
-                    'usage_count' => 0,
-                ];
-
-                $cleaned = [];
-                foreach ($store as $k => $v) {
-                    if ((int) ($v['expires_epoch'] ?? 0) > ($now - 604800)) {
-                        $cleaned[$k] = $v;
-                    } else {
-                        $purgedPassIds[] = (string) $k;
-                    }
-                }
-                $cleaned[$passId] = $record;
-
-                ftruncate($fp, 0);
-                rewind($fp);
-                fwrite($fp, (string) json_encode($cleaned, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-                fflush($fp);
-            }
-
-            flock($fp, LOCK_UN);
+        } finally {
+            fclose($fp);
         }
-        fclose($fp);
 
         // Limpa extratos órfãos apenas após fechar o lock de session_passes.json
         $this->purgeStatementsForPasses($purgedPassIds);

@@ -20,6 +20,7 @@ require_once __DIR__ . '/config.php';
 const GRID402_FACILITATOR_VERIFY_TIMEOUT = 5;
 const GRID402_FACILITATOR_SETTLE_TIMEOUT = 10;
 const GRID402_NONCE_TTL_SECONDS = 604800; // 7 dias
+const GRID402_CLOCK_SKEW_SECONDS = 30;
 
 /**
  * Decodifica base64 padrao ou url-safe de forma estrita. Retorna null se invalido.
@@ -320,7 +321,7 @@ function grid402_validate_exact_requirements(array $decoded, int $requiredRawUni
     if ((int) $auth['value'] < $requiredRawUnits) {
         return $fail('Valor insuficiente. Minimo exigido: ' . $requiredRawUnits . ' unidades de USDC (6 casas decimais).');
     }
-    if ($now < (int) $auth['validAfter']) {
+    if (($now + GRID402_CLOCK_SKEW_SECONDS) < (int) $auth['validAfter']) {
         return $fail('Autorizacao ainda nao e valida (validAfter no futuro).', 'authorization_expired');
     }
     if ($now >= (int) $auth['validBefore']) {
@@ -627,6 +628,10 @@ function grid402_build_payment_requirements(int $version, int $requiredRawUnits,
  * evitando URLs relativas, query strings duplicadas ou metadados de fallback (`summary`).
  */
 function grid402_normalize_v2_discovery_payload(array &$paymentPayload, ?string $serviceSlug, string $priceDisplay, string $resourceUrl): void {
+    if (isset($paymentPayload['accepted']) && is_array($paymentPayload['accepted']) && !isset($paymentPayload['accepted']['maxTimeoutSeconds'])) {
+        $paymentPayload['accepted']['maxTimeoutSeconds'] = 300;
+    }
+
     $clientResource = is_array($paymentPayload['resource'] ?? null) ? $paymentPayload['resource'] : [];
     $clientResourceUrl = (string) ($clientResource['url'] ?? '');
     $clientSlug = null;
@@ -718,10 +723,10 @@ function grid402_normalize_v2_discovery_payload(array &$paymentPayload, ?string 
 }
 
 /**
- * Fluxo completo do pagamento x402 padrao: modo, decodificacao, validacao local,
- * anti-replay, verify e settle. Retorna o mesmo formato de grid402_validate_payment().
+ * Etapa 1 do pagamento x402 padrao: modo, decodificacao, validacao local,
+ * reserva anti-replay e chamada ao /verify do facilitador (sem liquidar).
  */
-function grid402_validate_exact_payment(string $rawProof, int $requiredRawUnits, ?string $resourceUrl = null, ?int $now = null): array {
+function grid402_verify_exact_payment(string $rawProof, int $requiredRawUnits, ?string $resourceUrl = null, ?int $now = null): array {
     $mode = GRID402_FACILITATOR_MODE;
     if ($mode === 'disabled') {
         return [
@@ -824,14 +829,62 @@ function grid402_validate_exact_payment(string $rawProof, int $requiredRawUnits,
         ];
     }
 
+    grid402_set_nonce_state($nonceKey, 'verified');
+    return [
+        'valid' => true,
+        'sandbox' => false,
+        'source' => 'facilitator',
+        'payer' => $payerAddress,
+        'raw_amount' => $rawPaidUnits,
+        'network' => $netSpec['v2'],
+        'needs_settle' => true,
+        '_settle_ctx' => [
+            'nonce_key' => $nonceKey,
+            'request_body' => $requestBody,
+            'is_svm' => $isSvm,
+            'net_v2' => $netSpec['v2'],
+            'payer' => $payerAddress,
+            'raw_amount' => $rawPaidUnits,
+        ],
+        'reason' => 'Autorizacao x402 verificada; aguardando liquidacao.',
+        'code' => 200,
+    ];
+}
+
+/**
+ * Etapa 2 do pagamento x402 padrao: liquida via /settle uma autorizacao previamente verificada.
+ */
+function grid402_settle_exact_payment(array $verified): array {
+    if (empty($verified['needs_settle']) || !is_array($verified['_settle_ctx'] ?? null)) {
+        return $verified;
+    }
+
+    $ctx = $verified['_settle_ctx'];
+    $nonceKey = (string) ($ctx['nonce_key'] ?? '');
+    $requestBody = is_array($ctx['request_body'] ?? null) ? $ctx['request_body'] : [];
+    $isSvm = !empty($ctx['is_svm']);
+    $netV2 = (string) ($ctx['net_v2'] ?? GRID402_X402_NETWORK_V2);
+    $payerAddress = (string) ($ctx['payer'] ?? '');
+    $rawPaidUnits = (int) ($ctx['raw_amount'] ?? 0);
+
     // 2) Liquidacao (sem retentativa automatica para nao liquidar duas vezes)
     $settle = grid402_facilitator_call(GRID402_FACILITATOR_SETTLE_PATH, $requestBody, GRID402_FACILITATOR_SETTLE_TIMEOUT);
     if ($settle['unavailable']) {
-        grid402_set_nonce_state($nonceKey, 'pending');
-        return $unavailable('Liquidacao sem confirmacao do facilitador. Nao reenvie esta autorizacao; aguarde e consulte o saldo antes de tentar novamente.');
+        if ($nonceKey !== '') {
+            grid402_set_nonce_state($nonceKey, 'pending');
+        }
+        return [
+            'valid' => false,
+            'code' => 503,
+            'category' => 'facilitator_unavailable',
+            'reason' => 'Liquidacao sem confirmacao do facilitador. Nao reenvie esta autorizacao; aguarde e consulte o saldo antes de tentar novamente.',
+            'retry_after' => 30,
+        ];
     }
     if (!$settle['ok'] || empty($settle['data']['success'])) {
-        grid402_release_nonce($nonceKey);
+        if ($nonceKey !== '') {
+            grid402_release_nonce($nonceKey);
+        }
         $why = (string) ($settle['data']['errorReason'] ?? $settle['data']['errorMessage'] ?? 'liquidacao nao concluida');
         return [
             'valid' => false,
@@ -841,23 +894,61 @@ function grid402_validate_exact_payment(string $rawProof, int $requiredRawUnits,
         ];
     }
 
-    grid402_set_nonce_state($nonceKey, 'settled');
+    if ($nonceKey !== '') {
+        grid402_set_nonce_state($nonceKey, 'settled');
+    }
     $rawSettleTx = trim((string) ($settle['data']['transaction'] ?? ''));
     $settlementTx = $isSvm ? $rawSettleTx : strtolower($rawSettleTx);
     if ($payerAddress === '' && !empty($settle['data']['payer']) && is_string($settle['data']['payer'])) {
         $payerAddress = trim($settle['data']['payer']);
     }
+    $settledNet = (string) ($settle['data']['network'] ?? $netV2);
+    $txLockKey = '';
+    if ($settlementTx !== '') {
+        $txLockKey = match (true) {
+            $settledNet === 'eip155:137' => 'polygon:' . strtolower($settlementTx),
+            $settledNet === 'eip155:42161' => 'arbitrum:' . strtolower($settlementTx),
+            str_starts_with(strtolower($settledNet), 'solana:') => 'solana:' . $settlementTx,
+            default => strtolower($settlementTx),
+        };
+        if (function_exists('grid402_claim_transaction_lock')) {
+            grid402_claim_transaction_lock($txLockKey);
+        }
+    }
+
     return [
         'valid' => true,
         'sandbox' => false,
         'source' => 'facilitator',
         'payer' => $payerAddress,
         'settlement_tx' => $settlementTx !== '' ? $settlementTx : null,
+        'lock_key' => $txLockKey !== '' ? $txLockKey : null,
         'raw_amount' => $rawPaidUnits,
-        'network' => (string) ($settle['data']['network'] ?? $netSpec['v2']),
+        'network' => $settledNet,
         'reason' => 'Pagamento x402 liquidado pelo facilitador.',
         'code' => 200,
     ];
+}
+
+/**
+ * Libera a reserva de nonce de uma autorizacao verificada quando a execucao do servico falha antes do settle.
+ */
+function grid402_abort_verified_exact_payment(array $verified): void {
+    if (!empty($verified['needs_settle']) && !empty($verified['_settle_ctx']['nonce_key'])) {
+        grid402_release_nonce((string) $verified['_settle_ctx']['nonce_key']);
+    }
+}
+
+/**
+ * Fluxo completo do pagamento x402 padrao: modo, decodificacao, validacao local,
+ * anti-replay, verify e settle. Retorna o mesmo formato de grid402_validate_payment().
+ */
+function grid402_validate_exact_payment(string $rawProof, int $requiredRawUnits, ?string $resourceUrl = null, ?int $now = null): array {
+    $verified = grid402_verify_exact_payment($rawProof, $requiredRawUnits, $resourceUrl, $now);
+    if (empty($verified['valid']) || empty($verified['needs_settle'])) {
+        return $verified;
+    }
+    return grid402_settle_exact_payment($verified);
 }
 
 /**

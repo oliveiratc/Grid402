@@ -307,11 +307,13 @@ function grid402_mark_transaction_used(string $txHash): bool {
  * 
  * Retorna array ['valid' => bool, 'reason' => string, 'code' => int]
  */
-function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null, ?string $clientIp = null, ?string $endpointId = null, ?string $paymentNetwork = null): array {
+function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null, ?string $clientIp = null, ?string $endpointId = null, ?string $paymentNetwork = null, bool $deferSettle = false): array {
     // Payload x402 padrao (base64) e sensivel a maiusculas: classifica antes de normalizar
     if (grid402_classify_payment_proof($txHash) === 'x402_payload') {
         $resourceUrl = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '';
-        return grid402_validate_exact_payment(trim($txHash), $requiredRawUnits ?? GRID402_USDC_REQUIRED_RAW, $resourceUrl);
+        return $deferSettle
+            ? grid402_verify_exact_payment(trim($txHash), $requiredRawUnits ?? GRID402_USDC_REQUIRED_RAW, $resourceUrl)
+            : grid402_validate_exact_payment(trim($txHash), $requiredRawUnits ?? GRID402_USDC_REQUIRED_RAW, $resourceUrl);
     }
 
     $rawProof = trim($txHash);
@@ -390,6 +392,7 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
             'chain_id' => $mcResult['chain_id'] ?? null,
             'raw_amount' => (int) ($mcResult['raw_amount'] ?? 0),
             'settlement_tx' => (string) ($mcResult['tx_hash'] ?? $parsedNet['tx_hash']),
+            'lock_key' => (string) ($mcResult['lock_key'] ?? $parsedNet['lock_key']),
             'explorer_url' => (string) ($mcResult['explorer_url'] ?? ''),
             'reason' => "Pagamento USDC verificado com sucesso na rede {$parsedNet['network']}.",
             'code' => 200,
@@ -524,6 +527,8 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
         'valid' => true,
         'sandbox' => false,
         'source' => 'tx_hash',
+        'settlement_tx' => $txHash,
+        'lock_key' => $txHash,
         'raw_amount' => $matchedRawAmount ?? $requiredAmount,
         'reason' => 'Pagamento x402 validado com sucesso na Base Mainnet.',
         'code' => 200,
@@ -723,6 +728,35 @@ function grid402_build_bazaar_extension(?array $exampleOutput = null, ?string $s
 }
 
 /**
+ * Constroi e emite o cabecalho padrao x402 v2 PAYMENT-REQUIRED (base64).
+ */
+function grid402_emit_payment_required_header(?string $serviceName, string $priceDisplay, int $priceRawUnits, string $errorText = 'Payment required', ?array $preview = null, ?string $resourceDescription = null): array {
+    $acceptsList = grid402_build_accepts($priceRawUnits);
+    $resourceInfo = grid402_build_resource_info($serviceName, $priceDisplay, null, $resourceDescription);
+    $bazaarInfo = grid402_build_bazaar_extension($preview, $serviceName);
+
+    $x402V2HeaderData = [
+        'x402Version' => 2,
+        'error' => $errorText,
+        'resource' => $resourceInfo,
+        'accepts' => $acceptsList,
+        'extensions' => [
+            'bazaar' => $bazaarInfo,
+        ],
+    ];
+
+    $b64Header = base64_encode((string) json_encode($x402V2HeaderData, JSON_UNESCAPED_SLASHES));
+    header('PAYMENT-REQUIRED: ' . $b64Header);
+
+    return [
+        'accepts' => $acceptsList,
+        'resource' => $resourceInfo,
+        'bazaar' => $bazaarInfo,
+        'header' => $b64Header,
+    ];
+}
+
+/**
  * Emite a resposta HTTP 402 Payment Required estruturada compativel com x402 v2
  */
 function grid402_respond_402(?string $serviceName = null, ?string $errorMessage = null, ?string $priceDisplay = null, ?int $priceRawUnits = null, ?array $preview = null, ?array $lockedFields = null): void {
@@ -740,27 +774,14 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
     }
     header('X-Authenticate: x402');
     header('X-Accept-Payment: base:usdc:' . GRID402_WALLET_ADDRESS . ':' . $priceDisplay);
-    header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Payment-Required, payment-required, X-Request-Id');
+    header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, PAYMENT-REQUIRED, Payment-Required, payment-required, PAYMENT-RESPONSE, X-PAYMENT-RESPONSE, X-Idempotent-Replay, X-Request-Id');
 
     $msg = $errorMessage ?? ($serviceName ? "Acesso à API '{$serviceName}' requer micropagamento de {$priceDisplay} USDC via protocolo x402." : 'Consulta técnica requer micropagamento sob demanda via protocolo x402.');
 
-    $acceptsList = grid402_build_accepts($priceRawUnits);
-    $resourceInfo = grid402_build_resource_info($serviceName, $priceDisplay, null, $msg);
-    $bazaarInfo = grid402_build_bazaar_extension($preview, $serviceName);
-
-    $x402V2HeaderData = [
-        'x402Version' => 2,
-        'error' => 'Payment required',
-        'resource' => $resourceInfo,
-        'accepts' => $acceptsList,
-        'extensions' => [
-            'bazaar' => $bazaarInfo,
-        ],
-    ];
-
-    $b64Header = base64_encode((string) json_encode($x402V2HeaderData, JSON_UNESCAPED_SLASHES));
-    header('Payment-Required: ' . $b64Header);
-    header('payment-required: ' . $b64Header);
+    $prBundle = grid402_emit_payment_required_header($serviceName, $priceDisplay, (int) $priceRawUnits, 'Payment required', $preview, $msg);
+    $acceptsList = $prBundle['accepts'];
+    $resourceInfo = $prBundle['resource'];
+    $bazaarInfo = $prBundle['bazaar'];
 
     // Gatilhos de conversão visíveis apenas para clientes que não pagaram (402).
     // Não altera requisitos de pagamento, apenas informa opções.

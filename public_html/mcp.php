@@ -55,8 +55,8 @@ header('Cache-Control: no-cache, no-store, must-revalidate');
 header('X-Content-Type-Options: nosniff');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment, x-payment, PAYMENT-SIGNATURE, payment-signature, Idempotency-Key, X-Request-Id');
-header('Access-Control-Expose-Headers: PAYMENT-RESPONSE, X-PAYMENT-RESPONSE, X-Payment-Status, X-Payment-Amount, X-Payment-Network, X-Request-Id');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment, x-payment, X-Payment-Network, x-payment-network, X-Session-Pass, x-session-pass, PAYMENT-SIGNATURE, payment-signature, Idempotency-Key, X-Request-Id');
+header('Access-Control-Expose-Headers: PAYMENT-REQUIRED, PAYMENT-RESPONSE, X-PAYMENT-RESPONSE, X-Payment-Status, X-Payment-Amount, X-Payment-Network, X-Request-Id');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
@@ -335,11 +335,21 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
     }
 
     // Payment handling (IMPORTANTE: nunca aplicar strtolower() em Base64 de PAYMENT-SIGNATURE!)
+    $mcpHdrMap = [];
+    $mcpRawHdrs = function_exists('getallheaders')
+        ? (getallheaders() ?: [])
+        : (function_exists('apache_request_headers') ? (apache_request_headers() ?: []) : []);
+    if (is_array($mcpRawHdrs)) {
+        foreach ($mcpRawHdrs as $hk => $hv) {
+            $mcpHdrMap[strtolower((string) $hk)] = trim((string) $hv);
+        }
+    }
     $txHash = isset($arguments['payment_tx_hash']) ? trim((string)$arguments['payment_tx_hash']) : '';
-    $xPaymentHeader = isset($_SERVER['HTTP_X_PAYMENT']) ? trim((string)$_SERVER['HTTP_X_PAYMENT']) : '';
+    $xPaymentHeader = trim((string) ($_SERVER['HTTP_X_PAYMENT'] ?? $_SERVER['HTTP_X_SESSION_PASS'] ?? $mcpHdrMap['x-payment'] ?? $mcpHdrMap['x-session-pass'] ?? ''));
     $meta = isset($params['_meta']) && is_array($params['_meta']) ? $params['_meta'] : [];
     $x402Payment = isset($meta['x402/payment']) ? trim((string)$meta['x402/payment']) : '';
-    $payHeader = isset($_SERVER['HTTP_PAYMENT_SIGNATURE']) ? trim((string)$_SERVER['HTTP_PAYMENT_SIGNATURE']) : '';
+    $payHeader = trim((string) ($_SERVER['HTTP_PAYMENT_SIGNATURE'] ?? $mcpHdrMap['payment-signature'] ?? ''));
+    $mcpNetHeader = trim((string) ($_SERVER['HTTP_X_PAYMENT_NETWORK'] ?? $mcpHdrMap['x-payment-network'] ?? ''));
 
     $effectiveProof = $payHeader !== ''
         ? $payHeader
@@ -352,47 +362,43 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
         mcp_error($responseId, -32001, 'PaymentRequired', mcp_accepts_unpaid($service, $rawCost));
     }
 
-    $validation = grid402_validate_payment($effectiveProof, $rawCost, $clientIp, $service);
-    if (empty($validation['valid'])) {
-        $proofIsPayload = grid402_classify_payment_proof($effectiveProof) === 'x402_payload';
+    $validation = grid402_validate_payment(
+        $effectiveProof,
+        $rawCost,
+        $clientIp,
+        $service,
+        $mcpNetHeader !== '' ? $mcpNetHeader : null,
+        true
+    );
+    $proofIsPayload = grid402_classify_payment_proof($effectiveProof) === 'x402_payload';
+    $mcpFailPayment = static function (array $val) use ($responseId, $service, $rawCost, $proofIsPayload, $effectiveProof, $clientIp): never {
         grid402_record_telemetry(
             $service,
-            (int)($validation['code'] ?? 402),
+            (int)($val['code'] ?? 402),
             false,
             $proofIsPayload ? null : $effectiveProof,
             $clientIp,
             (float) number_format($rawCost / 1e6, 4, '.', ''),
             null,
-            ['failure_category' => $validation['category'] ?? 'payment_rejected']
+            ['failure_category' => $val['category'] ?? 'payment_rejected']
         );
         $unpaidData = mcp_accepts_unpaid($service, $rawCost);
-        $unpaidData['reason'] = $validation['reason'] ?? 'Falha na validacao do pagamento.';
+        $unpaidData['reason'] = $val['reason'] ?? 'Falha na validacao do pagamento.';
         mcp_error($responseId, -32001, 'PaymentRequired', $unpaidData);
+    };
+    if (empty($validation['valid'])) {
+        $mcpFailPayment($validation);
+    }
+
+    // Para emissao de Session Pass, liquidar antes de emitir para obter settlement_tx/lock_key real
+    if ($service === 'pass' && !empty($validation['needs_settle'])) {
+        $validation = grid402_settle_exact_payment($validation);
+        if (empty($validation['valid'])) {
+            $mcpFailPayment($validation);
+        }
     }
 
     $isSandbox = !empty($validation['sandbox']);
-    $isVerifyOnly = (($validation['source'] ?? '') === 'facilitator_verify_only');
-    $isRealPayment = !$isSandbox && !$isVerifyOnly;
-    $paymentSourceVal = (string)($validation['source'] ?? '');
-    $proofIsPayload = grid402_classify_payment_proof($effectiveProof) === 'x402_payload';
-    $settlementTx = $validation['settlement_tx'] ?? ($proofIsPayload ? null : $effectiveProof);
-
-    // Evita dupla contagem de receita quando pagamento é consumo de crédito de Session Pass
-    $actualRawPaid = (int)($validation['raw_amount'] ?? $rawCost);
-    $revenueUsdc = ($isSandbox || $isVerifyOnly || $paymentSourceVal === 'pass')
-        ? 0.0
-        : (float) number_format(($service === 'pass' && $actualRawPaid > 0 ? $actualRawPaid : $rawCost) / 1e6, 4, '.', '');
-
-    grid402_record_telemetry(
-        $service,
-        200,
-        $isRealPayment,
-        $settlementTx,
-        $clientIp,
-        $revenueUsdc,
-        $isSandbox ? 'sandbox' : ($isVerifyOnly ? 'verify_only' : null),
-        ['payment_source' => $paymentSourceVal !== '' ? $paymentSourceVal : null]
-    );
 
     // Execute
     $result = match ($service) {
@@ -436,14 +442,76 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
             (string)($arguments['url'] ?? ''),
             isset($arguments['max_chars']) ? (int)$arguments['max_chars'] : 12000
         ),
-        'email-verify' => grid402_service_email_verify((string)($arguments['email'] ?? '')),
-        'pass' => grid402_issue_session_pass(
-            $settlementTx ?? ('mcp_' . bin2hex(random_bytes(8))),
-            $actualRawPaid > 0 ? $actualRawPaid : (int)$rawCost,
-            $isSandbox
-        ),
+        'email-verify' => grid402_service_email_verify((string)$arguments['email'] ?? ''),
+        'pass' => (static function () use ($validation, $proofIsPayload, $effectiveProof, $rawCost, $isSandbox): array {
+            $actualPaid = (int) ($validation['raw_amount'] ?? $rawCost);
+            $passTxRef = (string) ($validation['lock_key'] ?? $validation['settlement_tx'] ?? ($proofIsPayload ? ('mcp_' . bin2hex(random_bytes(8))) : $effectiveProof));
+            return grid402_issue_session_pass(
+                $passTxRef,
+                $actualPaid > 0 ? $actualPaid : (int)$rawCost,
+                $isSandbox
+            );
+        })(),
         default => ['code' => 500, 'error' => 'ToolDispatchMissing'],
     };
+
+    $execCode = (is_array($result) && isset($result['code']) && is_int($result['code']) && $result['code'] >= 100 && $result['code'] < 600)
+        ? $result['code']
+        : 200;
+    if ($execCode !== 200) {
+        if (!empty($validation['needs_settle'])) {
+            grid402_abort_verified_exact_payment($validation);
+        }
+        $paymentSourceErr = (string) ($validation['source'] ?? '');
+        $settlementTxErr = $validation['settlement_tx'] ?? ($proofIsPayload ? null : $effectiveProof);
+        grid402_record_telemetry(
+            $service,
+            $execCode,
+            false,
+            $settlementTxErr,
+            $clientIp,
+            0.0,
+            null,
+            ['payment_source' => $paymentSourceErr !== '' ? $paymentSourceErr : null]
+        );
+        mcp_result($responseId, mcp_content_text(is_array($result) ? $result : ['result' => $result]));
+    }
+
+    if (!empty($validation['needs_settle'])) {
+        $validation = grid402_settle_exact_payment($validation);
+        if (empty($validation['valid'])) {
+            $mcpFailPayment($validation);
+        }
+    }
+
+    $isSandbox = !empty($validation['sandbox']);
+    $isVerifyOnly = (($validation['source'] ?? '') === 'facilitator_verify_only');
+    $isRealPayment = !$isSandbox && !$isVerifyOnly;
+    $paymentSourceVal = (string)($validation['source'] ?? '');
+    $settlementTx = $validation['settlement_tx'] ?? ($proofIsPayload ? null : $effectiveProof);
+
+    // Evita dupla contagem de receita quando pagamento é consumo de crédito de Session Pass
+    $actualRawPaid = (int)($validation['raw_amount'] ?? $rawCost);
+    $revenueUsdc = ($isSandbox || $isVerifyOnly || $paymentSourceVal === 'pass')
+        ? 0.0
+        : (float) number_format(($service === 'pass' && $actualRawPaid > 0 ? $actualRawPaid : $rawCost) / 1e6, 4, '.', '');
+
+    grid402_record_telemetry(
+        $service,
+        200,
+        $isRealPayment,
+        $settlementTx,
+        $clientIp,
+        $revenueUsdc,
+        $isSandbox ? 'sandbox' : ($isVerifyOnly ? 'verify_only' : null),
+        ['payment_source' => $paymentSourceVal !== '' ? $paymentSourceVal : null]
+    );
+
+    if ($paymentSourceVal === 'facilitator') {
+        $receiptHeader = grid402_build_payment_response_header($validation);
+        header('PAYMENT-RESPONSE: ' . $receiptHeader);
+        header('X-PAYMENT-RESPONSE: ' . $receiptHeader);
+    }
 
     if (is_array($result) && (!isset($result['code']) || $result['code'] === 200)) {
         $result = grid402_attach_provenance_meta($result, $service);

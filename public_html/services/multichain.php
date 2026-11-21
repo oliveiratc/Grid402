@@ -417,6 +417,27 @@ function grid402_verify_evm_receipt_usdc(array $receipt, string $network, int $r
 }
 
 /**
+ * Extrai o objeto de transação do retorno JSON-RPC `getTransaction` da Solana.
+ */
+function grid402_extract_solana_tx_result(?string $response, int $httpCode = 200): ?array {
+    if ($httpCode !== 200 || !is_string($response) || $response === '') {
+        return null;
+    }
+    $decoded = @json_decode($response, true);
+    if (
+        is_array($decoded)
+        && array_key_exists('result', $decoded)
+        && is_array($decoded['result'])
+        && !empty($decoded['result'])
+        && is_array($decoded['result']['meta'] ?? null)
+        && (isset($decoded['result']['slot']) || isset($decoded['result']['transaction']))
+    ) {
+        return $decoded['result'];
+    }
+    return null;
+}
+
+/**
  * Consulta getTransaction (jsonParsed) na Solana Mainnet com failover automático de RPC.
  */
 function grid402_rpc_get_solana_transaction(string $signature): ?array {
@@ -461,11 +482,9 @@ function grid402_rpc_get_solana_transaction(string $signature): ?array {
         $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        if ($httpCode === 200 && is_string($response) && $response !== '') {
-            $decoded = @json_decode($response, true);
-            if (is_array($decoded) && array_key_exists('result', $decoded) && $decoded['result'] !== null && $decoded['result'] !== false && is_array($decoded['result']) && !empty($decoded['result']) && (isset($decoded['result']['transactionHash']) || isset($decoded['result']['blockNumber']))) {
-                return $decoded['result'];
-            }
+        $txResult = grid402_extract_solana_tx_result(is_string($response) ? $response : null, $httpCode);
+        if ($txResult !== null) {
+            return $txResult;
         }
     }
 

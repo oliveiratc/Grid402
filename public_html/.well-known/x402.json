@@ -21,10 +21,10 @@
       "method": "GET",
       "description": "Official USD, EUR and GBP exchange rates against BRL (Banco Central PTAX).",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -33,10 +33,10 @@
       "method": "GET",
       "description": "Spot crypto market tickers for BTC, ETH, SOL, USDC and BASE in USD and BRL.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -45,10 +45,10 @@
       "method": "GET",
       "description": "Authoritative DNS records lookup (A, AAAA, MX, TXT, NS, CNAME) by domain.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -57,10 +57,10 @@
       "method": "GET",
       "description": "Port 443 TLS/SSL certificate inspector, issuer, SANs and expiration days.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -69,10 +69,10 @@
       "method": "GET",
       "description": "BGP routing intelligence, ASN number, CIDR block and country by IP.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -81,10 +81,10 @@
       "method": "GET",
       "description": "Consolidated single-call domain audit (DNS + TLS/SSL + BGP ASN) with risk score.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "15000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "15000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "15000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "15000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "15000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "15000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "15000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "15000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -93,10 +93,10 @@
       "method": "GET",
       "description": "Consolidated global KYB audit combining Receita Federal CNPJ, OFAC/UN sanctions and GLEIF LEI.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "20000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "20000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -105,10 +105,10 @@
       "method": "GET",
       "description": "Premium KYB 360 Dossier with deterministic AI Verdict (APPROVED, FLAGGED, REJECTED), score 0-100, Receita Federal CNPJ, Simples/MEI and CGU CEIS/CNEP sanctions.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "50000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "50000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "50000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "50000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "50000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "50000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "50000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "50000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -117,10 +117,10 @@
       "method": "GET",
       "description": "Consolidated macro snapshot combining PTAX FX, spot crypto, BCB indicators and ANBIMA calendar.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "15000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "15000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "15000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "15000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "15000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "15000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "15000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "15000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -129,10 +129,10 @@
       "method": "GET",
       "description": "Official Brazilian postal address and municipal IBGE code lookup by CEP.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -141,10 +141,10 @@
       "method": "GET",
       "description": "Official Brazilian corporate registry lookup (Receita Federal CNPJ) without partner PII.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "20000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "20000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -153,10 +153,10 @@
       "method": "GET",
       "description": "Official Central Bank and IBGE economic indicators: Selic, CDI and IPCA inflation.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -165,10 +165,10 @@
       "method": "GET",
       "description": "Official ANBIMA and Febraban banking holiday calendar for any year.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -177,10 +177,10 @@
       "method": "GET",
       "description": "ANBIMA financial business days calculator between dates and D+N projection.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -189,10 +189,10 @@
       "method": "GET",
       "description": "Brazilian federal administrative sanctions and debarment screening (CGU CEIS and CNEP).",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "10000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "10000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "10000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "10000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "10000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "10000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "10000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "10000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -201,10 +201,10 @@
       "method": "GET",
       "description": "Official Simples Nacional and MEI (SIMEI) tax regime status lookup.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "10000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "10000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "10000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "10000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "10000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "10000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "10000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "10000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -213,10 +213,10 @@
       "method": "GET",
       "description": "Consolidated Compliance Score 360 (0-100) cross-referencing Receita Federal and CGU registries.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "30000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "30000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "30000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "30000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "30000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "30000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "30000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "30000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -225,10 +225,10 @@
       "method": "GET",
       "description": "Global ISO 17442 corporate identity across 200+ jurisdictions via GLEIF CC0 open data.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "20000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "20000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -237,10 +237,10 @@
       "method": "GET",
       "description": "Global OFAC SDN / UN sanctions screening and Base Mainnet Web3 AML telemetry.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "20000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "20000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "20000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -249,10 +249,10 @@
       "method": "GET",
       "description": "Deterministic UTC timestamp and SHA-256 existence proof signed with ECDSA secp256k1.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -261,10 +261,10 @@
       "method": "GET",
       "description": "Global exchange settlement calendar (US, EU, UK, BR) and 30+ ECB reference FX rates.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -273,10 +273,10 @@
       "method": "GET",
       "description": "SSRF-hardened Web URL to LLM-ready clean Markdown extractor with metadata and absolute links.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -285,10 +285,10 @@
       "method": "GET",
       "description": "Zero-PII B2B email deliverability audit: RFC syntax, DNS MX, SPF, DMARC, disposable domain and role-based score.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "5000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "5000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     },
     {
@@ -297,10 +297,10 @@
       "method": "GET",
       "description": "Prepaid x402 Session Pass issuance (Starter 2.0000 USDC = 400 credits) for sub-15ms M2M calls.",
       "accepts": [
-        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "2000000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "2000000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "2000000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "extra": { "name": "USD Coin", "version": "2" } },
-        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "2000000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
+        { "scheme": "exact", "network": "eip155:8453", "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "amount": "2000000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:137", "asset": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", "amount": "2000000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "eip155:42161", "asset": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "amount": "2000000", "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90", "maxTimeoutSeconds": 300, "extra": { "name": "USD Coin", "version": "2" } },
+        { "scheme": "exact", "network": "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", "amount": "2000000", "payTo": "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C", "maxTimeoutSeconds": 300, "extra": { "feePayer": "CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww" } }
       ]
     }
   ],
@@ -308,5 +308,5 @@
   "protocol": "x402",
   "scheme": "exact",
   "settlement": "EIP-3009 + Solana SVM",
-  "updated": "2026-11-20"
+  "updated": "2026-11-21"
 }
