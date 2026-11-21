@@ -37,8 +37,15 @@ function grid402_admin_runtime_status(): array {
         ? grid402_telegram_runtime_status()
         : ['configured' => false, 'disabled' => false, 'token_configured' => false, 'chat_id_configured' => false, 'last_status' => null];
 
-    $rapidApiConfigured = defined('GRID402_RAPIDAPI_PROXY_SECRET') && strlen((string) GRID402_RAPIDAPI_PROXY_SECRET) >= 16;
-    $multiChainCount = function_exists('grid402_x402_accepts_list') ? count(grid402_x402_accepts_list('1.0000')) : 1;
+    $rapid = function_exists('grid402_rapidapi_runtime_status')
+        ? grid402_rapidapi_runtime_status()
+        : [
+            'configured' => defined('GRID402_RAPIDAPI_PROXY_SECRET') && strlen((string) GRID402_RAPIDAPI_PROXY_SECRET) >= 16,
+            'source' => 'env',
+        ];
+    $multiChainCount = function_exists('grid402_build_accepts')
+        ? count(grid402_build_accepts(defined('GRID402_USDC_REQUIRED_RAW') ? (int) GRID402_USDC_REQUIRED_RAW : 5000))
+        : 1;
 
     return [
         'facilitator' => [
@@ -54,9 +61,7 @@ function grid402_admin_runtime_status(): array {
             'summary_stale' => ($summaryAgeSec === null || $summaryAgeSec > 600),
         ],
         'telegram' => $tg,
-        'rapidapi' => [
-            'configured' => $rapidApiConfigured,
-        ],
+        'rapidapi' => $rapid,
     ];
 }
 
@@ -592,6 +597,64 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'message' => $sent
                 ? 'Credenciais salvas e alerta de teste entregue no Telegram!'
                 : ($skipTest ? 'Credenciais do Telegram salvas com sucesso!' : ('Credenciais salvas, mas o teste falhou' . ($errDetail !== '' ? ': ' . $errDetail : '.'))),
+        ]);
+        exit;
+    }
+
+    // 3.0c. Configuracao persistente do RapidAPI Proxy Secret (salvo em storage/rapidapi_config.json)
+    if ($action === 'save_rapidapi_config') {
+        header('Content-Type: application/json; charset=utf-8');
+        if (!$isLoggedIn) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Sessao administrativa expirada ou nao autenticada.']);
+            exit;
+        }
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Token CSRF de seguranca ausente ou invalido.']);
+            exit;
+        }
+
+        $isClear = ((string) ($_POST['clear'] ?? '') === '1');
+        if ($isClear) {
+            if (!grid402_save_rapidapi_config('')) {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'error' => 'Nao foi possivel remover rapidapi_config.json no servidor.']);
+                exit;
+            }
+            $rapidStatus = grid402_rapidapi_runtime_status();
+            $msg = ($rapidStatus['source'] === 'env')
+                ? 'Arquivo rapidapi_config.json removido (observacao: GRID402_RAPIDAPI_PROXY_SECRET no .env continua ativo).'
+                : 'Configuracao salva no painel removida. RapidAPI Bridge desativado.';
+            echo json_encode([
+                'success' => true,
+                'rapidapi_status' => $rapidStatus,
+                'message' => $msg,
+            ]);
+            exit;
+        }
+
+        $inputSecret = trim((string) ($_POST['proxy_secret'] ?? ''));
+        if (preg_match('/^\S{16,256}$/', $inputSecret) !== 1) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Formato invalido. Informe o X-RapidAPI-Proxy-Secret (16 a 256 caracteres sem espacos).']);
+            exit;
+        }
+
+        if (!grid402_save_rapidapi_config($inputSecret)) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Nao foi possivel gravar rapidapi_config.json no servidor.']);
+            exit;
+        }
+
+        $rapidStatus = grid402_rapidapi_runtime_status();
+        $msg = ($rapidStatus['source'] === 'env')
+            ? 'Segredo salvo em rapidapi_config.json (observacao: GRID402_RAPIDAPI_PROXY_SECRET no .env tem prioridade ativa).'
+            : 'RapidAPI Bridge ativado com sucesso (salvo em storage persistente)!';
+        echo json_encode([
+            'success' => true,
+            'rapidapi_status' => $rapidStatus,
+            'message' => $msg,
         ]);
         exit;
     }
@@ -2252,6 +2315,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 Sessão: <strong id="runtime-security-text"><?php echo $twoFactorActive ? '2FA Telegram ativo' : ($twoFactorEnabled ? '2FA aguardando bot' : '2FA desativado'); ?> · 30m timeout · IP/UA vinculado</strong>
             </span>
             <div style="margin-left:auto;display:flex;gap:0.4rem;flex-wrap:wrap;">
+                <button type="button" id="btn-config-rapidapi" class="btn-outline" style="padding:0.25rem 0.65rem;font-size:0.74rem;" onclick="openRapidApiModal()">⚡ Configurar RapidAPI</button>
                 <button type="button" id="btn-config-telegram" class="btn-outline" style="padding:0.25rem 0.65rem;font-size:0.74rem;" onclick="openTelegramModal()">⚙️ Configurar Telegram</button>
                 <button type="button" id="btn-test-telegram" class="btn-outline" style="padding:0.25rem 0.65rem;font-size:0.74rem;" onclick="triggerTelegramTest()">🔔 Testar Telegram</button>
             </div>
@@ -2788,6 +2852,32 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
         </div>
     </div>
 
+    <!-- Modal de Configuracao do RapidAPI Bridge -->
+    <?php $rapidOk = !empty($rapidStatus['configured']); ?>
+    <div id="rapidapi-modal-overlay" class="modal-overlay" onclick="handleRapidApiOverlayClick(event)">
+        <div class="modal-card" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3>⚡ Configurar RapidAPI Bridge</h3>
+                <button type="button" class="modal-close" onclick="closeRapidApiModal()">&times;</button>
+            </div>
+            <form id="rapidapi-config-form" onsubmit="submitRapidApiConfig(event)" style="padding: 1.5rem;">
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0; margin-bottom: 1rem; line-height: 1.45;">
+                    Cole o segredo de <strong>RapidAPI Studio &rarr; Gateway &rarr; Firewall Settings &rarr; <code>X-RapidAPI-Proxy-Secret</code></strong>. Salvo fora do DocumentRoot (<code>grid402_storage/rapidapi_config.json</code>), preservado entre deploys.
+                </p>
+                <div id="rapidapi-modal-alert" style="display: none; padding: 0.65rem 0.85rem; border-radius: 6px; font-size: 0.82rem; margin-bottom: 1rem;"></div>
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label for="modal-rapidapi-secret" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">X-RapidAPI-Proxy-Secret</label>
+                    <input type="password" id="modal-rapidapi-secret" class="search-input" style="max-width: 100%; width: 100%; font-family: var(--font-mono);" placeholder="<?php echo $rapidOk ? '•••••••• (informe novo segredo para atualizar)' : 'Cole o X-RapidAPI-Proxy-Secret (min. 16 caracteres)'; ?>" autocomplete="off">
+                </div>
+                <div style="display: flex; gap: 0.75rem; justify-content: flex-end; flex-wrap: wrap;">
+                    <button type="button" class="btn-outline" onclick="closeRapidApiModal()">Cancelar</button>
+                    <button type="button" id="btn-clear-rapidapi" class="btn-outline" style="color: #FCA5A5; border-color: rgba(239, 68, 68, 0.35);" onclick="clearRapidApiConfig()">Desativar</button>
+                    <button type="submit" id="btn-submit-rapidapi" class="btn" style="width: auto; padding: 0.5rem 1.25rem; font-size: 0.85rem; margin-top: 0;">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         let currentFeedFilter = 'all';
         let currentFeedSearchText = '';
@@ -3208,13 +3298,8 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                         document.createTextNode(' (' + (fs.host || 'local') + ' · ' + (fs.auth_mode || '') + ' · ' + chainCount + ' chains)')
                     );
                 }
-                const rapidBadgeEl = document.getElementById('runtime-rapidapi-badge');
-                if (rapidBadgeEl && data.rapidapi_status) {
-                    const rOk = Boolean(data.rapidapi_status.configured);
-                    rapidBadgeEl.style.color = rOk ? '#10B981' : '#94A3B8';
-                    const strong = document.createElement('strong');
-                    strong.textContent = rOk ? 'ativo' : 'inativo';
-                    rapidBadgeEl.replaceChildren(document.createTextNode('RapidAPI Bridge: '), strong);
+                if (data.rapidapi_status) {
+                    renderRapidApiStatusBadge(data.rapidapi_status);
                 }
                 const colBadgeEl = document.getElementById('runtime-collector-badge');
                 if (colBadgeEl && data.collector_status) {
@@ -3387,6 +3472,16 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             } catch (e) {
                 console.error('Erro ao buscar stats em tempo real:', e);
             }
+        }
+
+        function renderRapidApiStatusBadge(rs) {
+            const rapidBadgeEl = document.getElementById('runtime-rapidapi-badge');
+            if (!rapidBadgeEl || !rs) return;
+            const rOk = Boolean(rs.configured);
+            rapidBadgeEl.style.color = rOk ? '#10B981' : '#94A3B8';
+            const strong = document.createElement('strong');
+            strong.textContent = rOk ? 'ativo' : 'inativo';
+            rapidBadgeEl.replaceChildren(document.createTextNode('RapidAPI Bridge: '), strong);
         }
 
         function renderTelegramStatusBadge(tg) {
@@ -3608,10 +3703,138 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             }
         }
 
+        // Modal de Configuracao do RapidAPI Bridge
+        function openRapidApiModal() {
+            const overlay = document.getElementById('rapidapi-modal-overlay');
+            const alertBox = document.getElementById('rapidapi-modal-alert');
+            if (alertBox) alertBox.style.display = 'none';
+            if (overlay) overlay.classList.add('active');
+            const secretInp = document.getElementById('modal-rapidapi-secret');
+            if (secretInp) secretInp.focus();
+        }
+
+        function closeRapidApiModal() {
+            const overlay = document.getElementById('rapidapi-modal-overlay');
+            if (overlay) overlay.classList.remove('active');
+            const form = document.getElementById('rapidapi-config-form');
+            if (form) form.reset();
+        }
+
+        function handleRapidApiOverlayClick(e) {
+            if (e.target.id === 'rapidapi-modal-overlay') closeRapidApiModal();
+        }
+
+        async function submitRapidApiConfig(e) {
+            e.preventDefault();
+            const secretVal = document.getElementById('modal-rapidapi-secret').value.trim();
+            const alertBox = document.getElementById('rapidapi-modal-alert');
+            const btn = document.getElementById('btn-submit-rapidapi');
+
+            btn.disabled = true;
+            btn.textContent = 'Salvando...';
+
+            try {
+                const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                const csrfVal = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+                const formData = new FormData();
+                formData.append('proxy_secret', secretVal);
+                formData.append('csrf_token', csrfVal);
+
+                const res = await fetch('/admin?action=save_rapidapi_config', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': csrfVal
+                    },
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (data.rapidapi_status) {
+                    renderRapidApiStatusBadge(data.rapidapi_status);
+                }
+
+                alertBox.style.display = 'block';
+                if (data.success) {
+                    alertBox.style.background = 'rgba(16, 185, 129, 0.15)';
+                    alertBox.style.color = '#34D399';
+                    alertBox.textContent = data.message || 'RapidAPI Bridge ativado com sucesso!';
+                    setTimeout(() => {
+                        closeRapidApiModal();
+                    }, 1500);
+                } else {
+                    alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                    alertBox.style.color = '#FCA5A5';
+                    alertBox.textContent = data.error || 'Nao foi possivel salvar o segredo RapidAPI.';
+                }
+            } catch (err) {
+                alertBox.style.display = 'block';
+                alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                alertBox.style.color = '#FCA5A5';
+                alertBox.textContent = 'Erro ao conectar ao servidor: ' + err.message;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Salvar';
+            }
+        }
+
+        async function clearRapidApiConfig() {
+            const alertBox = document.getElementById('rapidapi-modal-alert');
+            const btn = document.getElementById('btn-clear-rapidapi');
+            btn.disabled = true;
+            btn.textContent = 'Removendo...';
+
+            try {
+                const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                const csrfVal = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+                const formData = new FormData();
+                formData.append('clear', '1');
+                formData.append('csrf_token', csrfVal);
+
+                const res = await fetch('/admin?action=save_rapidapi_config', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': csrfVal
+                    },
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (data.rapidapi_status) {
+                    renderRapidApiStatusBadge(data.rapidapi_status);
+                }
+
+                alertBox.style.display = 'block';
+                if (data.success) {
+                    alertBox.style.background = 'rgba(16, 185, 129, 0.15)';
+                    alertBox.style.color = '#34D399';
+                    alertBox.textContent = data.message || 'Configuracao RapidAPI removida.';
+                    const inp = document.getElementById('modal-rapidapi-secret');
+                    if (inp) inp.value = '';
+                } else {
+                    alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                    alertBox.style.color = '#FCA5A5';
+                    alertBox.textContent = data.error || 'Nao foi possivel remover a configuracao.';
+                }
+            } catch (err) {
+                alertBox.style.display = 'block';
+                alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                alertBox.style.color = '#FCA5A5';
+                alertBox.textContent = 'Erro ao conectar ao servidor: ' + err.message;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Desativar';
+            }
+        }
+
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 closePasswordModal();
                 closeTelegramModal();
+                closeRapidApiModal();
             }
         });
 

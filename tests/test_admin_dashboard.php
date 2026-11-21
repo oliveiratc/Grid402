@@ -177,11 +177,59 @@ assert(count($analytics['service_revenue']) >= 11, 'service_revenue deve cobrir 
 echo "OK!\n";
 
 // --- Teste 3: Autenticação Segura com Bcrypt ---
-echo "[3/5] Testando criptografia e validação de senha (Bcrypt)... ";
+echo "[3/5] Testando criptografia e validação de senha (Bcrypt) e persistencia RapidAPI... ";
 $testPass = 'SenhaUltraSegura#2026';
 $hash = password_hash($testPass, PASSWORD_BCRYPT, ['cost' => 11]);
 assert(password_verify($testPass, $hash) === true, 'Senha correta deve ser verificada');
 assert(password_verify('SenhaIncorreta', $hash) === false, 'Senha incorreta deve ser recusada');
+
+// Teste isolado de fallback rapidapi_config.json quando env GRID402_RAPIDAPI_PROXY_SECRET esta invalido/ausente
+$rapidIsoDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'grid402_rapidapi_iso_' . bin2hex(random_bytes(4));
+@mkdir($rapidIsoDir, 0775, true);
+try {
+    $isoScript = $rapidIsoDir . DIRECTORY_SEPARATOR . 'check.php';
+    file_put_contents($isoScript, <<<'PHP'
+<?php
+define('GRID402_EXEC', true);
+require_once $argv[1] . '/public_html/config.php';
+$secret = 'rapidapi_isolated_secret_9876543210';
+assert(grid402_rapidapi_runtime_status()['configured'] === false, 'Sem env e sem arquivo deve ficar inativo');
+assert(grid402_save_rapidapi_config($secret) === true, 'Save rapidapi_config.json deve suceder');
+$st = grid402_rapidapi_runtime_status();
+assert($st['configured'] === true && $st['source'] === 'admin_file', 'Status deve apontar source=admin_file');
+$_SERVER['HTTP_X_RAPIDAPI_PROXY_SECRET'] = $secret;
+assert(grid402_is_valid_rapidapi_proxy_request() === true, 'Header valido deve passar via admin_file');
+$_SERVER['HTTP_X_RAPIDAPI_PROXY_SECRET'] = 'wrong_secret_1234567890';
+assert(grid402_is_valid_rapidapi_proxy_request() === false, 'Header errado deve falhar');
+assert(grid402_save_rapidapi_config('') === true, 'Clear deve remover rapidapi_config.json');
+assert(grid402_rapidapi_runtime_status()['configured'] === false, 'Apos clear deve voltar para inativo');
+echo "ISO_OK";
+PHP);
+    $isoEnv = $_ENV;
+    foreach ($_SERVER as $k => $v) {
+        if (is_string($k) && is_string($v) && !isset($isoEnv[$k])) {
+            $isoEnv[$k] = $v;
+        }
+    }
+    $isoEnv['GRID402_STORAGE_DIR'] = $rapidIsoDir;
+    $isoEnv['GRID402_RAPIDAPI_PROXY_SECRET'] = 'disabled_short';
+    $isoProc = proc_open([PHP_BINARY, $isoScript, dirname(__DIR__)], [
+        1 => ['pipe', 'w'],
+        2 => ['pipe', 'w'],
+    ], $isoPipes, dirname(__DIR__), $isoEnv);
+    assert(is_resource($isoProc), 'Subprocesso PHP isolado de RapidAPI deve iniciar');
+    $isoOut = stream_get_contents($isoPipes[1]);
+    $isoErr = stream_get_contents($isoPipes[2]);
+    fclose($isoPipes[1]);
+    fclose($isoPipes[2]);
+    $isoCode = proc_close($isoProc);
+    assert($isoCode === 0 && trim((string) $isoOut) === 'ISO_OK', "Teste isolado RapidAPI falhou (code={$isoCode}): {$isoOut} {$isoErr}");
+} finally {
+    foreach (glob($rapidIsoDir . DIRECTORY_SEPARATOR . '*') ?: [] as $f) {
+        @unlink($f);
+    }
+    @rmdir($rapidIsoDir);
+}
 echo "OK!\n";
 
 // --- Teste 4 e 5: Ciclo HTTP do Painel Admin (Setup, Login, 401, CSV, Senha e Dashboard) ---
@@ -335,6 +383,11 @@ try {
     assert(isset($statsJson['service_revenue']) && is_array($statsJson['service_revenue']), 'API deve conter service_revenue');
     assert(isset($statsJson['passes_stats']), 'API deve conter passes_stats');
     assert(isset($statsJson['facilitator_status']['mode'], $statsJson['facilitator_status']['auth_mode'], $statsJson['facilitator_status']['host']), 'API deve conter facilitator_status sem segredos');
+    if (defined('GRID402_X402_NETWORK') && GRID402_X402_NETWORK === 'base') {
+        assert((int) ($statsJson['facilitator_status']['multichain_accepts'] ?? 0) === 4, 'multichain_accepts em mainnet deve ser 4 (Recebeu: ' . ($statsJson['facilitator_status']['multichain_accepts'] ?? 'null') . ')');
+    }
+    assert(isset($statsJson['rapidapi_status']['configured'], $statsJson['rapidapi_status']['source']), 'API deve conter rapidapi_status sem segredos');
+    assert(defined('GRID402_RAPIDAPI_PROXY_SECRET') && (GRID402_RAPIDAPI_PROXY_SECRET === '' || !str_contains($authStats['body'], GRID402_RAPIDAPI_PROXY_SECRET)), 'API stats nunca deve vazar GRID402_RAPIDAPI_PROXY_SECRET');
     assert(isset($statsJson['collector_status']['summary_exists'], $statsJson['collector_status']['summary_stale']), 'API deve conter collector_status');
     assert(isset($statsJson['telegram_status']['configured'], $statsJson['telegram_status']['token_configured'], $statsJson['telegram_status']['chat_id_configured']), 'API deve conter telegram_status sem segredos');
     assert(defined('GRID402_TELEGRAM_BOT_TOKEN') && (GRID402_TELEGRAM_BOT_TOKEN === '' || !str_contains($authStats['body'], GRID402_TELEGRAM_BOT_TOKEN)), 'API stats nunca deve vazar GRID402_TELEGRAM_BOT_TOKEN');
@@ -369,6 +422,10 @@ try {
     assert(str_contains($dashResp['body'], 'Monitoramento e Faturamento'), 'Deve conter título do Dashboard');
     assert(str_contains($dashResp['body'], 'Ao Vivo'), 'Deve conter indicador de atualização Ao Vivo');
     assert(str_contains($dashResp['body'], 'Facilitador x402'), 'Dashboard deve exibir status seguro do Facilitador x402');
+    assert(str_contains($dashResp['body'], 'runtime-rapidapi-badge') && str_contains($dashResp['body'], 'btn-config-rapidapi') && str_contains($dashResp['body'], 'rapidapi-modal-overlay'), 'Dashboard deve exibir badge, botao e modal de configuracao do RapidAPI Bridge');
+    if (defined('GRID402_X402_NETWORK') && GRID402_X402_NETWORK === 'base') {
+        assert(str_contains($dashResp['body'], '4 chains'), 'Dashboard em mainnet deve exibir 4 chains no badge do facilitador');
+    }
     assert(str_contains($dashResp['body'], 'runtime-telegram-badge') && str_contains($dashResp['body'], 'btn-test-telegram'), 'Dashboard deve exibir badge e botao de diagnostico do Telegram');
     assert(str_contains($dashResp['body'], 'btn-config-telegram') && str_contains($dashResp['body'], 'telegram-modal-overlay'), 'Dashboard deve exibir botao e modal de configuracao do Telegram');
     assert(str_contains($dashResp['body'], 'Sem erros 5xx'), 'Dashboard deve exibir SLA sem erros 5xx');
@@ -460,6 +517,68 @@ try {
         file_put_contents($tgCfgFile, $prevTgCfg, LOCK_EX);
     } elseif (is_file($tgCfgFile)) {
         @unlink($tgCfgFile);
+    }
+
+    // 4.7.1d. Validacao completa do endpoint save_rapidapi_config (401, 403, 400, 200 e clear=1)
+    $unauthSaveRapid = curl_admin("http://127.0.0.1:{$port}/admin?action=save_rapidapi_config", [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => http_build_query(['proxy_secret' => 'rapidapi_admin_secret_1234567890']),
+    ]);
+    assert($unauthSaveRapid['code'] === 401, "save_rapidapi_config sem sessao deve retornar HTTP 401 (Recebeu: {$unauthSaveRapid['code']})");
+
+    $noCsrfSaveRapid = curl_admin("http://127.0.0.1:{$port}/admin?action=save_rapidapi_config", [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => http_build_query(['proxy_secret' => 'rapidapi_admin_secret_1234567890']),
+        CURLOPT_COOKIEFILE => $cookieFile,
+    ]);
+    assert($noCsrfSaveRapid['code'] === 403, "save_rapidapi_config sem CSRF deve retornar HTTP 403 (Recebeu: {$noCsrfSaveRapid['code']})");
+
+    $shortSaveRapid = curl_admin("http://127.0.0.1:{$port}/admin?action=save_rapidapi_config", [
+        CURLOPT_POST => true,
+        CURLOPT_HTTPHEADER => ['Accept: application/json', 'X-CSRF-Token: ' . $authCsrf],
+        CURLOPT_POSTFIELDS => http_build_query(['proxy_secret' => 'curto', 'csrf_token' => $authCsrf]),
+        CURLOPT_COOKIEFILE => $cookieFile,
+    ]);
+    assert($shortSaveRapid['code'] === 400, "save_rapidapi_config curto deve retornar HTTP 400 (Recebeu: {$shortSaveRapid['code']})");
+
+    $rapidCfgFile = GRID402_PRIVATE_DIR . '/rapidapi_config.json';
+    $prevRapidCfg = is_file($rapidCfgFile) ? file_get_contents($rapidCfgFile) : null;
+    try {
+        $testRapidSecret = 'rapidapi_admin_secret_' . bin2hex(random_bytes(8));
+        $goodSaveRapid = curl_admin("http://127.0.0.1:{$port}/admin?action=save_rapidapi_config", [
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => ['Accept: application/json', 'X-CSRF-Token: ' . $authCsrf],
+            CURLOPT_POSTFIELDS => http_build_query([
+                'proxy_secret' => $testRapidSecret,
+                'csrf_token' => $authCsrf,
+            ]),
+            CURLOPT_COOKIEFILE => $cookieFile,
+        ]);
+        assert($goodSaveRapid['code'] === 200, "save_rapidapi_config valido deve retornar HTTP 200 (Recebeu: {$goodSaveRapid['code']})");
+        $goodSaveRapidJson = json_decode($goodSaveRapid['body'], true);
+        assert(($goodSaveRapidJson['success'] ?? false) === true, 'save_rapidapi_config deve retornar success=true');
+        assert(($goodSaveRapidJson['rapidapi_status']['configured'] ?? false) === true, 'rapidapi_status.configured deve ser true');
+        assert(!str_contains($goodSaveRapid['body'], $testRapidSecret), 'save_rapidapi_config nunca deve ecoar o segredo na resposta');
+        assert(is_file($rapidCfgFile), 'save_rapidapi_config deve gravar rapidapi_config.json');
+
+        $clearSaveRapid = curl_admin("http://127.0.0.1:{$port}/admin?action=save_rapidapi_config", [
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => ['Accept: application/json', 'X-CSRF-Token: ' . $authCsrf],
+            CURLOPT_POSTFIELDS => http_build_query([
+                'clear' => '1',
+                'csrf_token' => $authCsrf,
+            ]),
+            CURLOPT_COOKIEFILE => $cookieFile,
+        ]);
+        assert($clearSaveRapid['code'] === 200, "save_rapidapi_config?clear=1 deve retornar HTTP 200 (Recebeu: {$clearSaveRapid['code']})");
+        clearstatcache(true, $rapidCfgFile);
+        assert(!is_file($rapidCfgFile), 'clear=1 deve remover rapidapi_config.json');
+    } finally {
+        if ($prevRapidCfg !== null) {
+            file_put_contents($rapidCfgFile, $prevRapidCfg, LOCK_EX);
+        } elseif (is_file($rapidCfgFile)) {
+            @unlink($rapidCfgFile);
+        }
     }
 
     // 4.7.2. Tentativa com senha atual errada via JSON e CSRF válido

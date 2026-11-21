@@ -23,6 +23,7 @@ function grid402_load_env(): void {
 
     $candidates = [
         dirname(__DIR__) . '/.env',                 // Raiz segura (acima de public_html)
+        dirname(__DIR__) . '/grid402_storage/.env', // Storage persistente na Hostinger (fora do DocumentRoot)
         __DIR__ . '/private_data/.env',             // Dentro de private_data
         __DIR__ . '/.env',                          // Local de desenvolvimento
     ];
@@ -193,11 +194,90 @@ define('GRID402_CRON_SECRET', (string) grid402_env('GRID402_CRON_SECRET', 'grid4
 define('GRID402_RAPIDAPI_PROXY_SECRET', trim((string) grid402_env('GRID402_RAPIDAPI_PROXY_SECRET', '')));
 
 /**
+ * Caminho persistente para o segredo do RapidAPI Proxy salvo via painel /admin (imune a deploys).
+ */
+function grid402_rapidapi_config_path(): string {
+    $dir = defined('GRID402_PRIVATE_DIR')
+        ? rtrim((string) GRID402_PRIVATE_DIR, '/\\')
+        : (function_exists('grid402_get_storage_dir') ? grid402_get_storage_dir() : (__DIR__ . '/private_data'));
+    return $dir . '/rapidapi_config.json';
+}
+
+function grid402_read_rapidapi_config(): array {
+    $path = grid402_rapidapi_config_path();
+    if (!is_file($path)) {
+        return ['proxy_secret' => ''];
+    }
+    $raw = @file_get_contents($path);
+    $decoded = $raw ? @json_decode($raw, true) : null;
+    if (!is_array($decoded)) {
+        return ['proxy_secret' => ''];
+    }
+    return [
+        'proxy_secret' => trim((string) ($decoded['proxy_secret'] ?? '')),
+    ];
+}
+
+function grid402_save_rapidapi_config(string $proxySecret): bool {
+    $trimmed = trim($proxySecret);
+    $path = grid402_rapidapi_config_path();
+    if ($trimmed === '') {
+        if (is_file($path)) {
+            @unlink($path);
+        }
+        return !is_file($path);
+    }
+    $dir = dirname($path);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+    }
+    $ok = grid402_atomic_write($path, [
+        'proxy_secret' => $trimmed,
+        'updated_at' => gmdate('Y-m-d\TH:i:s\Z'),
+    ]);
+    if ($ok) {
+        @chmod($path, 0600);
+    }
+    return $ok;
+}
+
+/**
+ * Resolve o segredo RapidAPI priorizando .env e usando rapidapi_config.json como fallback persistente.
+ */
+function grid402_resolve_rapidapi_proxy_secret(): array {
+    $envSecret = defined('GRID402_RAPIDAPI_PROXY_SECRET')
+        ? trim((string) GRID402_RAPIDAPI_PROXY_SECRET)
+        : trim((string) grid402_env('GRID402_RAPIDAPI_PROXY_SECRET', ''));
+    if ($envSecret !== '' && strlen($envSecret) >= 16) {
+        return ['secret' => $envSecret, 'source' => 'env'];
+    }
+
+    $fileSecret = trim((string) (grid402_read_rapidapi_config()['proxy_secret'] ?? ''));
+    if ($fileSecret !== '' && strlen($fileSecret) >= 16) {
+        return ['secret' => $fileSecret, 'source' => 'admin_file'];
+    }
+
+    return ['secret' => '', 'source' => 'none'];
+}
+
+/**
+ * Snapshot seguro (sem segredos) do estado de configuracao do RapidAPI Bridge.
+ */
+function grid402_rapidapi_runtime_status(): array {
+    $resolved = grid402_resolve_rapidapi_proxy_secret();
+    return [
+        'configured' => ($resolved['secret'] !== '' && strlen($resolved['secret']) >= 16),
+        'source' => $resolved['source'],
+    ];
+}
+
+/**
  * Valida se a requisicao chegou autenticada pelo proxy oficial da RapidAPI
  * atraves do cabecalho secreto X-RapidAPI-Proxy-Secret (fail-closed quando nao configurado).
  */
 function grid402_is_valid_rapidapi_proxy_request(): bool {
-    $expected = defined('GRID402_RAPIDAPI_PROXY_SECRET') ? GRID402_RAPIDAPI_PROXY_SECRET : '';
+    $resolved = grid402_resolve_rapidapi_proxy_secret();
+    $expected = $resolved['secret'];
     if ($expected === '' || strlen($expected) < 16) {
         return false;
     }
