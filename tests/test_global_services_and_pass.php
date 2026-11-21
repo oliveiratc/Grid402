@@ -38,9 +38,9 @@ function assert_true(bool $condition, string $label): void {
 
 echo "=== Iniciando Testes: Global M2M Infrastructure & Session Pass ===\n\n";
 
-// 0. Verifica catalogo de 23 servicos
+// 0. Verifica catalogo de 25 servicos
 $catalog = grid402_get_utility_services();
-assert_true(count($catalog) === 23, 'Catalogo global possui exatamente 23 micro-servicos configurados');
+assert_true(count($catalog) === 25, 'Catalogo global possui exatamente 25 micro-servicos configurados');
 assert_true(isset($catalog['lei'], $catalog['ofac'], $catalog['notarize'], $catalog['global-markets'], $catalog['pass'], $catalog['dossier']), 'Todos os endpoints globais e dossier constam no catalogo');
 
 // 1. Teste GLEIF LEI (CC0 1.0)

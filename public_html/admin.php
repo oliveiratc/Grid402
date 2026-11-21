@@ -191,6 +191,14 @@ function grid402_get_oracle_wallet_balances(): array {
 // 1. Configuração estrita de sessão segura (HttpOnly, SameSite=Lax, Fingerprint IP/UA e Idle Timeout)
 grid402_admin_session_start();
 
+// 1.1. Cabeçalhos de segurança (anti-clickjacking, MIME sniffing, referrer)
+if (!headers_sent()) {
+    header('X-Frame-Options: DENY');
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
+}
+
 $authFile = GRID402_FILE_ADMIN_AUTH;
 $hasSetup = file_exists($authFile);
 $action = (string) ($_GET['action'] ?? '');
