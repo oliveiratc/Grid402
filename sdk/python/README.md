@@ -13,7 +13,7 @@ Ideal para robôs autônomos, agentes de IA (Coinbase AgentKit, LangChain, CrewA
 ## 🚀 Funcionalidades
 
 * **Zero Dependências:** Construído unicamente sobre a biblioteca padrão do Python (`urllib`, `ssl`, `json`).
-* **14 Micro-serviços Técnicos:**
+* **25 Micro-serviços Técnicos:**
   1. `compliance`: Score consolidado 360 de risco cadastral e integridade (0 a 100).
   2. `sanctions`: Consulta de sanções administrativas ativas no CEIS e CNEP (CGU).
   3. `simples`: Consulta de enquadramento tributário no Simples Nacional e MEI (SIMEI).

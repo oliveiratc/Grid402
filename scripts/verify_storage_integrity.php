@@ -8,7 +8,7 @@
  * Actions:
  *   1. Executes collector.php to ensure summary_free.json and uptime_history.json are fresh.
  *   2. Validates that every .json file in public_html/private_data is valid UTF-8 and valid JSON.
- *   3. Verifies that all 22 catalog services are present in summary_free.json and uptime_history.json.
+ *   3. Verifies that all 25 catalog services are present in summary_free.json and uptime_history.json.
  *   4. Optionally creates an atomic timestamped backup snapshot when --backup is passed.
  */
 

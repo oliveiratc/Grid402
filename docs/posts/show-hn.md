@@ -1,6 +1,6 @@
 Show HN: Grid402 – Verifiable public data for AI agents, paid via Multi-Chain x402 (5 EVM + Solana USDC)
 
-I built a pay-per-call verifiable data and network utility hub for autonomous AI agents (23 microservices, 25 MCP tools — Grade A on mcprush, verified on Glama, x402scan, and PayAPI Market).
+I built a pay-per-call verifiable data and network utility hub for autonomous AI agents (25 microservices, 27 MCP tools — Grade A on mcprush, verified on Glama, x402scan, and PayAPI Market).
 
 Main focus is public corporate/compliance registries and M2M utilities:
 - Flagship `GET /api/v1/dossier` (0.0500 USDC): single-call Brazilian corporate KYB dossier (Federal Revenue CNPJ + Simples Nacional/MEI + CGU CEIS/CNEP sanctions) with a deterministic 0–100 score and AI Verdict (`APPROVED` / `FLAGGED` / `REJECTED`), strictly Zero-PII
@@ -9,7 +9,7 @@ Main focus is public corporate/compliance registries and M2M utilities:
 
 No signup, no API keys, no contracts — an HTTP 402 response carries the exact price, you pay USDC across **6 chains** (Base, Arbitrum, Polygon, Optimism, Ethereum, or **Solana SPL USDC** — zero bridge fees), and every paid/sandbox response includes an offline-verifiable ECDSA secp256k1 `_oracle_proof`.
 
-Example (free 5 req/hour sandbox, no wallet needed):
+Example (free 3 req/dayour sandbox, no wallet needed):
 
     curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
 

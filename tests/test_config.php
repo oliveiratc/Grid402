@@ -40,6 +40,8 @@ assert(in_array('lei', $keys, true), 'Deve conter servico lei');
 assert(in_array('ofac', $keys, true), 'Deve conter servico ofac');
 assert(in_array('notarize', $keys, true), 'Deve conter servico notarize');
 assert(in_array('global-markets', $keys, true), 'Deve conter servico global-markets');
+assert(in_array('extract', $keys, true), 'Deve conter servico extract');
+assert(in_array('email-verify', $keys, true), 'Deve conter servico email-verify');
 assert(in_array('pass', $keys, true), 'Deve conter servico pass');
 assert(in_array('verify', $keys, true), 'Deve conter servico verify');
 

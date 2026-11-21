@@ -1,14 +1,14 @@
-# Grid402: 23 APIs de dados públicos e Dossiê 360º KYB para agentes de IA — via x402 Multi-Chain (5 EVM + Solana) ou Pix
+# Grid402: 25 APIs de dados públicos e Dossiê 360º KYB para agentes de IA — via x402 Multi-Chain (5 EVM + Solana) ou Pix
 
 Se você automatiza KYB, triagem B2B ou enriquecimento de leads no Brasil, conhece o problema: CEP, CNPJ, situação cadastral, Simples Nacional, sanções CEIS/CNEP, feriados e dias úteis ANBIMA estão espalhados em portais públicos sem API unificada — ou atrás de licenças caras de bureau de crédito.
 
-O **Grid402** (https://grid402.online) resolve isso para agentes de IA e pipelines M2M: um hub com **23 micro-serviços** (e **25 ferramentas MCP**, nota A no mcprush) que agentes **contratam na hora**, sem cadastro, sem chave de API e sem contrato — só um `curl`.
+O **Grid402** (https://grid402.online) resolve isso para agentes de IA e pipelines M2M: um hub com **25 micro-serviços** (e **27 ferramentas MCP**, nota A no mcprush) que agentes **contratam na hora**, sem cadastro, sem chave de API e sem contrato — só um `curl`.
 
 ## Novidades recentes em produção
 
 - **Novo `/api/v1/dossier` (`0,0500 USDC` / 10 créditos):** Dossiê 360º KYB premium em 1 chamada cruzando Receita Federal (CNPJ) + Simples/MEI + Sanções CGU (CEIS/CNEP) com score 0–100 e **veredito determinístico pronto para agentes de IA** (`APPROVED` / `FLAGGED` / `REJECTED`), estritamente Zero-PII e assinado com ECDSA secp256k1.
 - **Pagamentos Multi-Chain em 6 redes (zero taxa de bridge):** além da Base Mainnet e Pix/Cartão BRL (Mercado Pago), agora aceita USDC nativo em **Arbitrum One, Polygon PoS, Optimism, Ethereum Mainnet e Solana (SPL USDC)**.
-- **Verificações oficiais:** mcprush **Grade A (25 tools)**, Glama Verified MCP, x402scan Verified Server e PayAPI Market Verified, com quickstart pronto para **LangChain e CrewAI** (`examples/langchain_quickstart.py`).
+- **Verificações oficiais:** mcprush **Grade A (27 tools)**, Glama Verified MCP, x402scan Verified Server e PayAPI Market Verified, com quickstart pronto para **LangChain e CrewAI** (`examples/langchain_quickstart.py`).
 
 ## O que dá para consultar (23 serviços)
 
@@ -34,7 +34,7 @@ O **Grid402** (https://grid402.online) resolve isso para agentes de IA e pipelin
 curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
 ```
 
-(Cota de sandbox: **5 chamadas/hora por IP**, sem cadastro e sem carteira.)
+(Cota de sandbox: **3 chamadas/dia por IP**, sem cadastro e sem carteira.)
 
 Quem usa **n8n** no Brasil pode importar `examples/n8n_cnpj_compliance_pix.json` e trocar `'demo'` por um **Session Pass comprado direto via Pix** em https://grid402.online/pass:
 - **Starter:** 2 USDC / R$ 12 = **400 créditos** (30 dias)

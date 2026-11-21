@@ -7,6 +7,11 @@ Todas as mudanças relevantes de arquitetura, catálogo de serviços, segurança
 ## [Unreleased]
 
 ### Corrigido
+- **Alinhamento sistêmico e documental (`25` micro-serviços, `27` tools MCP `v2.0.0`, Sandbox `3 req/dia`, tarifas de Session Pass e UI i18n):**
+  - `public_html/services/pass_repository.php`: corrigida a tabela `credit_rates` retornada em `issuePass()` (`domain-audit` e `market-snapshot` movidos de 1 para 3 créditos; incluídos `extract` e `email-verify` em 1 crédito e `dossier` em 10 créditos).
+  - `public_html/index.php` e `public_html/assets/js/i18n.js`: corrigida a leitura de quota de Sandbox no Playground (`quota_remaining_today` / `quota_limit_per_day` = 3 em vez dos campos legados por hora), adicionados presets/ações de `extract`, `email-verify` e `dossier` ao Playground e Console, preservado o badge multi-chain (`Base · Polygon · Arbitrum · Solana • 25/25`) no `setLanguage()`, atualizado cache-buster `i18n.js?v=3.4.0` e sincronizadas todas as strings PT/EN (`25` serviços, `27` ferramentas MCP, `3 consultas/dia`).
+  - `public_html/badge.php` e `public_html/catalog.php`: `/badge/system.svg` atualizado de `6/6 ONLINE` estático para contagem dinâmica do catálogo (`25/25 ONLINE`) e incluído fallback de preço para `dossier` (`0.0500`) em `catalog.php`.
+  - `.agents/skills/grid402/SKILL.md`, `references/catalog-and-pricing.md`, `mcp/README.md`, `mcp/smithery.yaml`, `README.md`, `integrations/`, `sdk/`, `docs/` e `.github/workflows/ci.yml`: sincronizados com 25 serviços, 27 ferramentas MCP (`v2.0.0`), Sandbox `3 req/dia` e links `/pass`.
 - **Card mcprush (`27 tools` · `v2.0.0`), selo SealKeeper e manifesto `server.json` (`public_html/index.php`, `public_html/assets/mcprush-card.svg`, `public_html/mcp.php`, `mcp/tools.mjs`, `server.json`, `README.md`):** Atualizado `server.json` de `v1.9.1` (`24 MCP tools`) para `v2.0.0` (`27 MCP tools`), removidos exemplos de URL/e-mail dos schemas de `grid402_extract` e `grid402_email_verify` que acionavam retenção preventiva (`mcp_change_unresolved`) no scanner do SealKeeper, gerado card SVG local `public_html/assets/mcprush-card.svg` refletindo `27 tools` e `v2.0.0` e atualizado o selo SealKeeper/PayCensus/RapidAPI na Home e no `README.md`.
 
 ### Adicionado

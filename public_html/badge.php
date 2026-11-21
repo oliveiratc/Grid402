@@ -86,8 +86,9 @@ switch ($targetId) {
     case 'grid402':
     case 'hub':
     default:
+        $totalCatalog = function_exists('grid402_get_utility_services') ? count(grid402_get_utility_services()) : 25;
         $label = 'Grid402 Hub';
-        $value = '6/6 ONLINE';
+        $value = "{$totalCatalog}/{$totalCatalog} ONLINE";
         $color = '#0052FF';
         break;
 }

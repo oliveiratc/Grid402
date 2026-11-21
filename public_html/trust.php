@@ -213,6 +213,6 @@ $checkedAt = $summary['timestamp'] ?? gmdate('Y-m-d\TH:i:s\Z');
         <li><strong>Credit Decision Disclaimer:</strong> Grid402 provides verifiable public technical data and does not grant credit, provide legal advice, or approve onboarding.</li>
     </ul>
 </div>
-<script src="/assets/js/i18n.js?v=3.3.0"></script>
+<script src="/assets/js/i18n.js?v=3.4.0"></script>
 </body>
 </html>

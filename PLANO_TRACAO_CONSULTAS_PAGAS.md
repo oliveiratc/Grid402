@@ -84,8 +84,8 @@ curl -s -H "X-Payment: pass_g402_SEU_TOKEN_AQUI" \
 
 ### Deploy Técnico
 1. Subir as alterações de `public_html/x402.php` para a Hostinger (`https://grid402.online`).
-2. Testar `curl -i https://grid402.online/api/v1/forex` e confirmar que o JSON do `402` já exibe `sandbox_test` e o link `https://grid402.online/#topup`.
-3. Publicar atualização do pacote `mcp/` (`grid402-mcp@1.8.1`) no npm com suporte a `GRID402_SESSION_PASS`:
+2. Testar `curl -i https://grid402.online/api/v1/forex` e confirmar que o JSON do `402` já exibe `sandbox_test` e o link `https://grid402.online/pass`.
+3. Publicar atualização do pacote `mcp/` (`grid402-mcp@2.0.0`) no npm com suporte a `GRID402_SESSION_PASS`:
    ```bash
    cd mcp
    npm publish --access public
@@ -101,7 +101,7 @@ curl -s -H "X-Payment: pass_g402_SEU_TOKEN_AQUI" \
    - Formulário pronto em [`DIVULGACAO.md`](DIVULGACAO.md) (seção 2).
 3. **Diretórios MCP (Smithery.ai, Glama.ai, PulseMCP, mcp.so):**
    - **Repositório:** `https://github.com/oliveiratc/Grid402`
-   - **Package npm:** `grid402-mcp` (`1.8.1`)
+   - **Package npm:** `grid402-mcp` (`2.0.0`)
    - **Manifestos já no repo:** `smithery.yaml`, `glama.json`, `public_html/.well-known/mcp/server-card.json`
 4. **PyPI e npm (SDKs):**
    - Comandos prontos em [`DIVULGACAO.md`](DIVULGACAO.md) (seção 1).

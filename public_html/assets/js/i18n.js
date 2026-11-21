@@ -207,7 +207,7 @@ const GRID402_I18N = {
         'playground.title': 'Playground Interativo e Verificador de Oráculo',
         'playground.desc': 'Execute consultas reais nos micro-serviços do Grid402 em modo Sandbox gratuito ou simule o desafio x402. Valide instantaneamente a atestação criptográfica ECDSA secp256k1 (_oracle_proof) com o motor matemático em tempo real.',
         'playground.btn.challenge': '🔒 Desafio x402 (HTTP 402)',
-        'playground.btn.sandbox': '🧪 Sandbox (5 consultas/h)',
+        'playground.btn.sandbox': '🧪 Sandbox (3 consultas/dia)',
         'playground.btn.manual': '✍️ Validar JSON Externo',
         'playground.route': 'Rota:',
         'playground.btn.run': '⚡ Executar Consulta',
@@ -264,6 +264,9 @@ const GRID402_I18N = {
         'console.act.ofac': '🛡️ OFAC e AML (/api/v1/ofac)',
         'console.act.notarize': '⏱️ Notarizar (/api/v1/notarize)',
         'console.act.global-markets': '🌐 Bolsas e ECB (/api/v1/global-markets)',
+        'console.act.extract': '📄 Web-to-Markdown (/api/v1/extract)',
+        'console.act.email-verify': '✉️ Email Verify (/api/v1/email-verify)',
+        'console.act.dossier': '🛡️ Dossiê 360 KYB (/api/v1/dossier)',
         'console.act.pass': '⚡ Session Pass (/api/v1/pass)',
         'console.btn.send_payment': 'Enviar com X-Payment',
         'console.btn.web3_pay': '⚡ Pagar com Carteira Web3 (1 Clique)',
@@ -282,7 +285,7 @@ const GRID402_I18N = {
         'console.smithery.desc': 'O Grid402 está catalogado no registro global da Smithery.ai. Você pode registrar instantaneamente o servidor de ferramentas no seu Claude Desktop ou Cursor sem precisar editar arquivos de configuração manualmente.',
         'console.smithery.cmd_claude': 'Comando de Instalação no Claude Desktop:',
         'console.smithery.cmd_cursor': 'Comando de Instalação no Cursor:',
-        'console.smithery.params': '<strong style="color: #fff;">💡 Parâmetros Suportados no smithery.yaml:</strong><ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;"><li><code>sandbox: true</code> — Ativa o Modo Sandbox gratuito (5 consultas por hora por IP) para testes sem necessidade de carteira.</li><li><code>privateKey: 0x...</code> — Chave privada EVM opcional para auto-liquidação em USDC na Base (0.0050 a 0.0500 USDC por chamada).</li></ul>',
+        'console.smithery.params': '<strong style="color: #fff;">💡 Parâmetros Suportados no smithery.yaml:</strong><ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;"><li><code>sandbox: true</code> — Ativa o Modo Sandbox gratuito (3 consultas por dia por IP) para testes sem necessidade de carteira.</li><li><code>privateKey: 0x...</code> — Chave privada EVM opcional para auto-liquidação em USDC na Base (0.0050 a 0.0500 USDC por chamada).</li></ul>',
 
         'console.agentkit.title': '🪙 Integração Nativa Coinbase AgentKit (CDP)',
         'console.agentkit.desc': 'Permita que agentes de IA com carteiras CDP na Base consultem dados públicos e utilitários de rede pagando tarifas x402 de forma 100% autônoma, sem interrupção humana. O provedor de ações intercepta o desafio 402, transfere o USDC e reenvia a requisição de forma transparente.',
@@ -297,7 +300,7 @@ const GRID402_I18N = {
 
 client = Grid402Client()
 
-# 1. Resumo gratuito do hub (23 serviços globais e regionais)
+# 1. Resumo gratuito do hub (25 serviços globais e regionais)
 summary = client.get_summary()
 print("Serviços operantes:", summary["status"])
 
@@ -318,7 +321,7 @@ const ssl = await client.getSsl('base.org');
 console.log('Expira em dias:', ssl.certificate.days_remaining);
 
 // 3. Modo Sandbox ('X-Payment': 'demo') ou Session Pass ('X-Payment': 'pass_g402_...')`,
-        'console.curl.code': `# 1. Resumo gratuito dos 23 micro-serviços
+        'console.curl.code': `# 1. Resumo gratuito dos 25 micro-serviços
 curl -i https://grid402.online/status
 
 # 2. Desafio HTTP 402 com Amostra Preliminar Gratuita (GLEIF LEI ou CNPJ)
@@ -405,9 +408,9 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         // Pagina /agents
         'agents.brand.sub': 'Central Global de Agentes IA e MCP',
         'agents.nav.home': 'Início',
-        'agents.hero.badge': 'x402 Global Autonomous Agent Hub • 23 Serviços',
+        'agents.hero.badge': 'x402 Global Autonomous Agent Hub • 25 Serviços',
         'agents.hero.title': 'Infraestrutura Global de Dados e Utilitários M2M para Agentes de IA',
-        'agents.hero.lead': 'O Grid402 permite que agentes autônomos de IA (Claude, Cursor, LangChain, CrewAI e Coinbase AgentKit) consultem 23 endpoints globais e brasileiros de domínio público via <strong>HTTP 402</strong> ou <strong>Session Pass pré-pago (&lt;15ms)</strong>, liquidando micropagamentos em USDC Multi-Chain (5 EVM + Solana) com <strong>prova criptográfica ECDSA</strong>.',
+        'agents.hero.lead': 'O Grid402 permite que agentes autônomos de IA (Claude, Cursor, LangChain, CrewAI e Coinbase AgentKit) consultem 25 endpoints globais e brasileiros de domínio público via <strong>HTTP 402</strong> ou <strong>Session Pass pré-pago (&lt;15ms)</strong>, liquidando micropagamentos em USDC Multi-Chain (5 EVM + Solana) com <strong>prova criptográfica ECDSA</strong>.',
         'agents.f1.title': 'Zero Cadastro Humano',
         'agents.f1.desc': 'Não requer chaves estáticas de API, cartão de crédito ou login. Agentes de IA contratam serviços diretamente via carteira Web3 on-chain (MetaMask, Rabby, Coinbase Wallet e outras).',
         'agents.f2.title': 'Oráculo Criptográfico',
@@ -415,12 +418,12 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'agents.f3.title': 'x402 Session Pass (<15ms)',
         'agents.f3.desc': 'Compre 400 a 6.000 créditos (1 crédito = 0.0050 USDC) em uma única transação USDC Multi-Chain e execute chamadas M2M de alta frequência em menos de 15ms sem aguardar blocos.',
         'agents.s1.title': '1. Integração com Model Context Protocol (MCP)',
-        'agents.s1.sub': 'Adicione todas as 25 ferramentas MCP (23 serviços globais e brasileiros) ao Claude Desktop ou Cursor com 1 clique.',
+        'agents.s1.sub': 'Adicione todas as 27 ferramentas MCP (25 serviços globais e brasileiros + resumo + saldo) ao Claude Desktop ou Cursor com 1 clique.',
         'agents.s2.title': '2. Código Python para Agentes Autônomos',
         'agents.s2.sub': 'Consumo direto tratando o desafio HTTP 402 ou usando Session Pass (pass_g402_...).',
         'agents.s3.title': '3. Teste Rápido no Terminal (cURL)',
         'agents.s3.sub': 'Inspecione desafios x402, emita um Session Pass ou valide provas criptográficas diretamente no terminal.',
-        'agents.table.title': 'Catálogo dos 23 Endpoints Globais e Tarifas',
+        'agents.table.title': 'Catálogo dos 25 Endpoints Globais e Tarifas',
         'agents.table.sub': 'Valores por chamada em USDC Multi-Chain (6 redes) ou em créditos de Session Pass.',
         'agents.th.service': 'Serviço / Fonte Pública',
         'agents.th.price': 'Tarifa (USDC / Pass)',
@@ -428,7 +431,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'agents.manifests.title': 'Manifestos para Descoberta Automática',
         'agents.manifests.sub': 'Padrões abertos para que modelos de linguagem e agentes mapeiem o Grid402.',
         'agents.nowallet.title': 'Entrada sem carteira Web3 — 3 minutos',
-        'agents.nowallet.desc': 'Você pode testar agora com <code>X-Payment: demo</code> (5 consultas/hora por IP) ou comprar créditos em reais via Pix/cartão em <a href="/pass">/pass</a> para receber um token <code>pass_g402_...</code> na hora.',
+        'agents.nowallet.desc': 'Você pode testar agora com <code>X-Payment: demo</code> (3 consultas/dia por IP) ou comprar créditos em reais via Pix/cartão em <a href="/pass">/pass</a> para receber um token <code>pass_g402_...</code> na hora.',
         'agents.nowallet.btn.catalog': 'Ver preços, limites e exemplos →',
         'agents.nowallet.btn.pass': 'Comprar Session Pass →',
         'agents.eliza.title': '2. Plugin Oficial para ElizaOS (grid402-plugin-elizaos)',
@@ -449,9 +452,9 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'catalog.title': 'Catálogo de Serviços e Preços',
         'catalog.subtitle': 'Serviços, preços, limites e exemplos em uma única página. Consulta paga via <code>POST</code>/<code>GET</code> com <code>X-Payment</code>.',
         'catalog.sub': 'Fonte única da verdade para preços, consumo em créditos de Session Pass, exemplos de chamada e formato de resposta. Cotação de referência exibida: <strong>1 USDC ≈ R$ {rate}</strong>.',
-        'catalog.pill.active': '23 endpoints ativos',
+        'catalog.pill.active': '25 endpoints ativos',
         'catalog.pill.price': 'USDC 0.0050 padrão',
-        'catalog.pill.sandbox': 'Sandbox grátis: 5 consultas/hora por IP',
+        'catalog.pill.sandbox': 'Sandbox grátis: 3 consultas/dia por IP',
         'catalog.pill.unit': 'Unidade base: <strong>1 crédito = 0.0050 USDC</strong> (≈ R$ {brl})',
         'catalog.pill.pass': 'Session Pass: Starter 400 cr (2 USDC) · Pro 1.000 cr (5 USDC) · Fleet 6.000 cr (20 USDC)',
         'catalog.limits.title': 'Limites e autenticação',
@@ -460,10 +463,10 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'catalog.limits.c2.title': 'Session Pass (1 crédito = 0.0050 USDC)',
         'catalog.limits.c2.desc': 'Compre créditos em <a href="/pass" style="color:var(--primary)">/pass</a>; envie <code>X-Payment: pass_g402_...</code>. Starter (2 USDC = 400 créditos), Pro (5 USDC = 1.000 créditos), Fleet (20 USDC = 4.000 base + 2.000 bônus = 6.000 créditos).',
         'catalog.limits.c3.title': 'Sandbox &amp; Idempotência',
-        'catalog.limits.c3.desc': 'Para testes: <code>X-Payment: demo</code> (5 req/hora por IP). Em produção, envie <code>Idempotency-Key</code> para retentativas sem cobrança duplicada (TTL 300s).',
+        'catalog.limits.c3.desc': 'Para testes: <code>X-Payment: demo</code> (3 req/dia por IP). Em produção, envie <code>Idempotency-Key</code> para retentativas sem cobrança duplicada (TTL 300s).',
         'catalog.limits.c4.title': 'Rate limit e Spend Controls',
         'catalog.limits.c4.desc': 'Timeout: 2800 ms. Consulte saldo grátis em <code>GET /api/v1/pass/balance</code> e configure teto diário (<code>daily_credit_limit</code>) e whitelist de rotas.',
-        'catalog.table.title': 'Endpoints, preço, proveniência, status (23/23 UP) e exemplo',
+        'catalog.table.title': 'Endpoints, preço, proveniência, status (25/25 UP) e exemplo',
         'catalog.search.placeholder': 'Filtrar por endpoint, nome, fonte oficial ou categoria…',
         'catalog.th.service': 'Serviço &amp; Fonte Oficial',
         'catalog.th.category': 'Categoria',
@@ -485,12 +488,12 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'catalog.pass.credits': 'Emite 400 / 1.000 / 6.000 créditos',
         'catalog.s1.title': 'Exemplos de integração (copiar e testar)',
         'catalog.s1.c1.title': '1) Sandbox gratuito (sem carteira, sem cadastro)',
-        'catalog.s1.c1.note': 'Limite: 5 consultas por hora por IP.',
+        'catalog.s1.c1.note': 'Limite: 3 consultas por dia por IP.',
         'catalog.s1.c2.title': '2) Com Session Pass (recomendado para produção)',
         'catalog.s1.c2.note': 'Adquira em <a href="/pass">/pass</a> com Pix, cartão ou USDC Multi-Chain (6 redes).',
         'catalog.s1.c3.title': '3) Resposta assinada pelo oráculo (exemplo resumido)',
         'catalog.s2.title': 'Regras operacionais e limites',
-        'catalog.s2.l1': '<strong>Sandbox:</strong> 5 consultas por hora por IP usando o cabeçalho <code>X-Payment: demo</code>.',
+        'catalog.s2.l1': '<strong>Sandbox:</strong> 3 consultas por dia por IP usando o cabeçalho <code>X-Payment: demo</code>.',
         'catalog.s2.l2': '<strong>Session Pass:</strong> 1 crédito equivale a <code>0.0050 USDC</code>. Endpoints de maior valor consomem múltiplos proporcionais (2, 3, 4, 6 ou 10 créditos).',
         'catalog.s2.l3': '<strong>Validade dos passes:</strong> Starter e Pro expiram em 30 dias; Fleet expira em 60 dias.',
         'catalog.s2.l4': '<strong>Verificação criptográfica:</strong> toda resposta paga ou de sandbox inclui <code>_oracle_proof</code> verificável gratuitamente em <code>POST /api/v1/verify</code>.',
@@ -554,7 +557,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'trust.badge': 'Transparência Operacional e Criptográfica',
         'trust.title': 'Trust Center, Governança &amp; Proveniência',
         'trust.subtitle': 'Transparência institucional, disponibilidade histórica verificável (30 dias), matriz de fontes públicas oficiais, limites de escopo e política de segurança do oráculo M2M <strong>Grid402</strong> (<code>grid402.online</code>).',
-        'trust.sub': 'Verificação pública da identidade criptográfica do oráculo, disponibilidade em tempo real dos 23 micro-serviços, fontes oficiais de dados e garantias de privacidade Zero-DB.',
+        'trust.sub': 'Verificação pública da identidade criptográfica do oráculo, disponibilidade em tempo real dos 25 micro-serviços, fontes oficiais de dados e garantias de privacidade Zero-DB.',
         'trust.kpi1': 'Uptime Histórico (30 dias) · Meta Best-Effort: 99,5%',
         'trust.kpi2': 'Serviços Operacionais (UP) no Snapshot Atual',
         'trust.kpi3': 'Taxa de Sucesso Sem Erros 5xx',
@@ -579,7 +582,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'trust.s1.verify': 'Endpoint Gratuito de Verificação',
         'trust.s1.pubkey': 'Chave Pública Secp256k1 Configurada',
         'trust.s2.title': '2. Série Histórica de Disponibilidade (Últimos 30 Dias)',
-        'trust.s2.desc': 'Monitoramento contínuo dos 23 micro-serviços.',
+        'trust.s2.desc': 'Monitoramento contínuo dos 25 micro-serviços.',
         'trust.s2.ago': '30 dias atrás',
         'trust.s2.avg': 'Média 30d:',
         'trust.s2.today': 'Hoje',
@@ -595,7 +598,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'trust.s3.th2': 'O que o Grid402 Entrega (Oráculo Público M2M)',
         'trust.s3.th3': 'O que Exige Bureau de Crédito Privado (Fora do Escopo)',
         'trust.s3.tbody': '<tr><td><strong>Fontes de Dados</strong></td><td>Registros governamentais abertos (Receita Federal CNPJ/Simples, CGU CEIS/CNEP, BCB PTAX/SGS, IBGE, GLEIF LEI CC0, US Treasury OFAC SDN, BCE, DNS/TLS/BGP).</td><td>Bancos de dados privados de inadimplência comercial, protestos cartorários privados, cheques sem fundo e histórico bancário fechado (ex.: Serasa, SPC, Boa Vista, Quod).</td></tr><tr><td><strong>Garantia e Prova</strong></td><td>Normalização determinística em JSON + bloco de proveniência <code>_meta</code> + assinatura criptográfica <strong>ECDSA secp256k1</strong> (<code>_oracle_proof</code>) auditável offline.</td><td>Score de crédito proprietário fechado sem assinatura criptográfica pública de oráculo.</td></tr><tr><td><strong>Privacidade (LGPD/GDPR)</strong></td><td>Arquitetura estritamente <strong>Zero-PII</strong>: processa exclusivamente Pessoas Jurídicas e fatos macroeconômicos/rede, filtrando CPFs e sócios na origem.</td><td>Consultas a CPF de pessoas naturais, renda presumida de indivíduos e histórico de consumo pessoal.</td></tr><tr><td><strong>Modelo Comercial</strong></td><td>Zero cadastro, zero mensalidade. Liquidação por requisição via HTTP 402 (<code>0.0050 a 0.0500 USDC</code> em 6 redes) ou Session Pass pré-pago (<code>1 crédito = 0.0050 USDC</code>).</td><td>Contratos anuais com franquia mínima mensal, homologação cadastral manual e faturamento pós-pago.</td></tr>',
-        'trust.s4.title': '4. Matriz de Proveniência e Freshness (TTL) dos 23 Serviços',
+        'trust.s4.title': '4. Matriz de Proveniência e Freshness (TTL) dos 25 Serviços',
         'trust.s4.desc': 'Cada resposta HTTP 200 paga ou de sandbox inclui o objeto <code>_meta</code> assinado junto ao <code>_oracle_proof</code>, atestando a fonte upstream exata e a política de cache:',
         'trust.s4.th1': 'Endpoint',
         'trust.s4.th2': 'Serviço',
@@ -621,14 +624,14 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'agenthub.catalog.link': 'Preços e tarifas →',
         'agenthub.examples.title': 'Exemplos de integração',
         'agenthub.rules.title': 'Regras de produção',
-        'agenthub.rules.list': '<li>Não movimente fundos sem autorização on-chain compatível com suas políticas.</li><li>Prefira <code>demo</code> para testes sandbox (5 consultas/h/IP).</li><li>Use Session Pass para reduzir latência e custo administrativo.</li><li>Valide <code>_oracle_proof</code> para respostas sensíveis.</li>',
+        'agenthub.rules.list': '<li>Não movimente fundos sem autorização on-chain compatível com suas políticas.</li><li>Prefira <code>demo</code> para testes sandbox (3 consultas/dia/IP).</li><li>Use Session Pass para reduzir latência e custo administrativo.</li><li>Valide <code>_oracle_proof</code> para respostas sensíveis.</li>',
         'agenthub.s1': 'Catálogo de serviços',
         'agenthub.pricing_link': 'Preços e tarifas →',
         'agenthub.s2': 'Exemplos de integração',
         'agenthub.budget.desc': 'Agentes devem implementar orçamento próprio; Grid402 não autoriza movimentação de fundos sem permissão explícita do mantenedor.',
         'agenthub.s3': 'Regras de produção',
         'agenthub.r1': 'Não movimente fundos sem autorização on-chain compatível com suas políticas.',
-        'agenthub.r2': 'Prefira <code>demo</code> para testes sandbox (5 consultas/h/IP).',
+        'agenthub.r2': 'Prefira <code>demo</code> para testes sandbox (3 consultas/dia/IP).',
         'agenthub.r3': 'Use Session Pass para reduzir latência e custo administrativo.',
         'agenthub.r4': 'Valide <code>_oracle_proof</code> para respostas sensíveis.',
 
@@ -775,7 +778,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
             <h2>1. Fornecimento no Estado em que se Encontra (AS-IS)</h2>
             <p>O Grid402 é uma infraestrutura técnica de oráculo M2M fornecida estritamente "NO ESTADO EM QUE SE ENCONTRA" (AS-IS), sem garantias de adequação a finalidades comerciais exclusivas, aconselhamento jurídico ou decisões de crédito.</p>
             <h2>2. Base Legal de Dados Públicos, Domínio Público e Licenças Abertas</h2>
-            <p>Todas as 23 rotas do Grid402 processam exclusivamente informações de domínio público, fatos econômicos e registros governamentais abertos, livres de restrições proprietárias:</p>
+            <p>Todas as 25 rotas do Grid402 processam exclusivamente informações de domínio público, fatos econômicos e registros governamentais abertos, livres de restrições proprietárias:</p>
             <ul>
                 <li><strong>Global LEI (/api/v1/lei):</strong> Global Legal Entity Identifier Foundation (GLEIF) sob licença <strong>CC0 1.0 Universal (Public Domain Dedication)</strong>, padrão ISO 17442.</li>
                 <li><strong>Sanções Internacionais (/api/v1/ofac):</strong> US Treasury OFAC SDN (domínio público federal sob <strong>17 U.S.C. § 105</strong>) e listas consolidadas públicas do Conselho de Segurança da ONU.</li>
@@ -1005,7 +1008,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'playground.title': 'Interactive Playground and Oracle Verifier',
         'playground.desc': 'Run real queries across Grid402 microservices using free Sandbox mode or simulate the x402 challenge. Instantly verify ECDSA secp256k1 cryptographic attestations (_oracle_proof) using our browser-based math engine in real time.',
         'playground.btn.challenge': '🔒 x402 Challenge (HTTP 402)',
-        'playground.btn.sandbox': '🧪 Sandbox (5 queries/hr)',
+        'playground.btn.sandbox': '🧪 Sandbox (3 queries/day)',
         'playground.btn.manual': '✍️ Validate External JSON',
         'playground.route': 'Route:',
         'playground.btn.run': '⚡ Run Query',
@@ -1062,6 +1065,9 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'console.act.ofac': '🛡️ OFAC and AML (/api/v1/ofac)',
         'console.act.notarize': '⏱️ Notarize (/api/v1/notarize)',
         'console.act.global-markets': '🌐 Markets and ECB (/api/v1/global-markets)',
+        'console.act.extract': '📄 Web-to-Markdown (/api/v1/extract)',
+        'console.act.email-verify': '✉️ Email Verify (/api/v1/email-verify)',
+        'console.act.dossier': '🛡️ KYB 360 Dossier (/api/v1/dossier)',
         'console.act.pass': '⚡ Session Pass (/api/v1/pass)',
         'console.btn.send_payment': 'Send with X-Payment',
         'console.btn.web3_pay': '⚡ Pay with Web3 Wallet (1-Click)',
@@ -1080,7 +1086,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'console.smithery.desc': 'Grid402 is indexed in the global Smithery.ai registry. You can instantly register the MCP tools server in your Claude Desktop or Cursor without editing configuration files manually.',
         'console.smithery.cmd_claude': 'Installation Command for Claude Desktop:',
         'console.smithery.cmd_cursor': 'Installation Command for Cursor:',
-        'console.smithery.params': '<strong style="color: #fff;">💡 Supported Parameters in smithery.yaml:</strong><ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;"><li><code>sandbox: true</code> — Enables free Sandbox Mode (5 queries/hour per IP) to test without a wallet.</li><li><code>privateKey: 0x...</code> — Optional EVM private key for auto-settlement in USDC on Base (0.0050 to 0.0500 USDC per call).</li></ul>',
+        'console.smithery.params': '<strong style="color: #fff;">💡 Supported Parameters in smithery.yaml:</strong><ul style="margin: 0.5rem 0 0 1.2rem; padding: 0;"><li><code>sandbox: true</code> — Enables free Sandbox Mode (3 queries/day per IP) to test without a wallet.</li><li><code>privateKey: 0x...</code> — Optional EVM private key for auto-settlement in USDC on Base (0.0050 to 0.0500 USDC per call).</li></ul>',
 
         'console.agentkit.title': '🪙 Native Coinbase AgentKit Integration (CDP)',
         'console.agentkit.desc': 'Allow autonomous AI agents equipped with CDP wallets on Base to fetch public data and network utilities paying x402 rates 100% autonomously, with zero human intervention. The action provider intercepts HTTP 402, transfers USDC, and retries the request seamlessly.',
@@ -1095,7 +1101,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
 
 client = Grid402Client()
 
-# 1. Free hub status summary (23 global and regional services)
+# 1. Free hub status summary (25 global and regional services)
 summary = client.get_summary()
 print("Operational status:", summary["status"])
 
@@ -1116,7 +1122,7 @@ const ssl = await client.getSsl('base.org');
 console.log('Days remaining:', ssl.certificate.days_remaining);
 
 // 3. Free Sandbox ('X-Payment': 'demo') or Prepaid Session Pass ('X-Payment': 'pass_g402_...')`,
-        'console.curl.code': `# 1. Free status summary of all 23 microservices
+        'console.curl.code': `# 1. Free status summary of all 25 microservices
 curl -i https://grid402.online/status
 
 # 2. HTTP 402 Challenge with Free Teaser Sample (GLEIF LEI or OFAC)
@@ -1203,9 +1209,9 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         // /agents Page
         'agents.brand.sub': 'Global AI Agents and MCP Hub',
         'agents.nav.home': 'Home',
-        'agents.hero.badge': 'x402 Global Autonomous Agent Hub • 23 Services',
+        'agents.hero.badge': 'x402 Global Autonomous Agent Hub • 25 Services',
         'agents.hero.title': 'Global Open-Data and M2M Utility Infrastructure for AI Agents',
-        'agents.hero.lead': 'Grid402 enables autonomous AI agents (Claude, Cursor, LangChain, CrewAI, and Coinbase AgentKit) to query 23 global and regional public-domain endpoints via <strong>HTTP 402</strong> or <strong>Prepaid Session Pass (&lt;15ms)</strong>, settling USDC micropayments across 6 chains (5 EVM + Solana) with <strong>ECDSA cryptographic proofs</strong>.',
+        'agents.hero.lead': 'Grid402 enables autonomous AI agents (Claude, Cursor, LangChain, CrewAI, and Coinbase AgentKit) to query 25 global and regional public-domain endpoints via <strong>HTTP 402</strong> or <strong>Prepaid Session Pass (&lt;15ms)</strong>, settling USDC micropayments across 6 chains (5 EVM + Solana) with <strong>ECDSA cryptographic proofs</strong>.',
         'agents.f1.title': 'Zero Human Signup',
         'agents.f1.desc': 'No static API keys, credit cards, or accounts required. AI agents purchase oracle data autonomously via on-chain Web3 wallets (MetaMask, Rabby, Coinbase Wallet and others).',
         'agents.f2.title': 'Cryptographic Oracle',
@@ -1213,12 +1219,12 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'agents.f3.title': 'x402 Session Pass (<15ms)',
         'agents.f3.desc': 'Purchase 400 to 6,000 prepaid credits (1 credit = 0.0050 USDC) in a single Multi-Chain USDC transaction and execute high-frequency M2M calls in under 15ms with zero block wait.',
         'agents.s1.title': '1. Model Context Protocol (MCP) Integration',
-        'agents.s1.sub': 'Add all 25 MCP tools (23 global and regional oracle services) to Claude Desktop or Cursor in 1 click.',
+        'agents.s1.sub': 'Add all 27 MCP tools (25 global and regional oracle services + summary + pass balance) to Claude Desktop or Cursor in 1 click.',
         'agents.s2.title': '2. Python Code for Autonomous Agents',
         'agents.s2.sub': 'Direct consumption handling HTTP 402 challenges or using a Prepaid Session Pass (pass_g402_...).',
         'agents.s3.title': '3. Quick Terminal Test (cURL)',
         'agents.s3.sub': 'Inspect x402 challenges, issue a Session Pass, or verify cryptographic oracle proofs directly from your terminal.',
-        'agents.table.title': 'Global 23-Endpoint Catalog and Pricing',
+        'agents.table.title': 'Global 25-Endpoint Catalog and Pricing',
         'agents.table.sub': 'Pay-per-call rates in Multi-Chain USDC (6 chains) or Prepaid Session Pass credits.',
         'agents.th.service': 'Service / Open-Data Source',
         'agents.th.price': 'Rate (USDC / Pass)',
@@ -1226,7 +1232,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'agents.manifests.title': 'Autonomous Discovery Manifests',
         'agents.manifests.sub': 'Open standards for LLMs, crawlers, and autonomous agents to map Grid402 capabilities.',
         'agents.nowallet.title': 'No Web3 Wallet Needed — 3 Minutes',
-        'agents.nowallet.desc': 'Test right now with <code>X-Payment: demo</code> (5 queries/hour per IP) or buy prepaid credits via Pix/Card or USDC at <a href="/pass">/pass</a> to receive an instant <code>pass_g402_...</code> token.',
+        'agents.nowallet.desc': 'Test right now with <code>X-Payment: demo</code> (3 queries/day per IP) or buy prepaid credits via Pix/Card or USDC at <a href="/pass">/pass</a> to receive an instant <code>pass_g402_...</code> token.',
         'agents.nowallet.btn.catalog': 'See pricing, limits and examples →',
         'agents.nowallet.btn.pass': 'Buy Session Pass →',
         'agents.eliza.title': '2. Official ElizaOS Plugin (grid402-plugin-elizaos)',
@@ -1247,9 +1253,9 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'catalog.title': 'Complete Service Catalog',
         'catalog.subtitle': 'Services, prices, limits, and examples on a single page. Paid queries via <code>POST</code>/<code>GET</code> with <code>X-Payment</code>.',
         'catalog.sub': 'Single source of truth for pricing, Session Pass credit consumption, request examples, and response format. Reference exchange rate shown: <strong>1 USDC ≈ R$ {rate}</strong>.',
-        'catalog.pill.active': '23 active endpoints',
+        'catalog.pill.active': '25 active endpoints',
         'catalog.pill.price': '0.0050 USDC standard',
-        'catalog.pill.sandbox': 'Free Sandbox: 5 queries/hour per IP',
+        'catalog.pill.sandbox': 'Free Sandbox: 3 queries/day per IP',
         'catalog.pill.unit': 'Base unit: <strong>1 credit = 0.0050 USDC</strong> (≈ R$ {brl})',
         'catalog.pill.pass': 'Session Pass: Starter 400 cr (2 USDC) · Pro 1,000 cr (5 USDC) · Fleet 6,000 cr (20 USDC)',
         'catalog.limits.title': 'Limits and authentication',
@@ -1258,10 +1264,10 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'catalog.limits.c2.title': 'Session Pass (1 credit = 0.0050 USDC)',
         'catalog.limits.c2.desc': 'Buy credits at <a href="/pass" style="color:var(--primary)">/pass</a>; send <code>X-Payment: pass_g402_...</code>. Starter (2 USDC = 400 credits), Pro (5 USDC = 1,000 credits), Fleet (20 USDC = 4,000 base + 2,000 bonus = 6,000 credits).',
         'catalog.limits.c3.title': 'Sandbox &amp; Idempotency',
-        'catalog.limits.c3.desc': 'For testing: <code>X-Payment: demo</code> (5 req/hour per IP). In production, send <code>Idempotency-Key</code> for retries without duplicate billing (300s TTL).',
+        'catalog.limits.c3.desc': 'For testing: <code>X-Payment: demo</code> (3 req/day per IP). In production, send <code>Idempotency-Key</code> for retries without duplicate billing (300s TTL).',
         'catalog.limits.c4.title': 'Rate limit and Spend Controls',
         'catalog.limits.c4.desc': 'Timeout: 2800 ms. Check balance for free at <code>GET /api/v1/pass/balance</code> and configure daily cap (<code>daily_credit_limit</code>) and route whitelist.',
-        'catalog.table.title': 'Endpoints, price, provenance, status (23/23 UP) and example',
+        'catalog.table.title': 'Endpoints, price, provenance, status (25/25 UP) and example',
         'catalog.search.placeholder': 'Filter by endpoint, name, official source, or category…',
         'catalog.th.service': 'Service &amp; Official Source',
         'catalog.th.category': 'Category',
@@ -1283,12 +1289,12 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'catalog.pass.credits': 'Issues 400 / 1,000 / 6,000 credits',
         'catalog.s1.title': 'Integration Examples (Copy and Test)',
         'catalog.s1.c1.title': '1) Free Sandbox (no wallet, no signup)',
-        'catalog.s1.c1.note': 'Limit: 5 queries per hour per IP.',
+        'catalog.s1.c1.note': 'Limit: 3 queries per day per IP.',
         'catalog.s1.c2.title': '2) With Session Pass (recommended for production)',
         'catalog.s1.c2.note': 'Purchase at <a href="/pass">/pass</a> using Multi-Chain USDC (6 chains), Pix, or Card.',
         'catalog.s1.c3.title': '3) Oracle-signed response (condensed example)',
         'catalog.s2.title': 'Operational Rules and Limits',
-        'catalog.s2.l1': '<strong>Sandbox:</strong> 5 queries per hour per IP using the <code>X-Payment: demo</code> header.',
+        'catalog.s2.l1': '<strong>Sandbox:</strong> 3 queries per day per IP using the <code>X-Payment: demo</code> header.',
         'catalog.s2.l2': '<strong>Session Pass:</strong> 1 credit equals <code>0.0050 USDC</code>. Higher-tier endpoints consume proportional multiples (2, 3, 4, 6, or 10 credits).',
         'catalog.s2.l3': '<strong>Pass expiration:</strong> Starter and Pro expire in 30 days; Fleet expires in 60 days.',
         'catalog.s2.l4': '<strong>Cryptographic verification:</strong> every paid or sandbox response includes <code>_oracle_proof</code> verifiable for free via <code>POST /api/v1/verify</code>.',
@@ -1352,7 +1358,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'trust.badge': 'Operational and Cryptographic Transparency',
         'trust.title': 'Trust Center, Governance &amp; Provenance',
         'trust.subtitle': 'Institutional transparency, verifiable historical availability (30 days), matrix of official public sources, scope boundaries, and security policy of the <strong>Grid402</strong> M2M oracle (<code>grid402.online</code>).',
-        'trust.sub': 'Public verification of the oracle cryptographic identity, real-time availability of all 23 microservices, official upstream data sources, and Zero-DB privacy guarantees.',
+        'trust.sub': 'Public verification of the oracle cryptographic identity, real-time availability of all 25 microservices, official upstream data sources, and Zero-DB privacy guarantees.',
         'trust.kpi1': 'Historical Uptime (30 days) · Best-Effort Target: 99.5%',
         'trust.kpi2': 'Operational Services (UP) in Current Snapshot',
         'trust.kpi3': 'Success Rate Without 5xx Errors',
@@ -1377,7 +1383,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'trust.s1.verify': 'Free Verification Endpoint',
         'trust.s1.pubkey': 'Configured secp256k1 Public Key',
         'trust.s2.title': '2. Availability History (Last 30 Days)',
-        'trust.s2.desc': 'Continuous monitoring of all 23 microservices.',
+        'trust.s2.desc': 'Continuous monitoring of all 25 microservices.',
         'trust.s2.ago': '30 days ago',
         'trust.s2.avg': '30d Average:',
         'trust.s2.today': 'Today',
@@ -1393,7 +1399,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'trust.s3.th2': 'What Grid402 Delivers (Public M2M Oracle)',
         'trust.s3.th3': 'What Requires a Private Credit Bureau (Out of Scope)',
         'trust.s3.tbody': '<tr><td><strong>Data Sources</strong></td><td>Open government registries (Receita Federal CNPJ/Simples, CGU CEIS/CNEP, BCB PTAX/SGS, IBGE, GLEIF LEI CC0, US Treasury OFAC SDN, ECB, DNS/TLS/BGP).</td><td>Private commercial default databases, private notary protests, bounced checks, and closed banking history (e.g., Serasa, SPC, Boa Vista, Quod).</td></tr><tr><td><strong>Guarantee and Proof</strong></td><td>Deterministic JSON normalization + <code>_meta</code> provenance block + offline-auditable <strong>ECDSA secp256k1</strong> cryptographic signature (<code>_oracle_proof</code>).</td><td>Closed proprietary credit score without public cryptographic oracle signature.</td></tr><tr><td><strong>Privacy (LGPD/GDPR)</strong></td><td>Strictly <strong>Zero-PII</strong> architecture: processes exclusively Legal Entities and macroeconomic/network facts, filtering individual tax IDs at the source.</td><td>Queries on natural person tax IDs (CPF), presumed individual income, and personal consumer history.</td></tr><tr><td><strong>Commercial Model</strong></td><td>Zero sign-up, zero monthly fee. Per-request settlement via HTTP 402 (<code>0.0050 to 0.0500 USDC</code> across 6 chains) or prepaid Session Pass (<code>1 credit = 0.0050 USDC</code>).</td><td>Annual contracts with minimum monthly commitment, manual onboarding approval, and postpaid billing.</td></tr>',
-        'trust.s4.title': '4. Provenance and Freshness (TTL) Matrix of All 23 Services',
+        'trust.s4.title': '4. Provenance and Freshness (TTL) Matrix of All 25 Services',
         'trust.s4.desc': 'Every paid or sandbox HTTP 200 response includes the <code>_meta</code> object signed alongside <code>_oracle_proof</code>, attesting the exact upstream source and cache policy:',
         'trust.s4.th1': 'Endpoint',
         'trust.s4.th2': 'Service',
@@ -1419,14 +1425,14 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'agenthub.catalog.link': 'Prices and fees →',
         'agenthub.examples.title': 'Integration examples',
         'agenthub.rules.title': 'Production rules',
-        'agenthub.rules.list': '<li>Do not move funds without on-chain authorization compliant with your policies.</li><li>Prefer <code>demo</code> for sandbox testing (5 queries/h/IP).</li><li>Use a Session Pass to reduce latency and administrative cost.</li><li>Validate <code>_oracle_proof</code> for sensitive responses.</li>',
+        'agenthub.rules.list': '<li>Do not move funds without on-chain authorization compliant with your policies.</li><li>Prefer <code>demo</code> for sandbox testing (3 queries/day/IP).</li><li>Use a Session Pass to reduce latency and administrative cost.</li><li>Validate <code>_oracle_proof</code> for sensitive responses.</li>',
         'agenthub.s1': 'Service Catalog',
         'agenthub.pricing_link': 'Pricing and rates →',
         'agenthub.s2': 'Integration Examples',
         'agenthub.budget.desc': 'Agents should implement their own budget controls; Grid402 does not authorize fund movement without explicit maintainer permission.',
         'agenthub.s3': 'Production Rules',
         'agenthub.r1': 'Never move funds without on-chain authorization compliant with your policies.',
-        'agenthub.r2': 'Prefer <code>demo</code> for sandbox testing (5 queries/hr/IP).',
+        'agenthub.r2': 'Prefer <code>demo</code> for sandbox testing (3 queries/day/IP).',
         'agenthub.r3': 'Use a Session Pass to reduce latency and per-call overhead.',
         'agenthub.r4': 'Validate <code>_oracle_proof</code> for mission-critical responses.',
 
@@ -1573,7 +1579,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
             <h2>1. Provided "AS-IS"</h2>
             <p>Grid402 is a technical M2M oracle infrastructure provided strictly "AS-IS", without warranties of fitness for a particular commercial purpose, legal counsel, or credit underwriting.</p>
             <h2>2. Public Domain Legal Basis and Open Data Licenses</h2>
-            <p>All 23 Grid402 endpoints process exclusively public-domain records, non-copyrightable facts, and open government registries:</p>
+            <p>All 25 Grid402 endpoints process exclusively public-domain records, non-copyrightable facts, and open government registries:</p>
             <ul>
                 <li><strong>Global LEI (/api/v1/lei):</strong> Global Legal Entity Identifier Foundation (GLEIF) under <strong>CC0 1.0 Universal (Public Domain Dedication)</strong>, ISO 17442 standard.</li>
                 <li><strong>Global Sanctions (/api/v1/ofac):</strong> US Treasury OFAC SDN (US Federal Public Domain under <strong>17 U.S.C. § 105</strong>) and United Nations Security Council Consolidated Lists.</li>
@@ -1658,6 +1664,20 @@ const playgroundPresets_en = {
         params: [
             { key: 'market', label: 'Market (US, EU, UK, BR)', value: 'US' },
             { key: 'base', label: 'Base Currency (USD, EUR, GBP, BRL)', value: 'USD' }
+        ]
+    },
+    extract: {
+        name: 'Web-to-Markdown Extractor',
+        desc: 'SSRF-hardened webpage fetcher returning LLM-ready clean Markdown, metadata, and absolute links.',
+        params: [
+            { key: 'url', label: 'Public URL (HTTP/HTTPS)', value: 'https://example.com' }
+        ]
+    },
+    'email-verify': {
+        name: 'B2B Email Deliverability Audit',
+        desc: 'Zero-PII email audit: RFC syntax, DNS MX, SPF, DMARC, disposable domain detection, and score 0-100.',
+        params: [
+            { key: 'email', label: 'Corporate Email Address', value: 'contato@grid402.online' }
         ]
     },
     pass: {
@@ -1843,10 +1863,10 @@ function setLanguage(lang) {
     // Atualiza contadores e textos dinamicos do header
     const badgeText = document.getElementById('badge-live-text');
     if (badgeText) {
-        const count = badgeText.getAttribute('data-i18n-count') || '23';
+        const count = badgeText.getAttribute('data-i18n-count') || '25';
         badgeText.textContent = (lang === 'en')
-            ? `Base Mainnet (8453) • ${count}/${count} Services Operational`
-            : `Base Mainnet (8453) • ${count}/${count} Serviços Operantes`;
+            ? `Base · Polygon · Arbitrum · Solana • ${count}/${count} Services Operational`
+            : `Base · Polygon · Arbitrum · Solana • ${count}/${count} Serviços Operantes`;
     }
 
     // Atualiza presets do playground se a funcao existir

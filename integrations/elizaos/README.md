@@ -45,7 +45,7 @@ export const myAgentCharacter = {
   plugins: [grid402Plugin],
   settings: {
     secrets: {
-      // 1-Click Top-Up Pass Token from https://grid402.online/#topup
+      // 1-Click Top-Up Pass Token from https://grid402.online/pass
       GRID402_PASS_TOKEN: "pass_g402_live..._..."
     }
   }
@@ -58,8 +58,8 @@ export const myAgentCharacter = {
 
 | Variable | Description | Default |
 |---|---|---|
-| `GRID402_PASS_TOKEN` | Pre-paid Session Pass token for fast-track queries (&lt;15ms latency). Buy passes at [grid402.online/#topup](https://grid402.online/#topup). | *Optional* |
-| `GRID402_SANDBOX` | Set to `true` to enable free testing mode (up to 20 reqs/hour per IP). | `false` |
+| `GRID402_PASS_TOKEN` | Pre-paid Session Pass token for fast-track queries (&lt;15ms latency). Buy passes at [grid402.online/pass](https://grid402.online/pass). | *Optional* |
+| `GRID402_SANDBOX` | Set to `true` to enable free testing mode (up to 3 queries/day per IP). | `false` |
 | `GRID402_BASE_URL` | Base API URL. | `https://grid402.online` |
 
 ---
@@ -67,8 +67,8 @@ export const myAgentCharacter = {
 ## 💡 How Session Passes Work (Zero Friction M2M)
 
 Instead of signing an on-chain transaction for every single HTTP GET request:
-1. Top up **2 USDC, 5 USDC, or 20 USDC** once at [https://grid402.online/#topup](https://grid402.online/#topup).
-2. Receive your `pass_g402_live...` token (4,000 to 50,000 requests).
+1. Top up **2 USDC, 5 USDC, or 20 USDC** (or Pix R$ 12) once at [https://grid402.online/pass](https://grid402.online/pass).
+2. Receive your `pass_g402_live...` token (400 to 6,000 credits; 1 credit = 0.0050 USDC).
 3. Provide the token in `GRID402_PASS_TOKEN`. Your Eliza agent will execute instant queries with &lt;15ms response times.
 
 ---

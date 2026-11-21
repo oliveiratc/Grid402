@@ -14,7 +14,7 @@ Publicamos um workflow de **enriquecimento e auditoria B2B** pronto para importa
 
 1. Baixe o template: `examples/n8n_cnpj_compliance_pix.json` (ou `examples/n8n/grid402_cnpj_compliance_workflow.json`) no repo https://github.com/oliveiratc/Grid402
 2. No n8n: **Menu (…) → Import from File**
-3. Clique em **Test workflow** — vem com `X-Payment: demo` (Sandbox gratuito, **5 chamadas/hora por IP**)
+3. Clique em **Test workflow** — vem com `X-Payment: demo` (Sandbox gratuito, **3 chamadas/dia por IP**)
 
 ## Para produção (via Pix/Cartão ou Multi-Chain USDC)
 
@@ -32,6 +32,6 @@ Troque `'demo'` por um **Session Pass** emitido em https://grid402.online/pass (
 
 Tudo verificado criptograficamente (prova do oráculo ECDSA no payload, `_oracle_proof`) e em conformidade com a LGPD (dados públicos de PJ, zero PII).
 
-**Repo:** https://github.com/oliveiratc/Grid402 · **Site:** https://grid402.online · **MCP (25 tools, Nota A):** `npx -y grid402-mcp`
+**Repo:** https://github.com/oliveiratc/Grid402 · **Site:** https://grid402.online · **MCP (27 tools, Nota A):** `npx -y grid402-mcp`
 
 Feedback bem-vindo — especialmente se você usar n8n com clientes B2B no Brasil e tiver dor com KYB manual.

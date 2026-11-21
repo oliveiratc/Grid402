@@ -436,6 +436,6 @@ function copyToken(btn) {
     }
 })();
 </script>
-<script src="/assets/js/i18n.js?v=3.3.0"></script>
+<script src="/assets/js/i18n.js?v=3.4.0"></script>
 </body>
 </html>

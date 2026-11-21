@@ -40,7 +40,7 @@ const walletProvider = await CdpWalletProvider.configureWithWallet({
 // 2. Inicializa o provedor de acoes do Grid402
 const grid402 = new Grid402ActionProvider({
   baseUrl: "https://grid402.online",
-  sandbox: false, // configure true para testar sem custos (cota de 20 req/h)
+  sandbox: false, // configure true para testar sem custos (cota de 3 req/dia)
 });
 
 // 3. Executa a consulta com auto-liquidacao de 0.0200 USDC
@@ -85,5 +85,5 @@ grid402 = Grid402ActionProvider(sandbox=True)
 empresa = grid402.query_cnpj("00000000000191")
 print("Status Sandbox:", empresa.get("sandbox"))
 ```
-No modo sandbox, o cabeçalho `X-Payment: demo` e injetado automaticamente, liberando todas as consultas com cota defensiva de 20 chamadas por hora por IP.
+No modo sandbox, o cabeçalho `X-Payment: demo` e injetado automaticamente, liberando todas as consultas com cota defensiva de 3 chamadas por dia por IP.
 

@@ -3,7 +3,7 @@
 
 Toda automação de KYB/KYC no Brasil esbarra no mesmo gargalo: CEP, CNPJ, Simples Nacional, sanções CEIS/CNEP, feriados ANBIMA — portais públicos sem API unificada, caros de manter em produção ou presos em contratos anuais de birôs.
 
-Esta semana subimos uma atualização grande no **Grid402** — nossa infraestrutura de 23 APIs de dados públicos e rede para agentes de IA, acessível por um único `curl`, sem cadastro, sem contrato e sem chave de API:
+Esta semana subimos uma atualização grande no **Grid402** — nossa infraestrutura de 25 APIs de dados públicos e rede para agentes de IA, acessível por um único `curl`, sem cadastro, sem contrato e sem chave de API:
 
     curl -sL -H "X-Payment: demo" \
       "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
@@ -11,11 +11,11 @@ Esta semana subimos uma atualização grande no **Grid402** — nossa infraestru
 O que entrou no ar:
 • **Novo Dossiê 360º KYB + Veredito IA (`/api/v1/dossier`, 0,0500 USDC / 10 créditos):** cruza Receita Federal (CNPJ), Simples/MEI e sanções CGU (CEIS/CNEP) em 1 chamada, devolvendo score 0–100 e veredito pronto para agentes (`APPROVED`, `FLAGGED` ou `REJECTED`), estritamente Zero-PII (LGPD) e com assinatura criptográfica ECDSA (`_oracle_proof`).
 • **Multi-Chain em 6 redes + Pix/Cartão:** agora aceita USDC nativo em Base, Arbitrum, Polygon, Optimism, Ethereum e **Solana (SPL USDC)**, além de Pix/Cartão em Reais (Starter: 2 USDC ou R$ 12 = 400 créditos, `1 crédito = 0,0050 USDC`, latência `<15 ms`).
-• **25 ferramentas MCP com selo Nota A no mcprush**, verificado também no Glama, x402scan e PayAPI Market — pronto para Claude Desktop, Cursor, n8n, LangChain, CrewAI e AgentKit.
+• **27 ferramentas MCP com selo Nota A no mcprush**, verificado também no Glama, x402scan e PayAPI Market — pronto para Claude Desktop, Cursor, n8n, LangChain, CrewAI e AgentKit.
 
 Se você já perdeu tempo colando CNPJ em portal para enriquecer lead ou auditar fornecedor: me conta nos comentários qual consulta ainda trava sua operação.
 
-Teste grátis no sandbox (5 req/h, sem cartão): links no primeiro comentário.
+Teste grátis no sandbox (3 req/day, sem cartão): links no primeiro comentário.
 #IA #AgentesDeIA #Fintech #KYB #Compliance #MCP #Automação #Brasil
 
 ---

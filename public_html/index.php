@@ -305,7 +305,7 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
             <div data-i18n="inst.footer.copy">© <?php echo date('Y'); ?> Grid402 Network Intelligence. All rights reserved.</div>
         </footer>
     </div>
-    <script src="/assets/js/i18n.js?v=3.3.0"></script>
+    <script src="/assets/js/i18n.js?v=3.4.0"></script>
 </body>
 </html>
     <?php
@@ -3737,6 +3737,9 @@ grid402_log_public_visit('/');
                     <button type="button" class="btn-sm" onclick="runConsole('ofac')" data-i18n="console.act.ofac" style="border-color: rgba(0, 240, 255, 0.4);">🛡️ OFAC and AML (/api/v1/ofac)</button>
                     <button type="button" class="btn-sm" onclick="runConsole('notarize')" data-i18n="console.act.notarize" style="border-color: rgba(0, 240, 255, 0.4);">⏱️ Notarize (/api/v1/notarize)</button>
                     <button type="button" class="btn-sm" onclick="runConsole('global-markets')" data-i18n="console.act.global-markets" style="border-color: rgba(0, 240, 255, 0.4);">🌐 Exchanges and ECB (/api/v1/global-markets)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('extract')" data-i18n="console.act.extract" style="border-color: rgba(0, 240, 255, 0.4);">📄 Web-to-Markdown (/api/v1/extract)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('email-verify')" data-i18n="console.act.email-verify" style="border-color: rgba(0, 240, 255, 0.4);">✉️ Email Verify (/api/v1/email-verify)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('dossier')" data-i18n="console.act.dossier" style="border-color: rgba(0, 240, 255, 0.4);">🛡️ KYB 360 Dossier (/api/v1/dossier)</button>
                     <button type="button" class="btn-sm" onclick="runConsole('pass')" data-i18n="console.act.pass" style="border-color: rgba(16, 185, 129, 0.5);">⚡ Session Pass (/api/v1/pass)</button>
                 </div>
                 <div class="input-group" style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -4271,6 +4274,24 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     { key: 'base', label: 'Moeda Base FX', value: 'USD' }
                 ]
             },
+            extract: {
+                name: 'Extrator Web para Markdown',
+                icon: '📄',
+                endpoint: '/api/v1/extract',
+                desc: 'Extracao segura anti-SSRF de paginas HTTP/HTTPS para Markdown limpo com metadados e links absolutos.',
+                params: [
+                    { key: 'url', label: 'URL Publica (HTTP/HTTPS)', value: 'https://example.com' }
+                ]
+            },
+            'email-verify': {
+                name: 'Auditoria de E-mail B2B',
+                icon: '✉️',
+                endpoint: '/api/v1/email-verify',
+                desc: 'Validacao Zero-PII de entregabilidade: sintaxe RFC, DNS MX, SPF, DMARC, disposable e score 0-100.',
+                params: [
+                    { key: 'email', label: 'E-mail Corporativo', value: 'contato@grid402.online' }
+                ]
+            },
             pass: {
                 name: 'Session Pass (400 a 6.000 cr)',
                 icon: '⚡',
@@ -4605,13 +4626,17 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 if (response.status === 200) {
                     if (statusBadge) statusBadge.textContent = 'HTTP 200 OK';
                     if (sandboxCta && data && data.sandbox) {
-                        const rem = data.sandbox_info ? data.sandbox_info.quota_remaining_this_hour : null;
-                        const lim = data.sandbox_info ? data.sandbox_info.quota_limit_per_hour : 5;
+                        const rem = data.sandbox_info
+                            ? (data.sandbox_info.quota_remaining_today ?? data.sandbox_info.quota_remaining_this_hour)
+                            : null;
+                        const lim = data.sandbox_info
+                            ? (data.sandbox_info.quota_limit_per_day ?? data.sandbox_info.quota_limit_per_hour ?? 3)
+                            : 3;
                         const qText = document.getElementById('playground-sandbox-quota-text');
                         if (qText && rem !== null && rem !== undefined) {
                             qText.textContent = isEn
-                                ? `(${rem}/${lim} free sandbox calls left this hour). Switch to production (<15 ms) in 1 click:`
-                                : `(${rem}/${lim} consultas grátis restantes nesta hora). Ative produção (<15 ms) em 1 clique:`;
+                                ? `(${rem}/${lim} free sandbox calls left today). Switch to production (<15 ms) in 1 click:`
+                                : `(${rem}/${lim} consultas grátis restantes hoje). Ative produção (<15 ms) em 1 clique:`;
                         }
                         sandboxCta.style.display = 'block';
                     }
@@ -5618,6 +5643,12 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             ofac: '/api/v1/ofac?target=0x8589427373d6d84e98730d7795d8f6f8731fda16',
             notarize: '/api/v1/notarize?content=Grid402-M2M-Contract-v1',
             'global-markets': '/api/v1/global-markets?market=US' + String.fromCharCode(38) + 'base=USD',
+            extract: '/api/v1/extract?url=https://example.com',
+            'email-verify': '/api/v1/email-verify?email=contato@grid402.online',
+            dossier: '/api/v1/dossier?cnpj=00000000000191',
+            'domain-audit': '/api/v1/domain-audit?domain=base.org',
+            'kyb-audit': '/api/v1/kyb-audit?cnpj=00000000000191',
+            'market-snapshot': '/api/v1/market-snapshot',
             pass: '/api/v1/pass',
         };
 
@@ -6090,7 +6121,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 <h3>1. Objeto e Fornecimento AS-IS</h3>
                 <p>O <strong>Grid402</strong> é uma infraestrutura global de micro-serviços de dados públicos e utilitários M2M para agentes autônomos e desenvolvedores, fornecida "NO ESTADO EM QUE SE ENCONTRA" (AS-IS).</p>
                 <h3>2. Direito de Uso de Informações Públicas e Licenças Abertas</h3>
-                <p>Todas as 23 APIs operam estritamente sobre fontes públicas abertas e fatos não passíveis de reserva proprietária: <strong>GLEIF LEI</strong> (CC0 1.0 Universal), <strong>OFAC SDN / ONU</strong> (Domínio Público 17 U.S.C. § 105), <strong>BCE / BCB / IBGE</strong> (Diretiva UE 2019/1024, Lei nº 12.527/2011 - LAI e Decreto nº 8.777/2016), <strong>Fatos Econômicos e Algoritmos de Calendário</strong> (Lei nº 9.610/1998 Art. 8º, I, II e IV) e <strong>Protocolos IETF</strong> (DNS, TLS, BGP/ASN, RFC 8785).</p>
+                <p>Todas as 25 APIs operam estritamente sobre fontes públicas abertas e fatos não passíveis de reserva proprietária: <strong>GLEIF LEI</strong> (CC0 1.0 Universal), <strong>OFAC SDN / ONU</strong> (Domínio Público 17 U.S.C. § 105), <strong>BCE / BCB / IBGE</strong> (Diretiva UE 2019/1024, Lei nº 12.527/2011 - LAI e Decreto nº 8.777/2016), <strong>Fatos Econômicos e Algoritmos de Calendário</strong> (Lei nº 9.610/1998 Art. 8º, I, II e IV) e <strong>Protocolos IETF</strong> (DNS, TLS, BGP/ASN, SMTP/MX/SPF/DMARC, HTTP/HTTPS, RFC 8785).</p>
                 <h3>3. Pagamentos x402 e Session Passes</h3>
                 <p>Os micropagamentos e passes pré-pagos em USDC Multi-Chain (Base, Arbitrum, Polygon, Optimism, Ethereum e Solana SPL) remuneram exclusivamente o processamento computacional e a assinatura criptográfica ECDSA do Oráculo, sendo definitivos e irreversíveis.</p>
                 <h3>4. Direitos Autorais e Propriedade Intelectual Reservados</h3>
@@ -6108,7 +6139,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 <h3>1. Purpose and "AS-IS" Provision</h3>
                 <p><strong>Grid402</strong> is a global open-data microservices and M2M network utility gateway for autonomous AI agents and developers, provided strictly "AS-IS".</p>
                 <h3>2. Open Data Legal Basis and Public Domain Rights</h3>
-                <p>All 23 endpoints process strictly public-domain and open-licensed records: <strong>GLEIF LEI</strong> (CC0 1.0 Universal), <strong>US Treasury OFAC SDN / UN</strong> (Public Domain under 17 U.S.C. § 105), <strong>ECB / Central Bank Indicators</strong> (EU Open Data Directive 2019/1024 & Brazilian Open Data Decree 8.777/2016), <strong>Market Facts & Statutory Calendars</strong> (17 U.S.C. § 102(b) & Law 9.610/1998 Art. 8), and <strong>IETF Standards</strong> (DNS, TLS, BGP/ASN, RFC 8785).</p>
+                <p>All 25 endpoints process strictly public-domain and open-licensed records: <strong>GLEIF LEI</strong> (CC0 1.0 Universal), <strong>US Treasury OFAC SDN / UN</strong> (Public Domain under 17 U.S.C. § 105), <strong>ECB / Central Bank Indicators</strong> (EU Open Data Directive 2019/1024 & Brazilian Open Data Decree 8.777/2016), <strong>Market Facts & Statutory Calendars</strong> (17 U.S.C. § 102(b) & Law 9.610/1998 Art. 8), and <strong>IETF Standards</strong> (DNS, TLS, BGP/ASN, SMTP/MX/SPF/DMARC, HTTP/HTTPS, RFC 8785).</p>
                 <h3>3. x402 Micropayments and Session Passes</h3>
                 <p>USDC micropayments and Session Passes settled across supported chains (Base, Arbitrum, Polygon, Optimism, Ethereum, and Solana SPL) compensate strictly for computational processing and ECDSA cryptographic attestation, with immediate on-chain finality.</p>
                 <h3>4. Copyright and All Rights Reserved</h3>
@@ -6379,6 +6410,6 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             }
         }
     </script>
-    <script src="/assets/js/i18n.js?v=3.3.0"></script>
+    <script src="/assets/js/i18n.js?v=3.4.0"></script>
 </body>
 </html>

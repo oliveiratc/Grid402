@@ -130,7 +130,7 @@ export const character = {
   plugins: [grid402Plugin],
   settings: {
     secrets: {
-      GRID402_PASS_TOKEN: "pass_g402_live..._..." // Adquira em https://grid402.online/#topup
+      GRID402_PASS_TOKEN: "pass_g402_live..._..." // Adquira em https://grid402.online/pass
     }
   }
 };
@@ -157,7 +157,7 @@ Exemplo completo com wrappers prontos para `@tool` em [`examples/langchain_quick
 Para agentes e desenvolvedores que buscam alta frequência (abaixo de 15ms) sem o custo e atrito de assinar 1 transação a cada `GET`, o Grid402 aceita USDC nativamente em **6 redes** (sem taxa de bridge):
 - **5 Redes EVM** (`0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`): **Base**, **Arbitrum One**, **Polygon PoS**, **Optimism** e **Ethereum Mainnet**
 - **Solana Mainnet** (`CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C`): **SPL USDC** (`EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`)
-- Acesse [https://grid402.online/pass](https://grid402.online/pass) ou [https://grid402.online/#topup](https://grid402.online/#topup), escolha a rede e selecione seu pacote (`1 crédito = 0.0050 USDC`):
+- Acesse [https://grid402.online/pass](https://grid402.online/pass) ou [https://grid402.online/pass#multichain-web3](https://grid402.online/pass#multichain-web3), escolha a rede e selecione seu pacote (`1 crédito = 0.0050 USDC`):
   - **Starter:** 2 USDC / R$ 12 $\rightarrow$ 400 créditos (= 400 chamadas padrão, validade 30 dias)
   - **Pro:** 5 USDC / R$ 29 $\rightarrow$ 1.000 créditos (= 1.000 chamadas padrão, validade 30 dias)
   - **Fleet:** 20 USDC / R$ 115 $\rightarrow$ 6.000 créditos (4.000 base + 2.000 bônus (+50%) = 6.000 chamadas padrão, validade 60 dias)

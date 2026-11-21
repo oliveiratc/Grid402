@@ -176,6 +176,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <h2 data-i18n="growth.compliance.title">Compliance</h2>
     <p data-i18n="growth.compliance.desc">Grid402 provides infrastructure and verifiable public data; it does not decide credit, onboarding, or risk assignment. The builder configuring the agents assumes responsibility for their system's decisions.</p>
 </main>
-<script src="/assets/js/i18n.js?v=3.3.0"></script>
+<script src="/assets/js/i18n.js?v=3.4.0"></script>
 </body>
 </html>

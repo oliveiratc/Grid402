@@ -508,7 +508,7 @@ export const defaultCharacter = {
   plugins: [grid402Plugin],
   settings: {
     secrets: {
-      // Top up your balance at https://grid402.online/#topup
+      // Top up your balance at https://grid402.online/pass
       GRID402_PASS_TOKEN: "pass_g402_live..."
     }
   }
@@ -795,7 +795,7 @@ curl -X POST "https://grid402.online/api/v1/verify" \
             });
         }
     </script>
-    <script src="/assets/js/i18n.js?v=3.3.0"></script>
+    <script src="/assets/js/i18n.js?v=3.4.0"></script>
 </body>
 </html>
 

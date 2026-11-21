@@ -1,16 +1,16 @@
 # grid402-mcp ⚡
 
-Servidor oficial do **Model Context Protocol (MCP)** para o **Grid402** — Hub de 23 Micro-Serviços de Dados Públicos Abertos e Utilitários de Rede (25 ferramentas MCP) com liquidação de micropagamentos x402 em USDC Multi-Chain (Base, Arbitrum, Polygon, Optimism, Ethereum e Solana SPL).
+Servidor oficial do **Model Context Protocol (MCP)** para o **Grid402** — Hub de 25 Micro-Serviços de Dados Públicos Abertos e Utilitários de Rede (27 ferramentas MCP) com liquidação de micropagamentos x402 em USDC Multi-Chain (Base, Arbitrum, Polygon, Optimism, Ethereum e Solana SPL).
 
 Compatível nativamente com **Claude Desktop**, **Cursor**, **Smithery.ai**, **Glama**, **Coinbase AgentKit** e qualquer orquestrador compatível com a especificação MCP da Anthropic.
 
 ---
 
-## 🛠️ Ferramentas Disponíveis (25 Tools)
+## 🛠️ Ferramentas Disponíveis (27 Tools)
 
 | Ferramenta | Descrição | Modalidade | Custo |
 |---|---|---|---|
-| `grid402_summary` | Resumo consolidado de saúde dos 23 serviços | Direto | Gratuito |
+| `grid402_summary` | Resumo consolidado de saúde dos 25 serviços | Direto | Gratuito |
 | `grid402_forex` | Cotações em tempo real de USD, EUR e GBP para BRL | On-Demand | 0.0050 USDC (1 cr) |
 | `grid402_crypto` | Preços spot de BTC, ETH, SOL, USDC e BASE | On-Demand | 0.0050 USDC (1 cr) |
 | `grid402_dns` | Resolução autoritativa de DNS (A, AAAA, MX, TXT, NS, CNAME) | On-Demand | 0.0050 USDC (1 cr) |
@@ -32,6 +32,8 @@ Compatível nativamente com **Claude Desktop**, **Cursor**, **Smithery.ai**, **G
 | `grid402_ofac` | Triagem OFAC SDN / ONU e risco AML Web3 na Base Mainnet | On-Demand | 0.0200 USDC (4 cr) |
 | `grid402_notarize` | Carimbo do tempo criptográfico SHA-256 e prova de existência ECDSA | On-Demand | 0.0050 USDC (1 cr) |
 | `grid402_global_markets` | Calendário de bolsas (US/EU/UK/BR) e 30+ taxas de câmbio do BCE | On-Demand | 0.0050 USDC (1 cr) |
+| `grid402_extract` | Extrator anti-SSRF de páginas web HTTP/HTTPS para Markdown limpo (LLMs e RAG) | On-Demand | 0.0050 USDC (1 cr) |
+| `grid402_email_verify` | Auditoria Zero-PII de entregabilidade de e-mail B2B (RFC, MX, SPF, DMARC, disposable e score 0-100) | On-Demand | 0.0050 USDC (1 cr) |
 | `grid402_pass` | Emissão de Session Pass pré-pago (Starter 400 cr / Pro 1.000 cr / Fleet 6.000 cr) | Pré-Pago | 2 / 5 / 20 USDC |
 | `grid402_pass_balance` | Consulta de saldo, validade e Spend Controls de um Session Pass | Direto | Gratuito |
 | `grid402_verify` | Validação matemática de prova criptográfica de oráculo (_oracle_proof) secp256k1 | Direto | Gratuito |
@@ -79,9 +81,9 @@ Adicione ao seu arquivo de configuração (`claude_desktop_config.json`):
 }
 ```
 
-> 💡 **Modo Sandbox Gratuito:** Você pode definir `"GRID402_SANDBOX": "true"` para testar todas as ferramentas sem gastar USDC nem configurar chave privada (limite de 5 consultas por hora por IP).
+> 💡 **Modo Sandbox Gratuito:** Você pode definir `"GRID402_SANDBOX": "true"` para testar todas as ferramentas sem gastar USDC nem configurar chave privada (limite de 3 consultas por dia por IP).
 >
-> 💡 **Session Pass (Sem Chave Privada):** Se preferir não informar `GRID402_PRIVATE_KEY`, adquira um passe pré-pago em `https://grid402.online/#topup` e defina `"GRID402_SESSION_PASS": "pass_g402_..."` para execução em `<15ms`.
+> 💡 **Session Pass (Sem Chave Privada):** Se preferir não informar `GRID402_PRIVATE_KEY`, adquira um passe pré-pago em `https://grid402.online/pass` e defina `"GRID402_SESSION_PASS": "pass_g402_..."` para execução em `<15ms`.
 >
 > 💡 **Nota de Segurança:** A variável `GRID402_PRIVATE_KEY` é opcional. Se informada, o servidor MCP realiza a transferência automática de USDC on-chain na Base a cada consulta paga. Se não informada ou sem saldo, o servidor retorna o desafio x402 com amostra de dados. A chave é processada estritamente na sua máquina local e nunca é enviada ao servidor do Grid402.
 

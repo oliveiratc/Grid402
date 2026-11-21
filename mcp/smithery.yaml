@@ -1,6 +1,6 @@
 name: "grid402-mcp"
-version: 1.0.0
-description: "Official Model Context Protocol (MCP) Server for Grid402 - 25 on-chain oracle tools and 23 public open-data microservices (KYB Dossier 360, CNPJ, GLEIF LEI, OFAC, Forex, Crypto, DNS, SSL, ASN, CEP) with Multi-Chain x402 USDC micropayments."
+version: 2.0.0
+description: "Official Model Context Protocol (MCP) Server for Grid402 - 27 on-chain oracle tools and 25 public open-data microservices (Web-to-Markdown, Email Verify, KYB Dossier 360, CNPJ, GLEIF LEI, OFAC, Forex, Crypto, DNS, SSL, ASN, CEP) with Multi-Chain x402 USDC micropayments."
 startCommand:
   type: stdio
   config:
@@ -15,7 +15,7 @@ startCommand:
         default: "https://grid402.online"
       GRID402_SANDBOX:
         type: string
-        description: "Set to 'true' for free Sandbox Mode (5 queries per hour per IP) without a wallet"
+        description: "Set to 'true' for free Sandbox Mode (3 queries per day per IP) without a wallet"
         default: "false"
       GRID402_SESSION_PASS:
         type: string

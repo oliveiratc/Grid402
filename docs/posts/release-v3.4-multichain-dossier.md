@@ -1,6 +1,6 @@
-# Kit de Divulgação — Grid402 (Multi-Chain 6 Redes + Dossiê 360º KYB AI Verdict + 25 Tools MCP Grade A)
+# Kit de Divulgação — Grid402 (Multi-Chain 6 Redes + Dossiê 360º KYB AI Verdict + 27 Tools MCP Grade A)
 
-> Todos os textos abaixo estão 100% alinhados com a produção atual (`https://grid402.online`), com preços auditados (`0.0050` a `0.0500 USDC`, `1 crédito = 0.0050 USDC`), 23 micro-serviços, 25 ferramentas MCP, Sandbox (`5 req/h/IP`) e Multi-Chain em 6 redes (Base, Arbitrum, Polygon, Optimism, Ethereum e Solana SPL USDC).
+> Todos os textos abaixo estão 100% alinhados com a produção atual (`https://grid402.online`), com preços auditados (`0.0050` a `0.0500 USDC`, `1 crédito = 0.0050 USDC`), 25 micro-serviços, 27 ferramentas MCP, Sandbox (`3 req/day/IP`) e Multi-Chain em 6 redes (Base, Arbitrum, Polygon, Optimism, Ethereum e Solana SPL USDC).
 
 ---
 
@@ -31,16 +31,16 @@ Pay directly per call (`X-Payment: solana:<sig>` or `X-Payment: arbitrum:0x...`)
 • Pro: 5 USDC = 1,000 credits
 • Fleet: 20 USDC = 6,000 credits (4,000 base + 2,000 bonus)
 
-**Tweet 4 (25 MCP Tools + Verificações):**
+**Tweet 4 (27 MCP Tools + Verificações):**
 Verified across the agent ecosystem:
-✅ **mcprush Grade A** (25 MCP tools, including `grid402_get_dossier_360`)
+✅ **mcprush Grade A** (27 MCP tools, including `grid402_get_dossier_360`)
 ✅ **Glama Verified MCP**
 ✅ **x402scan Verified Server**
 ✅ **PayAPI Market Verified**
 ✅ Ready for Claude Desktop, Cursor, Coinbase AgentKit, ElizaOS, LangChain & CrewAI
 
 **Tweet 5 (Try in 10 seconds / CTA):**
-Test free right now (5 req/hour sandbox, no wallet needed):
+Test free right now (3 req/dayour sandbox, no wallet needed):
 
 ```bash
 curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
@@ -58,7 +58,7 @@ curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=000000
 **Tweet 1:**
 Acabou de subir a maior atualização do **Grid402** ⚡
 
-Agora seus agentes de IA e automações consultam **23 APIs de dados públicos e inteligência de rede** pagando em **USDC em 6 blockchains** (Base, Arbitrum, Polygon, Optimism, Ethereum + **Solana SPL**) ou direto via **Pix/Cartão** — sem cadastro, sem contrato e sem chave de API.
+Agora seus agentes de IA e automações consultam **25 APIs de dados públicos e inteligência de rede** pagando em **USDC em 6 blockchains** (Base, Arbitrum, Polygon, Optimism, Ethereum + **Solana SPL**) ou direto via **Pix/Cartão** — sem cadastro, sem contrato e sem chave de API.
 
 E com um novo endpoint premium de **Dossiê 360º KYB + Veredito IA** 👇
 
@@ -73,8 +73,8 @@ Em 1 única chamada você recebe:
 • Zero PII (LGPD) e assinatura criptográfica ECDSA (`_oracle_proof`)
 
 **Tweet 3:**
-Além disso, o servidor MCP do Grid402 agora expõe **25 ferramentas** (incluindo `grid402_get_dossier_360`) e foi verificado oficialmente em:
-• **mcprush (Nota A — 25 tools)**
+Além disso, o servidor MCP do Grid402 agora expõe **27 ferramentas** (incluindo `grid402_get_dossier_360`) e foi verificado oficialmente em:
+• **mcprush (Nota A — 27 tools)**
 • **Glama Verified MCP**
 • **x402scan Verified Server**
 • **PayAPI Market Verified**
@@ -82,7 +82,7 @@ Além disso, o servidor MCP do Grid402 agora expõe **25 ferramentas** (incluind
 Funciona no Claude Desktop, Cursor, n8n, LangChain, CrewAI, ElizaOS e Coinbase AgentKit.
 
 **Tweet 4 (CTA):**
-Teste grátis agora mesmo no terminal (Sandbox 5 req/h por IP, sem carteira):
+Teste grátis agora mesmo no terminal (Sandbox 3 req/day por IP, sem carteira):
 
 ```bash
 curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
@@ -101,9 +101,9 @@ curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=000000
 >
 > • **Multi-Chain x402 & Session Passes:** now accepting native USDC on Base, Arbitrum, Polygon, Optimism, Ethereum + **Solana SPL** (zero bridge fees)
 > • **New `/api/v1/dossier` (`0.0500 USDC`):** full corporate KYB dossier + deterministic AI Verdict (`APPROVED` / `FLAGGED` / `REJECTED`) + ECDSA `_oracle_proof`
-> • **25 MCP tools — Grade A on mcprush**, verified on Glama, x402scan & PayAPI Market
+> • **27 MCP tools — Grade A on mcprush**, verified on Glama, x402scan & PayAPI Market
 >
-> Try free (5 req/h sandbox):
+> Try free (3 req/day sandbox):
 > `curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
 
 ### Cast `/solana`
@@ -118,7 +118,7 @@ curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=000000
 ### Cast `/ai-agents`
 > Your AI agent shouldn't scrape 4 government portals just to verify a supplier.
 >
-> Grid402's new `grid402_get_dossier_360` MCP tool (`GET /api/v1/dossier`) bundles Federal Revenue CNPJ + Simples/MEI + CGU CEIS/CNEP sanctions into one oracle-signed JSON with a deterministic AI Verdict (`APPROVED` / `FLAGGED` / `REJECTED`) — 0.0500 USDC, Zero-PII, verified Grade A (25 tools) on mcprush & Glama.
+> Grid402's new `grid402_get_dossier_360` MCP tool (`GET /api/v1/dossier`) bundles Federal Revenue CNPJ + Simples/MEI + CGU CEIS/CNEP sanctions into one oracle-signed JSON with a deterministic AI Verdict (`APPROVED` / `FLAGGED` / `REJECTED`) — 0.0500 USDC, Zero-PII, verified Grade A (27 tools) on mcprush & Glama.
 >
 > `npx -y grid402-mcp` · Remote MCP: `https://grid402.online/mcp`
 
@@ -140,8 +140,8 @@ Em uma única chamada (US$ 0,0500 / 10 créditos), o agente recebe situação ca
 2️⃣ **Pagamentos Multi-Chain em 6 redes + Pix/Cartão**
 Além da Base Mainnet e do Pix/Cartão em Reais (a partir de R$ 12 = 400 créditos), agora aceitamos USDC nativamente em **Arbitrum, Polygon, Optimism, Ethereum e Solana (SPL USDC)** — tanto por chamada quanto para emissão instantânea de Session Passes (`<15 ms` por requisição, sem taxa de bridge).
 
-3️⃣ **Ecossistema MCP verificado (25 ferramentas)**
-O servidor MCP oficial (`grid402-mcp`) agora entrega **25 ferramentas** — incluindo `grid402_get_dossier_360` — e acaba de receber selo **Nota A no mcprush**, além de verificação no **Glama**, **x402scan** e **PayAPI Market**, com quickstart pronto para **LangChain, CrewAI, Claude Desktop, Cursor, ElizaOS e n8n**.
+3️⃣ **Ecossistema MCP verificado (27 ferramentas)**
+O servidor MCP oficial (`grid402-mcp`) agora entrega **27 ferramentas** — incluindo `grid402_get_dossier_360` — e acaba de receber selo **Nota A no mcprush**, além de verificação no **Glama**, **x402scan** e **PayAPI Market**, com quickstart pronto para **LangChain, CrewAI, Claude Desktop, Cursor, ElizaOS e n8n**.
 
 Quer testar em 10 segundos no terminal sem cadastro e sem cartão?
 
@@ -157,7 +157,7 @@ Vou deixar o link do portal, do Playground interativo e do repositório GitHub n
 Links oficiais:
 • Portal e Playground interativo (Sandbox grátis): https://grid402.online
 • Session Pass (Pix/Cartão ou Multi-Chain USDC): https://grid402.online/pass
-• Catálogo completo de 23 endpoints e preços: https://grid402.online/catalog
+• Catálogo completo de 25 endpoints e preços: https://grid402.online/catalog
 • GitHub (SDKs Python/Node, MCP e quickstart LangChain/CrewAI): https://github.com/oliveiratc/Grid402
 
 ---
@@ -165,25 +165,25 @@ Links oficiais:
 ## 5. Comunidades Discord / Telegram (Base, Solana, x402, MCP, LangChain Brasil)
 
 ### Versão EN (Discord Base / x402 / Solana / MCP)
-> Hey everyone! Sharing a fresh production update on **Grid402** (`https://grid402.online`), our x402 verifiable public-data & network utility hub for AI agents (23 services, 25 MCP tools):
+> Hey everyone! Sharing a fresh production update on **Grid402** (`https://grid402.online`), our x402 verifiable public-data & network utility hub for AI agents (23 services, 27 MCP tools):
 >
 > • **Multi-Chain USDC Support (6 chains):** Base, Arbitrum, Polygon, Optimism, Ethereum + **Solana SPL USDC** (both pay-per-call via `X-Payment: <chain>:<tx>` and 1-click `<15ms` Session Passes at `/pass`).
 > • **New `/api/v1/dossier` (`0.0500 USDC`):** single-call corporate KYB dossier (Federal Revenue CNPJ + Simples/MEI + CGU CEIS/CNEP sanctions) with a deterministic **AI Verdict** (`APPROVED` / `FLAGGED` / `REJECTED`), Zero-PII, and ECDSA secp256k1 `_oracle_proof`.
-> • **Verified listings:** mcprush **Grade A (25 tools)**, Glama Verified MCP, x402scan Verified Server, PayAPI Market Verified + LangChain/CrewAI Python quickstart.
+> • **Verified listings:** mcprush **Grade A (27 tools)**, Glama Verified MCP, x402scan Verified Server, PayAPI Market Verified + LangChain/CrewAI Python quickstart.
 >
-> Free sandbox (5 req/h/IP, no wallet):
+> Free sandbox (3 req/day/IP, no wallet):
 > `curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
 >
 > Repo: https://github.com/oliveiratc/Grid402 — feedback on the Multi-Chain x402 UX & MCP tool schemas is super welcome!
 
 ### Versão PT-BR (Telegram/Discord Dev BR, n8n BR, IA/Agentes BR)
-> Pessoal, atualização nova em produção no **Grid402** (`https://grid402.online`) — hub de 23 APIs de dados públicos e utilitários de rede para agentes de IA (sem cadastro e sem API key):
+> Pessoal, atualização nova em produção no **Grid402** (`https://grid402.online`) — hub de 25 APIs de dados públicos e utilitários de rede para agentes de IA (sem cadastro e sem API key):
 >
 > • **Novo Dossiê 360º KYB + Veredito IA (`/api/v1/dossier`, 0,0500 USDC / 10 créditos):** cruza Receita Federal (CNPJ) + Simples/MEI + Sanções CGU (CEIS/CNEP) em 1 chamada e devolve score 0–100 + veredito pronto para LLM (`APPROVED` / `FLAGGED` / `REJECTED`), Zero-PII e assinado com ECDSA.
 > • **Multi-Chain em 6 redes + Pix:** agora aceita USDC nativo em Base, Arbitrum, Polygon, Optimism, Ethereum e **Solana SPL**, além de Pix/Cartão a partir de R$ 12 (400 créditos) em https://grid402.online/pass.
-> • **MCP com 25 ferramentas (Nota A no mcprush + verificado no Glama e x402scan)** e exemplo pronto para LangChain/CrewAI e n8n.
+> • **MCP com 27 ferramentas (Nota A no mcprush + verificado no Glama e x402scan)** e exemplo pronto para LangChain/CrewAI e n8n.
 >
-> Dá pra testar grátis agora no terminal (5 req/h):
+> Dá pra testar grátis agora no terminal (3 req/day):
 > `curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
 >
 > Feedback técnico é muito bem-vindo!

@@ -232,6 +232,6 @@ $jsonUrl = '/api/v1/pass/statement?' . http_build_query(array_merge($baseQuery, 
     <p><strong>Revenue:</strong> <?php echo number_format((float) ($metrics['total_revenue_usdc'] ?? 0), 4); ?> USDC</p>
     <p><strong data-i18n="paydash.summary.passes">Issued passes:</strong> <?php echo (int) ($passesStats['total_issued'] ?? 0); ?></p>
 </main>
-<script src="/assets/js/i18n.js?v=3.3.0"></script>
+<script src="/assets/js/i18n.js?v=3.4.0"></script>
 </body>
 </html>

@@ -61,7 +61,7 @@ Métricas de suporte: créditos consumidos, CAC por agente pagador, LTV, churn d
 3. **Deploy dos fixes já aplicados.**
    - `public_html/x402.php` com `sandbox_test` + link de top-up.
    - `mcp/tools.mjs` com suporte a `GRID402_SESSION_PASS`.
-   - Publicar `grid402-mcp@1.8.1` no npm (`cd mcp && npm publish --access public`).
+   - Publicar `grid402-mcp@2.0.0` no npm (`cd mcp && npm publish --access public`).
 4. **Validar end-to-end.** 1 compra real de Session Pass + 1 pagamento x402 on-chain + conferir saldo da wallet oracle + conferir registro em `used_txs.json`.
 5. **Executar checklist de deploy** (seção 5 de `PLANO_TRACAO_CONSULTAS_PAGAS.md`) até o fim.
 
@@ -197,7 +197,7 @@ Priorizar os com maior disposição a pagar (compliance/KYC/KYB):
 ## 10. Plano de ação — esta semana
 
 1. Ativar `GRID402_FACILITATOR_MODE=settle` com credenciais CDP e fazer 1 pagamento real de teste.
-2. Publicar `grid402-mcp@1.8.1` no npm.
+2. Publicar `grid402-mcp@2.0.0` no npm.
 3. Submeter ao x402 Bazaar + Base Ecosystem Directory.
 4. Publicar case study n8n no LinkedIn/TabNews.
 5. Criar conta Stripe/Mercado Pago para checkout de Session Pass em BRL (protótipo).
