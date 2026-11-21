@@ -635,23 +635,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        $inputSecret = trim((string) ($_POST['proxy_secret'] ?? ''));
-        if (preg_match('/^\S{16,256}$/', $inputSecret) !== 1) {
+        $rawInput = trim((string) ($_POST['proxy_secret'] ?? ''));
+        $tokens = preg_split('/[\r\n,;]+/', $rawInput, -1, PREG_SPLIT_NO_EMPTY);
+        if (!is_array($tokens) || empty($tokens) || count($tokens) > 10) {
             http_response_code(400);
-            echo json_encode(['success' => false, 'error' => 'Formato invalido. Informe o X-RapidAPI-Proxy-Secret (16 a 256 caracteres sem espacos).']);
+            echo json_encode(['success' => false, 'error' => 'Informe de 1 a 10 segredos X-RapidAPI-Proxy-Secret separados por virgula.']);
             exit;
         }
+        $validList = [];
+        foreach ($tokens as $tok) {
+            $cleanTok = trim($tok);
+            if (preg_match('/^\S{16,256}$/', $cleanTok) !== 1) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Formato invalido. Cada X-RapidAPI-Proxy-Secret deve ter de 16 a 256 caracteres sem espacos.']);
+                exit;
+            }
+            $validList[] = $cleanTok;
+        }
+        $serializedSecrets = implode(',', array_values(array_unique($validList)));
 
-        if (!grid402_save_rapidapi_config($inputSecret)) {
+        if (!grid402_save_rapidapi_config($serializedSecrets)) {
             http_response_code(500);
             echo json_encode(['success' => false, 'error' => 'Nao foi possivel gravar rapidapi_config.json no servidor.']);
             exit;
         }
 
         $rapidStatus = grid402_rapidapi_runtime_status();
-        $msg = ($rapidStatus['source'] === 'env')
-            ? 'Segredo salvo em rapidapi_config.json (observacao: GRID402_RAPIDAPI_PROXY_SECRET no .env tem prioridade ativa).'
-            : 'RapidAPI Bridge ativado com sucesso (salvo em storage persistente)!';
+        $rapidCount = (int) ($rapidStatus['count'] ?? 0);
+        if ($rapidStatus['source'] === 'mixed') {
+            $msg = "RapidAPI Bridge ativo com {$rapidCount} segredos (.env + painel persistente)!";
+        } elseif ($rapidStatus['source'] === 'env') {
+            $msg = 'Segredos salvos em rapidapi_config.json em conjunto com GRID402_RAPIDAPI_PROXY_SECRET do .env.';
+        } else {
+            $msg = ($rapidCount > 1)
+                ? "RapidAPI Bridge ativado com {$rapidCount} segredos (salvo em storage persistente)!"
+                : 'RapidAPI Bridge ativado com sucesso (salvo em storage persistente)!';
+        }
         echo json_encode([
             'success' => true,
             'rapidapi_status' => $rapidStatus,
@@ -2285,8 +2304,9 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 Facilitador x402: <strong><?php echo htmlspecialchars($facStatus['mode'], ENT_QUOTES, 'UTF-8'); ?></strong>
                 (<?php echo htmlspecialchars(($facStatus['host'] !== '' ? $facStatus['host'] : 'local') . ' · ' . $facStatus['auth_mode'] . ' · ' . (int)($facStatus['multichain_accepts'] ?? 4) . ' chains', ENT_QUOTES, 'UTF-8'); ?>)
             </span>
+            <?php $rapidCount = (int) ($rapidStatus['count'] ?? 0); ?>
             <span id="runtime-rapidapi-badge" style="color:<?php echo (!empty($rapidStatus['configured']) ? '#10B981' : '#94A3B8'); ?>;">
-                RapidAPI Bridge: <strong><?php echo !empty($rapidStatus['configured']) ? 'ativo' : 'inativo'; ?></strong>
+                RapidAPI Bridge: <strong><?php echo !empty($rapidStatus['configured']) ? ($rapidCount > 1 ? 'ativo (' . $rapidCount . ' APIs)' : 'ativo') : 'inativo'; ?></strong>
             </span>
             <span id="runtime-collector-badge" style="color:<?php echo (!$colStatus['summary_stale'] ? '#10B981' : '#F59E0B'); ?>;">
                 Coletor (/status): <strong><?php
@@ -2903,12 +2923,12 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             </div>
             <form id="rapidapi-config-form" onsubmit="submitRapidApiConfig(event)" style="padding: 1.5rem;">
                 <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0; margin-bottom: 1rem; line-height: 1.45;">
-                    Cole o segredo de <strong>RapidAPI Studio &rarr; Gateway &rarr; Firewall Settings &rarr; <code>X-RapidAPI-Proxy-Secret</code></strong>. Salvo fora do DocumentRoot (<code>grid402_storage/rapidapi_config.json</code>), preservado entre deploys.
+                    Cole 1 ou mais segredos (separados por virgula) de <strong>RapidAPI Studio &rarr; Gateway &rarr; Firewall Settings &rarr; <code>X-RapidAPI-Proxy-Secret</code></strong>. Salvo fora do DocumentRoot (<code>grid402_storage/rapidapi_config.json</code>), preservado entre deploys.
                 </p>
                 <div id="rapidapi-modal-alert" style="display: none; padding: 0.65rem 0.85rem; border-radius: 6px; font-size: 0.82rem; margin-bottom: 1rem;"></div>
                 <div class="form-group" style="margin-bottom: 1.25rem;">
-                    <label for="modal-rapidapi-secret" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">X-RapidAPI-Proxy-Secret</label>
-                    <input type="password" id="modal-rapidapi-secret" class="search-input" style="max-width: 100%; width: 100%; font-family: var(--font-mono);" placeholder="<?php echo $rapidOk ? '•••••••• (informe novo segredo para atualizar)' : 'Cole o X-RapidAPI-Proxy-Secret (min. 16 caracteres)'; ?>" autocomplete="off">
+                    <label for="modal-rapidapi-secret" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">X-RapidAPI-Proxy-Secret (1 ou mais, separados por virgula)</label>
+                    <input type="password" id="modal-rapidapi-secret" class="search-input" style="max-width: 100%; width: 100%; font-family: var(--font-mono);" placeholder="<?php echo $rapidOk ? '•••••••• (informe 1 ou mais segredos separados por virgula para atualizar)' : 'Cole 1 ou mais X-RapidAPI-Proxy-Secret separados por virgula (min. 16 chars)'; ?>" autocomplete="off">
                 </div>
                 <div style="display: flex; gap: 0.75rem; justify-content: flex-end; flex-wrap: wrap;">
                     <button type="button" class="btn-outline" onclick="closeRapidApiModal()">Cancelar</button>
@@ -3573,9 +3593,10 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             const rapidBadgeEl = document.getElementById('runtime-rapidapi-badge');
             if (!rapidBadgeEl || !rs) return;
             const rOk = Boolean(rs.configured);
+            const rCount = Number(rs.count || 0);
             rapidBadgeEl.style.color = rOk ? '#10B981' : '#94A3B8';
             const strong = document.createElement('strong');
-            strong.textContent = rOk ? 'ativo' : 'inativo';
+            strong.textContent = rOk ? (rCount > 1 ? `ativo (${rCount} APIs)` : 'ativo') : 'inativo';
             rapidBadgeEl.replaceChildren(document.createTextNode('RapidAPI Bridge: '), strong);
         }
 

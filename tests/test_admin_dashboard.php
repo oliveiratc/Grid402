@@ -193,16 +193,20 @@ try {
 define('GRID402_EXEC', true);
 require_once $argv[1] . '/public_html/config.php';
 $secret = 'rapidapi_isolated_secret_9876543210';
+$secret2 = 'rapidapi_isolated_secret_alt_1234567';
 assert(grid402_rapidapi_runtime_status()['configured'] === false, 'Sem env e sem arquivo deve ficar inativo');
-assert(grid402_save_rapidapi_config($secret) === true, 'Save rapidapi_config.json deve suceder');
+assert(grid402_rapidapi_runtime_status()['count'] === 0, 'Count inicial deve ser 0');
+assert(grid402_save_rapidapi_config($secret . ',' . $secret2) === true, 'Save multiplo rapidapi_config.json deve suceder');
 $st = grid402_rapidapi_runtime_status();
-assert($st['configured'] === true && $st['source'] === 'admin_file', 'Status deve apontar source=admin_file');
+assert($st['configured'] === true && $st['source'] === 'admin_file' && $st['count'] === 2, 'Status deve apontar source=admin_file e count=2');
 $_SERVER['HTTP_X_RAPIDAPI_PROXY_SECRET'] = $secret;
-assert(grid402_is_valid_rapidapi_proxy_request() === true, 'Header valido deve passar via admin_file');
+assert(grid402_is_valid_rapidapi_proxy_request() === true, 'Primeiro segredo valido deve passar via admin_file');
+$_SERVER['HTTP_X_RAPIDAPI_PROXY_SECRET'] = $secret2;
+assert(grid402_is_valid_rapidapi_proxy_request() === true, 'Segundo segredo valido deve passar via admin_file');
 $_SERVER['HTTP_X_RAPIDAPI_PROXY_SECRET'] = 'wrong_secret_1234567890';
-assert(grid402_is_valid_rapidapi_proxy_request() === false, 'Header errado deve falhar');
+assert(grid402_is_valid_rapidapi_proxy_request() === false, 'Terceiro segredo errado deve falhar');
 assert(grid402_save_rapidapi_config('') === true, 'Clear deve remover rapidapi_config.json');
-assert(grid402_rapidapi_runtime_status()['configured'] === false, 'Apos clear deve voltar para inativo');
+assert(grid402_rapidapi_runtime_status()['configured'] === false && grid402_rapidapi_runtime_status()['count'] === 0, 'Apos clear deve voltar para inativo e count=0');
 echo "ISO_OK";
 PHP);
     $isoEnv = $_ENV;
@@ -586,8 +590,46 @@ try {
         $goodSaveRapidJson = json_decode($goodSaveRapid['body'], true);
         assert(($goodSaveRapidJson['success'] ?? false) === true, 'save_rapidapi_config deve retornar success=true');
         assert(($goodSaveRapidJson['rapidapi_status']['configured'] ?? false) === true, 'rapidapi_status.configured deve ser true');
+        assert((int) ($goodSaveRapidJson['rapidapi_status']['count'] ?? 0) >= 1, 'rapidapi_status.count deve ser >= 1');
         assert(!str_contains($goodSaveRapid['body'], $testRapidSecret), 'save_rapidapi_config nunca deve ecoar o segredo na resposta');
+        clearstatcache(true, $rapidCfgFile);
         assert(is_file($rapidCfgFile), 'save_rapidapi_config deve gravar rapidapi_config.json');
+
+        $testRapidSecretB = 'rapidapi_admin_secret_b_' . bin2hex(random_bytes(8));
+        $multiSaveRapid = curl_admin("http://127.0.0.1:{$port}/admin?action=save_rapidapi_config", [
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => ['Accept: application/json', 'X-CSRF-Token: ' . $authCsrf],
+            CURLOPT_POSTFIELDS => http_build_query([
+                'proxy_secret' => $testRapidSecret . ',' . $testRapidSecretB,
+                'csrf_token' => $authCsrf,
+            ]),
+            CURLOPT_COOKIEFILE => $cookieFile,
+        ]);
+        assert($multiSaveRapid['code'] === 200, "save_rapidapi_config multi-segredo deve retornar HTTP 200 (Recebeu: {$multiSaveRapid['code']})");
+        $multiSaveJson = json_decode($multiSaveRapid['body'], true);
+        assert(($multiSaveJson['success'] ?? false) === true, 'save_rapidapi_config multi-segredo deve retornar success=true');
+        assert((int) ($multiSaveJson['rapidapi_status']['count'] ?? 0) >= 2, 'rapidapi_status.count deve ser >= 2 para dois segredos');
+        assert(!str_contains($multiSaveRapid['body'], $testRapidSecret) && !str_contains($multiSaveRapid['body'], $testRapidSecretB), 'save_rapidapi_config nunca deve ecoar nenhum dos segredos');
+
+        $statsRapidRes = curl_admin("http://127.0.0.1:{$port}/admin?api=stats", [
+            CURLOPT_HTTPHEADER => ['Accept: application/json'],
+            CURLOPT_COOKIEFILE => $cookieFile,
+        ]);
+        assert($statsRapidRes['code'] === 200, 'GET /admin?api=stats deve retornar HTTP 200');
+        $statsRapidJson = json_decode($statsRapidRes['body'], true);
+        $statsRapidStatus = $statsRapidJson['runtime']['rapidapi'] ?? ($statsRapidJson['rapidapi_status'] ?? null);
+        assert(is_array($statsRapidStatus) && isset($statsRapidStatus['count']), '/admin?api=stats deve incluir runtime rapidapi status com count');
+
+        $badMultiRapid = curl_admin("http://127.0.0.1:{$port}/admin?action=save_rapidapi_config", [
+            CURLOPT_POST => true,
+            CURLOPT_HTTPHEADER => ['Accept: application/json', 'X-CSRF-Token: ' . $authCsrf],
+            CURLOPT_POSTFIELDS => http_build_query([
+                'proxy_secret' => 'segredo_valido_123456,curto',
+                'csrf_token' => $authCsrf,
+            ]),
+            CURLOPT_COOKIEFILE => $cookieFile,
+        ]);
+        assert($badMultiRapid['code'] === 400, "save_rapidapi_config com item curto deve retornar HTTP 400 (Recebeu: {$badMultiRapid['code']})");
 
         $clearSaveRapid = curl_admin("http://127.0.0.1:{$port}/admin?action=save_rapidapi_config", [
             CURLOPT_POST => true,

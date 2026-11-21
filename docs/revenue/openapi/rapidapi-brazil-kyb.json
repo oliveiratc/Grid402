@@ -1,0 +1,851 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Grid402 Brazil KYB, CNPJ, CGU Sanctions & ANBIMA Workdays",
+    "version": "3.4.0",
+    "description": "Verified Receita Federal CNPJ, Simples Nacional / MEI, CGU CEIS/CNEP Sanctions, KYB 360 AI Dossier, Compliance score, ANBIMA bank workdays/holidays, BCB indicators and IBGE/CEP lookups — Zero-PII (LGPD) with signed ECDSA Oracle Proof.\n\nNeed pay-per-call crypto settlement (Base, Polygon, Arbitrum, Solana USDC) or Pix (R$ 12 = 400 credits) with zero monthly retainer? Visit https://grid402.online/pass",
+    "contact": {
+      "name": "Grid402 Support",
+      "url": "https://grid402.online",
+      "email": "contato@grid402.online"
+    },
+    "license": {
+      "name": "Copyright (c) 2026 Grid402 Network Intelligence — All Rights Reserved (Software & Brand) / Public Domain Data Terms",
+      "url": "https://grid402.online/terms"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://grid402.online",
+      "description": "Grid402 Production"
+    }
+  ],
+  "tags": [
+    {
+      "name": "CEP",
+      "description": "Brazilian postal resolution and official municipal IBGE code"
+    },
+    {
+      "name": "CNPJ",
+      "description": "Brazilian Federal Revenue corporate registration data and CNAE"
+    },
+    {
+      "name": "Indicators",
+      "description": "Official Brazilian economic indicators (Selic, CDI, and IPCA)"
+    },
+    {
+      "name": "Holidays",
+      "description": "National holidays and banking calendar (ANBIMA and Febraban)"
+    }
+  ],
+  "paths": {
+    "/api/v1/dossier": {
+      "get": {
+        "summary": "Premium KYB 360 Dossier with AI Verdict (APPROVED, FLAGGED, REJECTED)",
+        "description": "Single-call Brazilian corporate risk dossier combining Receita Federal CNPJ, Simples Nacional/MEI, CGU CEIS/CNEP sanctions, Compliance Score 360 and deterministic AI Verdict (APPROVED, FLAGGED, REJECTED). Zero PII. Price: 0.0500 USDC (10 Session Pass credits).",
+        "tags": [
+          "CNPJ",
+          "Compliance"
+        ],
+        "parameters": [
+          {
+            "name": "cnpj",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "00000000000191"
+            },
+            "example": "00000000000191"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Premium KYB 360 Dossier with structured AI verdict and ECDSA oracle proof"
+          },
+          "400": {
+            "description": "Invalid CNPJ check digits"
+          }
+        }
+      }
+    },
+    "/api/v1/kyb-audit": {
+      "get": {
+        "summary": "Consolidated Global KYB Audit (CNPJ + OFAC/UN + GLEIF LEI)",
+        "description": "Single-call global corporate KYB audit combining Receita Federal CNPJ registration, US Treasury OFAC SDN / UN sanctions screening, and GLEIF LEI lookup. Price: 0.0200 USDC (4 Session Pass credits).",
+        "tags": [
+          "CNPJ",
+          "Compliance"
+        ],
+        "parameters": [
+          {
+            "name": "cnpj",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "00000000000191"
+            },
+            "example": "00000000000191"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consolidated global KYB audit with ECDSA oracle proof"
+          }
+        }
+      }
+    },
+    "/api/v1/cnpj": {
+      "get": {
+        "summary": "Brazilian Federal Revenue Corporate CNPJ Lookup",
+        "description": "Retrieves public corporate registration data, status, CNAE economic activities, and address from Brazilian Receita Federal. Requires x402 micropayment of 0.0200 USDC on Base.",
+        "tags": [
+          "CNPJ"
+        ],
+        "parameters": [
+          {
+            "name": "cnpj",
+            "in": "query",
+            "required": true,
+            "description": "14-digit Brazilian CNPJ number (with or without formatting)",
+            "schema": {
+              "type": "string",
+              "example": "00000000000191"
+            },
+            "example": "00000000000191"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Corporate registration data returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CnpjResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid CNPJ format or checksum failure"
+          }
+        }
+      }
+    },
+    "/api/v1/sanctions": {
+      "get": {
+        "summary": "Administrative Sanctions and Debarment (CEIS and CNEP)",
+        "description": "Checks administrative sanctions, debarments, and temporary suspensions in the official CGU registries (CEIS and CNEP) for a Brazilian CNPJ.",
+        "tags": [
+          "Compliance"
+        ],
+        "parameters": [
+          {
+            "name": "cnpj",
+            "in": "query",
+            "required": true,
+            "description": "14-digit Brazilian company tax ID (CNPJ)",
+            "schema": {
+              "type": "string",
+              "example": "00000000000191"
+            },
+            "example": "00000000000191"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sanctions check evaluated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SanctionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or malformed CNPJ"
+          }
+        }
+      }
+    },
+    "/api/v1/simples": {
+      "get": {
+        "summary": "Simples Nacional and MEI Tax Status",
+        "description": "Queries official opt-in and historical enrollment in Simples Nacional and SIMEI (MEI) special tax regimes from Federal Revenue.",
+        "tags": [
+          "Fiscal"
+        ],
+        "parameters": [
+          {
+            "name": "cnpj",
+            "in": "query",
+            "required": true,
+            "description": "14-digit Brazilian company tax ID (CNPJ)",
+            "schema": {
+              "type": "string",
+              "example": "00000000000191"
+            },
+            "example": "00000000000191"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Simples Nacional tax status retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimplesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or malformed CNPJ"
+          }
+        }
+      }
+    },
+    "/api/v1/compliance": {
+      "get": {
+        "summary": "Compliance Score 360 and Entity Risk Assessment",
+        "description": "Evaluates unified cadastral risk, legal sanity, tax regime, and active administrative sanctions for a Brazilian company, generating an integrity score from 0 to 100 with risk tier classification.",
+        "tags": [
+          "Compliance"
+        ],
+        "parameters": [
+          {
+            "name": "cnpj",
+            "in": "query",
+            "required": true,
+            "description": "14-digit Brazilian company tax ID (CNPJ)",
+            "schema": {
+              "type": "string",
+              "example": "00000000000191"
+            },
+            "example": "00000000000191"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Compliance score 360 calculated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComplianceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or malformed CNPJ"
+          }
+        }
+      }
+    },
+    "/api/v1/workdays": {
+      "get": {
+        "summary": "ANBIMA Financial Workdays Calculator",
+        "description": "Calculates Brazilian banking workdays according to official ANBIMA convention. Supports 3 operation modes: date range counting (exclusive start, inclusive end), maturity date projection (+/- N workdays), and single-date workday verification. Settled via x402 on Base (0.0050 USDC) or free in Sandbox mode.",
+        "tags": [
+          "Workdays"
+        ],
+        "parameters": [
+          {
+            "name": "start_date",
+            "in": "query",
+            "description": "Initial reference date in ISO 8601 format (YYYY-MM-DD). Defaults to today.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-12-24"
+            },
+            "example": "2026-12-24"
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "description": "End date in ISO 8601 format (YYYY-MM-DD) for interval counting mode.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-12-28"
+            },
+            "example": "2026-12-28"
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "description": "Number of workdays to add (positive) or subtract (negative) for projection mode (max 5000).",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "example": 5
+            },
+            "example": 5
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "description": "Single date in ISO 8601 format (YYYY-MM-DD) for single-date check mode.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-12-25"
+            },
+            "example": "2026-12-25"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Workdays calculation returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkdaysResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid date format, range or displacement exceeding limits"
+          }
+        }
+      }
+    },
+    "/api/v1/holidays": {
+      "get": {
+        "summary": "Brazilian National Holidays and Banking Calendar",
+        "description": "Returns full official schedule of Brazilian national holidays and non-banking days (ANBIMA and Febraban) for a given year (1900-2100). Computes mobile holidays deterministically using Meeus algorithm. Settled via x402 on Base (0.0050 USDC). Free teaser preview with next holiday available on 402 challenge.",
+        "tags": [
+          "Holidays"
+        ],
+        "parameters": [
+          {
+            "name": "year",
+            "in": "query",
+            "description": "Four-digit calendar year (e.g., 2026). Defaults to current year.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1900,
+              "maximum": 2100,
+              "example": 2026
+            },
+            "example": 2026
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Calendar of holidays returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HolidaysResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid year parameter (must be between 1900 and 2100)"
+          }
+        }
+      }
+    },
+    "/api/v1/indicators": {
+      "get": {
+        "summary": "Official Brazilian Economic Indicators",
+        "description": "Returns official interest rates (Selic target, Selic daily, CDI annual, CDI daily) and inflation metrics (IPCA 12-month accumulated and monthly) from the Central Bank of Brazil (BCB) and IBGE. Settled via x402 on Base (0.0050 USDC). Free teaser preview available on 402 challenge.",
+        "tags": [
+          "Indicators"
+        ],
+        "responses": {
+          "200": {
+            "description": "Economic indicators returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndicatorsResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/cep": {
+      "get": {
+        "summary": "Brazilian CEP e IBGE Municipal Code",
+        "description": "Resolves public street, neighborhood, city, state, and official IBGE municipal code from an 8-digit Brazilian postal code (CEP). Requires x402 micropayment on Base.",
+        "tags": [
+          "CEP"
+        ],
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "description": "8-digit Brazilian postal code (CEP)",
+            "schema": {
+              "type": "string",
+              "example": "01310100"
+            },
+            "example": "01310100"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Address and IBGE code returned successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CepResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CepResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "cep": {
+            "type": "string",
+            "example": "01310-100"
+          },
+          "cidade": {
+            "type": "string",
+            "example": "São Paulo"
+          },
+          "uf": {
+            "type": "string",
+            "example": "SP"
+          },
+          "ibge": {
+            "type": "string",
+            "example": "3550308"
+          }
+        }
+      },
+      "CnpjResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "cnpj": {
+            "type": "string",
+            "example": "00000000000191"
+          },
+          "razao_social": {
+            "type": "string",
+            "example": "BANCO DO BRASIL SA"
+          },
+          "nome_fantasia": {
+            "type": "string",
+            "example": "DIRECAO GERAL"
+          },
+          "situacao_cadastral": {
+            "type": "string",
+            "example": "ATIVA"
+          },
+          "data_abertura": {
+            "type": "string",
+            "example": "01/08/1966"
+          },
+          "cnae_fiscal": {
+            "type": "string",
+            "example": "6422100"
+          },
+          "cnae_fiscal_descricao": {
+            "type": "string",
+            "example": "Bancos múltiplos, com carteira comercial"
+          },
+          "natureza_juridica": {
+            "type": "string",
+            "example": "Sociedade Anônima Aberta"
+          },
+          "uf": {
+            "type": "string",
+            "example": "DF"
+          },
+          "municipio": {
+            "type": "string",
+            "example": "BRASILIA"
+          }
+        }
+      },
+      "IndicatorsResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "success"
+          },
+          "service": {
+            "type": "string",
+            "example": "indicators"
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2026-11-08T11:50:40Z"
+          },
+          "indicators": {
+            "type": "object",
+            "properties": {
+              "selic_target": {
+                "type": "number",
+                "example": 13.75
+              },
+              "selic_daily": {
+                "type": "number",
+                "example": 13.65
+              },
+              "cdi_annual": {
+                "type": "number",
+                "example": 13.65
+              },
+              "cdi_daily": {
+                "type": "number",
+                "example": 0.0508
+              },
+              "ipca_12m": {
+                "type": "number",
+                "example": 4.58
+              },
+              "ipca_monthly": {
+                "type": "number",
+                "example": 0.44
+              },
+              "reference_date": {
+                "type": "string",
+                "example": "2026-11-08"
+              },
+              "ipca_reference_month": {
+                "type": "string",
+                "example": "2026-10"
+              }
+            }
+          },
+          "source": {
+            "type": "string",
+            "example": "Banco Central do Brasil e IBGE"
+          },
+          "cached": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "HolidayItem": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "example": "2026-01-01"
+          },
+          "name": {
+            "type": "string",
+            "example": "Confraternizacao Universal"
+          },
+          "type": {
+            "type": "string",
+            "example": "national"
+          },
+          "day_of_week": {
+            "type": "string",
+            "example": "Quinta-feira"
+          },
+          "is_banking_holiday": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "HolidaysResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "success"
+          },
+          "service": {
+            "type": "string",
+            "example": "holidays"
+          },
+          "year": {
+            "type": "integer",
+            "example": 2026
+          },
+          "total_holidays": {
+            "type": "integer",
+            "example": 15
+          },
+          "holidays": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HolidayItem"
+            }
+          },
+          "source": {
+            "type": "string",
+            "example": "Calendario Nacional e ANBIMA / Febraban"
+          },
+          "cached": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "WorkdaysResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "success"
+          },
+          "service": {
+            "type": "string",
+            "example": "workdays"
+          },
+          "mode": {
+            "type": "string",
+            "example": "range"
+          },
+          "convention": {
+            "type": "string",
+            "example": "ANBIMA (exclusive start, inclusive end)"
+          },
+          "start_date": {
+            "type": "string",
+            "example": "2026-12-24"
+          },
+          "end_date": {
+            "type": "string",
+            "example": "2026-12-28"
+          },
+          "target_date": {
+            "type": "string",
+            "example": "2026-11-13"
+          },
+          "workdays": {
+            "type": "integer",
+            "example": 1
+          },
+          "calendar_days": {
+            "type": "integer",
+            "example": 4
+          },
+          "is_workday": {
+            "type": "boolean",
+            "example": true
+          },
+          "day_type": {
+            "type": "string",
+            "example": "workday"
+          },
+          "description": {
+            "type": "string",
+            "example": "Dia util bancario"
+          },
+          "holiday_name": {
+            "type": "string",
+            "nullable": true,
+            "example": null
+          },
+          "next_workday": {
+            "type": "string",
+            "example": "2026-12-28"
+          },
+          "holidays_in_range": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "example": "2026-12-25"
+                },
+                "name": {
+                  "type": "string",
+                  "example": "Natal"
+                }
+              }
+            }
+          },
+          "tariff_usdc": {
+            "type": "string",
+            "example": "0.0050"
+          },
+          "_oracle_proof": {
+            "$ref": "#/components/schemas/OracleProof"
+          }
+        }
+      },
+      "SanctionsResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "cnpj": {
+            "type": "string",
+            "example": "00.000.000/0001-91"
+          },
+          "has_sanctions": {
+            "type": "boolean",
+            "example": false
+          },
+          "total_sanctions": {
+            "type": "integer",
+            "example": 0
+          },
+          "cadastros_consultados": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "CEIS",
+              "CNEP"
+            ]
+          },
+          "sanctions": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "tariff_usdc": {
+            "type": "string",
+            "example": "0.0100"
+          },
+          "_oracle_proof": {
+            "$ref": "#/components/schemas/OracleProof"
+          }
+        }
+      },
+      "SimplesResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "cnpj": {
+            "type": "string",
+            "example": "00.000.000/0001-91"
+          },
+          "optante_simples": {
+            "type": "boolean",
+            "example": false
+          },
+          "optante_simei": {
+            "type": "boolean",
+            "example": false
+          },
+          "regime_tributario": {
+            "type": "string",
+            "example": "NAO_OPTANTE"
+          },
+          "tariff_usdc": {
+            "type": "string",
+            "example": "0.0100"
+          },
+          "_oracle_proof": {
+            "$ref": "#/components/schemas/OracleProof"
+          }
+        }
+      },
+      "ComplianceResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "cnpj": {
+            "type": "string",
+            "example": "00.000.000/0001-91"
+          },
+          "score": {
+            "type": "integer",
+            "example": 100
+          },
+          "status": {
+            "type": "string",
+            "example": "APROVADO"
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "summary": {
+            "type": "object"
+          },
+          "tariff_usdc": {
+            "type": "string",
+            "example": "0.0300"
+          },
+          "_oracle_proof": {
+            "$ref": "#/components/schemas/OracleProof"
+          }
+        }
+      },
+      "OracleProof": {
+        "type": "object",
+        "description": "Cryptographic proof of data authenticity and non-repudiation signed by the official Grid402 Oracle",
+        "properties": {
+          "oracle_address": {
+            "type": "string",
+            "example": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90"
+          },
+          "timestamp": {
+            "type": "integer",
+            "example": 1794140000
+          },
+          "data_hash": {
+            "type": "string",
+            "example": "0x4f8a12b3c4d5e6f7..."
+          },
+          "signature": {
+            "type": "string",
+            "example": "0x3045022100..."
+          },
+          "algorithm": {
+            "type": "string",
+            "example": "secp256k1-sha256"
+          },
+          "sandbox": {
+            "type": "boolean",
+            "example": false
+          }
+        },
+        "required": [
+          "oracle_address",
+          "timestamp",
+          "data_hash",
+          "signature",
+          "algorithm",
+          "sandbox"
+        ]
+      }
+    }
+  }
+}

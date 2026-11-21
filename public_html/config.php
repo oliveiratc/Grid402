@@ -242,22 +242,69 @@ function grid402_save_rapidapi_config(string $proxySecret): bool {
 }
 
 /**
- * Resolve o segredo RapidAPI priorizando .env e usando rapidapi_config.json como fallback persistente.
+ * Faz o parse de 1 ou mais segredos X-RapidAPI-Proxy-Secret separados por virgula, ponto-e-virgula ou quebra de linha.
+ *
+ * @return string[]
+ */
+function grid402_parse_rapidapi_secrets(string $raw): array {
+    $trimmed = trim($raw);
+    if ($trimmed === '') {
+        return [];
+    }
+    $parts = preg_split('/[\s,;]+/', $trimmed, -1, PREG_SPLIT_NO_EMPTY);
+    if (!is_array($parts)) {
+        return [];
+    }
+    $valid = [];
+    foreach ($parts as $part) {
+        $token = trim($part);
+        $len = strlen($token);
+        if ($len >= 16 && $len <= 256) {
+            $valid[] = $token;
+        }
+    }
+    $unique = array_values(array_unique($valid));
+    if (count($unique) > 10) {
+        $unique = array_slice($unique, 0, 10);
+    }
+    return $unique;
+}
+
+/**
+ * Resolve todos os segredos RapidAPI ativos combinando .env e rapidapi_config.json (multi-API).
  */
 function grid402_resolve_rapidapi_proxy_secret(): array {
-    $envSecret = defined('GRID402_RAPIDAPI_PROXY_SECRET')
-        ? trim((string) GRID402_RAPIDAPI_PROXY_SECRET)
-        : trim((string) grid402_env('GRID402_RAPIDAPI_PROXY_SECRET', ''));
-    if ($envSecret !== '' && strlen($envSecret) >= 16) {
-        return ['secret' => $envSecret, 'source' => 'env'];
+    $envRaw = defined('GRID402_RAPIDAPI_PROXY_SECRET')
+        ? (string) GRID402_RAPIDAPI_PROXY_SECRET
+        : (string) grid402_env('GRID402_RAPIDAPI_PROXY_SECRET', '');
+    $envSecrets = grid402_parse_rapidapi_secrets($envRaw);
+
+    $fileRaw = (string) (grid402_read_rapidapi_config()['proxy_secret'] ?? '');
+    $fileSecrets = grid402_parse_rapidapi_secrets($fileRaw);
+
+    $all = array_values(array_unique(array_merge($envSecrets, $fileSecrets)));
+    if (count($all) > 10) {
+        $all = array_slice($all, 0, 10);
     }
 
-    $fileSecret = trim((string) (grid402_read_rapidapi_config()['proxy_secret'] ?? ''));
-    if ($fileSecret !== '' && strlen($fileSecret) >= 16) {
-        return ['secret' => $fileSecret, 'source' => 'admin_file'];
+    $hasEnv = !empty($envSecrets);
+    $hasFile = !empty($fileSecrets);
+    if ($hasEnv && $hasFile) {
+        $source = 'mixed';
+    } elseif ($hasEnv) {
+        $source = 'env';
+    } elseif ($hasFile) {
+        $source = 'admin_file';
+    } else {
+        $source = 'none';
     }
 
-    return ['secret' => '', 'source' => 'none'];
+    return [
+        'secret' => $all[0] ?? '',
+        'secrets' => $all,
+        'count' => count($all),
+        'source' => $source,
+    ];
 }
 
 /**
@@ -266,19 +313,20 @@ function grid402_resolve_rapidapi_proxy_secret(): array {
 function grid402_rapidapi_runtime_status(): array {
     $resolved = grid402_resolve_rapidapi_proxy_secret();
     return [
-        'configured' => ($resolved['secret'] !== '' && strlen($resolved['secret']) >= 16),
+        'configured' => ($resolved['count'] > 0),
+        'count' => $resolved['count'],
         'source' => $resolved['source'],
     ];
 }
 
 /**
  * Valida se a requisicao chegou autenticada pelo proxy oficial da RapidAPI
- * atraves do cabecalho secreto X-RapidAPI-Proxy-Secret (fail-closed quando nao configurado).
+ * atraves do cabecalho secreto X-RapidAPI-Proxy-Secret (suporta multiplas APIs; fail-closed).
  */
 function grid402_is_valid_rapidapi_proxy_request(): bool {
     $resolved = grid402_resolve_rapidapi_proxy_secret();
-    $expected = $resolved['secret'];
-    if ($expected === '' || strlen($expected) < 16) {
+    $expectedList = $resolved['secrets'];
+    if (empty($expectedList)) {
         return false;
     }
     $provided = trim((string) ($_SERVER['HTTP_X_RAPIDAPI_PROXY_SECRET'] ?? ''));
@@ -296,7 +344,13 @@ function grid402_is_valid_rapidapi_proxy_request(): bool {
     if ($provided === '') {
         return false;
     }
-    return hash_equals($expected, $provided);
+    $matched = false;
+    foreach ($expectedList as $candidate) {
+        if (hash_equals($candidate, $provided)) {
+            $matched = true;
+        }
+    }
+    return $matched;
 }
 
 // 2.2. Notificacoes de Pagamento em Tempo Real no Telegram (Opcional)
