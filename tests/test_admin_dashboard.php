@@ -947,3 +947,24 @@ try {
 
 echo "[5/5] Homologação completa do Painel Administrativo concluída com 100% de sucesso!\n";
 
+// Validação de filtragem de ruído de scanners gratuitos em grid402_read_recent_payment_failures()
+require_once __DIR__ . '/../public_html/logger.php';
+$tmpLogFile = sys_get_temp_dir() . '/grid402_test_failures_' . bin2hex(random_bytes(4)) . '.jsonl';
+putenv('GRID402_FILE_REQUEST_LOGS=' . $tmpLogFile);
+$_ENV['GRID402_FILE_REQUEST_LOGS'] = $tmpLogFile;
+try {
+    grid402_log_request(['service' => 'pass-balance', 'status' => 400, 'payment_source' => 'free', 'error' => 'InvalidPassTokenFormat']);
+    grid402_log_request(['service' => 'pass-statement', 'status' => 400, 'payment_source' => 'free', 'error' => 'InvalidPassTokenFormat']);
+    grid402_log_request(['service' => 'pass-emitir', 'status' => 400, 'payment_source' => 'unknown', 'error' => 'InvalidTxHash']);
+    grid402_log_request(['service' => 'dns', 'status' => 402, 'payment_source' => 'facilitator', 'error' => 'PaymentFailed: O facilitador rejeitou a autorizacao: invalid_exact_evm_insufficient_balance']);
+    $recentFailures = grid402_read_recent_payment_failures(25);
+    assert(count($recentFailures) === 1, 'Deve filtrar probes gratuitos de pass-balance/pass-statement/pass-emitir e manter apenas falhas reais de pagamento');
+    assert($recentFailures[0]['service'] === 'dns' && $recentFailures[0]['payment_source'] === 'facilitator', 'Deve preservar falha real do facilitador em dns');
+} finally {
+    @unlink($tmpLogFile);
+    @unlink($tmpLogFile . '.lock');
+    putenv('GRID402_FILE_REQUEST_LOGS');
+    unset($_ENV['GRID402_FILE_REQUEST_LOGS']);
+}
+
+

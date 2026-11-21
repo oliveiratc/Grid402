@@ -229,6 +229,16 @@ function grid402_read_recent_payment_failures(int $limit = 25): array {
         if ($err === '' || $err === 'PaymentRequired') {
             continue;
         }
+        $svc = strtolower(trim((string) ($entry['service'] ?? '')));
+        $src = strtolower(trim((string) ($entry['payment_source'] ?? 'unknown')));
+        // Ignora probes de scanners em rotas gratuitas de consulta (pass-balance, pass-statement, pass-limits, verify) sem token válido
+        if ($src === 'free' && in_array($svc, ['pass-balance', 'pass-statement', 'pass-limits', 'verify', 'summary'], true)) {
+            continue;
+        }
+        // Ignora probes GET vazios de scanners em pass-emitir sem hash de transação real
+        if ($svc === 'pass-emitir' && $status === 400 && $err === 'InvalidTxHash') {
+            continue;
+        }
         $failures[] = [
             'ts' => (string) ($entry['ts'] ?? ''),
             'request_id' => (string) ($entry['request_id'] ?? ''),

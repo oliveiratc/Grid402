@@ -810,13 +810,13 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
     // 6. Rentabilidade Estimada por Micro-Serviço
     $pricingTable = [
         'dossier' => 0.0500,
-        'kyb-audit' => 0.0300,
         'compliance' => 0.0300,
-        'domain-audit' => 0.0200,
-        'market-snapshot' => 0.0200,
+        'kyb-audit' => 0.0200,
         'ofac' => 0.0200,
         'lei' => 0.0200,
         'cnpj' => 0.0200,
+        'domain-audit' => 0.0150,
+        'market-snapshot' => 0.0150,
         'sanctions' => 0.0100,
         'simples' => 0.0100,
         'pass' => 2.0000,
