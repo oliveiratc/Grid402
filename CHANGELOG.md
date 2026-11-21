@@ -6,6 +6,9 @@ Todas as mudanças relevantes de arquitetura, catálogo de serviços, segurança
 
 ## [Unreleased]
 
+### Corrigido
+- **Card mcprush (`27 tools` · `v2.0.0`), selo SealKeeper e manifesto `server.json` (`public_html/index.php`, `public_html/assets/mcprush-card.svg`, `public_html/mcp.php`, `mcp/tools.mjs`, `server.json`, `README.md`):** Atualizado `server.json` de `v1.9.1` (`24 MCP tools`) para `v2.0.0` (`27 MCP tools`), removidos exemplos de URL/e-mail dos schemas de `grid402_extract` e `grid402_email_verify` que acionavam retenção preventiva (`mcp_change_unresolved`) no scanner do SealKeeper, gerado card SVG local `public_html/assets/mcprush-card.svg` refletindo `27 tools` e `v2.0.0` e atualizado o selo SealKeeper/PayCensus/RapidAPI na Home e no `README.md`.
+
 ### Adicionado
 - **Exibição dupla de horário `BRT (UTC-3)` + `UTC` no `/admin` (`public_html/admin.php`):** As tabelas **Diagnóstico Real de Falhas de Pagamento** e **Feed de Consultas Recentes** agora exibem o horário de Brasília (`America/Sao_Paulo`, ex.: `21/11 10:14:27 BRT`) como linha principal e o timestamp `UTC` original como linha secundária tanto no SSR quanto no polling em tempo real.
 - **Integração com endpoint oficial `GET /api/verify/addr-proof-message` da PayCensus (`scripts/paycensus_bind_evm.mjs`, `scripts/paycensus_bind_solana.py`):** Ambos os scripts agora buscam programaticamente a mensagem UTF-8 canônica em `https://trust.paycensus.com/api/verify/addr-proof-message?vid=12` antes do fallback para DNS TXT / nonce estático, prevenindo divergências de transcrição manual.

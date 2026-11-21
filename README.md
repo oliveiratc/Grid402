@@ -6,11 +6,11 @@
 
 [![CI](https://github.com/oliveiratc/Grid402/actions/workflows/ci.yml/badge.svg)](https://github.com/oliveiratc/Grid402/actions)
 [![PayAPI Market](https://img.shields.io/badge/PayAPI_Market-Verified-10B981?logo=checkmarx)](https://payapi.market/api/grid402-brazil-public-data-network-oracle)
-[![x402scan](https://img.shields.io/badge/x402scan-Verified_Server-00F0FF)](https://www.x402scan.com/server/00294038-51ff-4073-ab29-c59fca221a50)
-[![Glama](https://img.shields.io/badge/Glama-Verified_MCP-0052FF)](https://glama.ai/mcp/connectors/io.github.oliveiratc/grid402)
-[![PayCensus Trust](https://img.shields.io/badge/PayCensus_Trust-Verified_Domain-10B981)](https://paycensus.com/s/0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90.html)
-[![SealKeeper Service SEAL](https://api.sealkeeper.run/v1/agents/lAUKg3u_xxQJvVJVhnI5rg_C9ARRcXDeSFynPf_mv_A/badge.svg)](https://sealkeeper.run/agents/grid402.online/grid402-online)
-[![RapidAPI](https://img.shields.io/badge/RapidAPI-Live_API-0055DA?logo=rapidapi)](https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities)
+[![x402scan](https://img.shields.io/badge/x402scan-Verified_Server_(24_APIs)-00F0FF)](https://www.x402scan.com/server/00294038-51ff-4073-ab29-c59fca221a50)
+[![Glama](https://img.shields.io/badge/Glama-Verified_MCP_(27_Tools)-0052FF)](https://glama.ai/mcp/connectors/io.github.oliveiratc/grid402)
+[![PayCensus Trust](https://img.shields.io/badge/PayCensus_Trust-Multi--Chain_Verified-10B981)](https://paycensus.com/s/0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90.html)
+[![SealKeeper](https://img.shields.io/badge/SealKeeper-Verified_Owner_(27_Tools)-10B981)](https://sealkeeper.run/agents/grid402.online/grid402-online)
+[![RapidAPI](https://img.shields.io/badge/RapidAPI-3_Live_APIs-0055DA?logo=rapidapi)](https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities)
 ![Network](https://img.shields.io/badge/Network-Multi--Chain_(5_EVM_+_Solana)-0052FF?logo=coinbase)
 ![Payment](https://img.shields.io/badge/Payment-0.0050_a_0.0500_USDC-2775CA?logo=usd-coin)
 ![Protocol](https://img.shields.io/badge/Protocol-HTTP_x402-00F0FF)
@@ -21,7 +21,7 @@
 ![Server](https://img.shields.io/badge/Server-Hostinger_LiteSpeed-blue)
 [![mcptry](https://mcptry.com/badge/io.github.oliveiratc/grid402)](https://mcptry.com/servers/io.github.oliveiratc/grid402)
 
-[![Grid402 — Brazil Public Data and Network Oracle MCP server](https://mcprush.com/badge/grid402-brazil-public-data-network-oracle-mcp/card.svg)](https://mcprush.com/to/grid402-brazil-public-data-network-oracle-mcp?ref=badge)
+[![Grid402 — Brazil Public Data and Network Oracle MCP server](public_html/assets/mcprush-card.svg)](https://mcprush.com/to/grid402-brazil-public-data-network-oracle-mcp?ref=badge)
 
 > **The Verifiable Data and x402 Payment Layer for Autonomous AI Agents.** Infraestrutura M2M de dados públicos verificáveis com assinatura ECDSA secp256k1 (`_oracle_proof`) e liquidação instantânea via HTTP x402 (USDC na rede Base) ou Session Passes pré-pagos sub-15ms.
 

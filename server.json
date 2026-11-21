@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.oliveiratc/grid402",
   "title": "Grid402 — Brazil Public Data & Network Oracle",
-  "description": "24 MCP tools: Brazil CNPJ, compliance, ANBIMA, FX, GLEIF LEI, OFAC & DNS/SSL via x402 Base USDC.",
-  "version": "1.9.1",
+  "description": "27 MCP tools: Web-to-Markdown, Email Verify, KYB 360, CNPJ, CGU, ANBIMA, FX, LEI, OFAC & DNS/SSL via x402 USDC.",
+  "version": "2.0.0",
   "websiteUrl": "https://grid402.online",
   "icons": [
     {

@@ -397,7 +397,7 @@ export const MCP_TOOLS_DEFINITIONS = [
       properties: {
         url: {
           type: 'string',
-          description: 'URL pública HTTP ou HTTPS a ser extraída para Markdown limpo (ex: "https://example.com").',
+          description: 'URL pública HTTP ou HTTPS a ser extraída para Markdown limpo.',
         },
         max_chars: {
           type: 'integer',
@@ -419,7 +419,7 @@ export const MCP_TOOLS_DEFINITIONS = [
       properties: {
         email: {
           type: 'string',
-          description: 'Endereço de e-mail a auditar sem armazenamento em disco (ex: "contato@grid402.online").',
+          description: 'Endereço de e-mail corporativo a auditar sem armazenamento em disco.',
         },
         payment_tx_hash: {
           type: 'string',
