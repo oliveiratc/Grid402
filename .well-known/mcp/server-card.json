@@ -1,0 +1,143 @@
+{
+  "$schema": "https://modelcontextprotocol.io/schemas/server-card/v1.json",
+  "name": "grid402-mcp",
+  "version": "2.0.0",
+  "description": "Grid402 MCP Server - Verifiable Data and HTTP x402 Payment Layer for Autonomous AI Agents across Base, Polygon, Arbitrum, Solana, Optimism and Ethereum (27 tools: Web-to-Markdown Extractor, Zero-PII Email Verifier, KYB 360 AI Dossier, Financial Markets, Global LEI, OFAC AML, Compliance 360, Network Audits and Session Pass).",
+  "instructions": "Use free tools first (grid402_summary, grid402_pass_balance, grid402_verify). Prefer composite bundles (grid402_get_dossier_360, grid402_domain_audit, grid402_kyb_audit, grid402_market_snapshot) and global utilities (grid402_extract, grid402_email_verify) to save credits and latency. Set GRID402_SANDBOX=true for free sandbox testing (3 req/day/IP), GRID402_SESSION_PASS for sub-15ms prepaid calls (1 credit = 0.0050 USDC), or gasless PayAI x402 settlement on Base, Polygon, Arbitrum or Solana.",
+  "homepage": "https://grid402.online",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/oliveiratc/Grid402"
+  },
+  "endpoint": "https://grid402.online",
+  "transport": {
+    "type": "stdio",
+    "command": "npx",
+    "args": [
+      "-y",
+      "grid402-mcp"
+    ]
+  },
+  "capabilities": {
+    "tools": {
+      "listChanged": false
+    },
+    "resources": {
+      "subscribe": false,
+      "listChanged": false
+    },
+    "prompts": {
+      "listChanged": false
+    }
+  },
+  "tools": [
+    {
+      "name": "grid402_summary",
+      "description": "Checks operational health, 30-day uptime and service status across all 25 Grid402 microservices (free)."
+    },
+    {
+      "name": "grid402_forex",
+      "description": "Queries official real-time FX rates for USD, EUR and GBP against BRL (0.0050 USDC / 1 credit)."
+    },
+    {
+      "name": "grid402_crypto",
+      "description": "Queries real-time spot prices for BTC, ETH, SOL, USDC and BASE in USD and BRL (0.0050 USDC / 1 credit)."
+    },
+    {
+      "name": "grid402_dns",
+      "description": "Resolves authoritative DNS records (A, AAAA, MX, TXT, NS, CNAME) for any domain (0.0050 USDC / 1 credit)."
+    },
+    {
+      "name": "grid402_ssl",
+      "description": "Inspects port 443 TLS/SSL certificates, issuer, SANs and remaining days (0.0050 USDC / 1 credit)."
+    },
+    {
+      "name": "grid402_asn",
+      "description": "Resolves BGP routing intelligence, ASN number, CIDR block and country for any IP (0.0050 USDC / 1 credit)."
+    },
+    {
+      "name": "grid402_domain_audit",
+      "description": "Composite single-call domain audit: authoritative DNS + TLS/SSL + BGP/ASN with risk score (0.0150 USDC / 3 credits)."
+    },
+    {
+      "name": "grid402_kyb_audit",
+      "description": "Composite single-call global KYB audit: Receita Federal CNPJ + OFAC/UN Sanctions + GLEIF LEI (0.0200 USDC / 4 credits)."
+    },
+    {
+      "name": "grid402_get_dossier_360",
+      "description": "Premium KYB 360 Dossier with deterministic AI Verdict (APPROVED, FLAGGED, REJECTED), score 0-100, Receita Federal CNPJ, Simples/MEI and CGU CEIS/CNEP sanctions (0.0500 USDC / 10 credits)."
+    },
+    {
+      "name": "grid402_market_snapshot",
+      "description": "Composite single-call macro snapshot: PTAX FX + Spot Crypto + Selic/CDI/IPCA + ANBIMA (0.0150 USDC / 3 credits)."
+    },
+    {
+      "name": "grid402_cep",
+      "description": "Queries official Brazilian postal address and municipal IBGE code by CEP (0.0050 USDC / 1 credit)."
+    },
+    {
+      "name": "grid402_cnpj",
+      "description": "Queries official Brazilian corporate registry data from Receita Federal (0.0200 USDC / 4 credits)."
+    },
+    {
+      "name": "grid402_indicators",
+      "description": "Queries official Central Bank and IBGE indicators: Selic, CDI and IPCA inflation (0.0050 USDC / 1 credit)."
+    },
+    {
+      "name": "grid402_holidays",
+      "description": "Queries official ANBIMA and Febraban banking holiday calendar for any year (0.0050 USDC / 1 credit)."
+    },
+    {
+      "name": "grid402_workdays",
+      "description": "Calculates ANBIMA financial business days between dates or projects D+N dates (0.0050 USDC / 1 credit)."
+    },
+    {
+      "name": "grid402_sanctions",
+      "description": "Screens Brazilian federal administrative sanctions registries CEIS and CNEP from CGU (0.0100 USDC / 2 credits)."
+    },
+    {
+      "name": "grid402_simples",
+      "description": "Queries official Simples Nacional and MEI tax regime status at Receita Federal (0.0100 USDC / 2 credits)."
+    },
+    {
+      "name": "grid402_compliance",
+      "description": "Computes consolidated Compliance Score 360 (0-100) across Receita Federal and CGU (0.0300 USDC / 6 credits)."
+    },
+    {
+      "name": "grid402_lei",
+      "description": "Queries global ISO 17442 corporate identity across 200+ jurisdictions via GLEIF CC0 open data (0.0200 USDC / 4 credits)."
+    },
+    {
+      "name": "grid402_ofac",
+      "description": "Screens global OFAC SDN / UN sanctions and Base Mainnet Web3 AML telemetry (0.0200 USDC / 4 credits)."
+    },
+    {
+      "name": "grid402_notarize",
+      "description": "Issues deterministic UTC timestamp and SHA-256 existence proof signed with ECDSA secp256k1 (0.0050 USDC / 1 credit)."
+    },
+    {
+      "name": "grid402_global_markets",
+      "description": "Queries global exchange settlement calendar (US, EU, UK, BR) and 30+ ECB FX rates (0.0050 USDC / 1 credit)."
+    },
+    {
+      "name": "grid402_extract",
+      "description": "SSRF-hardened Web URL to LLM-ready clean Markdown extractor with metadata and absolute links (0.0050 USDC / 1 credit)."
+    },
+    {
+      "name": "grid402_email_verify",
+      "description": "Zero-PII B2B email deliverability audit: RFC syntax, DNS MX, SPF, DMARC, disposable domain and role-based score (0.0050 USDC / 1 credit)."
+    },
+    {
+      "name": "grid402_pass",
+      "description": "Issues a prepaid x402 Session Pass (400 / 1,000 / 6,000 credits; 1 credit = 0.0050 USDC) for sub-15ms M2M calls."
+    },
+    {
+      "name": "grid402_pass_balance",
+      "description": "Free real-time check of Session Pass remaining credits, expiry and Spend Controls (daily_credit_limit, allowed_endpoints)."
+    },
+    {
+      "name": "grid402_verify",
+      "description": "Stateless mathematical verification of Grid402 ECDSA secp256k1 oracle signature (_oracle_proof) (free)."
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+# robots.txt para Grid402 // Hub de Utilitarios de Rede e Dados Publicos (Protocolo x402)
+# Permissao explicita para Crawlers de Busca, Agentes de IA e Robos Autonomos (RFC 9309)
+
+User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=no
+Allow: /
+Allow: /status
+Allow: /catalog
+Allow: /trust
+Allow: /pass
+Allow: /agents
+Allow: /api/v1/
+Allow: /llms.txt
+Allow: /llms-full.txt
+Allow: /openapi.json
+Allow: /.well-known/security.txt
+Allow: /.well-known/mcp/server-card.json
+Allow: /.well-known/x402.json
+Allow: /badge/
+Allow: /terms
+Allow: /privacy
+Allow: /about
+Allow: /contact
+Disallow: /private_data/
+
+# Agentes de IA e Modelos de Linguagem (LLM Crawlers e Web Browsing Tools)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: CCBot
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+User-agent: Bytespider
+Allow: /
+
+User-agent: Amazonbot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: FacebookBot
+Allow: /
+
+# Apontamento de Sitemaps e Documentacao de Maquina
+Sitemap: https://grid402.online/sitemap.xml
+Sitemap: https://www.grid402.online/sitemap.xml

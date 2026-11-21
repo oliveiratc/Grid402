@@ -1,0 +1,8 @@
+# Permissão explícita para todos os manifestos públicos RFC 8615 (.well-known/*)
+<IfModule mod_authz_core.c>
+    Require all granted
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Allow from all
+</IfModule>

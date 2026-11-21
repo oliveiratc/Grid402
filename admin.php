@@ -1,0 +1,4060 @@
+<?php
+/**
+ * Grid402 // Painel Administrativo de Monitoramento e Faturamento em Tempo Real
+ * 
+ * Protegido por autenticação segura de sessão com Bcrypt e Zero-DB.
+ */
+
+declare(strict_types=1);
+
+if (!defined('GRID402_EXEC')) {
+    define('GRID402_EXEC', true);
+}
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/logger.php';
+require_once __DIR__ . '/metrics.php';
+require_once __DIR__ . '/growth.php';
+require_once __DIR__ . '/facilitator.php';
+require_once __DIR__ . '/x402.php';
+require_once __DIR__ . '/services/forex.php';
+require_once __DIR__ . '/includes/admin_auth_guard.php';
+
+/**
+ * Retorna snapshot seguro (sem segredos) do estado do facilitador x402, coletor e Telegram.
+ */
+function grid402_admin_runtime_status(): array {
+    $facMode = defined('GRID402_FACILITATOR_MODE') ? (string) GRID402_FACILITATOR_MODE : 'settle';
+    $facUrl = defined('GRID402_FACILITATOR_URL') ? (string) GRID402_FACILITATOR_URL : '';
+    $facHost = $facUrl !== '' ? (string) (parse_url($facUrl, PHP_URL_HOST) ?: '') : '';
+    $authMode = function_exists('grid402_facilitator_auth_mode') ? grid402_facilitator_auth_mode() : 'public';
+    $x402Network = defined('GRID402_X402_NETWORK') ? (string) GRID402_X402_NETWORK : 'base';
+
+    $summaryFile = defined('GRID402_FILE_FREE') ? GRID402_FILE_FREE : '';
+    $summaryExists = ($summaryFile !== '' && file_exists($summaryFile));
+    $summaryMtime = $summaryExists ? (int) @filemtime($summaryFile) : 0;
+    $summaryAgeSec = ($summaryExists && $summaryMtime > 0) ? max(0, time() - $summaryMtime) : null;
+
+    $tg = function_exists('grid402_telegram_runtime_status')
+        ? grid402_telegram_runtime_status()
+        : ['configured' => false, 'disabled' => false, 'token_configured' => false, 'chat_id_configured' => false, 'last_status' => null];
+
+    $rapid = function_exists('grid402_rapidapi_runtime_status')
+        ? grid402_rapidapi_runtime_status()
+        : [
+            'configured' => defined('GRID402_RAPIDAPI_PROXY_SECRET') && strlen((string) GRID402_RAPIDAPI_PROXY_SECRET) >= 16,
+            'source' => 'env',
+        ];
+    $multiChainCount = function_exists('grid402_build_accepts')
+        ? count(grid402_build_accepts(defined('GRID402_USDC_REQUIRED_RAW') ? (int) GRID402_USDC_REQUIRED_RAW : 5000))
+        : 1;
+
+    return [
+        'facilitator' => [
+            'mode' => $facMode,
+            'auth_mode' => $authMode,
+            'host' => $facHost,
+            'network' => $x402Network,
+            'multichain_accepts' => $multiChainCount,
+        ],
+        'collector' => [
+            'summary_exists' => $summaryExists,
+            'summary_age_sec' => $summaryAgeSec,
+            'summary_stale' => ($summaryAgeSec === null || $summaryAgeSec > 600),
+        ],
+        'telegram' => $tg,
+        'rapidapi' => $rapid,
+    ];
+}
+
+/**
+ * Formata um timestamp ISO-8601 UTC exibindo o horario de Brasilia (BRT, America/Sao_Paulo)
+ * como linha principal e o horario UTC original como referencia secundaria.
+ *
+ * @return array{brt: string, utc: string}
+ */
+function grid402_admin_format_brt_utc(string $isoUtc, bool $timeOnly = false): array {
+    $trimmed = trim($isoUtc);
+    if ($trimmed === '') {
+        return ['brt' => '-', 'utc' => ''];
+    }
+    try {
+        $dtUtc = new DateTimeImmutable($trimmed, new DateTimeZone('UTC'));
+        $dtBrt = $dtUtc->setTimezone(new DateTimeZone('America/Sao_Paulo'));
+        if ($timeOnly) {
+            return [
+                'brt' => $dtBrt->format('H:i:s') . ' BRT',
+                'utc' => $dtUtc->format('H:i:s') . ' UTC',
+            ];
+        }
+        return [
+            'brt' => $dtBrt->format('d/m H:i:s') . ' BRT',
+            'utc' => $trimmed,
+        ];
+    } catch (Throwable $e) {
+        return [
+            'brt' => $timeOnly ? substr($trimmed, 11, 8) : $trimmed,
+            'utc' => '',
+        ];
+    }
+}
+
+/**
+ * Consulta os saldos on-chain em USDC e ETH da carteira oficial na Base Mainnet com cache de 60s
+ */
+function grid402_get_oracle_wallet_balances(): array {
+    $cacheFile = __DIR__ . '/private_data/wallet_balance_cache.json';
+    $now = time();
+    $cacheTtl = 60; // 60 segundos de cache
+
+    if (file_exists($cacheFile)) {
+        $cacheRaw = @file_get_contents($cacheFile);
+        $cached = $cacheRaw ? @json_decode($cacheRaw, true) : null;
+        if (is_array($cached) && isset($cached['cached_at']) && ($now - (int)$cached['cached_at']) < $cacheTtl) {
+            return $cached;
+        }
+    }
+
+    $oracleAddress = defined('GRID402_WALLET_ADDRESS') ? GRID402_WALLET_ADDRESS : '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90';
+    $usdcContract = defined('GRID402_USDC_CONTRACT') ? GRID402_USDC_CONTRACT : '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+    $baseRpcUrl = defined('GRID402_BASE_RPC_URL') ? GRID402_BASE_RPC_URL : 'https://mainnet.base.org';
+
+    $rpcUrls = [
+        $baseRpcUrl,
+        'https://base.llamarpc.com',
+        'https://1rpc.io/base',
+    ];
+
+    $usdcBalance = 0.0;
+    $ethBalance = 0.0;
+    $rpcOk = false;
+
+    // Helper interno para executar chamadas JSON-RPC
+    $execRpc = function (string $method, array $params) use ($rpcUrls): mixed {
+        $payload = json_encode([
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => $method,
+            'params' => $params,
+        ]);
+
+        foreach ($rpcUrls as $url) {
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => $payload,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+                CURLOPT_TIMEOUT => 3,
+                CURLOPT_CONNECTTIMEOUT => 2,
+                CURLOPT_USERAGENT => 'Grid402-Admin-Probe/2.0',
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_SSL_VERIFYHOST => 2,
+            ]);
+
+            $response = curl_exec($ch);
+            $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($httpCode === 200 && is_string($response)) {
+                $json = @json_decode($response, true);
+                if (isset($json['result'])) {
+                    return $json['result'];
+                }
+            }
+        }
+
+        return null;
+    };
+
+    try {
+        // 1. Saldo USDC (ERC-20 balanceOf)
+        $cleanAddr = str_starts_with($oracleAddress, '0x') ? substr($oracleAddress, 2) : $oracleAddress;
+        $callData = '0x70a08231' . str_pad($cleanAddr, 64, '0', STR_PAD_LEFT);
+        $resUsdc = $execRpc('eth_call', [
+            [
+                'to' => $usdcContract,
+                'data' => $callData,
+            ],
+            'latest'
+        ]);
+
+        if (is_string($resUsdc) && str_starts_with($resUsdc, '0x')) {
+            $hexVal = substr($resUsdc, 2);
+            $rawInt = hexdec($hexVal);
+            $usdcBalance = round($rawInt / 1000000, 4); // USDC tem 6 decimais
+            $rpcOk = true;
+        }
+
+        // 2. Saldo ETH (eth_getBalance para reserva de gas)
+        $resEth = $execRpc('eth_getBalance', [
+            $oracleAddress,
+            'latest'
+        ]);
+
+        if (is_string($resEth) && str_starts_with($resEth, '0x')) {
+            $hexEth = substr($resEth, 2);
+            $rawEth = hexdec($hexEth);
+            $ethBalance = round($rawEth / 1e18, 5); // ETH tem 18 decimais
+            $rpcOk = true;
+        }
+    } catch (\Throwable $e) {
+        if (file_exists($cacheFile)) {
+            $cacheRaw = @file_get_contents($cacheFile);
+            $cached = $cacheRaw ? @json_decode($cacheRaw, true) : null;
+            if (is_array($cached)) {
+                return $cached;
+            }
+        }
+    }
+
+    $result = [
+        'oracle_address' => $oracleAddress,
+        'usdc_balance' => $usdcBalance,
+        'eth_balance' => $ethBalance,
+        'network' => 'Base Mainnet',
+        'chain_id' => 8453,
+        'cached_at' => $now,
+        'rpc_operational' => $rpcOk,
+    ];
+
+    $dir = dirname($cacheFile);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+    @file_put_contents($cacheFile, (string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+    return $result;
+}
+
+// 1. Configuração estrita de sessão segura (HttpOnly, SameSite=Lax, Fingerprint IP/UA e Idle Timeout)
+grid402_admin_session_start();
+
+// 1.1. Cabeçalhos de segurança (anti-clickjacking, MIME sniffing, referrer)
+if (!headers_sent()) {
+    header('X-Frame-Options: DENY');
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: geolocation=(), microphone=(), camera=()');
+}
+
+$authFile = GRID402_FILE_ADMIN_AUTH;
+$hasSetup = file_exists($authFile);
+$action = (string) ($_GET['action'] ?? '');
+$apiParam = (string) ($_GET['api'] ?? '');
+$errorMsg = '';
+$successMsg = '';
+
+$isBackgroundPoll = ($apiParam === 'stats' || $apiParam === 'growth');
+$touchSessionActivity = !$isBackgroundPoll || ((string) ($_GET['touch'] ?? '') === '1');
+$sessionVerification = grid402_verify_active_admin_session($touchSessionActivity);
+$isLoggedIn = (bool) $sessionVerification['valid'];
+
+if (!$isLoggedIn && ($sessionVerification['reason'] === 'idle_timeout' || (string) ($_GET['expired'] ?? '') === 'idle_timeout')) {
+    $errorMsg = 'Sua sessão expirou por inatividade. Faça login novamente.';
+} elseif (!$isLoggedIn && ($sessionVerification['reason'] === 'fingerprint_mismatch' || (string) ($_GET['expired'] ?? '') === 'fingerprint_mismatch')) {
+    $errorMsg = 'Sessão encerrada por mudança de rede ou navegador. Autentique-se novamente.';
+}
+
+if ($action === 'cancel_2fa') {
+    unset($_SESSION['admin_2fa_pending']);
+    header('Location: /admin');
+    exit;
+}
+
+if ($action === 'cancel_recovery') {
+    unset($_SESSION['admin_recovery_pending']);
+    header('Location: /admin');
+    exit;
+}
+
+// 2. Ações de Logout e Reset de Segurança
+if ($action === 'logout') {
+    $_SESSION = [];
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000,
+            $params["path"], $params["domain"],
+            $params["secure"], $params["httponly"]
+        );
+    }
+    session_destroy();
+    header('Location: /admin');
+    exit;
+}
+
+if ($action === 'reset') {
+    if (function_exists('grid402_is_default_secret') and grid402_is_default_secret()) {
+        http_response_code(403);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'error' => 'InsecureResetBlocked',
+            'message' => 'O reset administrativo foi bloqueado. Defina uma chave forte para GRID402_CRON_SECRET nas variaveis de ambiente antes de usar esta operacao.'
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    $providedSecret = (string)($_GET['secret'] ?? '');
+    $isConfirmed = (isset($_GET['confirm']) and $_GET['confirm'] === 'true');
+
+    if ($providedSecret !== '' and hash_equals(GRID402_CRON_SECRET, $providedSecret) and $isConfirmed) {
+        if (file_exists($authFile)) {
+            @unlink($authFile);
+        }
+        $_SESSION = [];
+        session_destroy();
+        header('Location: /admin?reset=done');
+        exit;
+    }
+
+    http_response_code(403);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'error' => 'Forbidden',
+        'message' => 'Segredo de reset incorreto ou confirmacao ausente (exija confirm=true).'
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// 2.1. Controle Anti-CSRF
+if (empty($_SESSION['admin_csrf_token'])) {
+    $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
+}
+$csrfToken = (string)$_SESSION['admin_csrf_token'];
+
+function grid402_validate_csrf(?string $token): bool {
+    $sessionToken = (string)($_SESSION['admin_csrf_token'] ?? '');
+    if ($sessionToken === '' or empty($token)) {
+        return false;
+    }
+    return hash_equals($sessionToken, (string)$token);
+}
+
+/**
+ * Controle de Forca Bruta de Login (Zero-DB)
+ * Trava o IP por 15 minutos (900s) apos 5 falhas consecutivas
+ */
+function grid402_get_login_rate_file(): string {
+    $dir = defined('GRID402_PRIVATE_DIR') ? GRID402_PRIVATE_DIR : (__DIR__ . '/private_data');
+    return $dir . '/admin_login_rate.json';
+}
+
+function grid402_check_login_rate(string $ip): array {
+    $file = grid402_get_login_rate_file();
+    $maxAttempts = 5;
+    $lockoutSeconds = 900;
+    $now = time();
+
+    if (!file_exists($file)) {
+        return ['allowed' => true, 'remaining' => $maxAttempts, 'retry_after' => 0];
+    }
+
+    $raw = @file_get_contents($file);
+    $data = $raw ? (@json_decode($raw, true) ?: []) : [];
+    $entry = $data[$ip] ?? null;
+
+    if (!$entry) {
+        return ['allowed' => true, 'remaining' => $maxAttempts, 'retry_after' => 0];
+    }
+
+    $firstFail = (int)($entry['first_fail'] ?? $now);
+    $attempts = (int)($entry['attempts'] ?? 0);
+    $elapsed = $now - $firstFail;
+
+    if ($elapsed >= $lockoutSeconds) {
+        return ['allowed' => true, 'remaining' => $maxAttempts, 'retry_after' => 0];
+    }
+
+    if ($attempts >= $maxAttempts) {
+        $retryAfter = max(1, $lockoutSeconds - $elapsed);
+        return [
+            'allowed' => false,
+            'remaining' => 0,
+            'retry_after' => $retryAfter,
+            'attempts' => $attempts,
+        ];
+    }
+
+    return [
+        'allowed' => true,
+        'remaining' => max(0, $maxAttempts - $attempts),
+        'retry_after' => 0,
+        'attempts' => $attempts,
+    ];
+}
+
+function grid402_record_login_failure(string $ip): void {
+    $file = grid402_get_login_rate_file();
+    $lockoutSeconds = 900;
+    $now = time();
+
+    $dir = dirname($file);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+
+    $fp = fopen($file, 'c+');
+    if (!$fp) {
+        return;
+    }
+
+    if (flock($fp, LOCK_EX)) {
+        $data = grid402_read_locked_json($fp, []);
+
+        $cleaned = [];
+        foreach ($data as $kIp => $v) {
+            $t = (int)($v['first_fail'] ?? 0);
+            if (($now - $t) < $lockoutSeconds) {
+                $cleaned[$kIp] = $v;
+            }
+        }
+
+        $entry = $cleaned[$ip] ?? ['attempts' => 0, 'first_fail' => $now];
+        if (($now - (int)$entry['first_fail']) >= $lockoutSeconds) {
+            $entry = ['attempts' => 0, 'first_fail' => $now];
+        }
+
+        $entry['attempts'] = ((int)$entry['attempts']) + 1;
+        $entry['last_fail'] = $now;
+        $cleaned[$ip] = $entry;
+
+        ftruncate($fp, 0);
+        rewind($fp);
+        fwrite($fp, (string) json_encode($cleaned, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        fflush($fp);
+        flock($fp, LOCK_UN);
+    }
+    fclose($fp);
+}
+
+function grid402_reset_login_rate(string $ip): void {
+    $file = grid402_get_login_rate_file();
+    if (!file_exists($file)) {
+        return;
+    }
+    $fp = fopen($file, 'c+');
+    if (!$fp) {
+        return;
+    }
+    if (flock($fp, LOCK_EX)) {
+        $data = grid402_read_locked_json($fp, []);
+        if (isset($data[$ip])) {
+            unset($data[$ip]);
+            ftruncate($fp, 0);
+            rewind($fp);
+            fwrite($fp, (string) json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            fflush($fp);
+        }
+        flock($fp, LOCK_UN);
+    }
+    fclose($fp);
+}
+
+/**
+ * Controle de Força Bruta para Recuperação de Senha via Telegram (Zero-DB)
+ * Limite de 3 envios por janela de 10 minutos (600s) por IP.
+ */
+function grid402_get_recovery_rate_file(): string {
+    $dir = defined('GRID402_PRIVATE_DIR') ? GRID402_PRIVATE_DIR : (__DIR__ . '/private_data');
+    return $dir . '/admin_recovery_rate.json';
+}
+
+function grid402_check_recovery_rate(string $ip): array {
+    $file = grid402_get_recovery_rate_file();
+    $maxAttempts = 3;
+    $lockoutSeconds = 600;
+    $now = time();
+
+    if (!file_exists($file)) {
+        return ['allowed' => true, 'remaining' => $maxAttempts, 'retry_after' => 0];
+    }
+
+    $raw = @file_get_contents($file);
+    $data = $raw ? (@json_decode($raw, true) ?: []) : [];
+    $entry = $data[$ip] ?? null;
+
+    if (!$entry) {
+        return ['allowed' => true, 'remaining' => $maxAttempts, 'retry_after' => 0];
+    }
+
+    $firstFail = (int)($entry['first_attempt'] ?? $now);
+    $attempts = (int)($entry['attempts'] ?? 0);
+    $elapsed = $now - $firstFail;
+
+    if ($elapsed >= $lockoutSeconds) {
+        return ['allowed' => true, 'remaining' => $maxAttempts, 'retry_after' => 0];
+    }
+
+    if ($attempts >= $maxAttempts) {
+        $retryAfter = max(1, $lockoutSeconds - $elapsed);
+        return [
+            'allowed' => false,
+            'remaining' => 0,
+            'retry_after' => $retryAfter,
+            'attempts' => $attempts,
+        ];
+    }
+
+    return [
+        'allowed' => true,
+        'remaining' => max(0, $maxAttempts - $attempts),
+        'retry_after' => 0,
+        'attempts' => $attempts,
+    ];
+}
+
+function grid402_record_recovery_attempt(string $ip): void {
+    $file = grid402_get_recovery_rate_file();
+    $lockoutSeconds = 600;
+    $now = time();
+
+    $dir = dirname($file);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
+    }
+
+    $fp = fopen($file, 'c+');
+    if (!$fp) {
+        return;
+    }
+
+    if (flock($fp, LOCK_EX)) {
+        $data = grid402_read_locked_json($fp, []);
+
+        $cleaned = [];
+        foreach ($data as $kIp => $v) {
+            $t = (int)($v['first_attempt'] ?? 0);
+            if (($now - $t) < $lockoutSeconds) {
+                $cleaned[$kIp] = $v;
+            }
+        }
+
+        $entry = $cleaned[$ip] ?? ['attempts' => 0, 'first_attempt' => $now];
+        if (($now - (int)$entry['first_attempt']) >= $lockoutSeconds) {
+            $entry = ['attempts' => 0, 'first_attempt' => $now];
+        }
+
+        $entry['attempts'] = ((int)$entry['attempts']) + 1;
+        $entry['last_attempt'] = $now;
+        $cleaned[$ip] = $entry;
+
+        ftruncate($fp, 0);
+        rewind($fp);
+        fwrite($fp, (string) json_encode($cleaned, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        fflush($fp);
+        flock($fp, LOCK_UN);
+    }
+    fclose($fp);
+}
+
+// 3. Processamento de POST (Setup, Login ou Alteracao de Senha)
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $submittedCsrf = (string)($_POST['csrf_token'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+
+    // 3.0a. Disparo de teste Telegram autenticado (diagnostico sem segredos)
+    if ($action === 'test_telegram') {
+        header('Content-Type: application/json; charset=utf-8');
+        if (!$isLoggedIn) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Sessao administrativa expirada ou nao autenticada.']);
+            exit;
+        }
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Token CSRF de seguranca ausente ou invalido.']);
+            exit;
+        }
+        $sent = grid402_notify_telegram_purchase('cnpj', 0.0200, '0x' . str_repeat('a', 64), true);
+        $tgStatus = grid402_telegram_runtime_status();
+        $errDetail = (string) ($tgStatus['last_status']['error'] ?? '');
+        echo json_encode([
+            'success' => $sent,
+            'telegram_status' => $tgStatus,
+            'message' => $sent
+                ? 'Alerta de teste enviado para o Telegram!'
+                : ('Falha no envio' . ($errDetail !== '' ? ': ' . $errDetail : '. Verifique GRID402_TELEGRAM_BOT_TOKEN e GRID402_TELEGRAM_CHAT_ID no .env deste servidor.')),
+        ]);
+        exit;
+    }
+
+    // 3.0b. Configuracao de credenciais Telegram (salvo em private_data/telegram_config.json)
+    if ($action === 'save_telegram_config') {
+        header('Content-Type: application/json; charset=utf-8');
+        if (!$isLoggedIn) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Sessao administrativa expirada ou nao autenticada.']);
+            exit;
+        }
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Token CSRF de seguranca ausente ou invalido.']);
+            exit;
+        }
+
+        $inputToken = trim((string)($_POST['bot_token'] ?? ''));
+        $inputChat = trim((string)($_POST['chat_id'] ?? ''));
+        $existingCreds = grid402_resolve_telegram_credentials();
+
+        if ($inputToken === '' && $existingCreds['token'] !== '') {
+            $inputToken = $existingCreds['token'];
+        }
+        if ($inputChat === '' && $existingCreds['chat_id'] !== '') {
+            $inputChat = $existingCreds['chat_id'];
+        }
+
+        if (preg_match('/^\d{6,15}:[A-Za-z0-9_-]{20,80}$/', $inputToken) !== 1) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Formato de Bot Token invalido. Exemplo esperado: 123456789:AAH...']);
+            exit;
+        }
+        if (preg_match('/^(-?\d{5,20}|@[A-Za-z0-9_]{4,64})$/', $inputChat) !== 1) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Formato de Chat ID invalido. Exemplo esperado: 123456789 ou -100123456789.']);
+            exit;
+        }
+
+        if (!grid402_save_telegram_config($inputToken, $inputChat)) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Nao foi possivel gravar private_data/telegram_config.json no servidor.']);
+            exit;
+        }
+
+        $skipTest = ((string)($_POST['skip_test'] ?? '') === '1');
+        $sent = $skipTest ? false : grid402_notify_telegram_purchase('cnpj', 0.0200, '0x' . str_repeat('a', 64), true);
+        $tgStatus = grid402_telegram_runtime_status();
+        $errDetail = (string) ($tgStatus['last_status']['error'] ?? '');
+
+        echo json_encode([
+            'success' => true,
+            'test_sent' => $sent,
+            'telegram_status' => $tgStatus,
+            'message' => $sent
+                ? 'Credenciais salvas e alerta de teste entregue no Telegram!'
+                : ($skipTest ? 'Credenciais do Telegram salvas com sucesso!' : ('Credenciais salvas, mas o teste falhou' . ($errDetail !== '' ? ': ' . $errDetail : '.'))),
+        ]);
+        exit;
+    }
+
+    // 3.0c. Configuracao persistente do RapidAPI Proxy Secret (salvo em storage/rapidapi_config.json)
+    if ($action === 'save_rapidapi_config') {
+        header('Content-Type: application/json; charset=utf-8');
+        if (!$isLoggedIn) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Sessao administrativa expirada ou nao autenticada.']);
+            exit;
+        }
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Token CSRF de seguranca ausente ou invalido.']);
+            exit;
+        }
+
+        $isClear = ((string) ($_POST['clear'] ?? '') === '1');
+        if ($isClear) {
+            if (!grid402_save_rapidapi_config('')) {
+                http_response_code(500);
+                echo json_encode(['success' => false, 'error' => 'Nao foi possivel remover rapidapi_config.json no servidor.']);
+                exit;
+            }
+            $rapidStatus = grid402_rapidapi_runtime_status();
+            $msg = ($rapidStatus['source'] === 'env')
+                ? 'Arquivo rapidapi_config.json removido (observacao: GRID402_RAPIDAPI_PROXY_SECRET no .env continua ativo).'
+                : 'Configuracao salva no painel removida. RapidAPI Bridge desativado.';
+            echo json_encode([
+                'success' => true,
+                'rapidapi_status' => $rapidStatus,
+                'message' => $msg,
+            ]);
+            exit;
+        }
+
+        $rawInput = trim((string) ($_POST['proxy_secret'] ?? ''));
+        $tokens = preg_split('/[\r\n,;]+/', $rawInput, -1, PREG_SPLIT_NO_EMPTY);
+        if (!is_array($tokens) || empty($tokens) || count($tokens) > 10) {
+            http_response_code(400);
+            echo json_encode(['success' => false, 'error' => 'Informe de 1 a 10 segredos X-RapidAPI-Proxy-Secret separados por virgula.']);
+            exit;
+        }
+        $validList = [];
+        foreach ($tokens as $tok) {
+            $cleanTok = trim($tok);
+            if (preg_match('/^\S{16,256}$/', $cleanTok) !== 1) {
+                http_response_code(400);
+                echo json_encode(['success' => false, 'error' => 'Formato invalido. Cada X-RapidAPI-Proxy-Secret deve ter de 16 a 256 caracteres sem espacos.']);
+                exit;
+            }
+            $validList[] = $cleanTok;
+        }
+        $serializedSecrets = implode(',', array_values(array_unique($validList)));
+
+        if (!grid402_save_rapidapi_config($serializedSecrets)) {
+            http_response_code(500);
+            echo json_encode(['success' => false, 'error' => 'Nao foi possivel gravar rapidapi_config.json no servidor.']);
+            exit;
+        }
+
+        $rapidStatus = grid402_rapidapi_runtime_status();
+        $rapidCount = (int) ($rapidStatus['count'] ?? 0);
+        if ($rapidStatus['source'] === 'mixed') {
+            $msg = "RapidAPI Bridge ativo com {$rapidCount} segredos (.env + painel persistente)!";
+        } elseif ($rapidStatus['source'] === 'env') {
+            $msg = 'Segredos salvos em rapidapi_config.json em conjunto com GRID402_RAPIDAPI_PROXY_SECRET do .env.';
+        } else {
+            $msg = ($rapidCount > 1)
+                ? "RapidAPI Bridge ativado com {$rapidCount} segredos (salvo em storage persistente)!"
+                : 'RapidAPI Bridge ativado com sucesso (salvo em storage persistente)!';
+        }
+        echo json_encode([
+            'success' => true,
+            'rapidapi_status' => $rapidStatus,
+            'message' => $msg,
+        ]);
+        exit;
+    }
+
+    // 3.0. Alteracao de Senha / Usuario / 2FA Autenticada
+    if ($action === 'change_password') {
+        $isJsonReq = ((isset($_GET['format']) and $_GET['format'] === 'json') or
+                      (str_contains((string)($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json')));
+
+        if (!$isLoggedIn) {
+            http_response_code(401);
+            if ($isJsonReq) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['success' => false, 'error' => 'Sessao administrativa expirada ou nao autenticada.']);
+            } else {
+                header('Location: /admin');
+            }
+            exit;
+        }
+
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            http_response_code(403);
+            if ($isJsonReq) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['success' => false, 'error' => 'Token CSRF de seguranca ausente ou invalido. Recarregue a pagina.']);
+            } else {
+                $errorMsg = 'Token CSRF de seguranca invalido ou expirado.';
+            }
+            exit;
+        }
+
+        $currPass = (string) ($_POST['current_password'] ?? '');
+        $newPass = (string) ($_POST['new_password'] ?? '');
+        $newPassConfirm = (string) ($_POST['new_password_confirm'] ?? '');
+        $newUsername = trim((string) ($_POST['new_username'] ?? ''));
+        $hasTwoFactorField = array_key_exists('two_factor_telegram', $_POST);
+        $twoFactorEnabled = $hasTwoFactorField ? ((string) $_POST['two_factor_telegram'] === '1') : null;
+
+        $authContent = @file_get_contents($authFile);
+        $authData = $authContent ? @json_decode($authContent, true) : null;
+
+        $pErr = '';
+        if (!$authData or !password_verify($currPass, (string)($authData['password_hash'] ?? ''))) {
+            $pErr = 'A senha atual informada esta incorreta.';
+        } elseif ($newUsername !== '' and strlen($newUsername) < 3) {
+            $pErr = 'O nome de usuario deve ter no minimo 3 caracteres.';
+        } elseif ($newPass !== '' or $newPassConfirm !== '' or (!$hasTwoFactorField and $newUsername === '')) {
+            if (strlen($newPass) < 8) {
+                $pErr = 'A nova senha deve ter no minimo 8 caracteres.';
+            } elseif ($newPass !== $newPassConfirm) {
+                $pErr = 'A nova senha e a confirmacao nao coincidem.';
+            }
+        }
+
+        if ($pErr !== '') {
+            if ($isJsonReq) {
+                http_response_code(400);
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['success' => false, 'error' => $pErr]);
+                exit;
+            } else {
+                $errorMsg = $pErr;
+            }
+        } else {
+            if ($newPass !== '') {
+                $authData['password_hash'] = password_hash($newPass, PASSWORD_BCRYPT, ['cost' => 11]);
+            }
+            if ($newUsername !== '') {
+                $authData['username'] = $newUsername;
+                $_SESSION['admin_user'] = $newUsername;
+            }
+            if ($twoFactorEnabled !== null) {
+                $authData['two_factor_telegram'] = $twoFactorEnabled;
+            }
+            $authData['updated_at'] = gmdate('Y-m-d\TH:i:s\Z');
+            grid402_atomic_write($authFile, $authData);
+
+            if ($isJsonReq) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Credenciais e configuracoes de seguranca atualizadas com sucesso!',
+                    'username' => (string) ($authData['username'] ?? ''),
+                    'two_factor_telegram' => (bool) ($authData['two_factor_telegram'] ?? true),
+                ]);
+                exit;
+            } else {
+                $successMsg = 'Senha alterada com sucesso!';
+            }
+        }
+    } elseif ($action === 'verify_2fa' || isset($_POST['otp_code'])) {
+        // 3.0c. Verificacao do Codigo 2FA enviado via Telegram
+        $clientIp = function_exists('grid402_get_trusted_client_ip') ? grid402_get_trusted_client_ip() : (string)($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+        $pending = $_SESSION['admin_2fa_pending'] ?? null;
+
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            $errorMsg = 'Token CSRF de seguranca invalido ou expirado. Recarregue a pagina.';
+        } elseif (!is_array($pending)) {
+            $errorMsg = 'Nenhum desafio 2FA ativo na sessao. Faca login novamente.';
+        } elseif (!hash_equals((string)($pending['fingerprint'] ?? ''), grid402_admin_session_fingerprint())) {
+            unset($_SESSION['admin_2fa_pending']);
+            $errorMsg = 'Desafio 2FA invalidado por mudanca de rede ou navegador. Faca login novamente.';
+        } elseif (time() > (int)($pending['expires_at'] ?? 0)) {
+            unset($_SESSION['admin_2fa_pending']);
+            $errorMsg = 'O código 2FA expirou (validade de 5 minutos). Faça login novamente.';
+        } else {
+            $_SESSION['admin_2fa_pending']['attempts'] = ((int)($pending['attempts'] ?? 0)) + 1;
+            $attempts = (int) $_SESSION['admin_2fa_pending']['attempts'];
+            $otpInput = preg_replace('/\D/', '', (string)($_POST['otp_code'] ?? ''));
+            $expectedHash = (string)($pending['code_hash'] ?? '');
+            $actualHash = hash_hmac('sha256', (string) $otpInput, $csrfToken);
+
+            if ($otpInput !== '' && strlen((string) $otpInput) === 6 && hash_equals($expectedHash, $actualHash)) {
+                $authContent = @file_get_contents($authFile);
+                $authData = $authContent ? @json_decode($authContent, true) : null;
+                $verifiedUser = (string)($pending['username'] ?? ($authData['username'] ?? 'admin'));
+
+                if (is_array($authData)) {
+                    $authData['last_login'] = gmdate('Y-m-d\TH:i:s\Z');
+                    $authData['login_count'] = ((int)($authData['login_count'] ?? 0)) + 1;
+                    grid402_atomic_write($authFile, $authData);
+                }
+
+                grid402_reset_login_rate($clientIp);
+                grid402_establish_admin_session($verifiedUser);
+                if (session_status() === PHP_SESSION_ACTIVE) {
+                    session_write_close();
+                }
+                header('Location: /admin');
+                exit;
+            } else {
+                usleep(250000);
+                if ($attempts >= 5) {
+                    unset($_SESSION['admin_2fa_pending']);
+                    grid402_record_login_failure($clientIp);
+                    $errorMsg = 'Limite de 5 tentativas para o código 2FA excedido. Faça login novamente.';
+                } else {
+                    $rem2fa = 5 - $attempts;
+                    $errorMsg = "Código 2FA incorreto. ({$rem2fa} tentativa(s) restante(s)).";
+                }
+            }
+        }
+    } elseif ($action === 'resend_2fa') {
+        // 3.0d. Reenvio do Codigo 2FA via Telegram
+        $clientIp = function_exists('grid402_get_trusted_client_ip') ? grid402_get_trusted_client_ip() : (string)($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+        $pending = $_SESSION['admin_2fa_pending'] ?? null;
+
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            $errorMsg = 'Token CSRF de seguranca invalido ou expirado.';
+        } elseif (!is_array($pending)) {
+            $errorMsg = 'Nenhum desafio 2FA ativo. Faca login novamente.';
+        } elseif ((time() - (int)($pending['sent_at'] ?? 0)) < 15) {
+            $waitSec = max(1, 15 - (time() - (int)($pending['sent_at'] ?? 0)));
+            $errorMsg = "Aguarde {$waitSec}s antes de solicitar um novo código.";
+        } else {
+            $otpCode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            $maskedIp = function_exists('grid402_mask_ip') ? grid402_mask_ip($clientIp) : $clientIp;
+            if (grid402_send_telegram_admin_otp((string)($pending['username'] ?? 'admin'), $otpCode, $maskedIp)) {
+                $_SESSION['admin_2fa_pending']['code_hash'] = hash_hmac('sha256', $otpCode, $csrfToken);
+                $_SESSION['admin_2fa_pending']['expires_at'] = time() + 300;
+                $_SESSION['admin_2fa_pending']['attempts'] = 0;
+                $_SESSION['admin_2fa_pending']['sent_at'] = time();
+                $successMsg = 'Novo código de 6 dígitos enviado para o seu Telegram.';
+            } else {
+                $errorMsg = 'Falha ao reenviar código pelo Telegram.';
+            }
+        }
+    } elseif ($action === 'forgot_password') {
+        // 3.0e. Solicitação de Envio de Código de Recuperação via Telegram
+        $clientIp = function_exists('grid402_get_trusted_client_ip') ? grid402_get_trusted_client_ip() : (string)($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+        $tgStatus = function_exists('grid402_telegram_runtime_status') ? grid402_telegram_runtime_status() : ['configured' => false];
+
+        $isTestCapture = ((string) grid402_env('GRID402_TEST_OTP_CAPTURE', '') === '1' && in_array($clientIp, ['127.0.0.1', '::1'], true));
+
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            $errorMsg = 'Token CSRF de segurança inválido ou expirado. Recarregue a página.';
+        } elseif (!$hasSetup) {
+            $errorMsg = 'Nenhuma credencial configurada no sistema. Crie as credenciais no primeiro acesso.';
+        } elseif (empty($tgStatus['configured']) && !$isTestCapture) {
+            $errorMsg = 'Recuperação via Telegram indisponível: o bot @GRIG402BOT não está configurado neste servidor.';
+        } else {
+            $lastSent = (int)($_SESSION['admin_recovery_pending']['sent_at'] ?? 0);
+            if ($lastSent > 0 && (time() - $lastSent) < 30) {
+                $waitSec = max(1, 30 - (time() - $lastSent));
+                $errorMsg = "Um código de recuperação já foi enviado recentemente. Aguarde {$waitSec}s para novo envio.";
+            } else {
+                $rateCheck = grid402_check_recovery_rate($clientIp);
+                if (!$rateCheck['allowed']) {
+                    $waitMinutes = max(1, (int) ceil(($rateCheck['retry_after'] ?? 600) / 60));
+                    $errorMsg = "Muitas tentativas de recuperação. Acesso temporariamente bloqueado por {$waitMinutes} minuto(s).";
+                } else {
+                    $authRaw = @file_get_contents($authFile);
+                    $authData = $authRaw ? @json_decode($authRaw, true) : null;
+                    $targetUser = (string)($authData['username'] ?? 'admin');
+                    $otpCode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+                    $maskedIp = function_exists('grid402_mask_ip') ? grid402_mask_ip($clientIp) : $clientIp;
+
+                    if (grid402_send_telegram_admin_recovery_otp($targetUser, $otpCode, $maskedIp)) {
+                        grid402_record_recovery_attempt($clientIp);
+                        $_SESSION['admin_recovery_pending'] = [
+                            'username' => $targetUser,
+                            'code_hash' => hash_hmac('sha256', $otpCode, $csrfToken),
+                            'expires_at' => time() + 600, // 10 minutos
+                            'attempts' => 0,
+                            'sent_at' => time(),
+                            'fingerprint' => grid402_admin_session_fingerprint(),
+                        ];
+                        $successMsg = 'Código de segurança de 6 dígitos enviado para o seu Telegram (@GRIG402BOT)!';
+                    } else {
+                        $errorMsg = 'Falha ao despachar mensagem pelo Telegram. Verifique se o bot está ativo.';
+                    }
+                }
+            }
+        }
+    } elseif ($action === 'resend_recovery') {
+        // 3.0f. Reenvio de Código de Recuperação via Telegram
+        $clientIp = function_exists('grid402_get_trusted_client_ip') ? grid402_get_trusted_client_ip() : (string)($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+        $pending = $_SESSION['admin_recovery_pending'] ?? null;
+
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            $errorMsg = 'Token CSRF de segurança inválido ou expirado. Recarregue a página.';
+        } elseif (!is_array($pending)) {
+            $errorMsg = 'Nenhuma solicitação de recuperação ativa. Clique em "Esqueci minha senha" novamente.';
+        } elseif ((time() - (int)($pending['sent_at'] ?? 0)) < 30) {
+            $waitSec = max(1, 30 - (time() - (int)($pending['sent_at'] ?? 0)));
+            $errorMsg = "Aguarde {$waitSec}s antes de solicitar um novo código.";
+        } else {
+            $rateCheck = grid402_check_recovery_rate($clientIp);
+            if (!$rateCheck['allowed']) {
+                $waitMinutes = max(1, (int) ceil(($rateCheck['retry_after'] ?? 600) / 60));
+                $errorMsg = "Limite de solicitações excedido. Aguarde {$waitMinutes} minuto(s).";
+            } else {
+                $targetUser = (string)($pending['username'] ?? 'admin');
+                $otpCode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+                $maskedIp = function_exists('grid402_mask_ip') ? grid402_mask_ip($clientIp) : $clientIp;
+
+                if (grid402_send_telegram_admin_recovery_otp($targetUser, $otpCode, $maskedIp)) {
+                    grid402_record_recovery_attempt($clientIp);
+                    $_SESSION['admin_recovery_pending']['code_hash'] = hash_hmac('sha256', $otpCode, $csrfToken);
+                    $_SESSION['admin_recovery_pending']['expires_at'] = time() + 600;
+                    $_SESSION['admin_recovery_pending']['attempts'] = 0;
+                    $_SESSION['admin_recovery_pending']['sent_at'] = time();
+                    $successMsg = 'Novo código de recuperação de 6 dígitos enviado para o seu Telegram.';
+                } else {
+                    $errorMsg = 'Falha ao reenviar código pelo Telegram.';
+                }
+            }
+        }
+    } elseif ($action === 'confirm_recovery' || isset($_POST['recovery_otp'])) {
+        // 3.0g. Validação do Código e Redefinição de Senha
+        $clientIp = function_exists('grid402_get_trusted_client_ip') ? grid402_get_trusted_client_ip() : (string)($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+        $pending = $_SESSION['admin_recovery_pending'] ?? null;
+
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            $errorMsg = 'Token CSRF de segurança inválido ou expirado. Recarregue a página.';
+        } elseif (!is_array($pending)) {
+            $errorMsg = 'Nenhuma solicitação de recuperação ativa. Inicie a recuperação novamente.';
+        } elseif (!hash_equals((string)($pending['fingerprint'] ?? ''), grid402_admin_session_fingerprint())) {
+            unset($_SESSION['admin_recovery_pending']);
+            $errorMsg = 'Solicitação invalidada por mudança de rede ou navegador. Inicie novamente.';
+        } elseif (time() > (int)($pending['expires_at'] ?? 0)) {
+            unset($_SESSION['admin_recovery_pending']);
+            $errorMsg = 'O código de recuperação expirou (validade de 10 minutos). Solicite um novo código.';
+        } else {
+            $_SESSION['admin_recovery_pending']['attempts'] = ((int)($pending['attempts'] ?? 0)) + 1;
+            $attempts = (int) $_SESSION['admin_recovery_pending']['attempts'];
+            $otpInput = preg_replace('/\D/', '', (string)($_POST['recovery_otp'] ?? ''));
+            $expectedHash = (string)($pending['code_hash'] ?? '');
+            $actualHash = hash_hmac('sha256', (string) $otpInput, $csrfToken);
+
+            if ($otpInput !== '' && strlen((string) $otpInput) === 6 && hash_equals($expectedHash, $actualHash)) {
+                $newPass = (string)($_POST['new_password'] ?? '');
+                $newPassConfirm = (string)($_POST['new_password_confirm'] ?? '');
+
+                if (strlen($newPass) < 8) {
+                    $errorMsg = 'A nova senha deve ter pelo menos 8 caracteres.';
+                } elseif ($newPass !== $newPassConfirm) {
+                    $errorMsg = 'As novas senhas digitadas não coincidem.';
+                } else {
+                    $authContent = @file_get_contents($authFile);
+                    $authData = $authContent ? @json_decode($authContent, true) : null;
+                    if (!is_array($authData)) {
+                        $authData = [
+                            'username' => (string)($pending['username'] ?? 'admin'),
+                            'two_factor_telegram' => true,
+                            'created_at' => gmdate('Y-m-d\TH:i:s\Z'),
+                        ];
+                    }
+                    $authData['password_hash'] = password_hash($newPass, PASSWORD_BCRYPT, ['cost' => 11]);
+                    $authData['updated_at'] = gmdate('Y-m-d\TH:i:s\Z');
+                    $authData['last_login'] = gmdate('Y-m-d\TH:i:s\Z');
+                    $authData['login_count'] = ((int)($authData['login_count'] ?? 0)) + 1;
+                    grid402_atomic_write($authFile, $authData);
+
+                    $targetUser = (string)($authData['username'] ?? ($pending['username'] ?? 'admin'));
+                    $maskedIp = function_exists('grid402_mask_ip') ? grid402_mask_ip($clientIp) : $clientIp;
+                    grid402_reset_login_rate($clientIp);
+                    grid402_notify_telegram_admin_password_reset($targetUser, $maskedIp);
+
+                    unset($_SESSION['admin_recovery_pending']);
+                    grid402_establish_admin_session($targetUser);
+                    if (session_status() === PHP_SESSION_ACTIVE) {
+                        session_write_close();
+                    }
+                    header('Location: /admin?recovery=done');
+                    exit;
+                }
+            } else {
+                usleep(250000);
+                if ($attempts >= 5) {
+                    unset($_SESSION['admin_recovery_pending']);
+                    grid402_record_login_failure($clientIp);
+                    $errorMsg = 'Limite de 5 tentativas de código excedido. Solicite um novo código.';
+                } else {
+                    $rem = 5 - $attempts;
+                    $errorMsg = "Código de recuperação incorreto. ({$rem} tentativa(s) restante(s)).";
+                }
+            }
+        }
+    } elseif (!$hasSetup) {
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            $errorMsg = 'Token CSRF de seguranca invalido ou expirado. Recarregue a pagina.';
+        } else {
+            // 3.1. Setup de Primeiro Acesso
+            $user = trim((string) ($_POST['username'] ?? ''));
+            $pass = (string) ($_POST['password'] ?? '');
+            $passConfirm = (string) ($_POST['password_confirm'] ?? '');
+
+            if (strlen($user) < 3) {
+                $errorMsg = 'O nome de usuário deve ter pelo menos 3 caracteres.';
+            } elseif (strlen($pass) < 8) {
+                $errorMsg = 'A senha deve ter pelo menos 8 caracteres.';
+            } elseif ($pass !== $passConfirm) {
+                $errorMsg = 'As senhas informadas não coincidem.';
+            } else {
+                $hash = password_hash($pass, PASSWORD_BCRYPT, ['cost' => 11]);
+                $authData = [
+                    'username' => $user,
+                    'password_hash' => $hash,
+                    'two_factor_telegram' => true,
+                    'created_at' => gmdate('Y-m-d\TH:i:s\Z'),
+                    'last_login' => gmdate('Y-m-d\TH:i:s\Z'),
+                    'login_count' => 1,
+                ];
+                $saved = grid402_atomic_write($authFile, $authData);
+
+                if (!$saved or !file_exists($authFile)) {
+                    $errorMsg = 'Erro crítico: não foi possível gravar as credenciais no disco. Verifique permissões do diretório de armazenamento.';
+                } else {
+                    grid402_establish_admin_session($user);
+                    if (session_status() === PHP_SESSION_ACTIVE) {
+                        session_write_close();
+                    }
+                    header('Location: /admin?setup=success');
+                    exit;
+                }
+            }
+        }
+    } else {
+        // 3.2. Login Normal com Protecao Anti-Brute-Force + 2FA Telegram
+        $clientIp = function_exists('grid402_get_trusted_client_ip') ? grid402_get_trusted_client_ip() : (string)($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+        $rateCheck = grid402_check_login_rate($clientIp);
+
+        if (!$rateCheck['allowed']) {
+            http_response_code(429);
+            $waitMinutes = max(1, (int) ceil(($rateCheck['retry_after'] ?? 900) / 60));
+            $errorMsg = "Muitas tentativas incorretas. Acesso bloqueado por seguranca por {$waitMinutes} minuto(s).";
+        } elseif (!grid402_validate_csrf($submittedCsrf)) {
+            $errorMsg = 'Token CSRF de seguranca invalido ou expirado. Recarregue a pagina.';
+        } else {
+            $user = trim((string) ($_POST['username'] ?? ''));
+            $pass = (string) ($_POST['password'] ?? '');
+
+            $authContent = @file_get_contents($authFile);
+            $authData = $authContent ? @json_decode($authContent, true) : null;
+
+            if ($authData and $user === ($authData['username'] ?? '') and password_verify($pass, (string)($authData['password_hash'] ?? ''))) {
+                if (grid402_is_telegram_2fa_required($authData)) {
+                    $otpCode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+                    $maskedIp = function_exists('grid402_mask_ip') ? grid402_mask_ip($clientIp) : $clientIp;
+                    $sentOtp = grid402_send_telegram_admin_otp((string) $authData['username'], $otpCode, $maskedIp);
+
+                    if ($sentOtp) {
+                        $_SESSION['admin_2fa_pending'] = [
+                            'username' => (string) $authData['username'],
+                            'code_hash' => hash_hmac('sha256', $otpCode, $csrfToken),
+                            'expires_at' => time() + 300,
+                            'attempts' => 0,
+                            'sent_at' => time(),
+                            'fingerprint' => grid402_admin_session_fingerprint(),
+                        ];
+                    } else {
+                        $errorMsg = 'Não foi possível enviar o código 2FA para o Telegram. Verifique a conectividade do bot.';
+                    }
+                } else {
+                    grid402_reset_login_rate($clientIp);
+                    grid402_establish_admin_session((string) $authData['username']);
+
+                    $authData['last_login'] = gmdate('Y-m-d\TH:i:s\Z');
+                    $authData['login_count'] = ((int)($authData['login_count'] ?? 0)) + 1;
+                    grid402_atomic_write($authFile, $authData);
+
+                    if (session_status() === PHP_SESSION_ACTIVE) {
+                        session_write_close();
+                    }
+                    header('Location: /admin');
+                    exit;
+                }
+            } else {
+                grid402_record_login_failure($clientIp);
+                usleep(350000); // Delay defensivo anti-bruteforce
+                $rem = max(0, ($rateCheck['remaining'] ?? 5) - 1);
+                $errorMsg = ($rem > 0)
+                    ? "Usuário ou senha incorretos. ({$rem} tentativa(s) restante(s) antes do bloqueio)."
+                    : "Usuário ou senha incorretos. Acesso bloqueado por segurança por 15 minutos.";
+            }
+        }
+    }
+}
+
+// 4. Endpoints de API JSON e Exportacao CSV
+// Mapas canonicos de origem de pagamento e categoria de falha (usados no CSV, no JSON e no painel)
+$paymentSourceLabels = [
+    'tx_hash' => 'TX hash (legado)',
+    'pass' => 'Session pass',
+    'facilitator' => 'Facilitador x402 (settle)',
+    'facilitator_verify_only' => 'Facilitador (verify only)',
+    'mercadopago' => 'Pix (Mercado Pago)',
+    'rapidapi' => 'RapidAPI Hub',
+    'sandbox' => 'Sandbox',
+    'unknown' => 'Não identificada',
+];
+$failureCategoryLabels = [
+    'invalid_proof' => 'Prova inválida',
+    'payment_rejected' => 'Pagamento rejeitado',
+    'authorization_expired' => 'Autorização expirada',
+    'replay' => 'Replay (já usado)',
+    'facilitator_unavailable' => 'Facilitador indisponível',
+    'facilitator_disabled' => 'Facilitador desativado',
+    'unknown' => 'Outros',
+];
+$paymentSourceKeys = array_keys($paymentSourceLabels);
+$failureCategoryKeys = array_keys($failureCategoryLabels);
+
+/**
+ * Calcula indicadores operacionais recentes (Hoje vs. Ontem + janela de 1h/6h/24h nos recent_events).
+ */
+function grid402_admin_recent_pulse(array $metrics): array {
+    $tz = new DateTimeZone('America/Sao_Paulo');
+    $todayDt = new DateTimeImmutable('now', $tz);
+    $todayKey = $todayDt->format('Y-m-d');
+    $yesterdayKey = $todayDt->modify('-1 day')->format('Y-m-d');
+
+    $daily = is_array($metrics['daily'] ?? null) ? $metrics['daily'] : [];
+    $todayRow = is_array($daily[$todayKey] ?? null) ? $daily[$todayKey] : [];
+    $yesterdayRow = is_array($daily[$yesterdayKey] ?? null) ? $daily[$yesterdayKey] : [];
+
+    $events = is_array($metrics['recent_events'] ?? null) ? $metrics['recent_events'] : [];
+    $nowTs = time();
+    $last1h = 0;
+    $last6h = 0;
+    $last24h = 0;
+    $challengeClean = 0;
+    $paymentFailures = 0;
+    $sandboxCount = 0;
+    $freeCount = 0;
+    $paidCount = 0;
+    $errorNon402Count = 0;
+    $recentServices = [];
+
+    foreach ($events as $ev) {
+        if (!is_array($ev)) {
+            continue;
+        }
+        $tsStr = (string) ($ev['timestamp'] ?? '');
+        $evTs = $tsStr !== '' ? strtotime($tsStr) : false;
+        if ($evTs !== false) {
+            $age = $nowTs - (int) $evTs;
+            if ($age <= 3600) {
+                $last1h++;
+            }
+            if ($age <= 21600) {
+                $last6h++;
+            }
+            if ($age <= 86400) {
+                $last24h++;
+            }
+        }
+
+        $status = (int) ($ev['status'] ?? 200);
+        $type = (string) ($ev['type'] ?? '');
+        $failureCat = $ev['failure_category'] ?? null;
+        $svc = (string) ($ev['service'] ?? 'unknown');
+        if ($svc !== '') {
+            $recentServices[$svc] = ((int) ($recentServices[$svc] ?? 0)) + 1;
+        }
+
+        if ($type === 'paid' || !empty($ev['is_paid'])) {
+            $paidCount++;
+        } elseif ($type === 'sandbox') {
+            $sandboxCount++;
+        } elseif ($status === 402) {
+            if (!empty($failureCat)) {
+                $paymentFailures++;
+            } else {
+                $challengeClean++;
+            }
+        } elseif ($status >= 400) {
+            $errorNon402Count++;
+            if (!empty($failureCat)) {
+                $paymentFailures++;
+            }
+        } else {
+            $freeCount++;
+        }
+    }
+
+    arsort($recentServices);
+    $topRecentServices = [];
+    foreach (array_slice($recentServices, 0, 6, true) as $svcName => $cnt) {
+        $topRecentServices[] = ['service' => (string) $svcName, 'count' => (int) $cnt];
+    }
+
+    return [
+        'today_date' => $todayDt->format('d/m'),
+        'yesterday_date' => $todayDt->modify('-1 day')->format('d/m'),
+        'today_requests' => (int) ($todayRow['requests'] ?? 0),
+        'today_paid' => (int) ($todayRow['paid'] ?? 0),
+        'yesterday_requests' => (int) ($yesterdayRow['requests'] ?? 0),
+        'yesterday_paid' => (int) ($yesterdayRow['paid'] ?? 0),
+        'buffer_total' => count($events),
+        'last_1h_count' => $last1h,
+        'last_6h_count' => $last6h,
+        'last_24h_count' => $last24h,
+        'challenge_402_clean' => $challengeClean,
+        'payment_failures' => $paymentFailures,
+        'sandbox_count' => $sandboxCount,
+        'free_count' => $freeCount,
+        'paid_count' => $paidCount,
+        'error_non_402_count' => $errorNon402Count,
+        'top_recent_services' => $topRecentServices,
+    ];
+}
+
+// 4.1. Endpoint de Exportacao Financeira CSV (/admin?api=export_csv)
+if ($apiParam === 'export_csv') {
+    if (!$isLoggedIn) {
+        http_response_code(401);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['error' => 'Unauthorized', 'message' => 'Sessão administrativa expirada ou inválida.'], JSON_PRETTY_PRINT);
+        exit;
+    }
+
+    $metrics = grid402_get_metrics();
+    $forex = grid402_service_forex();
+    $usdRate = (float)($forex['rates']['USD']['bid'] ?? 5.50);
+    $events = $metrics['recent_events'] ?? [];
+
+    $filename = 'grid402_telemetria_' . grid402_metrics_today() . '.csv';
+    header('Content-Type: text/csv; charset=utf-8');
+    header('Content-Disposition: attachment; filename="' . $filename . '"');
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+
+    // UTF-8 BOM para abertura correta no Microsoft Excel
+    echo "\xEF\xBB\xBF";
+
+    $output = fopen('php://output', 'w');
+    if ($output) {
+        fputcsv($output, [
+            'Horario UTC',
+            'Servico',
+            'Status HTTP',
+            'Tipo',
+            'Valor USDC',
+            'Cotacao PTAX BRL',
+            'Valor BRL Estimado',
+            'Hash BaseScan',
+            'Origem do Pagamento',
+            'Falha',
+            'Hash Liquidacao',
+            'IP Mascarado'
+        ], ';');
+
+        foreach ($events as $ev) {
+            $priceUsdc = (float)($ev['price_usdc'] ?? 0.0);
+            $priceBrl = round($priceUsdc * $usdRate, 4);
+            $evType = $ev['type'] ?? ($ev['is_paid'] ? 'paid' : 'free');
+
+            fputcsv($output, [
+                $ev['timestamp'] ?? '',
+                $ev['service'] ?? '',
+                $ev['status'] ?? 200,
+                $evType,
+                number_format($priceUsdc, 4, '.', ''),
+                number_format($usdRate, 4, '.', ''),
+                number_format($priceBrl, 2, ',', '.'),
+                $ev['tx_hash'] ?? '',
+                $ev['payment_source'] ?? '',
+                $ev['failure_category'] ?? '',
+                $ev['settlement_tx'] ?? '',
+                $ev['ip_masked'] ?? ''
+            ], ';');
+        }
+
+        fclose($output);
+    }
+    exit;
+}
+
+// 4.2. Endpoint Growth Engine (/admin?api=growth)
+if ($apiParam === 'growth') {
+    if (!$isLoggedIn) {
+        http_response_code(401);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['error' => 'Unauthorized', 'message' => 'Sessão administrativa expirada ou inválida.'], JSON_PRETTY_PRINT);
+        exit;
+    }
+
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+    echo json_encode(grid402_growth_admin_payload(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// 4.3. Endpoint de Polling JSON (/admin?api=stats)
+if ($apiParam === 'stats') {
+    if (!$isLoggedIn) {
+        http_response_code(401);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['error' => 'Unauthorized', 'message' => 'Sessão administrativa expirada ou inválida.'], JSON_PRETTY_PRINT);
+        exit;
+    }
+
+    $metrics = grid402_get_metrics();
+    $forex = grid402_service_forex();
+    $usdRate = (float)($forex['rates']['USD']['bid'] ?? 5.50);
+    $wallet = grid402_get_oracle_wallet_balances();
+    $oracleConfigured = defined('GRID402_ORACLE_PRIVATE_KEY') && !empty(GRID402_ORACLE_PRIVATE_KEY);
+    $analytics = grid402_compute_admin_analytics($metrics, $usdRate);
+    $runtimeStatus = grid402_admin_runtime_status();
+
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-cache, no-store, must-revalidate');
+
+    $revenueUsdc = (float)($metrics['total_revenue_usdc'] ?? 0.0);
+    $today = grid402_metrics_today();
+    $todayUsdc = (float)($metrics['daily'][$today]['usdc'] ?? 0.0);
+    $totalPageViews = (int)($metrics['total_page_views'] ?? 0);
+    $todayPageViews = (int)($metrics['daily'][$today]['page_views'] ?? 0);
+
+    $paymentSources = [];
+    $rawSources = is_array($metrics['payment_sources'] ?? null) ? $metrics['payment_sources'] : [];
+    foreach ($paymentSourceKeys as $key) {
+        $paymentSources[$key] = (int)($rawSources[$key] ?? 0);
+    }
+
+    $failureCategories = [];
+    $rawFailures = is_array($metrics['failure_categories'] ?? null) ? $metrics['failure_categories'] : [];
+    foreach ($failureCategoryKeys as $key) {
+        $failureCategories[$key] = (int)($rawFailures[$key] ?? 0);
+    }
+
+    echo json_encode([
+        'status' => 'success',
+        'server_time' => gmdate('Y-m-d\TH:i:s\Z'),
+        'total_requests' => (int)($metrics['total_requests'] ?? 0),
+        'total_page_views' => $totalPageViews,
+        'today_page_views' => $todayPageViews,
+        'total_paid_requests' => (int)($metrics['total_paid_requests'] ?? 0),
+        'total_sandbox_requests' => (int)($metrics['total_sandbox_requests'] ?? 0),
+        'total_revenue_usdc' => $revenueUsdc,
+        'total_revenue_brl' => round($revenueUsdc * $usdRate, 2),
+        'today_revenue_usdc' => $todayUsdc,
+        'today_revenue_brl' => round($todayUsdc * $usdRate, 2),
+        'arpu_usdc' => $analytics['arpu_usdc'],
+        'arpu_brl' => $analytics['arpu_brl'],
+        'technical_success_rate' => $analytics['technical_success_rate'],
+        'http_200_count' => $analytics['http_200_count'] ?? 0,
+        'http_200_rate' => $analytics['http_200_rate'] ?? 100.0,
+        'error_5xx_count' => $analytics['error_5xx_count'] ?? 0,
+        'latency_p50_ms' => $analytics['latency_p50_ms'] ?? 0.0,
+        'latency_p95_ms' => $analytics['latency_p95_ms'] ?? 0.0,
+        'latency_samples_count' => $analytics['latency_samples_count'] ?? 0,
+        'sandbox_rate' => $analytics['sandbox_rate'],
+        'usd_rate' => $usdRate,
+        'wallet_balances' => $wallet,
+        'passes_stats' => $analytics['passes_stats'] ?? [],
+        'facilitator_status' => $runtimeStatus['facilitator'],
+        'collector_status' => $runtimeStatus['collector'],
+        'telegram_status' => $runtimeStatus['telegram'],
+        'rapidapi_status' => $runtimeStatus['rapidapi'],
+        'oracle_configured' => $oracleConfigured,
+        'status_counts' => $metrics['status_counts'] ?? [],
+        'service_counts' => $metrics['service_counts'] ?? [],
+        'payment_sources' => $paymentSources,
+        'failure_categories' => $failureCategories,
+        'payment_source_labels' => $paymentSourceLabels,
+        'failure_category_labels' => $failureCategoryLabels,
+        'daily_history_14d' => $analytics['daily_history_14d'] ?? [],
+        'top_consumers' => $analytics['top_consumers'] ?? [],
+        'service_revenue' => $analytics['service_revenue'] ?? [],
+        'recent_pulse' => grid402_admin_recent_pulse($metrics),
+        'recent_events' => $metrics['recent_events'] ?? [],
+        'recent_payment_failures' => function_exists('grid402_read_recent_payment_failures') ? grid402_read_recent_payment_failures(25) : [],
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// Se não estiver logado, exibe tela de login ou setup
+if (!$isLoggedIn) {
+    ?>
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="csrf-token" content="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+        <title>Grid402 // Acesso Administrativo</title>
+        <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+        <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=2">
+        <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=2">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+        <style>
+            :root {
+                --bg: #060B19;
+                --surface: #0B132B;
+                --border: #1E2C4F;
+                --text-main: #F8FAFC;
+                --text-muted: #94A3B8;
+                --primary: #0052FF;
+                --accent: #00F0FF;
+                --danger: #EF4444;
+                --font-heading: 'Space Grotesk', system-ui, sans-serif;
+                --font-sans: 'Inter', system-ui, sans-serif;
+                --font-mono: 'JetBrains Mono', monospace;
+            }
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body {
+                background-color: var(--bg);
+                color: var(--text-main);
+                font-family: var(--font-sans);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 1.5rem;
+            }
+            .card {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                width: 100%;
+                max-width: 420px;
+                padding: 2.5rem;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            }
+            .brand {
+                display: flex;
+                align-items: center;
+                gap: 0.85rem;
+                margin-bottom: 2rem;
+            }
+            .brand-badge {
+                background: linear-gradient(135deg, #00F0FF, #0052FF);
+                color: #FFFFFF;
+                font-family: var(--font-mono);
+                font-weight: 800;
+                font-size: 0.8rem;
+                padding: 0.35rem 0.65rem;
+                border-radius: 6px;
+            }
+            .brand-name { font-family: var(--font-heading); font-size: 1.35rem; font-weight: 700; letter-spacing: -0.5px; }
+            h1 { font-family: var(--font-heading); font-size: 1.25rem; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: -0.5px; }
+            p.sub { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.75rem; }
+            .form-group { margin-bottom: 1.25rem; }
+            label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.4rem; }
+            input[type="text"], input[type="password"] {
+                width: 100%;
+                background: #060B19;
+                border: 1px solid var(--border);
+                border-radius: 6px;
+                padding: 0.75rem 1rem;
+                color: var(--text-main);
+                font-size: 0.95rem;
+                font-family: var(--font-sans);
+            }
+            input:focus { outline: none; border-color: var(--accent); }
+            .btn {
+                width: 100%;
+                background: var(--primary);
+                color: #FFFFFF;
+                font-family: var(--font-heading);
+                font-weight: 700;
+                font-size: 0.95rem;
+                padding: 0.75rem;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                transition: opacity 0.2s;
+                margin-top: 0.5rem;
+            }
+            .btn:hover { opacity: 0.9; }
+            .alert-error {
+                background: rgba(239, 68, 68, 0.15);
+                border: 1px solid var(--danger);
+                color: #FCA5A5;
+                padding: 0.75rem 1rem;
+                border-radius: 6px;
+                font-size: 0.85rem;
+                margin-bottom: 1.5rem;
+            }
+            .alert-info {
+                background: rgba(0, 240, 255, 0.12);
+                border: 1px solid var(--accent);
+                color: #BAE6FD;
+                padding: 0.75rem 1rem;
+                border-radius: 6px;
+                font-size: 0.85rem;
+                margin-bottom: 1.5rem;
+            }
+            .back-link {
+                display: block;
+                text-align: center;
+                margin-top: 1.75rem;
+                font-size: 0.85rem;
+                color: var(--text-muted);
+                text-decoration: none;
+            }
+            .back-link:hover { color: var(--accent); }
+        </style>
+    </head>
+    <body>
+        <div class="card">
+            <div class="brand">
+                <img src="/assets/logo-icon-transparent.png" alt="Grid402" width="36" height="36">
+                <div>
+                    <div class="brand-name">Grid<span style="color: var(--accent);">402</span></div>
+                    <div style="font-size: 0.78rem; color: var(--text-muted);">Acesso Administrativo</div>
+                </div>
+            </div>
+
+            <?php
+            $pendingRecovery = is_array($_SESSION['admin_recovery_pending'] ?? null) ? $_SESSION['admin_recovery_pending'] : null;
+            $pending2fa = is_array($_SESSION['admin_2fa_pending'] ?? null) ? $_SESSION['admin_2fa_pending'] : null;
+            $isForgotPasswordPrompt = (!$pendingRecovery && !$pending2fa && $hasSetup && $action === 'forgot_password');
+            ?>
+            <?php if ($pendingRecovery): ?>
+                <h1>Recuperar Acesso</h1>
+                <p class="sub">Enviamos um código de segurança de 6 dígitos para o seu Telegram (@GRIG402BOT). Digite o código e cadastre sua nova senha.</p>
+            <?php elseif ($isForgotPasswordPrompt): ?>
+                <h1>Recuperação via Telegram</h1>
+                <p class="sub">Um código de autenticação único de 6 dígitos será despachado imediatamente para o bot oficial (@GRIG402BOT).</p>
+            <?php elseif ($pending2fa): ?>
+                <h1>Verificação 2FA (Telegram)</h1>
+                <p class="sub">Enviamos um código de 6 dígitos para o seu Telegram oficial (válido por 5 minutos).</p>
+            <?php elseif (!$hasSetup): ?>
+                <h1>Configurar Acesso</h1>
+                <p class="sub">Primeiro acesso detectado. Crie as credenciais mestras do operador.</p>
+                <div class="alert-info">🔒 Estas credenciais serão salvas com criptografia forte e protegerão os dados financeiros e métricas de uso.</div>
+            <?php else: ?>
+                <h1>Autenticação Restrita</h1>
+                <p class="sub">Informe suas credenciais para visualizar métricas e faturamento.</p>
+            <?php endif; ?>
+
+            <?php if ($errorMsg): ?>
+                <div class="alert-error"><?php echo htmlspecialchars($errorMsg, ENT_QUOTES, 'UTF-8'); ?></div>
+            <?php endif; ?>
+            <?php if ($successMsg): ?>
+                <div class="alert-info"><?php echo htmlspecialchars($successMsg, ENT_QUOTES, 'UTF-8'); ?></div>
+            <?php endif; ?>
+
+            <?php if ($pendingRecovery): ?>
+                <form id="admin-recovery-form" method="POST" action="/admin?action=confirm_recovery">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                    <div class="form-group">
+                        <label for="recovery_otp">Código de Recuperação (Telegram)</label>
+                        <input type="text" id="recovery_otp" name="recovery_otp" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required autocomplete="one-time-code" autofocus style="font-family: var(--font-mono); font-size: 1.35rem; letter-spacing: 0.35rem; text-align: center;">
+                    </div>
+                    <div class="form-group">
+                        <label for="new_password">Nova Senha</label>
+                        <input type="password" id="new_password" name="new_password" required autocomplete="new-password" minlength="8" placeholder="Mínimo 8 caracteres">
+                    </div>
+                    <div class="form-group">
+                        <label for="new_password_confirm">Confirme a Nova Senha</label>
+                        <input type="password" id="new_password_confirm" name="new_password_confirm" required autocomplete="new-password" minlength="8" placeholder="Repita a nova senha">
+                    </div>
+                    <button type="submit" class="btn">Redefinir Senha e Entrar</button>
+                </form>
+                <form method="POST" action="/admin?action=resend_recovery" style="margin-top: 0.75rem;">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                    <button type="submit" class="btn" style="background: transparent; border: 1px solid var(--border); color: var(--text-muted); font-size: 0.85rem; padding: 0.55rem;">Reenviar código no Telegram</button>
+                </form>
+                <a href="/admin?action=cancel_recovery" class="back-link" style="margin-top: 1rem;">← Cancelar e voltar ao login</a>
+            <?php elseif ($isForgotPasswordPrompt): ?>
+                <form method="POST" action="/admin?action=forgot_password">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                    <button type="submit" class="btn">Despachar Código para o Telegram</button>
+                </form>
+                <a href="/admin" class="back-link" style="margin-top: 1rem;">← Voltar para o login</a>
+            <?php elseif ($pending2fa): ?>
+                <form id="admin-2fa-form" method="POST" action="/admin?action=verify_2fa">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                    <div class="form-group">
+                        <label for="otp_code">Código OTP de 6 dígitos</label>
+                        <input type="text" id="otp_code" name="otp_code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required autocomplete="one-time-code" autofocus style="font-family: var(--font-mono); font-size: 1.35rem; letter-spacing: 0.35rem; text-align: center;">
+                    </div>
+                    <button type="submit" class="btn">Verificar e Entrar</button>
+                </form>
+                <form method="POST" action="/admin?action=resend_2fa" style="margin-top: 0.75rem;">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                    <button type="submit" class="btn" style="background: transparent; border: 1px solid var(--border); color: var(--text-muted); font-size: 0.85rem; padding: 0.55rem;">Reenviar código no Telegram</button>
+                </form>
+                <a href="/admin?action=cancel_2fa" class="back-link" style="margin-top: 1rem;">← Cancelar e voltar ao login</a>
+            <?php else: ?>
+                <form method="POST" action="<?php echo htmlspecialchars($_SERVER['REQUEST_URI'] ?? '/admin', ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                    <div class="form-group">
+                        <label for="username">Usuário Administrador</label>
+                        <input type="text" id="username" name="username" value="<?php echo htmlspecialchars($user ?? '', ENT_QUOTES, 'UTF-8'); ?>" required autocomplete="username" autofocus>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Senha</label>
+                        <input type="password" id="password" name="password" required autocomplete="<?php echo $hasSetup ? 'current-password' : 'new-password'; ?>" minlength="8">
+                    </div>
+                    <?php if (!$hasSetup): ?>
+                        <div class="form-group">
+                            <label for="password_confirm">Confirme a Senha</label>
+                            <input type="password" id="password_confirm" name="password_confirm" required autocomplete="new-password" minlength="8">
+                        </div>
+                    <?php endif; ?>
+                    <button type="submit" class="btn"><?php echo $hasSetup ? 'Entrar no Painel' : 'Salvar e Acessar'; ?></button>
+                </form>
+                <?php if ($hasSetup): ?>
+                    <form method="POST" action="/admin?action=forgot_password" style="margin-top: 1.25rem; text-align: center;">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+                        <button type="submit" style="background: none; border: none; color: var(--accent); font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; padding: 0.25rem 0.5rem; text-decoration: none;">
+                            <span>🔑</span> Esqueci minha senha (recuperar via Telegram)
+                        </button>
+                    </form>
+                <?php endif; ?>
+            <?php endif; ?>
+
+            <a href="/" class="back-link">← Voltar para o portal público</a>
+        </div>
+    </body>
+    </html>
+    <?php
+    exit;
+}
+
+// 5. Visualização do Dashboard Autenticado
+$currentAuthRaw = @file_get_contents($authFile);
+$currentAuthData = $currentAuthRaw ? (@json_decode($currentAuthRaw, true) ?: []) : [];
+$currentAdminUser = (string)($_SESSION['admin_user'] ?? ($currentAuthData['username'] ?? 'admin'));
+$twoFactorEnabled = array_key_exists('two_factor_telegram', $currentAuthData) ? (bool)$currentAuthData['two_factor_telegram'] : true;
+$twoFactorActive = grid402_is_telegram_2fa_required($currentAuthData);
+
+$metrics = grid402_get_metrics();
+$forex = grid402_service_forex();
+$usdRate = (float)($forex['rates']['USD']['bid'] ?? 5.50);
+$wallet = grid402_get_oracle_wallet_balances();
+$oracleConfigured = defined('GRID402_ORACLE_PRIVATE_KEY') && !empty(GRID402_ORACLE_PRIVATE_KEY);
+$analytics = grid402_compute_admin_analytics($metrics, $usdRate);
+$runtimeStatus = grid402_admin_runtime_status();
+$facStatus = $runtimeStatus['facilitator'];
+$colStatus = $runtimeStatus['collector'];
+$tgStatus = $runtimeStatus['telegram'];
+$rapidStatus = $runtimeStatus['rapidapi'];
+
+$revenueUsdc = (float)($metrics['total_revenue_usdc'] ?? 0.0);
+$revenueBrl = round($revenueUsdc * $usdRate, 2);
+
+$today = grid402_metrics_today();
+$todayUsdc = (float)($metrics['daily'][$today]['usdc'] ?? 0.0);
+$todayBrl = round($todayUsdc * $usdRate, 2);
+
+$arpuUsdc = $analytics['arpu_usdc'];
+$arpuBrl = $analytics['arpu_brl'];
+$technicalSuccessRate = $analytics['technical_success_rate'];
+$latencyP95Ms = (float) ($analytics['latency_p95_ms'] ?? 0.0);
+$sandboxRate = $analytics['sandbox_rate'];
+$passesStats = $analytics['passes_stats'] ?? ['active_passes' => 0, 'remaining_credits' => 0];
+$dailyHistory14d = $analytics['daily_history_14d'] ?? [];
+$topConsumers = $analytics['top_consumers'] ?? [];
+$serviceRevenue = $analytics['service_revenue'] ?? [];
+$recentPulse = grid402_admin_recent_pulse($metrics);
+$recentPaymentFailures = function_exists('grid402_read_recent_payment_failures') ? grid402_read_recent_payment_failures(25) : [];
+
+$totalPageViews = (int)($metrics['total_page_views'] ?? 0);
+$todayPageViews = (int)($metrics['daily'][$today]['page_views'] ?? 0);
+
+$totalReqs = (int)($metrics['total_requests'] ?? 0);
+$paidReqs = (int)($metrics['total_paid_requests'] ?? 0);
+$sandboxReqs = (int)($metrics['total_sandbox_requests'] ?? 0);
+$reqs402 = (int)($metrics['status_counts']['402'] ?? 0);
+$conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $paidReqs)) * 100, 1) : 0;
+?>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?php echo htmlspecialchars($csrfToken, ENT_QUOTES, 'UTF-8'); ?>">
+    <title>Grid402 // Painel de Telemetria e Faturamento</title>
+    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=2">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=2">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #060B19;
+            --surface: #0B132B;
+            --surface-hover: #111C38;
+            --border: #1E2C4F;
+            --border-glow: rgba(0, 240, 255, 0.25);
+            --text-main: #F8FAFC;
+            --text-muted: #94A3B8;
+            --primary: #0052FF;
+            --primary-glow: rgba(0, 82, 255, 0.25);
+            --secondary: #00F0FF;
+            --accent: #00F0FF;
+            --accent-glow: rgba(0, 240, 255, 0.2);
+            --warning: #F59E0B;
+            --danger: #EF4444;
+            --font-heading: 'Space Grotesk', system-ui, sans-serif;
+            --font-sans: 'Inter', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: var(--font-sans);
+            padding: 0 1.5rem;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        h1, h2, h3, h4 { font-family: var(--font-heading); letter-spacing: -0.5px; }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2.5rem 0 4rem;
+            width: 100%;
+        }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .logo-wrap { display: flex; align-items: center; gap: 0.85rem; }
+        .logo-badge {
+            background: linear-gradient(135deg, #00F0FF, #0052FF);
+            color: #FFFFFF;
+            font-family: var(--font-mono);
+            font-weight: 800;
+            font-size: 0.8rem;
+            padding: 0.35rem 0.65rem;
+            border-radius: 6px;
+        }
+        .logo-title { font-family: var(--font-heading); font-size: 1.4rem; font-weight: 700; letter-spacing: -0.5px; }
+        .user-nav { display: flex; align-items: center; gap: 0.75rem; font-size: 0.85rem; flex-wrap: wrap; }
+        .live-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            background: rgba(0, 240, 255, 0.08);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            color: var(--accent);
+            padding: 0.35rem 0.75rem;
+            border-radius: 9999px;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent);
+            box-shadow: 0 0 8px var(--primary);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 0.45rem 0.85rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+        .btn-outline:hover { background: var(--surface); border-color: var(--accent); }
+
+        /* KPI Cards Grid (5 colunas responsivas) */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2.5rem;
+        }
+        .kpi-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+        }
+        .kpi-title {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.75rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .kpi-value {
+            font-size: 1.85rem;
+            font-weight: 800;
+            font-family: var(--font-mono);
+            letter-spacing: -0.5px;
+        }
+        .kpi-sub {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.4rem;
+        }
+
+        /* Gráfico Temporal SVG 14 Dias */
+        .chart-wrap {
+            position: relative;
+            width: 100%;
+            height: 220px;
+            margin-top: 0.5rem;
+        }
+        .chart-svg {
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+        }
+        .chart-tooltip {
+            position: absolute;
+            display: none;
+            background: #0B132B;
+            border: 1px solid var(--accent);
+            border-radius: 8px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            color: #fff;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+            pointer-events: none;
+            z-index: 50;
+            white-space: nowrap;
+            transition: opacity 0.15s ease;
+        }
+        .chart-grid-line {
+            stroke: rgba(255, 255, 255, 0.06);
+            stroke-dasharray: 3,3;
+        }
+        .chart-axis-text {
+            fill: var(--text-muted);
+            font-size: 10px;
+            font-family: var(--font-mono);
+            text-anchor: middle;
+        }
+        .chart-bar-rect {
+            fill: url(#chartGradient);
+            transition: height 0.3s ease, y 0.3s ease, opacity 0.2s ease;
+            cursor: pointer;
+        }
+        .chart-bar-rect:hover {
+            opacity: 0.85;
+            filter: brightness(1.2);
+        }
+        .chart-bar-paid-rect {
+            fill: #10B981;
+            transition: height 0.3s ease, y 0.3s ease;
+        }
+        .tag-profile {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.68rem;
+            font-weight: 600;
+            font-family: var(--font-mono);
+        }
+        .profile-paid {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10B981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .profile-sandbox {
+            background: rgba(168, 85, 247, 0.15);
+            color: #C084FC;
+            border: 1px solid rgba(168, 85, 247, 0.3);
+        }
+        .profile-agent {
+            background: rgba(56, 189, 248, 0.15);
+            color: #38BDF8;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+        .profile-402 {
+            background: rgba(245, 158, 11, 0.15);
+            color: #FBBF24;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        .rank-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: var(--text-muted);
+        }
+        .rank-badge.top-1 { background: rgba(245, 158, 11, 0.2); color: #F59E0B; border: 1px solid rgba(245, 158, 11, 0.4); }
+        .rank-badge.top-2 { background: rgba(203, 213, 225, 0.2); color: #CBD5E1; border: 1px solid rgba(203, 213, 225, 0.4); }
+        .rank-badge.top-3 { background: rgba(180, 83, 9, 0.2); color: #D97706; border: 1px solid rgba(180, 83, 9, 0.4); }
+
+        /* 2-Columns Layout */
+        .analytics-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+        @media (max-width: 860px) {
+            .analytics-row { grid-template-columns: 1fr; }
+        }
+        .panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+        .panel-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .bar-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.65rem;
+            font-size: 0.82rem;
+        }
+        .bar-label { width: 95px; font-family: var(--font-mono); color: var(--text-main); }
+        .bar-label.wide { width: 158px; font-size: 0.74rem; line-height: 1.2; }
+        .bar-track {
+            flex: 1;
+            height: 8px;
+            background: #030712;
+            border-radius: 4px;
+            margin: 0 1rem;
+            overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #06B6D4, #10B981);
+            border-radius: 4px;
+            transition: width 0.4s ease;
+        }
+        .bar-count { width: 50px; text-align: right; font-family: var(--font-mono); color: var(--text-muted); }
+
+        /* Barra de Ferramentas e Filtros Reativos do Feed */
+        .feed-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            background: rgba(3, 7, 18, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.65rem 0.85rem;
+        }
+        .filter-group {
+            display: flex;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+        }
+        .filter-btn {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            padding: 0.35rem 0.65rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .filter-btn:hover {
+            color: #fff;
+            border-color: var(--accent);
+        }
+        .filter-btn.active {
+            background: rgba(56, 189, 248, 0.15);
+            border-color: var(--accent);
+            color: #fff;
+        }
+        .search-wrap {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex: 1;
+            min-width: 240px;
+            justify-content: flex-end;
+        }
+        .search-input {
+            background: #030712;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.8rem;
+            padding: 0.4rem 0.65rem;
+            font-family: var(--font-sans);
+            width: 100%;
+            max-width: 280px;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        /* Tabela */
+        .table-wrap {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #030712;
+            width: 100%;
+        }
+        table {
+            width: 100%;
+            min-width: 720px;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+            text-align: left;
+        }
+        th, td {
+            white-space: nowrap;
+        }
+        th {
+            background: rgba(255,255,255,0.02);
+            padding: 0.85rem 1rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            border-bottom: 1px solid var(--border);
+            text-transform: uppercase;
+            font-size: 0.72rem;
+            letter-spacing: 0.5px;
+        }
+        td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            font-family: var(--font-mono);
+        }
+        tr:hover td { background: rgba(255,255,255,0.015); }
+        .tag-status {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .status-200 { background: rgba(16, 185, 129, 0.15); color: #34D399; }
+        .status-402 { background: rgba(245, 158, 11, 0.15); color: #FBBF24; }
+        .status-403 { background: rgba(239, 68, 68, 0.15); color: #F87171; }
+        .status-sandbox { background: rgba(168, 85, 247, 0.15); color: #c084fc; }
+        .tag-paid {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--accent);
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.75rem;
+        }
+        .tag-source {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            font-family: var(--font-mono);
+            background: rgba(56, 189, 248, 0.12);
+            color: #7DD3FC;
+            white-space: nowrap;
+        }
+        .tag-failure {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.72rem;
+            font-weight: 600;
+            font-family: var(--font-mono);
+            background: rgba(239, 68, 68, 0.14);
+            color: #FCA5A5;
+            white-space: nowrap;
+        }
+        .tx-link { color: var(--accent); text-decoration: none; }
+        .tx-link:hover { text-decoration: underline; }
+
+        /* Modal de Alteracao de Senha */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(3, 7, 18, 0.85);
+            backdrop-filter: blur(6px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-title { font-size: 1.1rem; font-weight: 700; color: #fff; }
+        .modal-close {
+            background: none; border: none; font-size: 1.25rem; color: var(--text-muted);
+            cursor: pointer; padding: 0.25rem;
+        }
+        .modal-close:hover { color: #fff; }
+
+        /* Regras de Responsividade Fluida para o Admin */
+        @media (max-width: 860px) {
+            header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1rem;
+                padding-bottom: 1.5rem;
+                margin-bottom: 1.75rem;
+            }
+            .logo-wrap {
+                justify-content: space-between;
+                width: 100%;
+            }
+            .user-nav {
+                width: 100%;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            .btn-outline {
+                flex: 1 1 auto;
+                justify-content: center;
+                text-align: center;
+                font-size: 0.75rem;
+                padding: 0.45rem 0.65rem;
+            }
+            .analytics-row {
+                grid-template-columns: 1fr;
+                gap: 1.25rem;
+                margin-bottom: 1.75rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 0 0.85rem;
+            }
+            .container {
+                padding: 1.5rem 0 3rem;
+            }
+            .kpi-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 0.85rem;
+                margin-bottom: 1.75rem;
+            }
+            .feed-toolbar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.75rem;
+            }
+            .filter-group {
+                width: 100%;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.35rem;
+            }
+            .filter-btn {
+                flex: 1 1 auto;
+                text-align: center;
+                padding: 0.4rem 0.5rem;
+                font-size: 0.72rem;
+            }
+            .search-wrap {
+                width: 100%;
+                min-width: 0;
+                max-width: 100%;
+            }
+            .search-input {
+                width: 100%;
+                max-width: 100%;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 0 0.6rem;
+            }
+            .kpi-grid {
+                grid-template-columns: 1fr;
+                gap: 0.75rem;
+            }
+            .kpi-card {
+                padding: 1rem 1.15rem;
+            }
+            .kpi-value {
+                font-size: 1.55rem;
+            }
+            .panel {
+                padding: 1rem;
+            }
+            .bar-row {
+                font-size: 0.75rem;
+            }
+            .bar-label {
+                width: 75px;
+            }
+            .bar-label.wide {
+                width: 96px;
+                font-size: 0.68rem;
+                line-height: 1.15;
+            }
+            .bar-track {
+                margin: 0 0.5rem;
+                height: 6px;
+            }
+            .bar-count {
+                width: 40px;
+            }
+            .modal-card {
+                margin: 0.75rem;
+                max-height: 90vh;
+            }
+            .modal-header {
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .logo-title {
+                font-size: 1.15rem;
+            }
+            .filter-btn {
+                flex: 1 1 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <?php require_once __DIR__ . '/includes/admin_nav.php'; grid402_render_admin_nav(['active' => 'overview', 'logout_url' => '/admin?action=logout']); ?>
+    <div class="container">
+        <?php if ((string)($_GET['recovery'] ?? '') === 'done'): ?>
+            <div style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); color: #10B981; padding: 0.85rem 1.25rem; border-radius: 8px; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.6rem; font-size: 0.95rem;">
+                <span>✅</span> <strong>Senha redefinida com sucesso via Telegram!</strong> O acesso administrativo foi liberado e suas novas credenciais já estão ativas.
+            </div>
+        <?php endif; ?>
+        <header>
+            <div class="logo-wrap">
+                <span style="color: var(--text-muted); font-size: 0.9rem; font-weight: 500;">Monitoramento e Faturamento</span>
+            </div>
+            <div class="user-nav">
+                <div class="live-indicator">
+                    <span class="pulse-dot"></span>
+                    <span id="live-timer-text">Ao Vivo (5s)</span>
+                </div>
+                <a href="/admin?api=export_csv" class="btn-outline" title="Baixar histórico completo de consultas em CSV">📥 Exportar CSV</a>
+                <button type="button" class="btn-outline" onclick="openPasswordModal()">🔑 Alterar Senha</button>
+                <button type="button" class="btn-outline" onclick="fetchLiveStats(true)">🔄 Atualizar</button>
+            </div>
+        </header>
+
+        <!-- Runtime Status Bar (Facilitador x402 + Coletor + Telegram, sem segredos) -->
+        <div id="runtime-status-bar" style="display:flex;flex-wrap:wrap;gap:0.75rem 1.25rem;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0.7rem 1rem;margin-bottom:1.25rem;font-size:0.78rem;font-family:var(--font-mono);">
+            <span id="runtime-facilitator-badge" style="color:<?php echo ($facStatus['mode'] === 'settle' ? '#10B981' : '#F59E0B'); ?>;">
+                Facilitador x402: <strong><?php echo htmlspecialchars($facStatus['mode'], ENT_QUOTES, 'UTF-8'); ?></strong>
+                (<?php echo htmlspecialchars(($facStatus['host'] !== '' ? $facStatus['host'] : 'local') . ' · ' . $facStatus['auth_mode'] . ' · ' . (int)($facStatus['multichain_accepts'] ?? 4) . ' chains', ENT_QUOTES, 'UTF-8'); ?>)
+            </span>
+            <?php $rapidCount = (int) ($rapidStatus['count'] ?? 0); ?>
+            <span id="runtime-rapidapi-badge" style="color:<?php echo (!empty($rapidStatus['configured']) ? '#10B981' : '#94A3B8'); ?>;">
+                RapidAPI Bridge: <strong><?php echo !empty($rapidStatus['configured']) ? ($rapidCount > 1 ? 'ativo (' . $rapidCount . ' APIs)' : 'ativo') : 'inativo'; ?></strong>
+            </span>
+            <span id="runtime-collector-badge" style="color:<?php echo (!$colStatus['summary_stale'] ? '#10B981' : '#F59E0B'); ?>;">
+                Coletor (/status): <strong><?php
+                    if ($colStatus['summary_age_sec'] === null) {
+                        echo 'ausente';
+                    } elseif ($colStatus['summary_age_sec'] < 120) {
+                        echo $colStatus['summary_age_sec'] . 's atrás';
+                    } else {
+                        echo round($colStatus['summary_age_sec'] / 60) . ' min atrás';
+                    }
+                ?></strong>
+            </span>
+            <?php
+                $tgOk = !empty($tgStatus['configured']);
+                $tgLast = is_array($tgStatus['last_status'] ?? null) ? $tgStatus['last_status'] : null;
+                $tgLabel = $tgOk ? 'configurado' : (!empty($tgStatus['disabled']) ? 'desabilitado' : 'não configurado (.env)');
+                $tgColor = $tgOk ? (($tgLast && empty($tgLast['ok'])) ? '#F59E0B' : '#10B981') : '#EF4444';
+                $tgSuffix = '';
+                if ($tgLast) {
+                    $tgSuffix = !empty($tgLast['ok'])
+                        ? ' · último HTTP 200'
+                        : ' · erro: ' . (string) ($tgLast['error'] ?: ('HTTP ' . ($tgLast['http_code'] ?? 0)));
+                }
+            ?>
+            <span id="runtime-telegram-badge" style="color:<?php echo $tgColor; ?>;">
+                Telegram: <strong><?php echo htmlspecialchars($tgLabel, ENT_QUOTES, 'UTF-8'); ?></strong><?php echo htmlspecialchars($tgSuffix, ENT_QUOTES, 'UTF-8'); ?>
+            </span>
+            <span id="runtime-security-badge" style="color:<?php echo $twoFactorActive ? '#10B981' : '#38BDF8'; ?>;">
+                Sessão: <strong id="runtime-security-text"><?php echo $twoFactorActive ? '2FA Telegram ativo' : ($twoFactorEnabled ? '2FA aguardando bot' : '2FA desativado'); ?> · 30m timeout · IP/UA vinculado</strong>
+            </span>
+            <div style="margin-left:auto;display:flex;gap:0.4rem;flex-wrap:wrap;">
+                <button type="button" id="btn-config-rapidapi" class="btn-outline" style="padding:0.25rem 0.65rem;font-size:0.74rem;" onclick="openRapidApiModal()">⚡ Configurar RapidAPI</button>
+                <button type="button" id="btn-config-telegram" class="btn-outline" style="padding:0.25rem 0.65rem;font-size:0.74rem;" onclick="openTelegramModal()">⚙️ Configurar Telegram</button>
+                <button type="button" id="btn-test-telegram" class="btn-outline" style="padding:0.25rem 0.65rem;font-size:0.74rem;" onclick="triggerTelegramTest()">🔔 Testar Telegram</button>
+            </div>
+        </div>
+
+        <!-- KPI Cards Grid (8 Cards Executivos de Alta Fidelidade) -->
+        <div id="overview" class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-title">Faturamento Total</div>
+                <div class="kpi-value" id="kpi-total-usdc">US$ <?php echo number_format($revenueUsdc, 4); ?></div>
+                <div class="kpi-sub" id="kpi-total-brl">≈ R$ <?php echo number_format($revenueBrl, 2, ',', '.'); ?> (Base Mainnet)</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Faturamento Hoje</div>
+                <div class="kpi-value" id="kpi-today-usdc">US$ <?php echo number_format($todayUsdc, 4); ?></div>
+                <div class="kpi-sub" id="kpi-today-brl">≈ R$ <?php echo number_format($todayBrl, 2, ',', '.'); ?> hoje</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Ticket Médio (ARPU)</div>
+                <div class="kpi-value" id="kpi-arpu-usdc">US$ <?php echo number_format($arpuUsdc, 4); ?></div>
+                <div class="kpi-sub" id="kpi-arpu-brl">≈ R$ <?php echo number_format($arpuBrl, 4, ',', '.'); ?> / consulta paga</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Visitas (Página)</div>
+                <div class="kpi-value" id="kpi-total-visits"><?php echo number_format($totalPageViews, 0, ',', '.'); ?></div>
+                <div class="kpi-sub" id="kpi-today-visits"><?php echo number_format($todayPageViews, 0, ',', '.'); ?> hoje • HTML público</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Consultas Totais</div>
+                <div class="kpi-value" id="kpi-total-reqs"><?php echo number_format($totalReqs, 0, ',', '.'); ?></div>
+                <div class="kpi-sub" id="kpi-paid-reqs"><?php echo number_format($paidReqs, 0, ',', '.'); ?> pagas • <?php echo number_format($sandboxReqs, 0, ',', '.'); ?> sandbox</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Taxa de Conversão</div>
+                <div class="kpi-value" id="kpi-conversion"><?php echo $conversionRate; ?>%</div>
+                <div class="kpi-sub">Pagos / Desafios 402 emitidos</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">SLA / Sucesso Técnico</div>
+                <div class="kpi-value" id="kpi-sla-tech" style="color: #10B981;"><?php echo $technicalSuccessRate; ?>%</div>
+                <div class="kpi-sub" id="kpi-latency-p95">Sem erros 5xx · Latência p95: <?php echo number_format($latencyP95Ms, 1, ',', '.'); ?> ms</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Adoção Sandbox</div>
+                <div class="kpi-value" id="kpi-sandbox-rate" style="color: #A855F7;"><?php echo $sandboxRate; ?>%</div>
+                <div class="kpi-sub">Testes sem custo antes da conversão</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">
+                    <span>Saldo On-Chain (Base)</span>
+                    <span id="kpi-rpc-status" style="font-size: 0.68rem; font-family: var(--font-mono); color: var(--primary);">RPC ATIVO</span>
+                </div>
+                <div class="kpi-value" id="kpi-wallet-usdc">US$ <?php echo number_format((float)($wallet['usdc_balance'] ?? 0.0), 4); ?></div>
+                <div class="kpi-sub" id="kpi-wallet-passes"><?php echo (int)($passesStats['active_passes'] ?? 0); ?> passes ativos • <?php echo number_format((int)($passesStats['remaining_credits'] ?? 0), 0, ',', '.'); ?> créditos</div>
+            </div>
+        </div>
+
+        <!-- Pulso Operacional Recente (Hoje vs. Ontem + Últimas Horas) -->
+        <section id="recent-pulse-panel" class="panel" style="grid-column: 1 / -1; margin-top: 1rem;">
+            <div class="panel-title">
+                <span>Pulso Operacional Recente — Últimas Horas (Janela de <?php echo (int)($recentPulse['buffer_total'] ?? 0); ?> Eventos)</span>
+                <span id="pulse-window-badge" style="font-size: 0.75rem; font-family: var(--font-mono); color: var(--primary);">
+                    1h: <?php echo (int)($recentPulse['last_1h_count'] ?? 0); ?> reqs • 6h: <?php echo (int)($recentPulse['last_6h_count'] ?? 0); ?> • 24h: <?php echo (int)($recentPulse['last_24h_count'] ?? 0); ?>
+                </span>
+            </div>
+            <div class="kpi-grid" style="margin-top: 0.85rem;">
+                <div class="kpi-card">
+                    <div class="kpi-title">Consultas Hoje vs. Ontem</div>
+                    <div class="kpi-value" id="pulse-today-reqs"><?php echo number_format((int)($recentPulse['today_requests'] ?? 0), 0, ',', '.'); ?> <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">hoje (<?php echo htmlspecialchars((string)($recentPulse['today_date'] ?? ''), ENT_QUOTES); ?>)</span></div>
+                    <div class="kpi-sub" id="pulse-yesterday-reqs">Ontem (<?php echo htmlspecialchars((string)($recentPulse['yesterday_date'] ?? ''), ENT_QUOTES); ?>): <?php echo number_format((int)($recentPulse['yesterday_requests'] ?? 0), 0, ',', '.'); ?> reqs • <?php echo (int)($recentPulse['today_paid'] ?? 0); ?> pagas hoje</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Descoberta 402 vs. Tentativas</div>
+                    <div class="kpi-value" id="pulse-402-clean" style="color: #F59E0B;"><?php echo (int)($recentPulse['challenge_402_clean'] ?? 0); ?> <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">desafios</span></div>
+                    <div class="kpi-sub" id="pulse-payment-failures"><?php echo (int)($recentPulse['payment_failures'] ?? 0); ?> tentativas falhas • <?php echo (int)($recentPulse['paid_count'] ?? 0); ?> pagas recentes</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Tráfego Recente (Sandbox / Free)</div>
+                    <div class="kpi-value" id="pulse-sandbox-free" style="color: #A855F7;"><?php echo (int)($recentPulse['sandbox_count'] ?? 0); ?> <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">sandbox</span></div>
+                    <div class="kpi-sub" id="pulse-free-sub"><?php echo (int)($recentPulse['free_count'] ?? 0); ?> chamadas gratuitas (summary/status)</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Erros Recentes (exceto 402)</div>
+                    <div class="kpi-value" id="pulse-errors-recent" style="color: <?php echo ((int)($recentPulse['error_non_402_count'] ?? 0) === 0) ? '#10B981' : '#EF4444'; ?>;"><?php echo (int)($recentPulse['error_non_402_count'] ?? 0); ?></div>
+                    <div class="kpi-sub" id="pulse-errors-sub"><?php echo ((int)($recentPulse['error_non_402_count'] ?? 0) === 0) ? 'Zero 400/403/5xx nos últimos eventos' : 'Verificar feed recente abaixo'; ?></div>
+                </div>
+            </div>
+            <div style="margin-top: 0.9rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600;">Top serviços sondados recentemente:</span>
+                <div id="pulse-top-services" style="display: flex; flex-wrap: wrap; gap: 0.45rem;">
+                    <?php if (empty($recentPulse['top_recent_services'])): ?>
+                        <span style="font-size: 0.78rem; color: var(--text-muted);">Sem eventos recentes</span>
+                    <?php else: ?>
+                        <?php foreach ($recentPulse['top_recent_services'] as $item): ?>
+                            <span style="font-size: 0.75rem; font-family: var(--font-mono); padding: 0.22rem 0.55rem; border-radius: 999px; background: rgba(0, 240, 255, 0.08); border: 1px solid rgba(0, 240, 255, 0.25); color: #e2e8f0;">
+                                <?php echo htmlspecialchars((string)$item['service'], ENT_QUOTES); ?>: <strong><?php echo (int)$item['count']; ?></strong>
+                            </span>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </section>
+
+        <!-- Growth Engine (Web3) -->
+        <section id="growth-engine" class="panel" style="grid-column: 1 / -1; margin-top: 1rem;">
+            <div class="panel-title">
+                <span>Growth Engine (Web3) — Starter, Builders, Referrals &amp; Reputation</span>
+                <a href="/growth" class="btn-outline" target="_blank" rel="noopener">Open Growth Program</a>
+            </div>
+            <div class="kpi-grid" id="growth-kpi-grid" style="margin-top: 1rem;">
+                <div class="kpi-card"><div class="kpi-title">Wallets ativas</div><div class="kpi-value" id="growth-wallets">0</div><div class="kpi-sub" id="growth-new-wallets">Novos no período</div></div>
+                <div class="kpi-card"><div class="kpi-title">Conversão 1ª compra</div><div class="kpi-value" id="growth-conversion">0%</div><div class="kpi-sub">Visitantes → compradores</div></div>
+                <div class="kpi-card"><div class="kpi-title">Conversão 2ª compra</div><div class="kpi-value" id="growth-conversion-2">0%</div><div class="kpi-sub">Compradores → recorrentes</div></div>
+                <div class="kpi-card"><div class="kpi-title">Receita total (USDC)</div><div class="kpi-value" id="growth-revenue">US$ 0.0000</div><div class="kpi-sub" id="growth-revenue-usd">Transação verificada</div></div>
+                <div class="kpi-card"><div class="kpi-title">Receita / wallet</div><div class="kpi-value" id="growth-revenue-wallet">US$ 0.0000</div><div class="kpi-sub">Ticket médio por carteira</div></div>
+                <div class="kpi-card"><div class="kpi-title">Builders ativos</div><div class="kpi-value" id="growth-builders">0</div><div class="kpi-sub">Integrações validadas</div></div>
+                <div class="kpi-card"><div class="kpi-title">Referrals</div><div class="kpi-value" id="growth-referrals">0</div><div class="kpi-sub">Códigos de indicação</div></div>
+                <div class="kpi-card"><div class="kpi-title">Créditos emitidos</div><div class="kpi-value" id="growth-promo-credits">0</div><div class="kpi-sub">Promo / rewards</div></div>
+            </div>
+            <div id="growth-admin-actions" style="display:none;margin-top:.75rem;display:flex;flex-wrap:wrap;gap:.5rem;">
+                <button type="button" class="btn-outline" onclick="fetchGrowthAdmin(true)">🔄 Atualizar KPIs Growth</button>
+                <a href="/reputation" class="btn-outline" target="_blank" rel="noopener">Ver reputação pública</a>
+                <a href="/growth" class="btn-outline" target="_blank">Abrir página do programa</a>
+            </div>
+        </section>
+
+        <!-- Linha Analítica 1: Gráfico Temporal Diário SVG (14 Dias) + Top Agentes / Consumidores -->
+<div class="analytics-row">
+            <div class="panel">
+                <div class="panel-title">
+                    <span>Evolução Diária (Últimos 14 Dias)</span>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Volume e Faturamento</span>
+                </div>
+                <div class="chart-wrap" id="chart-wrap-14d">
+                    <div id="chart-tooltip" class="chart-tooltip"></div>
+                    <svg id="chart-svg-14d" class="chart-svg" viewBox="0 0 680 200" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.9"/>
+                                <stop offset="100%" stop-color="#0052FF" stop-opacity="0.4"/>
+                            </linearGradient>
+                        </defs>
+                        <!-- As barras e eixos são gerados e atualizados dinamicamente via JS -->
+                    </svg>
+                </div>
+                <div style="display: flex; gap: 1.25rem; font-size: 0.72rem; color: var(--text-muted); margin-top: 0.75rem; justify-content: center;">
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                        <span style="display: inline-block; width: 10px; height: 10px; background: linear-gradient(135deg, #00F0FF, #0052FF); border-radius: 2px;"></span>
+                        <span>Consultas Totais</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                        <span style="display: inline-block; width: 10px; height: 10px; background: #10B981; border-radius: 2px;"></span>
+                        <span>Consultas Pagas (x402)</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">
+                    <span>Top Agentes / IPs Consumidores (LGPD)</span>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Últimas 100 consultas</span>
+                </div>
+                <div class="table-wrap" style="max-height: 230px; overflow-y: auto;">
+                    <table style="min-width: 100%;">
+                        <thead>
+                            <tr>
+                                <th style="width: 32px;">#</th>
+                                <th>IP Mascarado</th>
+                                <th>Total</th>
+                                <th>Perfil Estimado</th>
+                                <th>Fav</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top-consumers-tbody">
+                            <?php if (empty($topConsumers)): ?>
+                                <tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Aguardando eventos no buffer.</td></tr>
+                            <?php else: ?>
+                                <?php foreach ($topConsumers as $c): 
+                                    $pCls = 'profile-agent';
+                                    if ($c['paid'] > 0) $pCls = 'profile-paid';
+                                    elseif ($c['sandbox'] > 0) $pCls = 'profile-sandbox';
+                                    elseif ($c['challenges'] > 5) $pCls = 'profile-402';
+                                    $rkCls = ($c['rank'] <= 3) ? 'top-' . $c['rank'] : '';
+                                ?>
+                                <tr>
+                                    <td><span class="rank-badge <?php echo $rkCls; ?>"><?php echo $c['rank']; ?></span></td>
+                                    <td><code style="font-family: var(--font-mono); font-size: 0.78rem;"><?php echo htmlspecialchars($c['ip_masked'], ENT_QUOTES); ?></code></td>
+                                    <td><strong><?php echo $c['total']; ?></strong> <span style="font-size: 0.7rem; color: var(--text-muted);">(<?php echo $c['paid']; ?>p)</span></td>
+                                    <td><span class="tag-profile <?php echo $pCls; ?>"><?php echo htmlspecialchars($c['profile'], ENT_QUOTES); ?></span></td>
+                                    <td><code style="font-size: 0.72rem; color: var(--accent);"><?php echo htmlspecialchars($c['favorite_service'], ENT_QUOTES); ?></code></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Linha Analítica 2: Volume por Micro-Serviço + Rentabilidade Estimada por Serviço -->
+        <div class="analytics-row">
+            <div class="panel">
+                <div class="panel-title">Volume por Micro-Serviço (25 Serviços)</div>
+                <div id="service-bars-container">
+                    <?php
+                    $servicesList = ['dossier', 'extract', 'email-verify', 'lei', 'ofac', 'notarize', 'global-markets', 'pass', 'compliance', 'sanctions', 'simples', 'workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'kyb-audit', 'domain-audit', 'market-snapshot', 'summary'];
+                    $serviceCounts = $metrics['service_counts'] ?? [];
+                    $maxSvc = max(array_values($serviceCounts) ?: [1]);
+                    if ($maxSvc <= 0) $maxSvc = 1;
+
+                    foreach ($servicesList as $s):
+                        $cnt = (int)($serviceCounts[$s] ?? 0);
+                        $pct = round(($cnt / $maxSvc) * 100);
+                    ?>
+                    <div class="bar-row">
+                        <span class="bar-label"><?php echo $s; ?></span>
+                        <div class="bar-track"><div class="bar-fill" style="width: <?php echo $pct; ?>%;"></div></div>
+                        <span class="bar-count"><?php echo $cnt; ?></span>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">
+                    <span>Rentabilidade Estimada por Serviço (USDC)</span>
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;">Volume × Preço Oficial</span>
+                </div>
+                <div id="service-revenue-bars-container">
+                    <?php
+                    $maxRev = 0.0001;
+                    foreach ($serviceRevenue as $sr) {
+                        if ((float)$sr['estimated_usdc'] > $maxRev) $maxRev = (float)$sr['estimated_usdc'];
+                    }
+                    foreach (array_slice($serviceRevenue, 0, 10) as $sr):
+                        $revVal = (float)$sr['estimated_usdc'];
+                        $revPct = round(($revVal / $maxRev) * 100);
+                    ?>
+                    <div class="bar-row">
+                        <span class="bar-label wide"><?php echo htmlspecialchars($sr['service'], ENT_QUOTES); ?> <small style="color: var(--text-muted);">($<?php echo $sr['unit_price']; ?>)</small></span>
+                        <div class="bar-track"><div class="bar-fill" style="width: <?php echo $revPct; ?>%; background: linear-gradient(90deg, #10B981, #00F0FF);"></div></div>
+                        <span class="bar-count" style="width: 72px;">$<?php echo number_format($revVal, 4); ?></span>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+
+            <div class="panel">
+                <div class="panel-title">Distribuição de Status HTTP</div>
+                <div id="status-bars-container">
+                    <?php
+                    $statusCounts = $metrics['status_counts'] ?? [];
+                    $totalRequests = (int)($metrics['total_requests'] ?? 0);
+                    $statusSum = array_sum(array_map('intval', $statusCounts));
+                    // Garante que a soma das barras de status corresponda ao total de consultas
+                    $residual = $totalRequests - $statusSum;
+                    if ($residual > 0) {
+                        $statusCounts['outros'] = (int)(($statusCounts['outros'] ?? 0) + $residual);
+                    }
+                    $totalStatus = array_sum($statusCounts) ?: 1;
+                    $statuses = [
+                        '200' => ['label' => '200 OK', 'color' => '#10B981'],
+                        '402' => ['label' => '402 Desafio', 'color' => '#F59E0B'],
+                        '403' => ['label' => '403 Replay', 'color' => '#EF4444'],
+                        '400' => ['label' => '400 Prova inválida', 'color' => '#F97316'],
+                        '429' => ['label' => '429 Limite sandbox', 'color' => '#A855F7'],
+                    ];
+                    // Inclui qualquer outro status gravado, para nenhum evento ficar fora das barras
+                    foreach (array_keys($statusCounts) as $extraCode) {
+                        if (!isset($statuses[(string)$extraCode])) {
+                            $statuses[(string)$extraCode] = [
+                                'label' => ($extraCode === 'outros' ? 'Outros' : $extraCode . ' Outros'),
+                                'color' => '#64748B',
+                            ];
+                        }
+                    }
+                    foreach ($statuses as $code => $info):
+                        if (!isset($statusCounts[$code]) && !in_array((string)$code, ['200', '402', '403'], true)) {
+                            continue;
+                        }
+                        $cnt = (int)($statusCounts[$code] ?? 0);
+                        $pct = round(($cnt / $totalStatus) * 100);
+                    ?>
+                    <div class="bar-row">
+                        <span class="bar-label"><?php echo $info['label']; ?></span>
+                        <div class="bar-track"><div class="bar-fill" style="width: <?php echo $pct; ?>%; background: <?php echo $info['color']; ?>;"></div></div>
+                        <span class="bar-count"><?php echo $cnt; ?> (<?php echo $pct; ?>%)</span>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2 Columns: Origem dos Pagamentos e Categorias de Falha -->
+        <div id="passes" class="analytics-row">
+            <div class="panel">
+                <div class="panel-title">Origem dos Pagamentos</div>
+                <div id="payment-source-bars-container">
+                    <?php
+                    $sourceCounts = $metrics['payment_sources'] ?? [];
+                    $maxSource = max(array_values(array_map('intval', $sourceCounts)) ?: [0]);
+                    if ($maxSource <= 0) $maxSource = 1;
+                    $totalSource = array_sum(array_map('intval', $sourceCounts));
+
+                    foreach ($paymentSourceLabels as $srcKey => $srcLabel):
+                        $cnt = (int)($sourceCounts[$srcKey] ?? 0);
+                        if ($cnt === 0 && $srcKey === 'unknown') continue;
+                        $widthPct = round(($cnt / $maxSource) * 100);
+                        $sharePct = $totalSource > 0 ? round(($cnt / $totalSource) * 100) : 0;
+                    ?>
+                    <div class="bar-row" data-source-key="<?php echo htmlspecialchars($srcKey, ENT_QUOTES); ?>">
+                        <span class="bar-label wide"><?php echo htmlspecialchars($srcLabel, ENT_QUOTES); ?></span>
+                        <div class="bar-track"><div class="bar-fill" style="width: <?php echo $widthPct; ?>%;"></div></div>
+                        <span class="bar-count"><?php echo $cnt; ?> (<?php echo $sharePct; ?>%)</span>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-title">Falhas de Pagamento por Categoria</div>
+                <div id="failure-bars-container">
+                    <?php
+                    $failureCounts = $metrics['failure_categories'] ?? [];
+                    $maxFailure = max(array_values(array_map('intval', $failureCounts)) ?: [0]);
+                    if ($maxFailure <= 0) $maxFailure = 1;
+                    $totalFailure = array_sum(array_map('intval', $failureCounts));
+
+                    foreach ($failureCategoryLabels as $failKey => $failLabel):
+                        $cnt = (int)($failureCounts[$failKey] ?? 0);
+                        if ($cnt === 0 && $failKey === 'unknown') continue;
+                        $widthPct = round(($cnt / $maxFailure) * 100);
+                        $sharePct = $totalFailure > 0 ? round(($cnt / $totalFailure) * 100) : 0;
+                    ?>
+                    <div class="bar-row" data-failure-key="<?php echo htmlspecialchars($failKey, ENT_QUOTES); ?>">
+                        <span class="bar-label wide"><?php echo htmlspecialchars($failLabel, ENT_QUOTES); ?></span>
+                        <div class="bar-track"><div class="bar-fill" style="width: <?php echo $widthPct; ?>%; background: linear-gradient(90deg, #EF4444, #F59E0B);"></div></div>
+                        <span class="bar-count"><?php echo $cnt; ?> (<?php echo $sharePct; ?>%)</span>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+
+        <!-- Diagnostico Real de Falhas de Pagamento (requests.jsonl Zero-PII) -->
+        <div id="payment-failures-panel" class="panel" style="margin-bottom: 1.5rem;">
+            <div class="panel-title">
+                <span>Diagnóstico Real de Falhas de Pagamento (requests.jsonl · Zero-PII)</span>
+                <span style="font-size: 0.78rem; font-weight: normal; color: var(--text-muted);">Últimas 25 tentativas com erro (exclui desafios 402 vazios)</span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Horário (BRT · UTC)</th>
+                            <th>Serviço</th>
+                            <th>HTTP</th>
+                            <th>Origem</th>
+                            <th>Motivo Exato (Sanitizado)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="payment-failures-tbody">
+                        <?php if (empty($recentPaymentFailures)): ?>
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.25rem;">Nenhuma falha detalhada registrada recentemente em requests.jsonl.</td>
+                        </tr>
+                        <?php else: ?>
+                            <?php foreach ($recentPaymentFailures as $pf):
+                                $pfDualTs = grid402_admin_format_brt_utc((string) ($pf['ts'] ?? ''), false);
+                            ?>
+                            <tr>
+                                <td style="white-space: nowrap;">
+                                    <div><?php echo htmlspecialchars($pfDualTs['brt'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <?php if ($pfDualTs['utc'] !== ''): ?>
+                                    <div style="font-size: 0.7rem; color: var(--text-muted);"><?php echo htmlspecialchars($pfDualTs['utc'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <?php endif; ?>
+                                </td>
+                                <td><strong><?php echo htmlspecialchars((string) ($pf['service'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></td>
+                                <td><span class="tag-status status-<?php echo (int) ($pf['status'] ?? 402); ?>">HTTP <?php echo (int) ($pf['status'] ?? 402); ?></span></td>
+                                <td><?php echo htmlspecialchars((string) ($pf['payment_source'] ?? 'unknown'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td style="font-family: var(--font-mono); font-size: 0.78rem; color: #FCA5A5; word-break: break-word;"><?php echo htmlspecialchars((string) ($pf['error'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Feed de Consultas em Tempo Real (Buffer de 100 Eventos) -->
+        <div id="telemetry" class="panel">
+            <div class="panel-title" style="flex-wrap: wrap; gap: 0.75rem;">
+                <div>
+                    <span>Feed de Consultas Recentes (Buffer de 100 Eventos)</span>
+                    <span style="font-size: 0.8rem; font-weight: normal; color: var(--text-muted); margin-left: 0.5rem;" id="last-updated-text">Atualizado há instantes</span>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                    <a href="/admin?api=export_csv" class="btn-outline" style="font-size: 0.75rem; padding: 0.35rem 0.65rem;">📥 Exportar CSV</a>
+                </div>
+            </div>
+
+            <!-- Barra de Filtros Reativos e Busca Textual -->
+            <div class="feed-toolbar">
+                <div class="filter-group">
+                    <button type="button" class="filter-btn active" id="filter-btn-all" onclick="setFeedFilter('all')">Todos (<span id="count-all">0</span>)</button>
+                    <button type="button" class="filter-btn" id="filter-btn-paid" onclick="setFeedFilter('paid')">🟢 Pagos (<span id="count-paid">0</span>)</button>
+                    <button type="button" class="filter-btn" id="filter-btn-sandbox" onclick="setFeedFilter('sandbox')">🧪 Sandbox (<span id="count-sandbox">0</span>)</button>
+                    <button type="button" class="filter-btn" id="filter-btn-challenge" onclick="setFeedFilter('challenge_402')">🟡 Desafios 402 (<span id="count-challenge">0</span>)</button>
+                    <button type="button" class="filter-btn" id="filter-btn-blocked" onclick="setFeedFilter('blocked_403')">🔴 Bloqueados 403 (<span id="count-blocked">0</span>)</button>
+                </div>
+                <div class="search-wrap">
+                    <input type="text" id="feed-search-input" class="search-input" placeholder="Buscar por serviço, IP ou hash..." oninput="applyFeedSearch()">
+                    <span id="feed-visible-count" style="font-size: 0.75rem; color: var(--text-muted); white-space: nowrap;">Mostrando 0 de 0</span>
+                </div>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Horário (BRT · UTC)</th>
+                            <th>Serviço</th>
+                            <th>Status</th>
+                            <th>Tipo</th>
+                            <th>Origem / Falha</th>
+                            <th>Valor (USDC)</th>
+                            <th>Transação On-Chain (Base)</th>
+                            <th>IP Requisitante (LGPD)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recent-events-tbody">
+                        <?php
+                        $events = $metrics['recent_events'] ?? [];
+                        if (empty($events)):
+                        ?>
+                        <tr id="no-events-row">
+                            <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">Nenhuma consulta registrada até o momento.</td>
+                        </tr>
+                        <?php else: ?>
+                            <?php foreach ($events as $ev):
+                                $evType = $ev['type'] ?? ($ev['is_paid'] ? 'paid' : 'free');
+                                $st = (int)($ev['status'] ?? 200);
+                                $evDualTs = grid402_admin_format_brt_utc((string)($ev['timestamp'] ?? ''), true);
+                            ?>
+                            <tr class="event-row" data-type="<?php echo htmlspecialchars($evType, ENT_QUOTES); ?>">
+                                <td style="white-space: nowrap;">
+                                    <div><?php echo htmlspecialchars($evDualTs['brt'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <?php if ($evDualTs['utc'] !== ''): ?>
+                                    <div style="font-size: 0.7rem; color: var(--text-muted);"><?php echo htmlspecialchars($evDualTs['utc'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <?php endif; ?>
+                                </td>
+                                <td><strong><?php echo htmlspecialchars((string)($ev['service'] ?? ''), ENT_QUOTES); ?></strong></td>
+                                <td>
+                                    <span class="tag-status status-<?php echo $st; ?>">HTTP <?php echo $st; ?></span>
+                                </td>
+                                <td>
+                                    <?php if ($evType === 'paid'): ?>
+                                        <span class="tag-paid">PAGO x402</span>
+                                    <?php elseif ($evType === 'sandbox'): ?>
+                                        <span class="tag-status status-sandbox">SANDBOX (demo)</span>
+                                    <?php elseif ($evType === 'challenge_402'): ?>
+                                        <span class="tag-status status-402">DESAFIO 402</span>
+                                    <?php elseif ($evType === 'blocked_403'): ?>
+                                        <span class="tag-status status-403">BLOQUEADO 403</span>
+                                    <?php else: ?>
+                                        <span style="color: var(--text-muted); font-size: 0.75rem;">GRATUITO</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?php
+                                    $evFailure = (string)($ev['failure_category'] ?? '');
+                                    $evSource = (string)($ev['payment_source'] ?? '');
+                                    if ($evFailure !== '' && $evFailure !== 'unknown') {
+                                        $failLbl = $failureCategoryLabels[$evFailure] ?? $evFailure;
+                                        echo '<span class="tag-failure">' . htmlspecialchars($failLbl, ENT_QUOTES) . '</span>';
+                                    } elseif ($evSource !== '' && $evSource !== 'unknown') {
+                                        $srcLbl = $paymentSourceLabels[$evSource] ?? $evSource;
+                                        echo '<span class="tag-source">' . htmlspecialchars($srcLbl, ENT_QUOTES) . '</span>';
+                                    } else {
+                                        echo '<span style="color: var(--text-muted);">-</span>';
+                                    }
+                                    ?>
+                                </td>
+                                <td><?php echo !empty($ev['is_paid']) ? '$' . $ev['price_usdc'] : '-'; ?></td>
+                                <td>
+                                    <?php
+                                    $evTx = (string)($ev['settlement_tx'] ?? '');
+                                    if ($evTx === '') {
+                                        $evTx = (string)($ev['tx_hash'] ?? '');
+                                    }
+                                    ?>
+                                    <?php if ($evTx !== ''):
+                                        $isEvmHexTx = (bool) preg_match('/^0x[a-f0-9]{64}$/i', $evTx);
+                                        $isSolanaTx = !$isEvmHexTx && (bool) preg_match('/^[1-9A-HJ-NP-Za-km-z]{64,96}$/', $evTx);
+                                        $txExplorerUrl = $isSolanaTx
+                                            ? ('https://solscan.io/tx/' . rawurlencode($evTx))
+                                            : ('https://basescan.org/tx/' . rawurlencode($evTx));
+                                    ?>
+                                        <?php if ($isEvmHexTx || $isSolanaTx): ?>
+                                            <a href="<?php echo htmlspecialchars($txExplorerUrl, ENT_QUOTES); ?>" target="_blank" class="tx-link">
+                                                <?php echo htmlspecialchars(substr($evTx, 0, 8) . '...' . substr($evTx, -6), ENT_QUOTES); ?> ↗
+                                            </a>
+                                        <?php else: ?>
+                                            <span style="color: var(--text-muted);"><?php echo htmlspecialchars(substr($evTx, 0, 14), ENT_QUOTES); ?></span>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <span style="color: var(--text-muted);">-</span>
+                                    <?php endif; ?>
+                                </td>
+                                <td style="color: var(--text-muted);"><?php echo htmlspecialchars((string)($ev['ip_masked'] ?? 'xxx.xxx.xxx.xxx'), ENT_QUOTES); ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Seguranca e Alteracao de Senha do Operador -->
+    <div id="password-modal-overlay" class="modal-overlay" onclick="handlePasswordOverlayClick(event)">
+        <div class="modal-card" style="max-width: 480px;">
+            <div class="modal-header">
+                <span class="modal-title">🔑 Segurança, Conta e 2FA</span>
+                <button type="button" class="modal-close" onclick="closePasswordModal()">✕</button>
+            </div>
+            <form id="change-password-form" onsubmit="submitPasswordChange(event)" style="padding: 1.5rem;">
+                <div id="password-modal-alert" style="display: none; padding: 0.65rem 0.85rem; border-radius: 6px; font-size: 0.82rem; margin-bottom: 1rem;"></div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="modal-new-user" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">Usuário Administrador</label>
+                    <input type="text" id="modal-new-user" minlength="3" class="search-input" style="max-width: 100%; width: 100%;" value="<?php echo htmlspecialchars($currentAdminUser, ENT_QUOTES, 'UTF-8'); ?>" autocomplete="username">
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem; padding: 0.65rem 0.85rem; background: rgba(0, 240, 255, 0.06); border: 1px solid rgba(0, 240, 255, 0.2); border-radius: 6px;">
+                    <label style="display: flex; align-items: center; gap: 0.6rem; font-size: 0.82rem; color: #fff; cursor: pointer; margin: 0;">
+                        <input type="checkbox" id="modal-2fa-telegram" <?php echo $twoFactorEnabled ? 'checked' : ''; ?> style="width: 16px; height: 16px; accent-color: var(--accent);">
+                        <span>Exigir código 2FA no Telegram (@GRIG402BOT) a cada login</span>
+                    </label>
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="modal-curr-pass" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">Senha Atual (obrigatória para autorizar)</label>
+                    <input type="password" id="modal-curr-pass" required class="search-input" style="max-width: 100%; width: 100%;" autocomplete="current-password">
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="modal-new-pass" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">Nova Senha (min. 8 caracteres — deixe em branco para manter a atual)</label>
+                    <input type="password" id="modal-new-pass" minlength="8" class="search-input" style="max-width: 100%; width: 100%;" autocomplete="new-password">
+                </div>
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label for="modal-confirm-pass" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">Confirmar Nova Senha</label>
+                    <input type="password" id="modal-confirm-pass" minlength="8" class="search-input" style="max-width: 100%; width: 100%;" autocomplete="new-password">
+                </div>
+                <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                    <button type="button" class="btn-outline" onclick="closePasswordModal()">Cancelar</button>
+                    <button type="submit" id="btn-submit-password" class="btn" style="width: auto; padding: 0.5rem 1.25rem; font-size: 0.85rem; margin-top: 0;">Salvar Segurança</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Configuracao de Telegram -->
+    <div id="telegram-modal-overlay" class="modal-overlay" onclick="handleTelegramOverlayClick(event)">
+        <div class="modal-card" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3>⚙️ Configurar Alertas Telegram</h3>
+                <button type="button" class="modal-close" onclick="closeTelegramModal()">&times;</button>
+            </div>
+            <form id="telegram-config-form" onsubmit="submitTelegramConfig(event)" style="padding: 1.5rem;">
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0; margin-bottom: 1rem; line-height: 1.45;">
+                    Salva as credenciais em <code>private_data/telegram_config.json</code> (protegido por <code>.htaccess</code> e preservado entre deploys) e dispara um alerta de teste imediatamente.
+                </p>
+                <div id="telegram-modal-alert" style="display: none; padding: 0.65rem 0.85rem; border-radius: 6px; font-size: 0.82rem; margin-bottom: 1rem;"></div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label for="modal-tg-token" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">Bot Token (@BotFather)</label>
+                    <input type="password" id="modal-tg-token" class="search-input" style="max-width: 100%; width: 100%; font-family: var(--font-mono);" placeholder="<?php echo $tgOk ? '•••••••• (deixe em branco para manter o atual)' : 'Ex.: 123456789:AAH...'; ?>" autocomplete="off">
+                </div>
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label for="modal-tg-chat" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">Chat ID (usuário, grupo ou canal)</label>
+                    <input type="text" id="modal-tg-chat" class="search-input" style="max-width: 100%; width: 100%; font-family: var(--font-mono);" placeholder="Ex.: 123456789 ou -100123456789" autocomplete="off">
+                </div>
+                <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+                    <button type="button" class="btn-outline" onclick="closeTelegramModal()">Cancelar</button>
+                    <button type="submit" id="btn-submit-telegram" class="btn" style="width: auto; padding: 0.5rem 1.25rem; font-size: 0.85rem; margin-top: 0;">Salvar e Testar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Configuracao do RapidAPI Bridge -->
+    <?php $rapidOk = !empty($rapidStatus['configured']); ?>
+    <div id="rapidapi-modal-overlay" class="modal-overlay" onclick="handleRapidApiOverlayClick(event)">
+        <div class="modal-card" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3>⚡ Configurar RapidAPI Bridge</h3>
+                <button type="button" class="modal-close" onclick="closeRapidApiModal()">&times;</button>
+            </div>
+            <form id="rapidapi-config-form" onsubmit="submitRapidApiConfig(event)" style="padding: 1.5rem;">
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0; margin-bottom: 1rem; line-height: 1.45;">
+                    Cole 1 ou mais segredos (separados por virgula) de <strong>RapidAPI Studio &rarr; Gateway &rarr; Firewall Settings &rarr; <code>X-RapidAPI-Proxy-Secret</code></strong>. Salvo fora do DocumentRoot (<code>grid402_storage/rapidapi_config.json</code>), preservado entre deploys.
+                </p>
+                <div id="rapidapi-modal-alert" style="display: none; padding: 0.65rem 0.85rem; border-radius: 6px; font-size: 0.82rem; margin-bottom: 1rem;"></div>
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <label for="modal-rapidapi-secret" style="display: block; font-size: 0.82rem; margin-bottom: 0.35rem; color: #fff;">X-RapidAPI-Proxy-Secret (1 ou mais, separados por virgula)</label>
+                    <input type="password" id="modal-rapidapi-secret" class="search-input" style="max-width: 100%; width: 100%; font-family: var(--font-mono);" placeholder="<?php echo $rapidOk ? '•••••••• (informe 1 ou mais segredos separados por virgula para atualizar)' : 'Cole 1 ou mais X-RapidAPI-Proxy-Secret separados por virgula (min. 16 chars)'; ?>" autocomplete="off">
+                </div>
+                <div style="display: flex; gap: 0.75rem; justify-content: flex-end; flex-wrap: wrap;">
+                    <button type="button" class="btn-outline" onclick="closeRapidApiModal()">Cancelar</button>
+                    <button type="button" id="btn-clear-rapidapi" class="btn-outline" style="color: #FCA5A5; border-color: rgba(239, 68, 68, 0.35);" onclick="clearRapidApiConfig()">Desativar</button>
+                    <button type="submit" id="btn-submit-rapidapi" class="btn" style="width: auto; padding: 0.5rem 1.25rem; font-size: 0.85rem; margin-top: 0;">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let currentFeedFilter = 'all';
+        let currentFeedSearchText = '';
+        let cachedEvents = [];
+
+        function setFeedFilter(filter) {
+            currentFeedFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+            const activeBtn = document.getElementById('filter-btn-' + (filter === 'challenge_402' ? 'challenge' : (filter === 'blocked_403' ? 'blocked' : filter)));
+            if (activeBtn) activeBtn.classList.add('active');
+            applyFeedFilterAndSearch();
+        }
+
+        function applyFeedSearch() {
+            const input = document.getElementById('feed-search-input');
+            currentFeedSearchText = input ? input.value.trim().toLowerCase() : '';
+            applyFeedFilterAndSearch();
+        }
+
+        function applyFeedFilterAndSearch() {
+            const rows = document.querySelectorAll('.event-row');
+            let visibleCount = 0;
+            let totalCount = rows.length;
+
+            let countPaid = 0;
+            let countSandbox = 0;
+            let countChallenge = 0;
+            let countBlocked = 0;
+
+            rows.forEach(r => {
+                const type = r.getAttribute('data-type') || 'free';
+                if (type === 'paid') countPaid++;
+                if (type === 'sandbox') countSandbox++;
+                if (type === 'challenge_402') countChallenge++;
+                if (type === 'blocked_403') countBlocked++;
+
+                const matchesFilter = (currentFeedFilter === 'all' || type === currentFeedFilter);
+                const rowText = r.textContent.toLowerCase();
+                const matchesSearch = (!currentFeedSearchText || rowText.includes(currentFeedSearchText));
+
+                if (matchesFilter && matchesSearch) {
+                    r.style.display = '';
+                    visibleCount++;
+                } else {
+                    r.style.display = 'none';
+                }
+            });
+
+            const countAllEl = document.getElementById('count-all');
+            const countPaidEl = document.getElementById('count-paid');
+            const countSandboxEl = document.getElementById('count-sandbox');
+            const countChallengeEl = document.getElementById('count-challenge');
+            const countBlockedEl = document.getElementById('count-blocked');
+
+            if (countAllEl) countAllEl.textContent = totalCount;
+            if (countPaidEl) countPaidEl.textContent = countPaid;
+            if (countSandboxEl) countSandboxEl.textContent = countSandbox;
+            if (countChallengeEl) countChallengeEl.textContent = countChallenge;
+            if (countBlockedEl) countBlockedEl.textContent = countBlocked;
+
+            const visCountEl = document.getElementById('feed-visible-count');
+            if (visCountEl) visCountEl.textContent = 'Mostrando ' + visibleCount + ' de ' + totalCount;
+        }
+
+        // Utilitario de escape seguro contra DOM XSS
+        function safeHtmlText(val) {
+            if (val === null || val === undefined) return '';
+            const span = document.createElement('span');
+            span.textContent = String(val);
+            return span.innerHTML;
+        }
+
+        // Renderiza barras de origem de pagamento / categoria de falha
+        function renderBreakdownBars(containerId, keyAttr, counts, labels, gradient) {
+            const el = document.getElementById(containerId);
+            if (!el || !labels) return;
+            counts = counts || {};
+            const keys = Object.keys(labels);
+            if (keys.length === 0) return;
+
+            const total = keys.reduce((acc, k) => acc + Number(counts[k] || 0), 0);
+            const maxVal = Math.max(1, ...keys.map(k => Number(counts[k] || 0)));
+            const fillExtra = gradient ? '; background: linear-gradient(90deg, #EF4444, #F59E0B);' : '';
+            let html = '';
+            keys.forEach(k => {
+                const c = Number(counts[k] || 0);
+                if (c === 0 && k === 'unknown') return;
+                const widthPct = Math.round((c / maxVal) * 100);
+                const sharePct = total > 0 ? Math.round((c / total) * 100) : 0;
+                html += `
+                <div class="bar-row" ${keyAttr}="${safeHtmlText(k)}">
+                    <span class="bar-label wide">${safeHtmlText(labels[k] || k)}</span>
+                    <div class="bar-track"><div class="bar-fill" style="width: ${widthPct}%${fillExtra}"></div></div>
+                    <span class="bar-count">${c} (${sharePct}%)</span>
+                </div>`;
+            });
+            el.innerHTML = html;
+        }
+
+        // Renderiza o Gráfico Temporal SVG Nativo dos Últimos 14 Dias
+        function renderSvgChart(history) {
+            const svg = document.getElementById('chart-svg-14d');
+            if (!svg || !history || history.length === 0) return;
+
+            const maxReqs = Math.max(10, ...history.map(d => Number(d.requests || 0)));
+            const width = 680;
+            const height = 200;
+            const padL = 35;
+            const padR = 15;
+            const padT = 20;
+            const padB = 30;
+            const chartW = width - padL - padR;
+            const chartH = height - padT - padB;
+            const n = history.length;
+            const slotW = chartW / n;
+            const barW = Math.max(12, slotW * 0.55);
+
+            let svgContent = `
+            <defs>
+                <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.9"/>
+                    <stop offset="100%" stop-color="#0052FF" stop-opacity="0.4"/>
+                </linearGradient>
+            </defs>`;
+
+            // Linhas de Grade e Eixo Y
+            const gridSteps = [0, 0.5, 1];
+            gridSteps.forEach(step => {
+                const y = padT + chartH - (step * chartH);
+                const val = Math.round(step * maxReqs);
+                svgContent += `
+                <line x1="${padL}" y1="${y}" x2="${width - padR}" y2="${y}" class="chart-grid-line" />
+                <text x="${padL - 6}" y="${y + 3}" class="chart-axis-text" style="text-anchor: end;">${val}</text>`;
+            });
+
+            // Barras e Eixo X
+            history.forEach((d, i) => {
+                const reqs = Number(d.requests || 0);
+                const paid = Number(d.paid || 0);
+                const usdc = Number(d.usdc || 0);
+                const barH = reqs > 0 ? Math.max(4, Math.round((reqs / maxReqs) * chartH)) : 0;
+                const paidH = paid > 0 ? Math.max(4, Math.round((paid / maxReqs) * chartH)) : 0;
+                const slotX = padL + (i * slotW);
+                const barX = slotX + ((slotW - barW) / 2);
+                const barY = padT + chartH - barH;
+                const paidY = padT + chartH - paidH;
+                const labelX = slotX + (slotW / 2);
+
+                if (barH > 0) {
+                    svgContent += `<rect x="${barX}" y="${barY}" width="${barW}" height="${barH}" rx="3" class="chart-bar-rect" />`;
+                }
+
+                if (paidH > 0) {
+                    svgContent += `<rect x="${barX}" y="${paidY}" width="${barW}" height="${paidH}" rx="3" class="chart-bar-paid-rect" />`;
+                }
+
+                svgContent += `<text x="${labelX}" y="${height - 10}" class="chart-axis-text">${safeHtmlText(d.label || '')}</text>`;
+
+                svgContent += `
+                <rect x="${slotX}" y="${padT}" width="${slotW}" height="${chartH}" fill="transparent" style="cursor: pointer;"
+                    data-date="${safeHtmlText(d.date || '')}"
+                    data-requests="${reqs}"
+                    data-paid="${paid}"
+                    data-usdc="${usdc.toFixed(4)}"
+                    onmouseenter="handleBarHover(event, this)"
+                    onmouseleave="handleBarLeave()"
+                    ontouchstart="handleBarHover(event, this)" />`;
+            });
+
+            svg.innerHTML = svgContent;
+        }
+
+        function handleBarHover(e, el) {
+            const tooltip = document.getElementById('chart-tooltip');
+            const wrap = document.getElementById('chart-wrap-14d');
+            if (!tooltip || !wrap) return;
+
+            const date = el.getAttribute('data-date');
+            const reqs = el.getAttribute('data-requests');
+            const paid = el.getAttribute('data-paid');
+            const usdc = el.getAttribute('data-usdc');
+
+            tooltip.innerHTML = `
+                <div style="font-weight: 700; color: var(--accent); margin-bottom: 2px;">📅 ${date}</div>
+                <div>📊 Total: <strong>${reqs}</strong> requisições</div>
+                <div>🟢 Pagas (x402): <strong>${paid}</strong></div>
+                <div>💰 Faturamento: <strong>US$ ${usdc}</strong></div>
+            `;
+            tooltip.style.display = 'block';
+
+            const wrapRect = wrap.getBoundingClientRect();
+            const clientX = e.clientX || (e.touches && e.touches[0] ? e.touches[0].clientX : wrapRect.left + wrapRect.width / 2);
+            let leftPos = clientX - wrapRect.left - 60;
+            if (leftPos < 10) leftPos = 10;
+            if (leftPos > wrapRect.width - 160) leftPos = wrapRect.width - 160;
+
+            tooltip.style.left = leftPos + 'px';
+            tooltip.style.top = '10px';
+        }
+
+        function handleBarLeave() {
+            const tooltip = document.getElementById('chart-tooltip');
+            if (tooltip) tooltip.style.display = 'none';
+        }
+
+        // Renderiza a lista de Top Consumidores
+        function renderTopConsumers(consumers) {
+            const tbody = document.getElementById('top-consumers-tbody');
+            if (!tbody) return;
+            if (!consumers || consumers.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.5rem;">Aguardando eventos no buffer.</td></tr>';
+                return;
+            }
+            let html = '';
+            consumers.forEach(c => {
+                let pCls = 'profile-agent';
+                if (c.paid > 0) pCls = 'profile-paid';
+                else if (c.sandbox > 0) pCls = 'profile-sandbox';
+                else if (c.challenges > 5) pCls = 'profile-402';
+                const rkCls = (c.rank <= 3) ? 'top-' + c.rank : '';
+                html += `
+                <tr>
+                    <td><span class="rank-badge ${rkCls}">${c.rank}</span></td>
+                    <td><code style="font-family: var(--font-mono); font-size: 0.78rem;">${safeHtmlText(c.ip_masked)}</code></td>
+                    <td><strong>${c.total}</strong> <span style="font-size: 0.7rem; color: var(--text-muted);">(${c.paid}p)</span></td>
+                    <td><span class="tag-profile ${pCls}">${safeHtmlText(c.profile)}</span></td>
+                    <td><code style="font-size: 0.72rem; color: var(--accent);">${safeHtmlText(c.favorite_service)}</code></td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        }
+
+        function renderRecentPulse(pulse) {
+            if (!pulse) return;
+            const winBadge = document.getElementById('pulse-window-badge');
+            if (winBadge) {
+                winBadge.textContent = `1h: ${Number(pulse.last_1h_count || 0)} reqs • 6h: ${Number(pulse.last_6h_count || 0)} • 24h: ${Number(pulse.last_24h_count || 0)}`;
+            }
+            const todayEl = document.getElementById('pulse-today-reqs');
+            if (todayEl) {
+                const span = document.createElement('span');
+                span.style.cssText = 'font-size: 0.85rem; color: var(--text-muted); font-weight: 500;';
+                span.textContent = ' hoje (' + (pulse.today_date || '') + ')';
+                todayEl.replaceChildren(document.createTextNode(Number(pulse.today_requests || 0).toLocaleString('pt-BR')), span);
+            }
+            const yestEl = document.getElementById('pulse-yesterday-reqs');
+            if (yestEl) {
+                yestEl.textContent = `Ontem (${pulse.yesterday_date || ''}): ${Number(pulse.yesterday_requests || 0).toLocaleString('pt-BR')} reqs • ${Number(pulse.today_paid || 0)} pagas hoje`;
+            }
+            const c402El = document.getElementById('pulse-402-clean');
+            if (c402El) {
+                const span = document.createElement('span');
+                span.style.cssText = 'font-size: 0.85rem; color: var(--text-muted); font-weight: 500;';
+                span.textContent = ' desafios';
+                c402El.replaceChildren(document.createTextNode(String(Number(pulse.challenge_402_clean || 0))), span);
+            }
+            const failEl = document.getElementById('pulse-payment-failures');
+            if (failEl) {
+                failEl.textContent = `${Number(pulse.payment_failures || 0)} tentativas falhas • ${Number(pulse.paid_count || 0)} pagas recentes`;
+            }
+            const sbxEl = document.getElementById('pulse-sandbox-free');
+            if (sbxEl) {
+                const span = document.createElement('span');
+                span.style.cssText = 'font-size: 0.85rem; color: var(--text-muted); font-weight: 500;';
+                span.textContent = ' sandbox';
+                sbxEl.replaceChildren(document.createTextNode(String(Number(pulse.sandbox_count || 0))), span);
+            }
+            const freeEl = document.getElementById('pulse-free-sub');
+            if (freeEl) {
+                freeEl.textContent = `${Number(pulse.free_count || 0)} chamadas gratuitas (summary/status)`;
+            }
+            const errEl = document.getElementById('pulse-errors-recent');
+            const errSub = document.getElementById('pulse-errors-sub');
+            const errCount = Number(pulse.error_non_402_count || 0);
+            if (errEl) {
+                errEl.textContent = String(errCount);
+                errEl.style.color = errCount === 0 ? '#10B981' : '#EF4444';
+            }
+            if (errSub) {
+                errSub.textContent = errCount === 0 ? 'Zero 400/403/5xx nos últimos eventos' : 'Verificar feed recente abaixo';
+            }
+            const topWrap = document.getElementById('pulse-top-services');
+            if (topWrap) {
+                const items = Array.isArray(pulse.top_recent_services) ? pulse.top_recent_services : [];
+                if (items.length === 0) {
+                    const empty = document.createElement('span');
+                    empty.style.cssText = 'font-size: 0.78rem; color: var(--text-muted);';
+                    empty.textContent = 'Sem eventos recentes';
+                    topWrap.replaceChildren(empty);
+                } else {
+                    const nodes = items.map(it => {
+                        const badge = document.createElement('span');
+                        badge.style.cssText = 'font-size: 0.75rem; font-family: var(--font-mono); padding: 0.22rem 0.55rem; border-radius: 999px; background: rgba(0, 240, 255, 0.08); border: 1px solid rgba(0, 240, 255, 0.25); color: #e2e8f0;';
+                        badge.appendChild(document.createTextNode(String(it.service || '') + ': '));
+                        const strong = document.createElement('strong');
+                        strong.textContent = String(Number(it.count || 0));
+                        badge.appendChild(strong);
+                        return badge;
+                    });
+                    topWrap.replaceChildren(...nodes);
+                }
+            }
+        }
+
+        // Renderiza a lista de Rentabilidade por Servico
+        function renderServiceRevenue(services) {
+            const el = document.getElementById('service-revenue-bars-container');
+            if (!el || !services) return;
+            const top10 = services.slice(0, 10);
+            const maxVal = Math.max(0.0001, ...top10.map(s => Number(s.estimated_usdc || 0)));
+            let html = '';
+            top10.forEach(s => {
+                const rev = Number(s.estimated_usdc || 0);
+                const p = Math.round((rev / maxVal) * 100);
+                html += `
+                <div class="bar-row">
+                    <span class="bar-label wide">${safeHtmlText(s.service)} <small style="color: var(--text-muted);">($${s.unit_price})</small></span>
+                    <div class="bar-track"><div class="bar-fill" style="width: ${p}%; background: linear-gradient(90deg, #10B981, #00F0FF);"></div></div>
+                    <span class="bar-count" style="width: 72px;">$${rev.toFixed(4)}</span>
+                </div>`;
+            });
+            el.innerHTML = html;
+        }
+
+        async function fetchGrowthAdmin(isManual = false) {
+            try {
+                const res = await fetch('/admin?api=growth', { cache: 'no-store' });
+                if (res.status === 401) {
+                    window.location.reload();
+                    return;
+                }
+                const data = await res.json();
+                if (!data || !data.metrics) return;
+
+                const metrics = data.metrics;
+                const setText = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = value;
+                };
+
+                setText('growth-wallets', Number(metrics.wallets_connected || 0).toLocaleString('pt-BR'));
+                setText('growth-conversion', Number(metrics.conversion_first_payment || 0).toFixed(1) + '%');
+                setText('growth-conversion-2', Number(metrics.conversion_second_payment || 0).toFixed(1) + '%');
+                setText('growth-revenue', 'US$ ' + Number(metrics.paid_revenue_usdc || 0).toFixed(4));
+                setText('growth-revenue-wallet', 'US$ ' + Number(metrics.revenue_per_wallet_usdc || 0).toFixed(8));
+                setText('growth-builders', Number(metrics.builders_registered || 0).toLocaleString('pt-BR'));
+                setText('growth-referrals', Number(metrics.referrals_registered || 0).toLocaleString('pt-BR'));
+                setText('growth-promo-credits', Number(metrics.promo_credits_total || 0).toLocaleString('pt-BR'));
+            } catch (error) {
+                // silencioso — dashboard principal continua funcionando
+            }
+        }
+
+        let userInteractedSinceLastTouch = false;
+        let lastSessionTouchAt = Date.now();
+        ['mousemove', 'keydown', 'click', 'touchstart'].forEach(evtName => {
+            window.addEventListener(evtName, () => { userInteractedSinceLastTouch = true; }, { passive: true });
+        });
+
+        async function fetchLiveStats(isManual = false) {
+            try {
+                let statsUrl = '/admin?api=stats';
+                if (isManual || (userInteractedSinceLastTouch && (Date.now() - lastSessionTouchAt) > 30000)) {
+                    statsUrl += '&touch=1';
+                    userInteractedSinceLastTouch = false;
+                    lastSessionTouchAt = Date.now();
+                }
+                const res = await fetch(statsUrl, { cache: 'no-store' });
+                if (res.status === 401) {
+                    window.location.href = '/admin?expired=idle_timeout';
+                    return;
+                }
+                const data = await res.json();
+                if (data.status !== 'success') return;
+
+                // 1. Atualizar KPIs Financeiros e Operacionais
+                const totalUsdcEl = document.getElementById('kpi-total-usdc');
+                const totalBrlEl = document.getElementById('kpi-total-brl');
+                const todayUsdcEl = document.getElementById('kpi-today-usdc');
+                const todayBrlEl = document.getElementById('kpi-today-brl');
+                const totalReqsEl = document.getElementById('kpi-total-reqs');
+                const totalVisitsEl = document.getElementById('kpi-total-visits');
+                const todayVisitsEl = document.getElementById('kpi-today-visits');
+                const paidReqsEl = document.getElementById('kpi-paid-reqs');
+                const convEl = document.getElementById('kpi-conversion');
+                const arpuUsdcEl = document.getElementById('kpi-arpu-usdc');
+                const arpuBrlEl = document.getElementById('kpi-arpu-brl');
+                const slaTechEl = document.getElementById('kpi-sla-tech');
+                const sandboxRateEl = document.getElementById('kpi-sandbox-rate');
+                const passesEl = document.getElementById('kpi-wallet-passes');
+
+                if (totalUsdcEl) totalUsdcEl.textContent = 'US$ ' + Number(data.total_revenue_usdc || 0).toFixed(4);
+                if (totalBrlEl) totalBrlEl.textContent = '≈ R$ ' + Number(data.total_revenue_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + ' (Base Mainnet)';
+                if (todayUsdcEl) todayUsdcEl.textContent = 'US$ ' + Number(data.today_revenue_usdc || 0).toFixed(4);
+                if (todayBrlEl) todayBrlEl.textContent = '≈ R$ ' + Number(data.today_revenue_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + ' hoje';
+                if (totalReqsEl) totalReqsEl.textContent = Number(data.total_requests || 0).toLocaleString('pt-BR');
+                if (totalVisitsEl) totalVisitsEl.textContent = Number(data.total_page_views || 0).toLocaleString('pt-BR');
+                if (todayVisitsEl) todayVisitsEl.textContent = Number(data.today_page_views || 0).toLocaleString('pt-BR') + ' hoje • HTML público';
+                if (paidReqsEl) paidReqsEl.textContent = Number(data.total_paid_requests || 0).toLocaleString('pt-BR') + ' pagas • ' + Number(data.total_sandbox_requests || 0).toLocaleString('pt-BR') + ' sandbox';
+
+                if (arpuUsdcEl) arpuUsdcEl.textContent = 'US$ ' + Number(data.arpu_usdc ?? 0).toFixed(4);
+                if (arpuBrlEl) arpuBrlEl.textContent = '≈ R$ ' + Number(data.arpu_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 4 }) + ' / consulta paga';
+                if (slaTechEl) slaTechEl.textContent = Number(data.technical_success_rate ?? 100).toFixed(1) + '%';
+                const p95El = document.getElementById('kpi-latency-p95');
+                if (p95El && data.latency_p95_ms !== undefined) {
+                    p95El.textContent = 'Sem erros 5xx · Latência p95: ' + Number(data.latency_p95_ms || 0).toFixed(1).replace('.', ',') + ' ms';
+                }
+                const facBadgeEl = document.getElementById('runtime-facilitator-badge');
+                if (facBadgeEl && data.facilitator_status) {
+                    const fs = data.facilitator_status;
+                    facBadgeEl.style.color = fs.mode === 'settle' ? '#10B981' : '#F59E0B';
+                    const strong = document.createElement('strong');
+                    strong.textContent = String(fs.mode || 'unknown');
+                    const chainCount = Number(fs.multichain_accepts || 4);
+                    facBadgeEl.replaceChildren(
+                        document.createTextNode('Facilitador x402: '),
+                        strong,
+                        document.createTextNode(' (' + (fs.host || 'local') + ' · ' + (fs.auth_mode || '') + ' · ' + chainCount + ' chains)')
+                    );
+                }
+                if (data.rapidapi_status) {
+                    renderRapidApiStatusBadge(data.rapidapi_status);
+                }
+                const colBadgeEl = document.getElementById('runtime-collector-badge');
+                if (colBadgeEl && data.collector_status) {
+                    const cs = data.collector_status;
+                    colBadgeEl.style.color = cs.summary_stale ? '#F59E0B' : '#10B981';
+                    const ageTxt = cs.summary_age_sec === null ? 'ausente' : (cs.summary_age_sec < 120 ? cs.summary_age_sec + 's atrás' : Math.round(cs.summary_age_sec / 60) + ' min atrás');
+                    const strong = document.createElement('strong');
+                    strong.textContent = ageTxt;
+                    colBadgeEl.replaceChildren(document.createTextNode('Coletor (/status): '), strong);
+                }
+                if (data.telegram_status) {
+                    renderTelegramStatusBadge(data.telegram_status);
+                }
+                if (sandboxRateEl) sandboxRateEl.textContent = Number(data.sandbox_rate || 0).toFixed(1) + '%';
+
+                if (passesEl && data.passes_stats) {
+                    passesEl.textContent = Number(data.passes_stats.active_passes || 0) + ' passes ativos • ' + Number(data.passes_stats.remaining_credits || 0).toLocaleString('pt-BR') + ' créditos';
+                }
+
+                const reqs402 = (data.status_counts ? Number(data.status_counts['402'] || 0) : 0);
+                const paid = Number(data.total_paid_requests || 0);
+                const conv = (reqs402 + paid > 0) ? ((paid / (reqs402 + paid)) * 100).toFixed(1) : 0;
+                if (convEl) convEl.textContent = conv + '%';
+
+                // 2. Atualizar Card On-Chain (Base Mainnet)
+                if (data.wallet_balances) {
+                    const w = data.wallet_balances;
+                    const usdcEl = document.getElementById('kpi-wallet-usdc');
+                    const rpcEl = document.getElementById('kpi-rpc-status');
+                    if (usdcEl) usdcEl.textContent = 'US$ ' + Number(w.usdc_balance || 0).toFixed(4);
+                    if (rpcEl) {
+                        rpcEl.textContent = w.rpc_operational ? 'RPC ATIVO' : 'CACHE OFFLINE';
+                        rpcEl.style.color = w.rpc_operational ? 'var(--primary)' : 'var(--warning)';
+                    }
+                }
+
+                // 2b. Atualizar Gráfico Temporal 14 Dias
+                if (data.daily_history_14d) {
+                    renderSvgChart(data.daily_history_14d);
+                }
+
+                // 2c. Atualizar Top Agentes / Consumidores
+                if (data.top_consumers) {
+                    renderTopConsumers(data.top_consumers);
+                }
+
+                // 2d. Atualizar Rentabilidade Estimada por Serviço
+                if (data.service_revenue) {
+                    renderServiceRevenue(data.service_revenue);
+                }
+
+                // 2e. Atualizar Pulso Operacional Recente
+                if (data.recent_pulse) {
+                    renderRecentPulse(data.recent_pulse);
+                }
+
+                // 3. Atualizar Barras de Servicos (25 Nós)
+                const serviceBarsEl = document.getElementById('service-bars-container');
+                if (serviceBarsEl) {
+                    if (data.service_counts) {
+                        const servicesList = ['dossier', 'extract', 'email-verify', 'lei', 'ofac', 'notarize', 'global-markets', 'pass', 'compliance', 'sanctions', 'simples', 'workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'kyb-audit', 'domain-audit', 'market-snapshot', 'summary'];
+                        const sCounts = data.service_counts || {};
+                        const maxS = Math.max(...Object.values(sCounts).concat([1]));
+                        let sHtml = '';
+                        servicesList.forEach(s => {
+                            const c = Number(sCounts[s] || 0);
+                            const p = Math.round((c / maxS) * 100);
+                            sHtml += `
+                            <div class="bar-row">
+                                <span class="bar-label">${safeHtmlText(s)}</span>
+                                <div class="bar-track"><div class="bar-fill" style="width: ${p}%;"></div></div>
+                                <span class="bar-count">${c}</span>
+                            </div>`;
+                        });
+                        serviceBarsEl.innerHTML = sHtml;
+                    }
+                }
+
+                // 3b. Atualizar Barras de Origem de Pagamento e Categorias de Falha
+                renderBreakdownBars(
+                    'payment-source-bars-container',
+                    'data-source-key',
+                    data.payment_sources,
+                    data.payment_source_labels,
+                    false
+                );
+                renderBreakdownBars(
+                    'failure-bars-container',
+                    'data-failure-key',
+                    data.failure_categories,
+                    data.failure_category_labels,
+                    true
+                );
+
+                const sourceLabels = data.payment_source_labels || {};
+                const failureLabels = data.failure_category_labels || {};
+
+                // 4. Atualizar Tabela de Eventos (100 Eventos Sanitizados)
+                const tbody = document.getElementById('recent-events-tbody');
+                const events = data.recent_events || [];
+                cachedEvents = events;
+
+                if (tbody) {
+                    if (events.length === 0) {
+                        tbody.innerHTML = '<tr id="no-events-row"><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">Nenhuma consulta registrada até o momento.</td></tr>';
+                    } else {
+                        let rowsHtml = '';
+                        events.forEach(ev => {
+                            const dualTs = formatBrtUtcTimestamp(ev.timestamp || '', true);
+                            const timeHtml = dualTs.utc
+                                ? `<div>${safeHtmlText(dualTs.brt)}</div><div style="font-size: 0.7rem; color: var(--text-muted);">${safeHtmlText(dualTs.utc)}</div>`
+                                : safeHtmlText(dualTs.brt);
+                            const st = Number(ev.status || 200);
+                            const rawType = ev.type || (ev.is_paid ? 'paid' : 'free');
+                            const safeType = safeHtmlText(rawType);
+
+                            let typeBadge = '<span style="color: var(--text-muted); font-size: 0.75rem;">GRATUITO</span>';
+                            if (rawType === 'paid') {
+                                typeBadge = '<span class="tag-paid">PAGO x402</span>';
+                            } else if (rawType === 'sandbox') {
+                                typeBadge = '<span class="tag-status status-sandbox">SANDBOX (demo)</span>';
+                            } else if (rawType === 'challenge_402') {
+                                typeBadge = '<span class="tag-status status-402">DESAFIO 402</span>';
+                            } else if (rawType === 'blocked_403') {
+                                typeBadge = '<span class="tag-status status-403">BLOQUEADO 403</span>';
+                            }
+
+                            const val = ev.is_paid ? '$' + safeHtmlText(ev.price_usdc) : '-';
+
+                            const failKey = String(ev.failure_category || '');
+                            const srcKey = String(ev.payment_source || '');
+                            let originBadge = '<span style="color: var(--text-muted);">-</span>';
+                            if (failKey && failKey !== 'unknown') {
+                                originBadge = `<span class="tag-failure">${safeHtmlText(failureLabels[failKey] || failKey)}</span>`;
+                            } else if (srcKey && srcKey !== 'unknown') {
+                                originBadge = `<span class="tag-source">${safeHtmlText(sourceLabels[srcKey] || srcKey)}</span>`;
+                            }
+
+                            const rawTx = String(ev.settlement_tx || ev.tx_hash || '');
+                            const isHexTx = /^0x[a-f0-9]{64}$/i.test(rawTx);
+                            const isSolTx = !isHexTx && /^[1-9A-HJ-NP-Za-km-z]{64,96}$/.test(rawTx);
+                            const tx = isHexTx
+                                ? `<a href="https://basescan.org/tx/${encodeURIComponent(rawTx)}" target="_blank" class="tx-link">${safeHtmlText(rawTx.substr(0, 8))}...${safeHtmlText(rawTx.substr(-6))} ↗</a>`
+                                : (isSolTx
+                                    ? `<a href="https://solscan.io/tx/${encodeURIComponent(rawTx)}" target="_blank" class="tx-link">${safeHtmlText(rawTx.substr(0, 8))}...${safeHtmlText(rawTx.substr(-6))} ↗</a>`
+                                    : '<span style="color: var(--text-muted);">-</span>');
+
+                            const cleanService = safeHtmlText(ev.service || '');
+                            const cleanIp = safeHtmlText(ev.ip_masked || 'xxx.xxx.xxx.xxx');
+
+                            rowsHtml += `
+                            <tr class="event-row" data-type="${safeType}">
+                                <td style="white-space: nowrap;">${timeHtml}</td>
+                                <td><strong>${cleanService}</strong></td>
+                                <td><span class="tag-status status-${st}">HTTP ${st}</span></td>
+                                <td>${typeBadge}</td>
+                                <td>${originBadge}</td>
+                                <td>${val}</td>
+                                <td>${tx}</td>
+                                <td style="color: var(--text-muted);">${cleanIp}</td>
+                            </tr>`;
+                        });
+                        tbody.innerHTML = rowsHtml;
+                    }
+                }
+
+                if (Array.isArray(data.recent_payment_failures)) {
+                    renderRecentPaymentFailures(data.recent_payment_failures);
+                }
+
+                const lastUpdEl = document.getElementById('last-updated-text');
+                if (lastUpdEl) {
+                    lastUpdEl.textContent = 'Última atualização: ' + new Date().toLocaleTimeString('pt-BR');
+                }
+
+                applyFeedFilterAndSearch();
+            } catch (e) {
+                console.error('Erro ao buscar stats em tempo real:', e);
+            }
+        }
+
+        function formatBrtUtcTimestamp(isoStr, timeOnly) {
+            const raw = String(isoStr || '').trim();
+            if (!raw) return { brt: '-', utc: '' };
+            const d = new Date(raw);
+            if (Number.isNaN(d.getTime())) {
+                return { brt: timeOnly ? raw.substr(11, 8) : raw, utc: '' };
+            }
+            const brtTime = d.toLocaleTimeString('pt-BR', {
+                timeZone: 'America/Sao_Paulo',
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+            });
+            if (timeOnly) {
+                const utcTime = d.toLocaleTimeString('pt-BR', {
+                    timeZone: 'UTC',
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                });
+                return { brt: brtTime + ' BRT', utc: utcTime + ' UTC' };
+            }
+            const brtDate = d.toLocaleDateString('pt-BR', {
+                timeZone: 'America/Sao_Paulo',
+                day: '2-digit',
+                month: '2-digit',
+            });
+            return { brt: brtDate + ' ' + brtTime + ' BRT', utc: raw };
+        }
+
+        function renderRecentPaymentFailures(failures) {
+            const tbody = document.getElementById('payment-failures-tbody');
+            if (!tbody || !Array.isArray(failures)) return;
+            tbody.replaceChildren();
+            if (failures.length === 0) {
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 5;
+                td.style.textAlign = 'center';
+                td.style.color = 'var(--text-muted)';
+                td.style.padding = '1.25rem';
+                td.textContent = 'Nenhuma falha detalhada registrada recentemente em requests.jsonl.';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
+                return;
+            }
+            for (const pf of failures) {
+                const tr = document.createElement('tr');
+
+                const tdTs = document.createElement('td');
+                tdTs.style.whiteSpace = 'nowrap';
+                const dualTs = formatBrtUtcTimestamp(pf.ts || '', false);
+                const divBrt = document.createElement('div');
+                divBrt.textContent = dualTs.brt;
+                tdTs.appendChild(divBrt);
+                if (dualTs.utc) {
+                    const divUtc = document.createElement('div');
+                    divUtc.style.fontSize = '0.7rem';
+                    divUtc.style.color = 'var(--text-muted)';
+                    divUtc.textContent = dualTs.utc;
+                    tdTs.appendChild(divUtc);
+                }
+
+                const tdSvc = document.createElement('td');
+                const strongSvc = document.createElement('strong');
+                strongSvc.textContent = String(pf.service || '');
+                tdSvc.appendChild(strongSvc);
+
+                const st = Number(pf.status || 402);
+                const tdSt = document.createElement('td');
+                const spanSt = document.createElement('span');
+                spanSt.className = 'tag-status status-' + st;
+                spanSt.textContent = 'HTTP ' + st;
+                tdSt.appendChild(spanSt);
+
+                const tdSrc = document.createElement('td');
+                tdSrc.textContent = String(pf.payment_source || 'unknown');
+
+                const tdErr = document.createElement('td');
+                tdErr.style.fontFamily = 'var(--font-mono)';
+                tdErr.style.fontSize = '0.78rem';
+                tdErr.style.color = '#FCA5A5';
+                tdErr.style.wordBreak = 'break-word';
+                tdErr.textContent = String(pf.error || '');
+
+                tr.append(tdTs, tdSvc, tdSt, tdSrc, tdErr);
+                tbody.appendChild(tr);
+            }
+        }
+
+        function renderRapidApiStatusBadge(rs) {
+            const rapidBadgeEl = document.getElementById('runtime-rapidapi-badge');
+            if (!rapidBadgeEl || !rs) return;
+            const rOk = Boolean(rs.configured);
+            const rCount = Number(rs.count || 0);
+            rapidBadgeEl.style.color = rOk ? '#10B981' : '#94A3B8';
+            const strong = document.createElement('strong');
+            strong.textContent = rOk ? (rCount > 1 ? `ativo (${rCount} APIs)` : 'ativo') : 'inativo';
+            rapidBadgeEl.replaceChildren(document.createTextNode('RapidAPI Bridge: '), strong);
+        }
+
+        function renderTelegramStatusBadge(tg) {
+            const tgBadgeEl = document.getElementById('runtime-telegram-badge');
+            if (!tgBadgeEl || !tg) return;
+            const configured = Boolean(tg.configured);
+            const last = tg.last_status || null;
+            const label = configured ? 'configurado' : (tg.disabled ? 'desabilitado' : 'não configurado (.env)');
+            tgBadgeEl.style.color = configured ? ((last && !last.ok) ? '#F59E0B' : '#10B981') : '#EF4444';
+            const strong = document.createElement('strong');
+            strong.textContent = label;
+            let suffix = '';
+            if (last) {
+                suffix = last.ok ? ' · último HTTP 200' : (' · erro: ' + String(last.error || ('HTTP ' + (last.http_code || 0))));
+            }
+            tgBadgeEl.replaceChildren(document.createTextNode('Telegram: '), strong, document.createTextNode(suffix));
+        }
+
+        async function triggerTelegramTest() {
+            const btn = document.getElementById('btn-test-telegram');
+            if (!btn) return;
+            const origText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = 'Enviando teste...';
+            try {
+                const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                const csrfVal = csrfMeta ? csrfMeta.getAttribute('content') : '';
+                const formData = new FormData();
+                formData.append('csrf_token', csrfVal);
+                const res = await fetch('/admin?action=test_telegram', {
+                    method: 'POST',
+                    headers: { 'Accept': 'application/json', 'X-CSRF-Token': csrfVal },
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.telegram_status) renderTelegramStatusBadge(data.telegram_status);
+                btn.textContent = data.success ? '✓ Alerta enviado!' : '✗ Falhou';
+                if (!data.success && data.message) alert(data.message);
+                setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 2500);
+            } catch (err) {
+                btn.textContent = '✗ Erro de rede';
+                setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 2500);
+            }
+        }
+
+        // Modal de Alteracao de Senha
+        function openPasswordModal() {
+            const overlay = document.getElementById('password-modal-overlay');
+            const alertBox = document.getElementById('password-modal-alert');
+            if (alertBox) alertBox.style.display = 'none';
+            if (overlay) overlay.classList.add('active');
+            const currInp = document.getElementById('modal-curr-pass');
+            if (currInp) currInp.focus();
+        }
+
+        function closePasswordModal() {
+            const overlay = document.getElementById('password-modal-overlay');
+            if (overlay) overlay.classList.remove('active');
+            const form = document.getElementById('change-password-form');
+            if (form) form.reset();
+        }
+
+        function handlePasswordOverlayClick(e) {
+            if (e.target.id === 'password-modal-overlay') closePasswordModal();
+        }
+
+        async function submitPasswordChange(e) {
+            e.preventDefault();
+            const newUserEl = document.getElementById('modal-new-user');
+            const twoFactorEl = document.getElementById('modal-2fa-telegram');
+            const newUser = newUserEl ? newUserEl.value.trim() : '';
+            const twoFactorVal = twoFactorEl ? (twoFactorEl.checked ? '1' : '0') : '1';
+            const currPass = document.getElementById('modal-curr-pass').value;
+            const newPass = document.getElementById('modal-new-pass').value;
+            const confirmPass = document.getElementById('modal-confirm-pass').value;
+            const alertBox = document.getElementById('password-modal-alert');
+            const btn = document.getElementById('btn-submit-password');
+
+            if (newPass !== '' && newPass !== confirmPass) {
+                alertBox.style.display = 'block';
+                alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                alertBox.style.color = '#FCA5A5';
+                alertBox.textContent = 'A nova senha e a confirmacao nao coincidem.';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Salvando...';
+
+            try {
+                const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                const csrfVal = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+                const formData = new FormData();
+                formData.append('current_password', currPass);
+                formData.append('new_password', newPass);
+                formData.append('new_password_confirm', confirmPass);
+                formData.append('new_username', newUser);
+                formData.append('two_factor_telegram', twoFactorVal);
+                formData.append('csrf_token', csrfVal);
+
+                const res = await fetch('/admin?action=change_password', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': csrfVal
+                    },
+                    body: formData
+                });
+                const data = await res.json();
+
+                alertBox.style.display = 'block';
+                if (data.success) {
+                    alertBox.style.background = 'rgba(16, 185, 129, 0.15)';
+                    alertBox.style.color = '#34D399';
+                    alertBox.textContent = data.message || 'Segurança atualizada com sucesso!';
+                    const secTextEl = document.getElementById('runtime-security-text');
+                    if (secTextEl && typeof data.two_factor_telegram === 'boolean') {
+                        secTextEl.textContent = (data.two_factor_telegram ? '2FA Telegram ativo' : '2FA desativado') + ' · 30m timeout · IP/UA vinculado';
+                    }
+                    setTimeout(() => {
+                        closePasswordModal();
+                    }, 1500);
+                } else {
+                    alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                    alertBox.style.color = '#FCA5A5';
+                    alertBox.textContent = data.error || 'Nao foi possivel atualizar as configuracoes.';
+                }
+            } catch (err) {
+                alertBox.style.display = 'block';
+                alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                alertBox.style.color = '#FCA5A5';
+                alertBox.textContent = 'Erro ao conectar ao servidor: ' + err.message;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Salvar Segurança';
+            }
+        }
+
+        // Modal de Configuracao de Telegram
+        function openTelegramModal() {
+            const overlay = document.getElementById('telegram-modal-overlay');
+            const alertBox = document.getElementById('telegram-modal-alert');
+            if (alertBox) alertBox.style.display = 'none';
+            if (overlay) overlay.classList.add('active');
+            const tokenInp = document.getElementById('modal-tg-token');
+            if (tokenInp) tokenInp.focus();
+        }
+
+        function closeTelegramModal() {
+            const overlay = document.getElementById('telegram-modal-overlay');
+            if (overlay) overlay.classList.remove('active');
+            const form = document.getElementById('telegram-config-form');
+            if (form) form.reset();
+        }
+
+        function handleTelegramOverlayClick(e) {
+            if (e.target.id === 'telegram-modal-overlay') closeTelegramModal();
+        }
+
+        async function submitTelegramConfig(e) {
+            e.preventDefault();
+            const tokenVal = document.getElementById('modal-tg-token').value.trim();
+            const chatVal = document.getElementById('modal-tg-chat').value.trim();
+            const alertBox = document.getElementById('telegram-modal-alert');
+            const btn = document.getElementById('btn-submit-telegram');
+
+            btn.disabled = true;
+            btn.textContent = 'Salvando e testando...';
+
+            try {
+                const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                const csrfVal = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+                const formData = new FormData();
+                formData.append('bot_token', tokenVal);
+                formData.append('chat_id', chatVal);
+                formData.append('csrf_token', csrfVal);
+
+                const res = await fetch('/admin?action=save_telegram_config', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': csrfVal
+                    },
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (data.telegram_status) {
+                    renderTelegramStatusBadge(data.telegram_status);
+                }
+
+                alertBox.style.display = 'block';
+                if (data.success && data.test_sent) {
+                    alertBox.style.background = 'rgba(16, 185, 129, 0.15)';
+                    alertBox.style.color = '#34D399';
+                    alertBox.textContent = data.message || 'Credenciais salvas e alerta de teste entregue!';
+                    setTimeout(() => {
+                        closeTelegramModal();
+                    }, 1500);
+                } else if (data.success && !data.test_sent) {
+                    alertBox.style.background = 'rgba(245, 158, 11, 0.15)';
+                    alertBox.style.color = '#FBBF24';
+                    alertBox.textContent = data.message || 'Credenciais salvas, mas o teste falhou.';
+                } else {
+                    alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                    alertBox.style.color = '#FCA5A5';
+                    alertBox.textContent = data.error || 'Nao foi possivel salvar as credenciais do Telegram.';
+                }
+            } catch (err) {
+                alertBox.style.display = 'block';
+                alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                alertBox.style.color = '#FCA5A5';
+                alertBox.textContent = 'Erro ao conectar ao servidor: ' + err.message;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Salvar e Testar';
+            }
+        }
+
+        // Modal de Configuracao do RapidAPI Bridge
+        function openRapidApiModal() {
+            const overlay = document.getElementById('rapidapi-modal-overlay');
+            const alertBox = document.getElementById('rapidapi-modal-alert');
+            if (alertBox) alertBox.style.display = 'none';
+            if (overlay) overlay.classList.add('active');
+            const secretInp = document.getElementById('modal-rapidapi-secret');
+            if (secretInp) secretInp.focus();
+        }
+
+        function closeRapidApiModal() {
+            const overlay = document.getElementById('rapidapi-modal-overlay');
+            if (overlay) overlay.classList.remove('active');
+            const form = document.getElementById('rapidapi-config-form');
+            if (form) form.reset();
+        }
+
+        function handleRapidApiOverlayClick(e) {
+            if (e.target.id === 'rapidapi-modal-overlay') closeRapidApiModal();
+        }
+
+        async function submitRapidApiConfig(e) {
+            e.preventDefault();
+            const secretVal = document.getElementById('modal-rapidapi-secret').value.trim();
+            const alertBox = document.getElementById('rapidapi-modal-alert');
+            const btn = document.getElementById('btn-submit-rapidapi');
+
+            btn.disabled = true;
+            btn.textContent = 'Salvando...';
+
+            try {
+                const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                const csrfVal = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+                const formData = new FormData();
+                formData.append('proxy_secret', secretVal);
+                formData.append('csrf_token', csrfVal);
+
+                const res = await fetch('/admin?action=save_rapidapi_config', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': csrfVal
+                    },
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (data.rapidapi_status) {
+                    renderRapidApiStatusBadge(data.rapidapi_status);
+                }
+
+                alertBox.style.display = 'block';
+                if (data.success) {
+                    alertBox.style.background = 'rgba(16, 185, 129, 0.15)';
+                    alertBox.style.color = '#34D399';
+                    alertBox.textContent = data.message || 'RapidAPI Bridge ativado com sucesso!';
+                    setTimeout(() => {
+                        closeRapidApiModal();
+                    }, 1500);
+                } else {
+                    alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                    alertBox.style.color = '#FCA5A5';
+                    alertBox.textContent = data.error || 'Nao foi possivel salvar o segredo RapidAPI.';
+                }
+            } catch (err) {
+                alertBox.style.display = 'block';
+                alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                alertBox.style.color = '#FCA5A5';
+                alertBox.textContent = 'Erro ao conectar ao servidor: ' + err.message;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Salvar';
+            }
+        }
+
+        async function clearRapidApiConfig() {
+            const alertBox = document.getElementById('rapidapi-modal-alert');
+            const btn = document.getElementById('btn-clear-rapidapi');
+            btn.disabled = true;
+            btn.textContent = 'Removendo...';
+
+            try {
+                const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+                const csrfVal = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+                const formData = new FormData();
+                formData.append('clear', '1');
+                formData.append('csrf_token', csrfVal);
+
+                const res = await fetch('/admin?action=save_rapidapi_config', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': csrfVal
+                    },
+                    body: formData
+                });
+                const data = await res.json();
+
+                if (data.rapidapi_status) {
+                    renderRapidApiStatusBadge(data.rapidapi_status);
+                }
+
+                alertBox.style.display = 'block';
+                if (data.success) {
+                    alertBox.style.background = 'rgba(16, 185, 129, 0.15)';
+                    alertBox.style.color = '#34D399';
+                    alertBox.textContent = data.message || 'Configuracao RapidAPI removida.';
+                    const inp = document.getElementById('modal-rapidapi-secret');
+                    if (inp) inp.value = '';
+                } else {
+                    alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                    alertBox.style.color = '#FCA5A5';
+                    alertBox.textContent = data.error || 'Nao foi possivel remover a configuracao.';
+                }
+            } catch (err) {
+                alertBox.style.display = 'block';
+                alertBox.style.background = 'rgba(239, 68, 68, 0.15)';
+                alertBox.style.color = '#FCA5A5';
+                alertBox.textContent = 'Erro ao conectar ao servidor: ' + err.message;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Desativar';
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closePasswordModal();
+                closeTelegramModal();
+                closeRapidApiModal();
+            }
+        });
+
+        // Inicializacao dos contadores e polling
+        const initialDaily = <?php echo json_encode($dailyHistory14d, JSON_HEX_TAG | JSON_HEX_AMP); ?>;
+        renderSvgChart(initialDaily);
+        applyFeedFilterAndSearch();
+        fetchLiveStats();
+        fetchGrowthAdmin();
+        setInterval(fetchLiveStats, 5000);
+        setInterval(fetchGrowthAdmin, 15000);
+    </script>
+    <footer style="max-width: 1280px; margin: 2.5rem auto 1.5rem; padding: 1.25rem 1.5rem 0; border-top: 1px solid rgba(255,255,255,0.08); text-align: center; font-size: 0.78rem; color: #64748B;">
+        © <?php echo date('Y'); ?> Grid402 Network Intelligence. Todos os direitos reservados • Software e Arquitetura Protegidos (Lei nº 9.609/1998 e Lei nº 9.610/1998).
+    </footer>
+</body>
+</html>

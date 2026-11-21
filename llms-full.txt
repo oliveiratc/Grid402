@@ -1,0 +1,322 @@
+# Grid402 - Documentacao Tecnica Completa para Modelos de Linguagem e Agentes de IA
+
+> Especificacao exaustiva de endpoints, protocolo de micropagamento HTTP 402 (x402), oraculo criptografico ECDSA secp256k1 e integracao com agentes autonomos de IA.
+
+## 1. Visao Geral da Plataforma
+O Grid402 e um hub de microservicos e dados abertos publicos da Republica Federativa do Brasil, operando sob uma arquitetura Zero-DB de ultrabaixa latencia (inferior a 20 milissegundos).
+Todas as consultas tecnicas e cadastrais sao monetizadas por chamada (pay-per-call) utilizando o codigo de status nativo HTTP 402 Payment Required e stablecoins (USDC) na rede Base (Coinbase Layer 2).
+
+- Dominio Base: https://grid402.online
+- Rede Blockchain: Base Mainnet (EVM Chain ID 8453)
+- Moeda de Liquidacao: USDC (Contrato: 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)
+- Carteira Recebedora: 0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90
+- Padrao de Assinatura: ECDSA secp256k1 (SHA-256)
+
+---
+
+## 2. Fluxo do Protocolo x402 (HTTP 402 Payment Required)
+
+Quando um agente de IA efetua uma requisicao a um endpoint tarifado sem um comprovante de pagamento valido, o servidor responde com HTTP 402:
+
+```http
+HTTP/1.1 402 Payment Required
+Content-Type: application/json; charset=utf-8
+Access-Control-Allow-Origin: *
+X-Accept-Payment: usdc-base
+X-Payment-Amount: 0.0050
+X-Payment-Receiver: 0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90
+X-Payment-Network: base-mainnet
+
+{
+  "status": "error",
+  "code": 402,
+  "message": "Payment Required. Please settle payment on Base network.",
+  "payment_details": {
+    "network": "base-mainnet",
+    "chain_id": 8453,
+    "token": "USDC",
+    "amount": "0.0050",
+    "recipient": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90"
+  }
+}
+```
+
+### Como o Agente Autonomo Deve Proceder:
+Existem 3 formas de liquidacao suportadas pelo Grid402:
+
+1. **Protocolo x402 v2 Oficial Multi-Chain Gasless via PayAI (Recomendado para Agentes M2M):**
+   - Aceita nativamente 4 redes em `accepts[]` (`exact`): Base (`eip155:8453`), Polygon (`eip155:137`), Arbitrum (`eip155:42161`) via EIP-3009 e Solana (`solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp`) via transacao SVM.
+   - Reenvie a requisicao com o cabecalho `PAYMENT-SIGNATURE: <payload_base64>` ou `X-Payment: <payload_base64>`.
+   - O Grid402 liquida via PayAI Facilitator e devolve HTTP 200 com o recibo de liquidacao no cabecalho `PAYMENT-RESPONSE`.
+   - Modo Sandbox gratuito para desenvolvimento: `X-Payment: demo` (limite de 3 requisicoes por dia por IP).
+
+2. **Session Pass de Alta Frequencia (<15ms, sem espera de bloco, `1 credito = 0.0050 USDC`):**
+   - Compre creditos pre-pagos no portal `/pass` (Pix/Cartao ou USDC) ou via `POST /api/v1/pass`:
+     - **Starter Pass (2 USDC / R$ 12):** `400 creditos` (validade 30 dias)
+     - **Pro / Agent Pass (5 USDC / R$ 29):** `1.000 creditos` (validade 30 dias)
+     - **Fleet / Enterprise Pass (20 USDC / R$ 115):** `4.000 base + 2.000 bonus (+50%) = 6.000 creditos` (validade 60 dias)
+   - Reenvie as consultas incluindo `X-Payment: pass_g402_...`.
+   - Consulte saldo gratuitamente em `GET /api/v1/pass/balance?token=pass_g402_...` e configure Spend Controls (`daily_credit_limit` e `allowed_endpoints`) em `POST /api/v1/pass/limits`.
+
+3. **Transferencia Direta On-Chain (Base Mainnet):**
+   - Execute a transferencia ERC-20 de USDC para `recipient_wallet` (`0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`).
+   - Reenvie a requisicao com `X-Payment: 0x<tx_hash>`.
+
+4. **Idempotencia M2M (`Idempotency-Key`):**
+   - Envie o cabecalho `Idempotency-Key: <uuid>` em chamadas pagas. Retentativas dentro de 300 segundos retornam o payload assinado em cache com `X-Idempotent-Replay: true` sem debitar novos creditos.
+
+---
+
+## 3. Prova Criptografica de Oraculo (`_oracle_proof`)
+
+Cada resposta tarifada ou validada inclui um objeto `_oracle_proof`:
+
+```json
+{
+  "_oracle_proof": {
+    "version": "1.0",
+    "oracle_address": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+    "timestamp_epoch": 1794140000,
+    "algorithm": "secp256k1-sha256",
+    "digest_sha256": "4a5e3f...",
+    "signature_hex": "3045022100...0220..."
+  }
+}
+```
+
+### Validacao sem Estado (`/api/v1/verify`):
+Para verificar se os dados nao foram adulterados em transito, o agente pode submeter a resposta ao endpoint de verificacao via POST:
+
+```bash
+curl -X POST https://grid402.online/api/v1/verify \
+  -H "Content-Type: application/json" \
+  -d '{"full_response_with_proof": {...}}'
+```
+
+Resposta de verificacao:
+```json
+{
+  "status": "success",
+  "valid": true,
+  "oracle_address": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+  "digest_sha256": "4a5e3f...",
+  "verification_time_ms": 0.42
+}
+```
+
+---
+
+## 4. Catalogo Completo de Endpoints
+
+### 1. Resumo do Sistema (Gratuito)
+- Rota: `GET /api/v1/summary`
+- Tarifa: 0.0000 USDC
+- Descricao: Status de conectividade e contadores de servicos do Grid402.
+
+### 2. Taxas de Cambio (Forex)
+- Rota: `GET /api/v1/forex`
+- Tarifa: 0.0050 USDC
+- Descricao: Cotacoes oficiais do Banco Central do Brasil para USD, EUR e GBP em relacao ao BRL.
+
+### 3. Tickers de Criptoativos
+- Rota: `GET /api/v1/crypto`
+- Tarifa: 0.0050 USDC
+- Descricao: Precos spot de BTC, ETH, SOL, USDC e BASE com variacao percentual em 24 horas.
+
+### 4. Consulta DNS
+- Rota: `GET /api/v1/dns?domain={dominio}`
+- Tarifa: 0.0050 USDC
+- Exemplo: `/api/v1/dns?domain=base.org`
+- Descricao: Registros autoritativos A, AAAA, MX, TXT, NS e CNAME.
+
+### 5. Inspecao TLS e SSL
+- Rota: `GET /api/v1/ssl?host={host}`
+- Tarifa: 0.0050 USDC
+- Exemplo: `/api/v1/ssl?host=base.org`
+- Descricao: Analise de certificado digital, emissor, data de expiracao e protocolos suportados.
+
+### 6. Inteligencia ASN e BGP
+- Rota: `GET /api/v1/asn?ip={ip}`
+- Tarifa: 0.0050 USDC
+- Exemplo: `/api/v1/asn?ip=1.1.1.1`
+- Descricao: Resolucao de Sistema Autonomo (ASN), bloco CIDR e organizacao detentora do IP.
+
+### 7. Endereco Postal por CEP
+- Rota: `GET /api/v1/cep?code={cep}`
+- Tarifa: 0.0050 USDC
+- Exemplo: `/api/v1/cep?code=01310100`
+- Descricao: Logradouro, bairro, cidade, UF e codigo IBGE oficial do municipio.
+
+### 8. Cadastro de Pessoa Juridica (CNPJ)
+- Rota: `GET /api/v1/cnpj?cnpj={cnpj}`
+- Tarifa: 0.0200 USDC
+- Exemplo: `/api/v1/cnpj?cnpj=00000000000191`
+- Descricao: Razao social, nome fantasia, situacao cadastral, CNAE principal, socios e capital social na Receita Federal.
+
+### 9. Indicadores Economicos Brasileiros
+- Rota: `GET /api/v1/indicators`
+- Tarifa: 0.0050 USDC
+- Descricao: Taxa Selic (meta e acumulada), CDI diario e anualizado, IPCA acumulado de 12 meses e variacao mensal.
+
+### 10. Calendario de Feriados Oficiais
+- Rota: `GET /api/v1/holidays?year={ano}`
+- Tarifa: 0.0050 USDC
+- Exemplo: `/api/v1/holidays?year=2026`
+- Descricao: Feriados nacionais e bancarios oficiais (ANBIMA e Febraban) com algoritmo de calculo pascoal Meeus.
+
+### 11. Calculadora de Dias Uteis ANBIMA
+- Rota: `GET /api/v1/workdays?start_date={data1}` (com parametro adicional `end_date={data2}`)
+- Tarifa: 0.0050 USDC
+- Exemplo: `/api/v1/workdays?start_date=2026-01-01 e end_date=2026-12-31`
+- Descricao: Contagem de dias uteis financeiros e projecao de liquidacao financeira segundo padrao ANBIMA.
+
+### 12. Verificador de Oraculo Criptografico
+- Rota: `POST /api/v1/verify` (ou `GET /api/v1/verify?payload={url_encoded_payload}`)
+- Tarifa: 0.0000 USDC (Gratuito)
+- Descricao: Validacao matematico-criptografica de assinaturas de dados geradas pelo Grid402.
+
+### 13. Sancoes Administrativas e Inidoneidade (CEIS/CNEP)
+- Rota: `GET /api/v1/sanctions?cnpj={cnpj}`
+- Tarifa: 0.0100 USDC
+- Exemplo: `/api/v1/sanctions?cnpj=00000000000191`
+- Descricao: Consulta aos cadastros federais CEIS e CNEP geridos pela CGU para identificacao de sancoes ativas e impedimentos de contratar.
+
+### 14. Enquadramento no Simples Nacional e MEI
+- Rota: `GET /api/v1/simples?cnpj={cnpj}`
+- Tarifa: 0.0100 USDC
+- Exemplo: `/api/v1/simples?cnpj=00000000000191`
+- Descricao: Consulta a situacao de opcao pelo Simples Nacional e enquadramento no SIMEI (Microempreendedor Individual) na Receita Federal.
+
+### 15. Compliance Score 360 Consolidado
+- Rota: `GET /api/v1/compliance?cnpj={cnpj}`
+- Tarifa: 0.0300 USDC (6 creditos)
+- Exemplo: `/api/v1/compliance?cnpj=00000000000191`
+- Descricao: Dossiê unificado e calculo de score de risco cadastral e idoneidade (0 a 100) com classificacao de risco (BAIXO, MEDIO, ALTO, CRITICO).
+
+### 16. Identidade Corporativa Mundial (GLEIF LEI)
+- Rota: `GET /api/v1/lei?lei={lei}` (ou `?q={nome}`)
+- Tarifa: 0.0200 USDC (4 creditos)
+- Exemplo: `/api/v1/lei?lei=5493006MHB84DD0ZWV18`
+- Descricao: Registro global ISO 17442 de empresas em 200+ jurisdicoes via base CC0 1.0 da GLEIF.
+
+### 17. Sancoes Globais (OFAC SDN / ONU) e AML Web3
+- Rota: `GET /api/v1/ofac?target={0x_ou_nome}`
+- Tarifa: 0.0200 USDC (4 creditos)
+- Exemplo: `/api/v1/ofac?target=0x8589427373d6d84e98730d7795d8f6f8731fda16`
+- Descricao: Screening internacional OFAC SDN / ONU combinado com telemetria AML on-chain na Base Mainnet.
+
+### 18. Notarizacao e Carimbo do Tempo Criptografico M2M
+- Rota: `GET /api/v1/notarize?content={texto_ou_hash}` (ou `POST /api/v1/notarize`)
+- Tarifa: 0.0050 USDC (1 credito)
+- Descricao: Certificado criptografico de existencia no tempo (SHA-256 + ECDSA secp256k1) Zero-Retention.
+
+### 19. Calendario Mundial de Bolsas e 30+ Moedas BCE (ECB)
+- Rota: `GET /api/v1/global-markets?market={US|EU|UK|BR}` (parametro opcional: `base={USD|EUR|GBP|BRL}`)
+- Tarifa: 0.0050 USDC (1 credito)
+- Descricao: Expediente de bolsas mundiais (NYSE/Fed, TARGET2, LSE, B3) e 30+ moedas oficiais do Banco Central Europeu.
+
+### 20. Auditoria Consolidada de Dominio (Domain Audit: DNS + SSL + ASN)
+- Rota: `GET /api/v1/domain-audit?domain={dominio}`
+- Tarifa: 0.0150 USDC (3 creditos)
+- Descricao: Auditoria completa de dominio em 1 chamada consolidando DNS, TLS/SSL e roteamento BGP/ASN.
+
+### 21. Auditoria Consolidada KYB e Compliance (CNPJ + OFAC + LEI)
+- Rota: `GET /api/v1/kyb-audit?cnpj={cnpj}` (parametros opcionais: `name={nome}`, `lei={lei}`)
+- Tarifa: 0.0200 USDC (4 creditos)
+- Descricao: Triagem corporativa consolidada unindo Receita Federal, OFAC SDN e GLEIF LEI em 1 chamada.
+
+### 22. Snapshot Consolidado de Mercado (Forex + Crypto + Indicadores)
+- Rota: `GET /api/v1/market-snapshot`
+- Tarifa: 0.0150 USDC (3 creditos)
+- Descricao: Panorama financeiro unificado combinando cambio PTAX, criptoativos spot e indicadores Selic/CDI/IPCA.
+
+### 23. Dossie 360 KYB Premium + Veredito IA (APPROVED / FLAGGED / REJECTED)
+- Rota: `GET /api/v1/dossier?cnpj={cnpj}`
+- Tarifa: 0.0500 USDC (10 creditos)
+- Exemplo: `/api/v1/dossier?cnpj=00000000000191`
+- Descricao: Dossie corporativo premium em 1 chamada consolidando Receita Federal (CNPJ), Simples Nacional/MEI, Sancoes CGU (CEIS/CNEP), Compliance Score 360 e bloco estruturado `verdict` (`APPROVED`, `FLAGGED`, `REJECTED`), estritamente Zero-PII e assinado com `_oracle_proof`.
+
+### 24. Extrator Web para Markdown Limpo (LLM/RAG)
+- Rota: `GET /api/v1/extract?url={url}` (parametro opcional: `max_chars=500..25000`)
+- Tarifa: 0.0050 USDC (1 credito)
+- Exemplo: `/api/v1/extract?url=https://example.com`
+- Descricao: Extrai paginas web publicas HTTP/HTTPS com protecao rigorosa contra SSRF (resolucao DNS previa bloqueando loopback/LAN/metadata, max 3 redirects, limite 1 MB, timeout 5s) e devolve Markdown limpo, titulo, descricao e links absolutos assinados com `_oracle_proof`.
+
+### 25. Auditoria de E-mail e Entregabilidade B2B (Zero-PII)
+- Rota: `GET /api/v1/email-verify?email={email}`
+- Tarifa: 0.0050 USDC (1 credito)
+- Exemplo: `/api/v1/email-verify?email=contato@grid402.online`
+- Descricao: Valida sintaxe RFC, registros DNS MX, politicas SPF e DMARC, dominios descartaveis (disposable), provedores gratuitos e enderecos role-based retornando `deliverability_score` (0 a 100) e `verdict` (`VALID`, `RISKY`, `INVALID`). Estritamente Zero-PII: nunca persiste o e-mail bruto em disco.
+
+### 26. Session Pass Pre-Pago Multi-Chain (5 Redes EVM + Solana) e Spend Controls
+- Emissao Multi-Chain: `POST /api/v1/pass-emitir` (`{"txHash": "...", "chain": "base|arbitrum|polygon|optimism|ethereum|solana"}`) ou `GET /api/v1/pass` (Starter 2 USDC = 400 creditos, Pro 5 USDC = 1.000 creditos, Fleet 20 USDC = 4.000 base + 2.000 bonus = 6.000 creditos).
+- Redes EVM (`0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`): Base (8453), Arbitrum One (42161), Polygon PoS (137), Optimism (10) e Ethereum Mainnet (1).
+- Rede Solana (`CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C`): SPL USDC (`EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`).
+- Consulta Gratuita de Saldo: `GET /api/v1/pass/balance?token=pass_g402_...` (0.0000 USDC)
+- Configuracao Gratuita de Spend Controls: `POST /api/v1/pass/limits` com `token`, `daily_credit_limit` e `allowed_endpoints`.
+- Extrato Zero-PII CSV/JSON (Gratuito): `GET /api/v1/pass/statement?token=pass_g402_...` (parametros opcionais: `format=json` ou `csv`, `endpoint`, `outcome`; retem ate 200 eventos recentes por passe) e painel visual em `/payment-dashboard`.
+
+---
+
+## 5. Exemplo de Codigo em Python para Agentes
+
+```python
+import requests
+
+BASE_URL = "https://grid402.online"
+
+def consultar_cnpj(cnpj, payment_tx_hash=None):
+    headers = {}
+    if payment_tx_hash:
+        headers["X-Payment"] = payment_tx_hash
+    
+    url = f"{BASE_URL}/api/v1/cnpj?cnpj={cnpj}"
+    res = requests.get(url, headers=headers)
+    
+    if res.status_code == 402:
+        payment_info = res.json()["payment_details"]
+        print(f"[402] Pagamento necessario de {payment_info['amount']} USDC para {payment_info['recipient']}")
+        return res.json()
+    
+    data = res.json()
+    print("[200] Dados obtidos com sucesso! Assinatura de Oraculo presente:", "_oracle_proof" in data)
+    return data
+
+# Modo teste / visualizacao de desafio:
+consultar_cnpj("00000000000191")
+```
+
+---
+
+## 6. Integracao via Model Context Protocol (MCP)
+
+Para conectar o Grid402 ao Claude Desktop ou Cursor:
+Arquivo `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "grid402": {
+      "command": "npx",
+      "args": ["-y", "grid402-mcp@latest"],
+      "env": {
+        "GRID402_BASE_URL": "https://grid402.online"
+      }
+    }
+  }
+}
+```
+
+Manifesto remoto de ferramentas disponivel em:
+`https://grid402.online/.well-known/mcp.json`
+
+---
+
+## 7. Paginas Publicas de Descoberta e Conversao
+
+- [Catalogo Completo](https://grid402.online/catalog): Todos os endpoints, precos, limites e exemplos
+- [Trust Center](https://grid402.online/trust): SLA, disponibilidade 14 dias, metodologia, incidentes
+- [Agent Hub](https://grid402.online/agent-hub): Como integrar agentes autonomos (HTTP x402, MCP, AgentKit)
+- [Growth Program](https://grid402.online/growth): Starter, Builder Rewards e Referrals para agentes
+- [Builder Reputation](https://grid402.online/reputation): Builders validados (pseudonimo, sem PII)
+- [Payment Dashboard](https://grid402.online/payment-dashboard): Pay-per-Request vs Session Pass em uma unica tela
