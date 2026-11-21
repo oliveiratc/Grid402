@@ -136,6 +136,8 @@ class Grid402Client:
         base_url: str = DEFAULT_ENDPOINT,
         sandbox: bool = False,
         payment_tx_hash: Optional[str] = None,
+        session_pass: Optional[str] = None,
+        rapidapi_key: Optional[str] = None,
         timeout: int = 10,
         raise_for_payment: bool = False,
     ):
@@ -146,13 +148,18 @@ class Grid402Client:
             base_url: Endereco base da API do Grid402.
             sandbox: Se True, ativa o modo Sandbox gratuito para homologacao sem custo.
             payment_tx_hash: Hash de transacao USDC opcional padrao para as requisicoes.
+            session_pass: Token pass_g402_... opcional para chamadas pre-pagas em <15ms.
+            rapidapi_key: Chave X-RapidAPI-Key opcional para assinaturas RapidAPI Hub.
             timeout: Tempo limite em segundos para cada requisicao HTTP.
             raise_for_payment: Se True, lanca Grid402PaymentRequiredError ao receber HTTP 402.
                               Se False, retorna o dicionario com o desafio e dados parciais.
         """
+        import os
         self.base_url = base_url.rstrip("/")
         self.sandbox = sandbox
-        self.payment_tx_hash = payment_tx_hash
+        self.session_pass = session_pass or os.environ.get("GRID402_SESSION_PASS") or None
+        self.rapidapi_key = rapidapi_key or os.environ.get("GRID402_RAPIDAPI_KEY") or None
+        self.payment_tx_hash = payment_tx_hash or self.session_pass
         self.timeout = timeout
         self.raise_for_payment = raise_for_payment
 
@@ -179,8 +186,11 @@ class Grid402Client:
 
         headers = {
             "Accept": "application/json",
-            "User-Agent": "Grid402-Python-SDK/2.2",
+            "User-Agent": "Grid402-Python-SDK/2.6.0",
         }
+
+        if self.rapidapi_key:
+            headers["X-RapidAPI-Key"] = self.rapidapi_key
 
         active_tx_hash = payment_tx_hash or self.payment_tx_hash
         if active_tx_hash:
@@ -286,6 +296,97 @@ class Grid402Client:
             inst._raw_data = raw
             return inst
         return raw
+
+    def get_sanctions(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Consulta sancoes administrativas nos cadastros CEIS e CNEP da CGU."""
+        clean = "".join(ch for ch in str(cnpj or "") if ch.isdigit())
+        return self._request("/api/v1/sanctions", params={"cnpj": clean}, payment_tx_hash=payment_tx_hash)
+
+    def get_simples(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Consulta enquadramento no Simples Nacional e MEI (SIMEI)."""
+        clean = "".join(ch for ch in str(cnpj or "") if ch.isdigit())
+        return self._request("/api/v1/simples", params={"cnpj": clean}, payment_tx_hash=payment_tx_hash)
+
+    def get_compliance(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Calcula o Compliance Score 360 (0 a 100) cruzando Receita Federal e CGU."""
+        clean = "".join(ch for ch in str(cnpj or "") if ch.isdigit())
+        return self._request("/api/v1/compliance", params={"cnpj": clean}, payment_tx_hash=payment_tx_hash)
+
+    def get_dossier_360(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Dossie 360 KYB Premium com Veredito Sintetizado para IA (APPROVED, FLAGGED, REJECTED)."""
+        clean = "".join(ch for ch in str(cnpj or "") if ch.isdigit())
+        return self._request("/api/v1/dossier", params={"cnpj": clean}, payment_tx_hash=payment_tx_hash)
+
+    def get_dossier(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Alias para get_dossier_360."""
+        return self.get_dossier_360(cnpj, payment_tx_hash=payment_tx_hash)
+
+    def get_domain_audit(self, domain: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Auditoria completa de infraestrutura de dominio (DNS + TLS/SSL + BGP/ASN)."""
+        return self._request("/api/v1/domain-audit", params={"domain": domain}, payment_tx_hash=payment_tx_hash)
+
+    def get_kyb_audit(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Auditoria corporativa global KYB em chamada unica (CNPJ + OFAC/ONU + GLEIF LEI)."""
+        clean = "".join(ch for ch in str(cnpj or "") if ch.isdigit())
+        return self._request("/api/v1/kyb-audit", params={"cnpj": clean}, payment_tx_hash=payment_tx_hash)
+
+    def get_market_snapshot(self, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Panorama financeiro e macroeconomico consolidado em chamada unica."""
+        return self._request("/api/v1/market-snapshot", payment_tx_hash=payment_tx_hash)
+
+    def get_lei(self, lei: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Consulta identidade corporativa internacional oficial (ISO 17442) via GLEIF."""
+        return self._request("/api/v1/lei", params={"lei": lei.strip()}, payment_tx_hash=payment_tx_hash)
+
+    def get_ofac(self, target: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Triagem de sancoes globais (OFAC SDN / ONU) e risco AML Web3."""
+        return self._request("/api/v1/ofac", params={"target": target.strip()}, payment_tx_hash=payment_tx_hash)
+
+    def notarize(self, content: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Carimbo do tempo criptografico M2M e prova de existencia SHA-256 assinada com ECDSA."""
+        return self._request("/api/v1/notarize", params={"content": content}, payment_tx_hash=payment_tx_hash)
+
+    def get_global_markets(
+        self,
+        market: Optional[str] = None,
+        base: Optional[str] = None,
+        date: Optional[str] = None,
+        payment_tx_hash: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Calendario de liquidacao de bolsas globais (US, EU, UK, BR) e taxas de cambio BCE."""
+        params = {"market": market, "base": base, "date": date}
+        return self._request("/api/v1/global-markets", params=params, payment_tx_hash=payment_tx_hash)
+
+    def extract(
+        self,
+        url: str,
+        max_chars: Optional[int] = None,
+        payment_tx_hash: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Extrai paginas web publicas HTTP/HTTPS para Markdown limpo pronto para LLMs e RAG."""
+        params: Dict[str, Any] = {"url": url}
+        if max_chars is not None:
+            params["max_chars"] = max_chars
+        return self._request("/api/v1/extract", params=params, payment_tx_hash=payment_tx_hash)
+
+    def email_verify(self, email: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Audita entregabilidade de e-mail B2B estritamente Zero-PII (RFC, MX, SPF, DMARC, disposable)."""
+        return self._request("/api/v1/email-verify", params={"email": email.strip()}, payment_tx_hash=payment_tx_hash)
+
+    def get_pass_balance(self, token: Optional[str] = None) -> Dict[str, Any]:
+        """Consulta gratuita em tempo real do saldo de creditos e Spend Controls de um Session Pass."""
+        t = token or self.session_pass or self.payment_tx_hash or ""
+        return self._request("/api/v1/pass/balance", params={"token": t})
+
+    def get_pass_statement(
+        self,
+        token: Optional[str] = None,
+        endpoint: Optional[str] = None,
+        outcome: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Consulta gratuita do extrato Zero-PII (ate 200 lancamentos recentes) de um Session Pass."""
+        t = token or self.session_pass or self.payment_tx_hash or ""
+        return self._request("/api/v1/pass/statement", params={"token": t, "endpoint": endpoint, "outcome": outcome})
 
     def verify_proof(
         self,

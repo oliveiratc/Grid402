@@ -209,6 +209,76 @@ class Grid402Client:
         """Alias para get_dossier_360."""
         return self.get_dossier_360(cnpj, payment_tx_hash=payment_tx_hash)
 
+    def get_domain_audit(self, domain: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Auditoria completa de infraestrutura de dominio (DNS + TLS/SSL + BGP/ASN)."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        q = urllib.parse.urlencode({"domain": domain})
+        return self._request(f"/api/v1/domain-audit?{q}", headers=headers)
+
+    def get_kyb_audit(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Auditoria corporativa global KYB em chamada unica (CNPJ + OFAC/ONU + GLEIF LEI)."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        clean = "".join(ch for ch in str(cnpj or "") if ch.isdigit())
+        q = urllib.parse.urlencode({"cnpj": clean})
+        return self._request(f"/api/v1/kyb-audit?{q}", headers=headers)
+
+    def get_market_snapshot(self, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Panorama financeiro e macroeconomico consolidado em chamada unica."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        return self._request("/api/v1/market-snapshot", headers=headers)
+
+    def get_lei(self, lei: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Consulta identidade corporativa internacional oficial (ISO 17442) via GLEIF."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        q = urllib.parse.urlencode({"lei": lei.strip()})
+        return self._request(f"/api/v1/lei?{q}", headers=headers)
+
+    def get_ofac(self, target: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Triagem de sancoes globais (OFAC SDN / ONU) e risco AML Web3."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        q = urllib.parse.urlencode({"target": target.strip()})
+        return self._request(f"/api/v1/ofac?{q}", headers=headers)
+
+    def notarize(self, content: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Carimbo do tempo criptografico M2M e prova de existencia SHA-256 assinada com ECDSA."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        q = urllib.parse.urlencode({"content": content})
+        return self._request(f"/api/v1/notarize?{q}", headers=headers)
+
+    def get_global_markets(
+        self,
+        market: Optional[str] = None,
+        base: Optional[str] = None,
+        date: Optional[str] = None,
+        payment_tx_hash: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Calendario de liquidacao de bolsas globais (US, EU, UK, BR) e taxas de cambio BCE."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        params = {k: v for k, v in {"market": market, "base": base, "date": date}.items() if v is not None}
+        qs = urllib.parse.urlencode(params)
+        q = f"?{qs}" if qs else ""
+        return self._request(f"/api/v1/global-markets{q}", headers=headers)
+
+    def extract(
+        self,
+        url: str,
+        max_chars: Optional[int] = None,
+        payment_tx_hash: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Extrai paginas web publicas HTTP/HTTPS para Markdown limpo pronto para LLMs e RAG."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        params: Dict[str, Any] = {"url": url}
+        if max_chars is not None:
+            params["max_chars"] = str(max_chars)
+        q = urllib.parse.urlencode(params)
+        return self._request(f"/api/v1/extract?{q}", headers=headers)
+
+    def email_verify(self, email: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
+        """Audita entregabilidade de e-mail B2B estritamente Zero-PII."""
+        headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
+        q = urllib.parse.urlencode({"email": email.strip()})
+        return self._request(f"/api/v1/email-verify?{q}", headers=headers)
+
     def is_healthy(self, service_name: str = "forex") -> bool:
         """Verifica se um serviço específico ou o hub está operacional."""
         summary = self.get_summary()

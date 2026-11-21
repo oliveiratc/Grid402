@@ -347,3 +347,51 @@ test('Grid402Client - Metodos de Compliance, Sancoes e Simples Nacional', async 
     globalThis.fetch = originalFetch;
   }
 });
+
+test('Grid402Client - Metodos Extract, EmailVerify, Bundles, Global e Session Pass', async () => {
+  const client = new Grid402Client({
+    sessionPass: 'pass_g402_test_token_123',
+    rapidApiKey: 'rapid_key_abc',
+  });
+
+  const originalFetch = globalThis.fetch;
+  const recordedCalls = [];
+
+  globalThis.fetch = async (url, options) => {
+    recordedCalls.push({ url, headers: options.headers });
+    return {
+      status: 200,
+      ok: true,
+      text: async () => JSON.stringify({ status: 'success' }),
+    };
+  };
+
+  try {
+    await client.extract('https://grid402.online', 5000);
+    await client.emailVerify('dev@grid402.online');
+    await client.getDomainAudit('base.org');
+    await client.getKybAudit('00.000.000/0001-91');
+    await client.getMarketSnapshot();
+    await client.getLei('5493006MHB84DD0ZWV18');
+    await client.getOfac('0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90');
+    await client.notarize('contrato-m2m');
+    await client.getGlobalMarkets({ market: 'US', base: 'USD' });
+    await client.getPassBalance();
+
+    assert.equal(recordedCalls.length, 10);
+    assert.equal(recordedCalls[0].headers['X-Payment'], 'pass_g402_test_token_123');
+    assert.equal(recordedCalls[0].headers['X-RapidAPI-Key'], 'rapid_key_abc');
+    assert(recordedCalls[0].url.includes('/api/v1/extract?'));
+    assert(recordedCalls[1].url.includes('/api/v1/email-verify?email=dev%40grid402.online'));
+    assert(recordedCalls[2].url.includes('/api/v1/domain-audit?domain=base.org'));
+    assert(recordedCalls[3].url.includes('/api/v1/kyb-audit?cnpj=00000000000191'));
+    assert(recordedCalls[4].url.includes('/api/v1/market-snapshot'));
+    assert(recordedCalls[5].url.includes('/api/v1/lei?lei=5493006MHB84DD0ZWV18'));
+    assert(recordedCalls[6].url.includes('/api/v1/ofac?target='));
+    assert(recordedCalls[7].url.includes('/api/v1/notarize?content=contrato-m2m'));
+    assert(recordedCalls[8].url.includes('/api/v1/global-markets?market=US&base=USD'));
+    assert(recordedCalls[9].url.includes('/api/v1/pass/balance?token=pass_g402_test_token_123'));
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

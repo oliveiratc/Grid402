@@ -369,6 +369,8 @@ export declare class ReplayAttackError extends Grid402Error {}
 export interface Grid402Options {
     baseUrl?: string;
     sandbox?: boolean;
+    sessionPass?: string;
+    rapidApiKey?: string;
     paymentTxHash?: string;
     timeout?: number;
     raiseForPayment?: boolean;
@@ -377,6 +379,8 @@ export interface Grid402Options {
 export declare class Grid402Client {
     baseUrl: string;
     sandbox: boolean;
+    sessionPass: string | null;
+    rapidApiKey: string | null;
     paymentTxHash: string | null;
     timeout: number;
     raiseForPayment: boolean;
@@ -400,6 +404,20 @@ export declare class Grid402Client {
     getCompliance(cnpj: string, paymentTxHash?: string): Promise<ComplianceResponse>;
     getDossier360(cnpj: string, paymentTxHash?: string): Promise<Dossier360Response>;
     getDossier(cnpj: string, paymentTxHash?: string): Promise<Dossier360Response>;
+    getDomainAudit(domain: string, paymentTxHash?: string): Promise<Record<string, any>>;
+    getKybAudit(cnpj: string, paymentTxHash?: string): Promise<Record<string, any>>;
+    getMarketSnapshot(paymentTxHash?: string): Promise<Record<string, any>>;
+    getLei(lei: string, paymentTxHash?: string): Promise<Record<string, any>>;
+    getOfac(target: string, paymentTxHash?: string): Promise<Record<string, any>>;
+    notarize(content: string, paymentTxHash?: string): Promise<Record<string, any>>;
+    getNotarize(content: string, paymentTxHash?: string): Promise<Record<string, any>>;
+    getGlobalMarkets(params?: { market?: string; base?: string; date?: string }, paymentTxHash?: string): Promise<Record<string, any>>;
+    extract(url: string, maxChars?: number | null, paymentTxHash?: string): Promise<Record<string, any>>;
+    getExtract(url: string, maxChars?: number | null, paymentTxHash?: string): Promise<Record<string, any>>;
+    emailVerify(email: string, paymentTxHash?: string): Promise<Record<string, any>>;
+    getEmailVerify(email: string, paymentTxHash?: string): Promise<Record<string, any>>;
+    getPassBalance(token?: string): Promise<Record<string, any>>;
+    getPassStatement(token?: string, filters?: { endpoint?: string; outcome?: string }): Promise<Record<string, any>>;
     verifyProof(response: Record<string, any>, expectedOracleAddress?: string): OracleVerificationResult;
     isHealthy(serviceName?: string): Promise<boolean>;
     guard<T>(serviceName: string, action: () => Promise<T> | T, fallback?: () => Promise<T> | T): Promise<T>;

@@ -149,7 +149,9 @@ class Grid402Client {
   constructor(options = {}) {
     this.baseUrl = (options.baseUrl || DEFAULT_GRID402_URL).replace(/\/$/, '');
     this.sandbox = Boolean(options.sandbox);
-    this.paymentTxHash = options.paymentTxHash || null;
+    this.sessionPass = options.sessionPass || (typeof process !== 'undefined' && process.env ? process.env.GRID402_SESSION_PASS : null) || null;
+    this.rapidApiKey = options.rapidApiKey || (typeof process !== 'undefined' && process.env ? process.env.GRID402_RAPIDAPI_KEY : null) || null;
+    this.paymentTxHash = options.paymentTxHash || this.sessionPass || null;
     this.timeout = options.timeout || 10000;
     this.raiseForPayment = options.raiseForPayment !== false;
   }
@@ -161,9 +163,13 @@ class Grid402Client {
 
     const mergedHeaders = {
       'Accept': 'application/json',
-      'User-Agent': 'Grid402-Node-CJS-SDK/2.3',
+      'User-Agent': 'Grid402-Node-CJS-SDK/2.9.0',
       ...headers,
     };
+
+    if (this.rapidApiKey && !mergedHeaders['X-RapidAPI-Key']) {
+      mergedHeaders['X-RapidAPI-Key'] = this.rapidApiKey;
+    }
 
     if (this.paymentTxHash) {
       if (!mergedHeaders['X-Payment']) {
@@ -337,6 +343,86 @@ class Grid402Client {
 
   async getDossier(cnpj, paymentTxHash = null) {
     return this.getDossier360(cnpj, paymentTxHash);
+  }
+
+  async getDomainAudit(domain, paymentTxHash = null) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    return this._request(`/api/v1/domain-audit?domain=${encodeURIComponent(domain)}`, headers);
+  }
+
+  async getKybAudit(cnpj, paymentTxHash = null) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    const clean = String(cnpj || '').replace(/\D/g, '');
+    return this._request(`/api/v1/kyb-audit?cnpj=${encodeURIComponent(clean)}`, headers);
+  }
+
+  async getMarketSnapshot(paymentTxHash = null) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    return this._request('/api/v1/market-snapshot', headers);
+  }
+
+  async getLei(lei, paymentTxHash = null) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    return this._request(`/api/v1/lei?lei=${encodeURIComponent(String(lei || '').trim())}`, headers);
+  }
+
+  async getOfac(target, paymentTxHash = null) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    return this._request(`/api/v1/ofac?target=${encodeURIComponent(String(target || '').trim())}`, headers);
+  }
+
+  async notarize(content, paymentTxHash = null) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    return this._request(`/api/v1/notarize?content=${encodeURIComponent(String(content || ''))}`, headers);
+  }
+
+  async getNotarize(content, paymentTxHash = null) {
+    return this.notarize(content, paymentTxHash);
+  }
+
+  async getGlobalMarkets(params = {}, paymentTxHash = null) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    const sp = new URLSearchParams();
+    if (params.market) sp.set('market', params.market);
+    if (params.base) sp.set('base', params.base);
+    if (params.date) sp.set('date', params.date);
+    const qs = sp.toString();
+    return this._request(`/api/v1/global-markets${qs ? '?' + qs : ''}`, headers);
+  }
+
+  async extract(url, maxChars = null, paymentTxHash = null) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    const sp = new URLSearchParams({ url: String(url || '') });
+    if (maxChars !== null && maxChars !== undefined) {
+      sp.set('max_chars', String(maxChars));
+    }
+    return this._request(`/api/v1/extract?${sp.toString()}`, headers);
+  }
+
+  async getExtract(url, maxChars = null, paymentTxHash = null) {
+    return this.extract(url, maxChars, paymentTxHash);
+  }
+
+  async emailVerify(email, paymentTxHash = null) {
+    const headers = paymentTxHash ? { 'X-Payment': paymentTxHash } : {};
+    return this._request(`/api/v1/email-verify?email=${encodeURIComponent(String(email || '').trim())}`, headers);
+  }
+
+  async getEmailVerify(email, paymentTxHash = null) {
+    return this.emailVerify(email, paymentTxHash);
+  }
+
+  async getPassBalance(token = null) {
+    const t = token || this.sessionPass || this.paymentTxHash || '';
+    return this._request(`/api/v1/pass/balance?token=${encodeURIComponent(t)}`);
+  }
+
+  async getPassStatement(token = null, filters = {}) {
+    const t = token || this.sessionPass || this.paymentTxHash || '';
+    const sp = new URLSearchParams({ token: t });
+    if (filters.endpoint) sp.set('endpoint', filters.endpoint);
+    if (filters.outcome) sp.set('outcome', filters.outcome);
+    return this._request(`/api/v1/pass/statement?${sp.toString()}`);
   }
 
   /**
