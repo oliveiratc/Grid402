@@ -297,11 +297,13 @@ try {
     // 402 multi-chain em /api/v1/extract
     $r402Ext = $httpCall("{$baseUrl}/api/v1/extract?url=" . urlencode('https://example.com'));
     $j402Ext = json_decode($r402Ext['body'], true);
-    t_assert('HTTP 402 em /api/v1/extract inclui price_usdc=0.0050, 4 redes em accepts[] e preview',
+    t_assert('HTTP 402 em /api/v1/extract inclui price_usdc=0.0050, 4 redes em accepts[], preview e checkout Pix + RapidAPI',
         $r402Ext['code'] === 402 &&
         ($j402Ext['price_usdc'] ?? '') === '0.0050' &&
         count($j402Ext['accepts'] ?? []) === 4 &&
-        isset($j402Ext['preview'], $j402Ext['locked_fields']),
+        isset($j402Ext['preview'], $j402Ext['locked_fields']) &&
+        str_contains((string) ($j402Ext['fiat_and_card_checkout']['pix_instant_brl']['starter_url'] ?? ''), 'autopix=1') &&
+        str_contains((string) ($j402Ext['fiat_and_card_checkout']['rapidapi_credit_card_usd']['all_25_apis_url'] ?? ''), 'rapidapi.com'),
         "Code={$r402Ext['code']}"
     );
 
@@ -327,9 +329,11 @@ try {
         ($firstSbBody['sandbox_info']['quota_remaining_today'] ?? -1) === 2 &&
         ($firstSbBody['sandbox_info']['quota_limit_per_day'] ?? -1) === 3
     );
-    t_assert('4ª chamada sandbox retorna Retry-After e upgrade_to_production com /pass',
+    t_assert('4ª chamada sandbox retorna Retry-After e upgrade_to_production com /pass, autopix=1 e RapidAPI Hub',
         stripos($fourthSbHdrs ?? '', 'Retry-After:') !== false &&
-        str_contains((string) ($fourthSbBody['upgrade_to_production']['session_pass_url'] ?? ''), '/pass')
+        str_contains((string) ($fourthSbBody['upgrade_to_production']['session_pass_url'] ?? ''), '/pass') &&
+        str_contains((string) ($fourthSbBody['upgrade_to_production']['pix_instant_starter_url'] ?? ''), 'autopix=1') &&
+        str_contains((string) ($fourthSbBody['upgrade_to_production']['rapidapi_credit_card_usd']['brazil_kyb_cnpj_anbima_url'] ?? ''), 'rapidapi.com')
     );
 
     // -----------------------------------------------------------------

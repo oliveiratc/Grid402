@@ -480,6 +480,25 @@ export const MCP_TOOLS_DEFINITIONS = [
 /**
  * Despachante de requisição HTTP com liquidação automática de desafio x402
  */
+export const CHECKOUT_OPTIONS = {
+  pix_instant_brl: {
+    starter_400_credits: 'https://grid402.online/pass?tier=starter&autopix=1 (R$ 12,00 via Pix = 400 créditos)',
+    pro_1000_credits: 'https://grid402.online/pass?tier=pro&autopix=1 (R$ 28,00 via Pix = 1.000 créditos)',
+    fleet_6000_credits: 'https://grid402.online/pass?tier=fleet&autopix=1 (R$ 110,00 via Pix = 6.000 créditos)',
+    how_to_use: 'Defina GRID402_SESSION_PASS=pass_g402_... no ambiente do MCP para chamadas em <15ms sem chave privada.',
+  },
+  rapidapi_credit_card_usd: {
+    plans: 'PRO $9.90/mês (2.500 chamadas) | ULTRA $29.90/mês (10.000 chamadas) | MEGA $79.90/mês (50.000 chamadas)',
+    all_25_apis: 'https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities',
+    web_markdown_email_network: 'https://rapidapi.com/oliveiratc/api/grid402-web-to-markdown-email-verify-network-utilities',
+    brazil_kyb_cnpj_anbima: 'https://rapidapi.com/oliveiratc/api/brazil-kyb-cnpj-cgu-sanctions-anbima-workdays-api',
+  },
+  web3_multichain_usdc: {
+    networks: 'Base, Polygon, Arbitrum e Solana SPL USDC',
+    how_to_use: 'Defina GRID402_PRIVATE_KEY (EVM) ou GRID402_SOLANA_PRIVATE_KEY (Solana) e GRID402_PAYMENT_NETWORK=base|polygon|arbitrum|solana.',
+  },
+};
+
 export async function executeGrid402Request(service, params = {}, options = {}) {
   const endpoint = (options.endpoint || DEFAULT_ENDPOINT).replace(/\/$/, '');
   const paymentNetwork = options.network || params.payment_network || process.env.GRID402_PAYMENT_NETWORK || null;
@@ -645,11 +664,21 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
     headers['Idempotency-Key'] = String(params.idempotency_key);
   }
 
+  const isExplicitlyNotSandbox = process.env.GRID402_SANDBOX === 'false' || process.env.GRID402_SANDBOX === '0';
+  const isExplicitSandbox = process.env.GRID402_SANDBOX === 'true' || process.env.GRID402_SANDBOX === '1';
+  const useAutoTrial = Boolean(
+    options.autoTrial &&
+    !params.payment_tx_hash &&
+    !process.env.GRID402_SESSION_PASS &&
+    !privateKey &&
+    !isExplicitlyNotSandbox
+  );
+
   if (params.payment_tx_hash) {
     headers['X-Payment'] = params.payment_tx_hash;
   } else if (process.env.GRID402_SESSION_PASS) {
     headers['X-Payment'] = process.env.GRID402_SESSION_PASS.trim();
-  } else if (process.env.GRID402_SANDBOX === 'true' || process.env.GRID402_SANDBOX === '1') {
+  } else if (isExplicitSandbox || useAutoTrial) {
     headers['X-Payment'] = 'demo';
   }
 
@@ -657,7 +686,33 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
   const response = await fetch(url, { headers });
 
   if (response.status === 200) {
-    return await response.json();
+    const data = await response.json();
+    if (useAutoTrial && data && typeof data === 'object') {
+      const rem = data?.sandbox_info?.quota_remaining_today ?? null;
+      return {
+        ...data,
+        _trial_upgrade_notice: {
+          mode: 'FREE_DAILY_TRIAL (3 queries/day per IP)',
+          remaining_free_queries_today: rem,
+          upgrade_instant_pix_brl: CHECKOUT_OPTIONS.pix_instant_brl.starter_400_credits,
+          upgrade_credit_card_usd: CHECKOUT_OPTIONS.rapidapi_credit_card_usd.all_25_apis,
+          upgrade_session_pass_portal: 'https://grid402.online/pass',
+        },
+      };
+    }
+    return data;
+  }
+
+  // 1.1 Se atingiu o limite diário de 3 consultas grátis do Sandbox (HTTP 429), devolve paywall estruturado com links Pix, RapidAPI e Web3
+  if (response.status === 429) {
+    const limitData = await response.json().catch(() => ({}));
+    return {
+      ...limitData,
+      payment_required: true,
+      error: limitData.error || 'SandboxRateLimitExceeded',
+      message: limitData.message || 'Suas 3 consultas gratuitas do dia foram utilizadas. Escolha uma opção abaixo para continuar imediatamente sem limite de taxa:',
+      checkout_options: CHECKOUT_OPTIONS,
+    };
   }
 
   // 2. Se retornou 402 Payment Required
@@ -701,12 +756,13 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
       }
     }
 
-    // Se não há chave privada ou session pass configurados, retorna o desafio de pagamento estruturado
+    // Se não há chave privada ou session pass configurados, retorna o desafio de pagamento estruturado com checkout Pix, Cartão RapidAPI e Web3
     return {
       payment_required: true,
-      message: 'Esta consulta requer micropagamento em USDC Multi-Chain (Base, Polygon, Arbitrum ou Solana) via protocolo x402.',
+      message: 'Esta consulta requer micropagamento em USDC Multi-Chain (Base, Polygon, Arbitrum ou Solana), Session Pass pré-pago (Pix/Cartão) ou assinatura RapidAPI.',
       challenge,
-      instructions: 'Opções de acesso: (1) Teste grátis definindo GRID402_SANDBOX=true; (2) Use um passe pré-pago sem expor chave privada definindo GRID402_SESSION_PASS=pass_g402_...; (3) Para auto-liquidação x402 Multi-Chain, defina GRID402_PRIVATE_KEY (EVM Base/Polygon/Arbitrum) ou GRID402_SOLANA_PRIVATE_KEY (Solana SPL USDC) e opcionalmente GRID402_PAYMENT_NETWORK=base|polygon|arbitrum|solana.',
+      checkout_options: CHECKOUT_OPTIONS,
+      instructions: 'Opções de acesso imediato: (1) Pix/Cartão em 10s (R$ 12 = 400 créditos): https://grid402.online/pass?tier=starter&autopix=1 e defina GRID402_SESSION_PASS=pass_g402_...; (2) Cartão Internacional em USD ($9.90/mês) no RapidAPI Hub: https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities; (3) Auto-liquidação x402 Multi-Chain: defina GRID402_PRIVATE_KEY (Base/Polygon/Arbitrum) ou GRID402_SOLANA_PRIVATE_KEY (Solana SPL USDC); (4) Teste grátis (3/dia): defina GRID402_SANDBOX=true.',
     };
   }
 

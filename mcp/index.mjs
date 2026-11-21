@@ -130,7 +130,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new Error(`Ferramenta MCP desconhecida: ${toolName}`);
     }
 
-    const result = await executeGrid402Request(service, args);
+    const autoTrial = process.env.GRID402_AUTO_TRIAL !== 'false' && process.env.GRID402_AUTO_TRIAL !== '0';
+    const result = await executeGrid402Request(service, args, { autoTrial });
 
     return {
       content: [

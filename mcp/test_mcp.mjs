@@ -75,6 +75,8 @@ async function runTests() {
   const dnsChallenge = await executeGrid402Request('dns', { domain: 'github.com' });
   assert.strictEqual(dnsChallenge.payment_required, true, 'Deve indicar payment_required: true');
   assert.ok(dnsChallenge.challenge, 'Deve conter objeto challenge');
+  assert.ok(dnsChallenge.checkout_options?.pix_instant_brl?.starter_400_credits?.includes('autopix=1'), 'Desafio 402 deve incluir link de Pix instantaneo (autopix=1)');
+  assert.ok(dnsChallenge.checkout_options?.rapidapi_credit_card_usd?.all_25_apis?.includes('rapidapi.com'), 'Desafio 402 deve incluir links das 3 APIs no RapidAPI Hub');
   assert.strictEqual(
     (dnsChallenge.challenge.recipient_wallet || '').toLowerCase(),
     GRID402_RECIPIENT_WALLET,

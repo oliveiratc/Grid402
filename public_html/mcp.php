@@ -241,7 +241,16 @@ function mcp_accepts_unpaid(string $service, ?int $requiredRawUnits = null): arr
         'chain_id' => 8453,
         'token' => 'USDC',
         'token_contract' => GRID402_USDC_CONTRACT,
-        'hint' => 'Call the API endpoint directly (e.g. https://grid402.online/api/v1/' . $service . ') or pass payment_tx_hash / X-Payment / PAYMENT-SIGNATURE.',
+        'fiat_and_card_checkout' => [
+            'pix_instant_brl' => 'https://grid402.online/pass?tier=starter&autopix=1 (R$ 12 = 400 credits, <15ms)',
+            'session_pass_url' => 'https://grid402.online/pass',
+            'rapidapi_credit_card_usd' => [
+                'all_25_apis' => 'https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities',
+                'web_markdown_email_network' => 'https://rapidapi.com/oliveiratc/api/grid402-web-to-markdown-email-verify-network-utilities',
+                'brazil_kyb_cnpj_anbima' => 'https://rapidapi.com/oliveiratc/api/brazil-kyb-cnpj-cgu-sanctions-anbima-workdays-api',
+            ],
+        ],
+        'hint' => 'Call the API endpoint directly (e.g. https://grid402.online/api/v1/' . $service . '), pass payment_tx_hash / X-Payment / PAYMENT-SIGNATURE, get an instant Session Pass via Pix/Card at https://grid402.online/pass?tier=starter&autopix=1, or subscribe via Credit Card on RapidAPI.',
     ];
 }
 

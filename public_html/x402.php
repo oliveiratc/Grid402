@@ -794,6 +794,21 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         $growthCfgForAds = $growthDataForAds['config'] ?? $growthCfgForAds;
     }
     $canonicalBase = defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online';
+    $fiatAndCardCheckout = [
+        'pix_instant_brl' => [
+            'starter_url' => $canonicalBase . '/pass?tier=starter&autopix=1',
+            'pro_url' => $canonicalBase . '/pass?tier=pro&autopix=1',
+            'fleet_url' => $canonicalBase . '/pass?tier=fleet&autopix=1',
+            'pricing' => 'Starter R$ 12 (400 credits) | Pro R$ 28 (1,000 credits) | Fleet R$ 110 (6,000 credits)',
+            'header_usage' => 'X-Payment: pass_g402_<token>',
+        ],
+        'rapidapi_credit_card_usd' => [
+            'plans' => 'BASIC Free | PRO $9.90/mo (2,500 calls) | ULTRA $29.90/mo (10,000 calls) | MEGA $79.90/mo (50,000 calls)',
+            'all_25_apis_url' => 'https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities',
+            'web_markdown_email_network_url' => 'https://rapidapi.com/oliveiratc/api/grid402-web-to-markdown-email-verify-network-utilities',
+            'brazil_kyb_cnpj_anbima_url' => 'https://rapidapi.com/oliveiratc/api/brazil-kyb-cnpj-cgu-sanctions-anbima-workdays-api',
+        ],
+    ];
     $conversionInfo = [
         'starter_promo' => [
             'enabled' => (bool)($growthCfgForAds['starter_promo_enabled'] ?? false),
@@ -802,9 +817,11 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
             'claim_url' => $canonicalBase . '/growth',
         ],
         'session_pass' => [
-            'description' => 'Melhor custo por chamada recorrente + latência <15ms',
+            'description' => 'Melhor custo por chamada recorrente + latência <15ms (Pix, Cartão ou Multi-Chain USDC)',
             'url' => $canonicalBase . '/pass',
+            'pix_instant_starter_url' => $canonicalBase . '/pass?tier=starter&autopix=1',
         ],
+        'rapidapi_hub' => $fiatAndCardCheckout['rapidapi_credit_card_usd'],
         'catalog' => [
             'description' => 'Compare preços por endpoint e escolha seu pacote',
             'url' => $canonicalBase . '/catalog',
@@ -836,7 +853,8 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
             'rate_limit' => GRID402_SANDBOX_RATE_LIMIT . ' req/dia por IP',
             'description' => 'Teste a estrutura completa da resposta sem custo enviando o cabecalho X-Payment: demo.',
         ],
-        'action_required' => "1) Assine a autorizacao x402 v2 (cabecalho PAYMENT-SIGNATURE ou X-Payment em base64) para liquidacao gasless via PayAI Facilitator em Base, Polygon, Arbitrum ou Solana, OU envie {$priceDisplay} USDC em qualquer rede suportada (veja supported_networks) e refaca a requisicao com \"X-Payment: <tx_hash>\" (ou \"<chain>:<tx_hash>\"). 2) Para chamadas de alta frequencia sem latencia on-chain, adquira um Session Pass via Pix/Cartao (R$ 12 = 400 creditos) ou USDC em " . (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . "/pass e utilize \"X-Payment: pass_g402_...\". 3) Para testar gratuitamente agora (cota de " . GRID402_SANDBOX_RATE_LIMIT . " req/dia por IP), envie \"X-Payment: demo\".",
+        'action_required' => "1) Assine a autorizacao x402 v2 (cabecalho PAYMENT-SIGNATURE ou X-Payment em base64) para liquidacao gasless via PayAI Facilitator em Base, Polygon, Arbitrum ou Solana, OU envie {$priceDisplay} USDC em qualquer rede suportada (veja supported_networks) e refaca a requisicao com \"X-Payment: <tx_hash>\" (ou \"<chain>:<tx_hash>\"). 2) Para pagar em 10s via Pix/Cartao (R$ 12 = 400 creditos, latencia <15ms), acesse " . (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . "/pass?tier=starter&autopix=1 e utilize \"X-Payment: pass_g402_...\". 3) Para assinar com Cartao de Credito Internacional em USD (a partir de $9.90/mes), use o RapidAPI Hub (veja fiat_and_card_checkout). 4) Para testar gratuitamente agora (cota de " . GRID402_SANDBOX_RATE_LIMIT . " req/dia por IP), envie \"X-Payment: demo\".",
+        'fiat_and_card_checkout' => $fiatAndCardCheckout,
         'conversion' => $conversionInfo,
         'docs' => (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . '/llms.txt',
     ];

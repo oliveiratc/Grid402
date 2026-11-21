@@ -1338,7 +1338,15 @@ if ($isValidApiAction) {
             if (!empty($valResult['upgrade_url'])) {
                 $errPayload['upgrade_to_production'] = [
                     'session_pass_url' => $valResult['upgrade_url'],
+                    'pix_instant_starter_url' => 'https://grid402.online/pass?tier=starter&autopix=1',
+                    'pix_instant_pro_url' => 'https://grid402.online/pass?tier=pro&autopix=1',
                     'starter_tier' => 'R$ 12,00 (Pix/Cartao) ou 2.0000 USDC = 400 creditos',
+                    'rapidapi_credit_card_usd' => [
+                        'plans' => 'PRO $9.90/mo (2,500 calls) | ULTRA $29.90/mo (10,000 calls) | MEGA $79.90/mo (50,000 calls)',
+                        'all_25_apis_url' => 'https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities',
+                        'web_markdown_email_network_url' => 'https://rapidapi.com/oliveiratc/api/grid402-web-to-markdown-email-verify-network-utilities',
+                        'brazil_kyb_cnpj_anbima_url' => 'https://rapidapi.com/oliveiratc/api/brazil-kyb-cnpj-cgu-sanctions-anbima-workdays-api',
+                    ],
                     'supported_chains' => ['base', 'arbitrum', 'polygon', 'optimism', 'ethereum', 'solana'],
                 ];
             }
