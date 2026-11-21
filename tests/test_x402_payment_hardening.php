@@ -289,6 +289,80 @@ PHP
         t_assert('Log JSONL registra status 400 real (nunca 200) para falha de servico',
             is_array($workdaysLog) && ($workdaysLog['status'] ?? 0) === 400
         );
+
+        // [6] Parsing tolerante de headers/payloads, /pass #multichain-web3 e ?cep=
+        echo "\n[6] Validando parsing tolerante x402/headers, /pass e ?cep=:\n";
+        t_assert('Normaliza prefixo x402 em prova', grid402_normalize_payment_proof_header('x402 0x' . str_repeat('a', 64)) === '0x' . str_repeat('a', 64));
+        t_assert('Normaliza prefixo Payment em prova', grid402_normalize_payment_proof_header('Payment pass_g402_abc') === 'pass_g402_abc');
+        t_assert('Normaliza prefixo Bearer em prova', grid402_normalize_payment_proof_header('Bearer pass_g402_abc') === 'pass_g402_abc');
+
+        $b64Sample = t_payload(['auth' => ['value' => '5000']]);
+        $rawJsonSample = (string) base64_decode($b64Sample);
+        t_assert('JSON cru em blob e decodificado', is_array(grid402_try_decode_x402_blob($rawJsonSample)));
+        $decRawJson = grid402_decode_x402_payload('Bearer ' . $rawJsonSample);
+        t_assert('JSON cru com prefixo Bearer e aceito em decode_x402_payload', ($decRawJson['ok'] ?? false) === true && ($decRawJson['version'] ?? 0) === 2);
+
+        $wrappedB64 = wordwrap($b64Sample, 32, "\r\n ", true);
+        t_assert('Base64 com quebras MIME e espacos e decodificado', is_array(grid402_try_decode_x402_blob($wrappedB64)));
+
+        $uint256Max = '115792089237316195423570985008687907853269984665640564039457584007913129639935';
+        $sigNo0xArr = [
+            'x402Version' => 2,
+            'accepted' => [
+                'scheme' => 'exact',
+                'network' => 'eip155:8453',
+                'asset' => GRID402_USDC_CONTRACT,
+                'amount' => '5000',
+                'payTo' => GRID402_WALLET_ADDRESS,
+            ],
+            'payload' => [
+                'signature' => str_repeat('ab', 65),
+                'authorization' => [
+                    'from' => '0x' . str_repeat('11', 20),
+                    'to' => GRID402_WALLET_ADDRESS,
+                    'value' => '5000',
+                    'validAfter' => '0',
+                    'validBefore' => $uint256Max,
+                    'nonce' => str_repeat('cd', 32),
+                ],
+            ],
+        ];
+        $decFlex = grid402_decode_x402_payload((string) json_encode($sigNo0xArr));
+        t_assert('Signature/nonce sem 0x e validBefore uint256.max sao normalizados',
+            ($decFlex['ok'] ?? false) === true
+            && str_starts_with((string) ($decFlex['signature'] ?? ''), '0x')
+            && str_starts_with((string) ($decFlex['authorization']['nonce'] ?? ''), '0x')
+        );
+        if (!empty($decFlex['ok'])) {
+            $reqFlex = grid402_validate_exact_requirements($decFlex, 5000);
+            t_assert('validBefore uint256.max passa na validacao local sem overflow', ($reqFlex['valid'] ?? false) === true);
+        } else {
+            t_assert('validBefore uint256.max passa na validacao local sem overflow', false);
+        }
+
+        // /pass deve apontar para #multichain-web3 (nao para /#topup)
+        $rPassHtml = $httpRaw('GET', $e2eServer['base_url'] . '/pass');
+        t_assert('/pass contem href="#multichain-web3" e nao contem /#topup',
+            $rPassHtml['code'] === 200
+            && str_contains($rPassHtml['body'], 'href="#multichain-web3"')
+            && !str_contains($rPassHtml['body'], '/#topup')
+        );
+
+        // /api/v1/cep deve respeitar ?cep= alem de ?code=
+        $rCepParam = $httpRaw('GET', $e2eServer['base_url'] . '/api/v1/cep?cep=01001000', [
+            'Accept: application/json',
+            'X-Payment: demo',
+        ]);
+        t_assert('/api/v1/cep?cep=01001000 usa o CEP informado (nunca o default 01310)',
+            str_contains($rCepParam['body'], '01001') && !str_contains($rCepParam['body'], '01310')
+        );
+
+        // Authorization: Payment demo aceito no HTTP gateway
+        $rAuthHdr = $httpRaw('GET', $e2eServer['base_url'] . '/api/v1/forex', [
+            'Accept: application/json',
+            'Authorization: Payment demo',
+        ]);
+        t_assert('Authorization: Payment demo e aceito no gateway HTTP', $rAuthHdr['code'] === 200);
     } finally {
         grid402_stop_server($e2eServer);
         t_rmdir($e2eStorage);

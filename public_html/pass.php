@@ -153,7 +153,7 @@ $supportedNets = grid402_supported_networks();
             <div class="actions">
                 <button type="button" class="btn btn-pix" onclick="startMpPix('<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>', this)" data-i18n="pass.pkg.<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>.btn_pix">Pay with Pix (R$ <?php echo number_format((float) $pkg['amount_brl'], 0, ',', '.'); ?>)</button>
                 <button type="button" class="btn btn-card" onclick="startMpCheckoutPro('<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>', this)" data-i18n="pass.btn.card">Pay with Card (Mercado Pago)</button>
-                <a class="btn btn-outline" href="<?php echo htmlspecialchars($domain, ENT_QUOTES, 'UTF-8'); ?>/#topup" data-i18n="pass.btn.usdc">Pay with USDC (Web3)</a>
+                <a class="btn btn-outline" href="#multichain-web3" data-i18n="pass.btn.usdc">Pay with USDC (Web3)</a>
             </div>
         </div>
         <?php endforeach; ?>

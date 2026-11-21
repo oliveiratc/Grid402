@@ -308,6 +308,9 @@ function grid402_mark_transaction_used(string $txHash): bool {
  * Retorna array ['valid' => bool, 'reason' => string, 'code' => int]
  */
 function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null, ?string $clientIp = null, ?string $endpointId = null, ?string $paymentNetwork = null, bool $deferSettle = false): array {
+    if (function_exists('grid402_normalize_payment_proof_header')) {
+        $txHash = grid402_normalize_payment_proof_header($txHash);
+    }
     // Payload x402 padrao (base64) e sensivel a maiusculas: classifica antes de normalizar
     if (grid402_classify_payment_proof($txHash) === 'x402_payload') {
         $resourceUrl = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '';

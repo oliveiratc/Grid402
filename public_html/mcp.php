@@ -349,11 +349,23 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
     $meta = isset($params['_meta']) && is_array($params['_meta']) ? $params['_meta'] : [];
     $x402Payment = isset($meta['x402/payment']) ? trim((string)$meta['x402/payment']) : '';
     $payHeader = trim((string) ($_SERVER['HTTP_PAYMENT_SIGNATURE'] ?? $mcpHdrMap['payment-signature'] ?? ''));
+    $mcpAuthHeader = trim((string) ($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? $mcpHdrMap['authorization'] ?? ''));
+    $mcpAuthProof = '';
+    if (preg_match('/^(?:x402|payment)\s+(.+)$/is', $mcpAuthHeader, $am)) {
+        $mcpAuthProof = trim($am[1]);
+    } elseif (preg_match('/^bearer\s+((?:pass_g402_|0x[a-f0-9]{40,}|eyJ|\{).+)$/is', $mcpAuthHeader, $bm)) {
+        $mcpAuthProof = trim($bm[1]);
+    }
     $mcpNetHeader = trim((string) ($_SERVER['HTTP_X_PAYMENT_NETWORK'] ?? $mcpHdrMap['x-payment-network'] ?? ''));
 
     $effectiveProof = $payHeader !== ''
         ? $payHeader
-        : ($x402Payment !== '' ? $x402Payment : ($xPaymentHeader !== '' ? $xPaymentHeader : $txHash));
+        : ($x402Payment !== ''
+            ? $x402Payment
+            : ($xPaymentHeader !== '' ? $xPaymentHeader : ($mcpAuthProof !== '' ? $mcpAuthProof : $txHash)));
+    if ($effectiveProof !== '' && function_exists('grid402_normalize_payment_proof_header')) {
+        $effectiveProof = grid402_normalize_payment_proof_header($effectiveProof);
+    }
 
     $clientIp = grid402_get_trusted_client_ip();
 

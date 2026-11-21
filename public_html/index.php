@@ -118,9 +118,14 @@ if ($paymentProof === '') {
         ?? $normalizedReqHeaders['authorization']
         ?? ''
     ));
-    if (stripos($authHeader, 'x402 ') === 0) {
-        $paymentProof = trim(substr($authHeader, 5));
+    if (preg_match('/^(?:x402|payment)\s+(.+)$/is', $authHeader, $am)) {
+        $paymentProof = trim($am[1]);
+    } elseif (preg_match('/^bearer\s+((?:pass_g402_|0x[a-f0-9]{40,}|eyJ|\{).+)$/is', $authHeader, $bm)) {
+        $paymentProof = trim($bm[1]);
     }
+}
+if ($paymentProof !== '' && function_exists('grid402_normalize_payment_proof_header')) {
+    $paymentProof = grid402_normalize_payment_proof_header($paymentProof);
 }
 $paymentNetworkHeader = trim((string) ($_SERVER['HTTP_X_PAYMENT_NETWORK'] ?? $normalizedReqHeaders['x-payment-network'] ?? ''));
 if ($paymentProof === '') {
@@ -1431,7 +1436,7 @@ if ($isValidApiAction) {
             $result = grid402_service_market_snapshot();
             break;
         case 'cep':
-            $code = (string) ($_GET['code'] ?? '01310100');
+            $code = (string) ($_GET['code'] ?? $_GET['cep'] ?? '01310100');
             $result = grid402_service_cep($code);
             break;
         case 'cnpj':

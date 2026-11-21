@@ -11,6 +11,7 @@ if (!defined('GRID402_EXEC')) {
     define('GRID402_EXEC', true);
 }
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/logger.php';
 require_once __DIR__ . '/metrics.php';
 require_once __DIR__ . '/growth.php';
 require_once __DIR__ . '/facilitator.php';
@@ -1358,6 +1359,7 @@ if ($apiParam === 'stats') {
         'service_revenue' => $analytics['service_revenue'] ?? [],
         'recent_pulse' => grid402_admin_recent_pulse($metrics),
         'recent_events' => $metrics['recent_events'] ?? [],
+        'recent_payment_failures' => function_exists('grid402_read_recent_payment_failures') ? grid402_read_recent_payment_failures(25) : [],
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -1642,6 +1644,7 @@ $dailyHistory14d = $analytics['daily_history_14d'] ?? [];
 $topConsumers = $analytics['top_consumers'] ?? [];
 $serviceRevenue = $analytics['service_revenue'] ?? [];
 $recentPulse = grid402_admin_recent_pulse($metrics);
+$recentPaymentFailures = function_exists('grid402_read_recent_payment_failures') ? grid402_read_recent_payment_failures(25) : [];
 
 $totalPageViews = (int)($metrics['total_page_views'] ?? 0);
 $todayPageViews = (int)($metrics['daily'][$today]['page_views'] ?? 0);
@@ -2661,6 +2664,44 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             </div>
         </div>
 
+        <!-- Diagnostico Real de Falhas de Pagamento (requests.jsonl Zero-PII) -->
+        <div id="payment-failures-panel" class="panel" style="margin-bottom: 1.5rem;">
+            <div class="panel-title">
+                <span>Diagnóstico Real de Falhas de Pagamento (requests.jsonl · Zero-PII)</span>
+                <span style="font-size: 0.78rem; font-weight: normal; color: var(--text-muted);">Últimas 25 tentativas com erro (exclui desafios 402 vazios)</span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Horário (UTC)</th>
+                            <th>Serviço</th>
+                            <th>HTTP</th>
+                            <th>Origem</th>
+                            <th>Motivo Exato (Sanitizado)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="payment-failures-tbody">
+                        <?php if (empty($recentPaymentFailures)): ?>
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 1.25rem;">Nenhuma falha detalhada registrada recentemente em requests.jsonl.</td>
+                        </tr>
+                        <?php else: ?>
+                            <?php foreach ($recentPaymentFailures as $pf): ?>
+                            <tr>
+                                <td style="white-space: nowrap;"><?php echo htmlspecialchars((string) ($pf['ts'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td><strong><?php echo htmlspecialchars((string) ($pf['service'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></td>
+                                <td><span class="tag-status status-<?php echo (int) ($pf['status'] ?? 402); ?>">HTTP <?php echo (int) ($pf['status'] ?? 402); ?></span></td>
+                                <td><?php echo htmlspecialchars((string) ($pf['payment_source'] ?? 'unknown'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td style="font-family: var(--font-mono); font-size: 0.78rem; color: #FCA5A5; word-break: break-word;"><?php echo htmlspecialchars((string) ($pf['error'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Feed de Consultas em Tempo Real (Buffer de 100 Eventos) -->
         <div id="telemetry" class="panel">
             <div class="panel-title" style="flex-wrap: wrap; gap: 0.75rem;">
@@ -3463,6 +3504,10 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                     }
                 }
 
+                if (Array.isArray(data.recent_payment_failures)) {
+                    renderRecentPaymentFailures(data.recent_payment_failures);
+                }
+
                 const lastUpdEl = document.getElementById('last-updated-text');
                 if (lastUpdEl) {
                     lastUpdEl.textContent = 'Última atualização: ' + new Date().toLocaleTimeString('pt-BR');
@@ -3471,6 +3516,56 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 applyFeedFilterAndSearch();
             } catch (e) {
                 console.error('Erro ao buscar stats em tempo real:', e);
+            }
+        }
+
+        function renderRecentPaymentFailures(failures) {
+            const tbody = document.getElementById('payment-failures-tbody');
+            if (!tbody || !Array.isArray(failures)) return;
+            tbody.replaceChildren();
+            if (failures.length === 0) {
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 5;
+                td.style.textAlign = 'center';
+                td.style.color = 'var(--text-muted)';
+                td.style.padding = '1.25rem';
+                td.textContent = 'Nenhuma falha detalhada registrada recentemente em requests.jsonl.';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
+                return;
+            }
+            for (const pf of failures) {
+                const tr = document.createElement('tr');
+
+                const tdTs = document.createElement('td');
+                tdTs.style.whiteSpace = 'nowrap';
+                tdTs.textContent = String(pf.ts || '');
+
+                const tdSvc = document.createElement('td');
+                const strongSvc = document.createElement('strong');
+                strongSvc.textContent = String(pf.service || '');
+                tdSvc.appendChild(strongSvc);
+
+                const st = Number(pf.status || 402);
+                const tdSt = document.createElement('td');
+                const spanSt = document.createElement('span');
+                spanSt.className = 'tag-status status-' + st;
+                spanSt.textContent = 'HTTP ' + st;
+                tdSt.appendChild(spanSt);
+
+                const tdSrc = document.createElement('td');
+                tdSrc.textContent = String(pf.payment_source || 'unknown');
+
+                const tdErr = document.createElement('td');
+                tdErr.style.fontFamily = 'var(--font-mono)';
+                tdErr.style.fontSize = '0.78rem';
+                tdErr.style.color = '#FCA5A5';
+                tdErr.style.wordBreak = 'break-word';
+                tdErr.textContent = String(pf.error || '');
+
+                tr.append(tdTs, tdSvc, tdSt, tdSrc, tdErr);
+                tbody.appendChild(tr);
             }
         }
 

@@ -79,7 +79,7 @@ function grid402_get_request_log_path(): string {
 /**
  * Sanitiza strings para garantir ausencia de tokens `pass_g402_...` ou tx hashes longos nos logs.
  */
-function grid402_sanitize_log_text(?string $value, int $maxLen = 96): ?string {
+function grid402_sanitize_log_text(?string $value, int $maxLen = 180): ?string {
     if ($value === null) {
         return null;
     }
@@ -119,7 +119,7 @@ function grid402_log_request(array $event): bool {
     $ipSecret = defined('GRID402_CRON_SECRET') ? GRID402_CRON_SECRET : 'grid402_ip_salt';
     $ipHmac = substr(hash_hmac('sha256', trim($rawIp), $ipSecret), 0, 12);
 
-    $allowedSources = ['none', 'free', 'sandbox', 'pass', 'tx_hash', 'facilitator', 'facilitator_verify_only', 'unknown'];
+    $allowedSources = ['none', 'free', 'sandbox', 'pass', 'tx_hash', 'facilitator', 'facilitator_verify_only', 'rapidapi', 'mercadopago', 'web3_topup', 'unknown'];
     $rawSource = strtolower(trim((string) ($event['payment_source'] ?? 'none')));
     $paymentSource = in_array($rawSource, $allowedSources, true) ? $rawSource : 'unknown';
 
@@ -168,4 +168,80 @@ function grid402_log_request(array $event): bool {
     fclose($lockFp);
 
     return $ok;
+}
+
+/**
+ * Le os registros recentes de falhas reais de pagamento no requests.jsonl (sem desafios 402 vazios nem PII).
+ *
+ * @return array<int, array<string, mixed>>
+ */
+function grid402_read_recent_payment_failures(int $limit = 25): array {
+    $limit = max(1, min(100, $limit));
+    $logFile = grid402_get_request_log_path();
+    if (!is_file($logFile) || !is_readable($logFile)) {
+        return [];
+    }
+
+    $fp = @fopen($logFile, 'rb');
+    if (!$fp) {
+        return [];
+    }
+
+    $rawTail = '';
+    $truncatedHead = false;
+    if (flock($fp, LOCK_SH)) {
+        $stat = fstat($fp);
+        $size = is_array($stat) ? (int) ($stat['size'] ?? 0) : 0;
+        $tailBytes = 262144; // 256 KB
+        if ($size > $tailBytes) {
+            fseek($fp, -$tailBytes, SEEK_END);
+            $truncatedHead = true;
+        }
+        $rawTail = (string) stream_get_contents($fp);
+        flock($fp, LOCK_UN);
+    }
+    fclose($fp);
+
+    if ($rawTail === '') {
+        return [];
+    }
+    if ($truncatedHead) {
+        $nlPos = strpos($rawTail, "\n");
+        $rawTail = ($nlPos !== false) ? substr($rawTail, $nlPos + 1) : '';
+    }
+
+    $lines = preg_split('/\r?\n/', trim($rawTail)) ?: [];
+    $failures = [];
+    for ($i = count($lines) - 1; $i >= 0; $i--) {
+        $ln = trim((string) $lines[$i]);
+        if ($ln === '') {
+            continue;
+        }
+        $entry = @json_decode($ln, true);
+        if (!is_array($entry)) {
+            continue;
+        }
+        $status = (int) ($entry['status'] ?? 0);
+        if (!in_array($status, [400, 402, 403, 429, 503], true)) {
+            continue;
+        }
+        $err = trim((string) ($entry['error'] ?? ''));
+        if ($err === '' || $err === 'PaymentRequired') {
+            continue;
+        }
+        $failures[] = [
+            'ts' => (string) ($entry['ts'] ?? ''),
+            'request_id' => (string) ($entry['request_id'] ?? ''),
+            'service' => (string) ($entry['service'] ?? ''),
+            'status' => $status,
+            'payment_source' => (string) ($entry['payment_source'] ?? 'unknown'),
+            'error' => grid402_sanitize_log_text($err, 180) ?? '',
+            'ip_hmac' => (string) ($entry['ip_hmac'] ?? ''),
+        ];
+        if (count($failures) >= $limit) {
+            break;
+        }
+    }
+
+    return $failures;
 }

@@ -23,10 +23,21 @@ const GRID402_NONCE_TTL_SECONDS = 604800; // 7 dias
 const GRID402_CLOCK_SKEW_SECONDS = 30;
 
 /**
- * Decodifica base64 padrao ou url-safe de forma estrita. Retorna null se invalido.
+ * Remove prefixos de esquema comuns em headers de pagamento ("x402 ", "Payment ", "Bearer ").
+ */
+function grid402_normalize_payment_proof_header(string $raw): string {
+    $trimmed = trim($raw);
+    if (preg_match('/^(?:x402|payment|bearer)\s+(.+)$/is', $trimmed, $m)) {
+        return trim($m[1]);
+    }
+    return $trimmed;
+}
+
+/**
+ * Decodifica base64 padrao ou url-safe de forma estrita (tolerando whitespace MIME). Retorna null se invalido.
  */
 function grid402_base64_decode_strict(string $value): ?string {
-    $value = trim($value);
+    $value = preg_replace('/\s+/', '', trim($value)) ?? '';
     if ($value === '' || !preg_match('/^[A-Za-z0-9+\/_-]+={0,2}$/', $value)) {
         return null;
     }
@@ -40,13 +51,21 @@ function grid402_base64_decode_strict(string $value): ?string {
 }
 
 /**
- * Tenta interpretar a prova como blob base64 contendo um objeto JSON (payload x402 padrao).
+ * Tenta interpretar a prova como blob base64 ou objeto JSON cru contendo um payload x402 padrao.
  */
 function grid402_try_decode_x402_blob(string $proof): ?array {
-    if (strlen(trim($proof)) < 32) {
+    $p = grid402_normalize_payment_proof_header($proof);
+    if (strlen($p) >= 2 && str_starts_with($p, '{') && str_ends_with($p, '}')) {
+        $data = @json_decode($p, true);
+        if (is_array($data) && !array_is_list($data)) {
+            return $data;
+        }
         return null;
     }
-    $json = grid402_base64_decode_strict($proof);
+    if (strlen($p) < 32) {
+        return null;
+    }
+    $json = grid402_base64_decode_strict($p);
     if ($json === null) {
         return null;
     }
@@ -216,7 +235,14 @@ function grid402_decode_x402_payload(string $proof): array {
 
     // Caminho EVM (EIP-3009 TransferWithAuthorization)
     $signature = $inner['signature'] ?? null;
-    if (!is_string($signature) || !preg_match('/^0x[a-fA-F0-9]+$/', $signature)) {
+    if (!is_string($signature)) {
+        return ['ok' => false, 'error' => 'Payload x402 sem "payload.signature" valido (hex).'];
+    }
+    $signature = trim($signature);
+    if (preg_match('/^[a-fA-F0-9]{128,512}$/', $signature)) {
+        $signature = '0x' . $signature;
+        $raw['payload']['signature'] = $signature;
+    } elseif (!preg_match('/^0x[a-fA-F0-9]+$/', $signature)) {
         return ['ok' => false, 'error' => 'Payload x402 sem "payload.signature" valido (hex).'];
     }
     $auth = $inner['authorization'] ?? null;
@@ -231,11 +257,25 @@ function grid402_decode_x402_payload(string $proof): array {
     if (!preg_match('/^0x[a-fA-F0-9]{40}$/', (string) $auth['from']) || !preg_match('/^0x[a-fA-F0-9]{40}$/', (string) $auth['to'])) {
         return ['ok' => false, 'error' => 'authorization.from e authorization.to devem ser enderecos EVM validos.'];
     }
-    if (!preg_match('/^0x[a-fA-F0-9]{64}$/', (string) $auth['nonce'])) {
+    $nonceRaw = trim((string) $auth['nonce']);
+    if (preg_match('/^[a-fA-F0-9]{64}$/', $nonceRaw)) {
+        $nonceNorm = '0x' . strtolower($nonceRaw);
+        $raw['payload']['authorization']['nonce'] = $nonceNorm;
+    } elseif (preg_match('/^0x[a-fA-F0-9]{64}$/', $nonceRaw)) {
+        $nonceNorm = strtolower($nonceRaw);
+    } else {
         return ['ok' => false, 'error' => 'authorization.nonce deve ser 0x seguido de 64 caracteres hexadecimais.'];
     }
+    $authNormNums = [];
     foreach (['value', 'validAfter', 'validBefore'] as $numField) {
-        if (!preg_match('/^\d{1,18}$/', (string) $auth[$numField])) {
+        $rawNum = trim((string) $auth[$numField]);
+        if (preg_match('/^0x[a-fA-F0-9]{1,16}$/', $rawNum)) {
+            $decStr = (string) hexdec(substr($rawNum, 2));
+            $authNormNums[$numField] = $decStr;
+            $raw['payload']['authorization'][$numField] = $decStr;
+        } elseif (preg_match('/^\d{1,78}$/', $rawNum)) {
+            $authNormNums[$numField] = $rawNum;
+        } else {
             return ['ok' => false, 'error' => "authorization.{$numField} deve ser um inteiro decimal valido."];
         }
     }
@@ -258,10 +298,10 @@ function grid402_decode_x402_payload(string $proof): array {
         'authorization' => [
             'from' => strtolower((string) $auth['from']),
             'to' => strtolower((string) $auth['to']),
-            'value' => (string) $auth['value'],
-            'validAfter' => (string) $auth['validAfter'],
-            'validBefore' => (string) $auth['validBefore'],
-            'nonce' => strtolower((string) $auth['nonce']),
+            'value' => $authNormNums['value'],
+            'validAfter' => $authNormNums['validAfter'],
+            'validBefore' => $authNormNums['validBefore'],
+            'nonce' => $nonceNorm,
         ],
     ];
 }
@@ -318,13 +358,19 @@ function grid402_validate_exact_requirements(array $decoded, int $requiredRawUni
     if ($auth['to'] !== strtolower((string) $netSpec['payTo'])) {
         return $fail('Destinatario incorreto. A autorizacao deve transferir para ' . $netSpec['payTo'] . '.');
     }
-    if ((int) $auth['value'] < $requiredRawUnits) {
+    $valStr = ltrim((string) $auth['value'], '0');
+    $valStr = $valStr === '' ? '0' : $valStr;
+    if (strlen($valStr) <= 18 && (int) $valStr < $requiredRawUnits) {
         return $fail('Valor insuficiente. Minimo exigido: ' . $requiredRawUnits . ' unidades de USDC (6 casas decimais).');
     }
-    if (($now + GRID402_CLOCK_SKEW_SECONDS) < (int) $auth['validAfter']) {
+    $vaStr = ltrim((string) $auth['validAfter'], '0');
+    $vaStr = $vaStr === '' ? '0' : $vaStr;
+    if (strlen($vaStr) > 15 || ($now + GRID402_CLOCK_SKEW_SECONDS) < (int) $vaStr) {
         return $fail('Autorizacao ainda nao e valida (validAfter no futuro).', 'authorization_expired');
     }
-    if ($now >= (int) $auth['validBefore']) {
+    $vbStr = ltrim((string) $auth['validBefore'], '0');
+    $vbStr = $vbStr === '' ? '0' : $vbStr;
+    if (strlen($vbStr) <= 15 && $now >= (int) $vbStr) {
         return $fail('Autorizacao expirada (validBefore ultrapassado). Gere uma nova assinatura.', 'authorization_expired');
     }
 

@@ -230,6 +230,32 @@ PHP);
     }
     @rmdir($rapidIsoDir);
 }
+
+// Teste unitario de leitura de falhas recentes (Zero-PII + exclui PaymentRequired)
+require_once __DIR__ . '/../public_html/logger.php';
+$tmpLogFailures = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'grid402_failures_' . bin2hex(random_bytes(4)) . '.jsonl';
+$prevLogEnv = getenv('GRID402_FILE_REQUEST_LOGS');
+try {
+    putenv('GRID402_FILE_REQUEST_LOGS=' . $tmpLogFailures);
+    $_ENV['GRID402_FILE_REQUEST_LOGS'] = $tmpLogFailures;
+    file_put_contents($tmpLogFailures, implode("\n", [
+        json_encode(['ts' => '2026-11-21T10:00:00Z', 'request_id' => 'g402_1', 'service' => 'dns', 'status' => 402, 'payment_source' => 'none', 'error' => 'PaymentRequired', 'ip_hmac' => 'aaa']),
+        json_encode(['ts' => '2026-11-21T10:01:00Z', 'request_id' => 'g402_2', 'service' => 'cnpj', 'status' => 402, 'payment_source' => 'facilitator', 'error' => 'PaymentFailed: invalid_exact_evm_insufficient_balance token pass_g402_secret123', 'ip_hmac' => 'bbb']),
+        json_encode(['ts' => '2026-11-21T10:02:00Z', 'request_id' => 'g402_3', 'service' => 'forex', 'status' => 200, 'payment_source' => 'pass', 'error' => null, 'ip_hmac' => 'ccc']),
+    ]) . "\n");
+    $readFail = grid402_read_recent_payment_failures(10);
+    assert(count($readFail) === 1, 'Deve retornar exatamente 1 falha real filtrando PaymentRequired e 200');
+    assert(($readFail[0]['service'] ?? '') === 'cnpj' && str_contains((string) $readFail[0]['error'], 'pass_g402_[REDACTED]'), 'Deve sanitizar token Zero-PII');
+} finally {
+    if ($prevLogEnv !== false && $prevLogEnv !== '') {
+        putenv('GRID402_FILE_REQUEST_LOGS=' . $prevLogEnv);
+        $_ENV['GRID402_FILE_REQUEST_LOGS'] = $prevLogEnv;
+    } else {
+        putenv('GRID402_FILE_REQUEST_LOGS');
+        unset($_ENV['GRID402_FILE_REQUEST_LOGS']);
+    }
+    @unlink($tmpLogFailures);
+}
 echo "OK!\n";
 
 // --- Teste 4 e 5: Ciclo HTTP do Painel Admin (Setup, Login, 401, CSV, Senha e Dashboard) ---
@@ -389,6 +415,7 @@ try {
     assert(isset($statsJson['rapidapi_status']['configured'], $statsJson['rapidapi_status']['source']), 'API deve conter rapidapi_status sem segredos');
     assert(defined('GRID402_RAPIDAPI_PROXY_SECRET') && (GRID402_RAPIDAPI_PROXY_SECRET === '' || !str_contains($authStats['body'], GRID402_RAPIDAPI_PROXY_SECRET)), 'API stats nunca deve vazar GRID402_RAPIDAPI_PROXY_SECRET');
     assert(isset($statsJson['collector_status']['summary_exists'], $statsJson['collector_status']['summary_stale']), 'API deve conter collector_status');
+    assert(isset($statsJson['recent_payment_failures']) && is_array($statsJson['recent_payment_failures']), 'API deve conter recent_payment_failures array');
     assert(isset($statsJson['telegram_status']['configured'], $statsJson['telegram_status']['token_configured'], $statsJson['telegram_status']['chat_id_configured']), 'API deve conter telegram_status sem segredos');
     assert(defined('GRID402_TELEGRAM_BOT_TOKEN') && (GRID402_TELEGRAM_BOT_TOKEN === '' || !str_contains($authStats['body'], GRID402_TELEGRAM_BOT_TOKEN)), 'API stats nunca deve vazar GRID402_TELEGRAM_BOT_TOKEN');
     assert(isset($statsJson['error_5xx_count']), 'API deve conter error_5xx_count');
@@ -427,6 +454,7 @@ try {
         assert(str_contains($dashResp['body'], '4 chains'), 'Dashboard em mainnet deve exibir 4 chains no badge do facilitador');
     }
     assert(str_contains($dashResp['body'], 'runtime-telegram-badge') && str_contains($dashResp['body'], 'btn-test-telegram'), 'Dashboard deve exibir badge e botao de diagnostico do Telegram');
+    assert(str_contains($dashResp['body'], 'payment-failures-panel') && str_contains($dashResp['body'], 'payment-failures-tbody'), 'Dashboard deve exibir painel de diagnostico real de falhas em requests.jsonl');
     assert(str_contains($dashResp['body'], 'btn-config-telegram') && str_contains($dashResp['body'], 'telegram-modal-overlay'), 'Dashboard deve exibir botao e modal de configuracao do Telegram');
     assert(str_contains($dashResp['body'], 'Sem erros 5xx'), 'Dashboard deve exibir SLA sem erros 5xx');
     assert(str_contains($dashResp['body'], 'Saldo On-Chain (Base)'), 'Deve conter card de Saldo On-Chain');
