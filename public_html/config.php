@@ -329,11 +329,23 @@ if (!in_array($grid402FacilitatorMode, ['disabled', 'verify_only', 'settle'], tr
 }
 define('GRID402_FACILITATOR_MODE', $grid402FacilitatorMode);
 unset($grid402FacilitatorMode);
-define('GRID402_FACILITATOR_URL', rtrim((string) grid402_env('GRID402_FACILITATOR_URL', 'https://facilitator.payai.network'), '/'));
-define('GRID402_FACILITATOR_VERIFY_PATH', (string) grid402_env('GRID402_FACILITATOR_VERIFY_PATH', '/verify'));
-define('GRID402_FACILITATOR_SETTLE_PATH', (string) grid402_env('GRID402_FACILITATOR_SETTLE_PATH', '/settle'));
 define('GRID402_CDP_API_KEY_ID', (string) grid402_env('GRID402_CDP_API_KEY_ID', ''));
 define('GRID402_CDP_API_KEY_SECRET', (string) grid402_env('GRID402_CDP_API_KEY_SECRET', ''));
+
+// Defesa: se o .env apontar para CDP mas sem credenciais, cai para o facilitador publico PayAI
+// (caso contrario auth_mode='public' chamaria o endpoint CDP sem auth e a liquidacao falharia).
+$grid402FacilitatorUrlEnv = (string) grid402_env('GRID402_FACILITATOR_URL', 'https://facilitator.payai.network');
+if (str_contains($grid402FacilitatorUrlEnv, 'api.cdp.coinbase.com') && (GRID402_CDP_API_KEY_ID === '' || GRID402_CDP_API_KEY_SECRET === '')) {
+    $grid402FacilitatorUrlEnv = 'https://facilitator.payai.network';
+    $grid402FacilitatorVerifyPath = '/verify';
+    $grid402FacilitatorSettlePath = '/settle';
+} else {
+    $grid402FacilitatorVerifyPath = (string) grid402_env('GRID402_FACILITATOR_VERIFY_PATH', '/verify');
+    $grid402FacilitatorSettlePath = (string) grid402_env('GRID402_FACILITATOR_SETTLE_PATH', '/settle');
+}
+define('GRID402_FACILITATOR_URL', rtrim($grid402FacilitatorUrlEnv, '/'));
+define('GRID402_FACILITATOR_VERIFY_PATH', $grid402FacilitatorVerifyPath);
+define('GRID402_FACILITATOR_SETTLE_PATH', $grid402FacilitatorSettlePath);
 
 // 5. Catálogo Oficial dos 25 Micro-Serviços Core de Dados Públicos e Rede
 function grid402_get_utility_services(): array {
