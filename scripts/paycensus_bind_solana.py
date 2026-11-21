@@ -7,16 +7,22 @@ Spec oficial: https://trust.paycensus.com/solana-proof.html
           {"vid": 12, "addr": "<base58 pubkey>", "signature": "<base58 de 64 bytes>"}
 
 A "addr" submetida DEVE ser a base58 da chave publica da chave que assina,
-senao a verificacao falha. O nonce eh de uso unico/vinculado ao vid=12.
+senao a verificacao falha. O nonce eh de uso unico e fica no portal da conta
+(nao ha endpoint publico para consulta-lo). Informe o nonce atual via --nonce
+ou env GRID402_PAYCENSUS_NONCE; sem isso o script usa o nonce default abaixo.
 
 Fonte da chave privada (em ordem de prioridade):
   1. --keypair CAMINHO   (Solana id.json: array de 64 ints, ou arquivo com base58)
   2. env GRID402_SOLANA_SIGNING_KEY (base58 de 32 bytes = seed, ou 64 bytes = secret key)
   3. --generate          (cria um keypair novo; a seed eh impressa para guardar)
 
+As variaveis sao lidas do shell e, quando ausentes, do .env na raiz do repo
+(ou private_data/.env), sem sobrescrever o que ja estiver exportado.
+
 Uso:
-  python scripts/paycensus_bind_solana.py --generate --dry-run   # só mostra o que faria
-  python scripts/paycensus_bind_solana.py --generate             # executa o bind
+  python scripts/paycensus_bind_solana.py --generate --dry-run
+  python scripts/paycensus_bind_solana.py --nonce <hex-do-portal> --keypair id.json
+  python scripts/paycensus_bind_solana.py --nonce paycensus-verify=<hex> --dry-run
 """
 from __future__ import annotations
 
@@ -37,17 +43,60 @@ try:  # Python 3.14 no Windows nao acha a CA do sistema sem um bundle explicito
 except Exception:  # fallback: store padrao do sistema
     _SSL_CTX = ssl.create_default_context()
 
-VID = 12
-NONCE = "paycensus-verify=c05e1ee27fe0c75e2b907b9d842ee45f"
-MESSAGE = ("paycensus-addr-proof=" + NONCE).encode("utf-8")
-ENDPOINT = "https://trust.paycensus.com/api/verify/addr-proof-solana"
-PROFILE_URL = "https://trust.paycensus.com/api/profile?domain=grid402.online"
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_VID = 12
+DEFAULT_NONCE = "paycensus-verify=c05e1ee27fe0c75e2b907b9d842ee45f"
+DEFAULT_DOMAIN = "grid402.online"
+BASE_URL = "https://trust.paycensus.com"
+ENDPOINT = BASE_URL + "/api/verify/addr-proof-solana"
+NONCE_PREFIX = "paycensus-verify="
 # payTo declarado em public_html/.well-known/x402.json (SPL USDC na Solana)
 DECLARED_PAYTO = "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C"
 
 
 def b58(data: bytes) -> str:
     return base58.b58encode(data).decode("ascii")
+
+
+def load_dotenv(paths: list[str]) -> None:
+    """Carrega KEY=VALUE de .env sem sobrescrever variaveis ja exportadas."""
+    for path in paths:
+        if not os.path.isfile(path):
+            continue
+        with open(path, "r", encoding="utf-8-sig") as fh:
+            for raw in fh:
+                line = raw.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if line.startswith("export "):
+                    line = line[len("export "):].lstrip()
+                if "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip()
+                if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+                    value = value[1:-1]
+                if key and key not in os.environ:
+                    os.environ[key] = value
+
+
+def normalize_nonce(value: str) -> str:
+    """Aceita tanto 'paycensus-verify=<hex>' quanto apenas o <hex> do portal."""
+    value = value.strip()
+    if not value:
+        raise ValueError("nonce vazio")
+    if not value.startswith(NONCE_PREFIX):
+        value = NONCE_PREFIX + value
+    return value
+
+
+def build_message(nonce: str) -> bytes:
+    return ("paycensus-addr-proof=" + nonce).encode("utf-8")
+
+
+def profile_url(domain: str) -> str:
+    return f"{BASE_URL}/api/profile?domain={domain}"
 
 
 def signing_key_from_b58(text: str) -> SigningKey:
@@ -109,7 +158,35 @@ def main() -> int:
     ap.add_argument("--keypair", help="caminho para id.json ou arquivo base58 da chave")
     ap.add_argument("--generate", action="store_true", help="gera um novo keypair ed25519")
     ap.add_argument("--dry-run", action="store_true", help="mostra mensagem/assinatura sem POSTar")
+    ap.add_argument("--nonce", help="nonce atual do portal (paycensus-verify=<hex> ou só o <hex>)")
+    ap.add_argument("--vid", type=int, help=f"verification id (default: env GRID402_PAYCENSUS_VID ou {DEFAULT_VID})")
+    ap.add_argument("--domain", help=f"dominio do perfil para reconferencia (default: env GRID402_DOMAIN ou {DEFAULT_DOMAIN})")
     args = ap.parse_args()
+
+    load_dotenv([
+        os.path.join(REPO_ROOT, ".env"),
+        os.path.join(REPO_ROOT, "private_data", ".env"),
+    ])
+
+    nonce_raw = args.nonce or os.environ.get("GRID402_PAYCENSUS_NONCE", "") or DEFAULT_NONCE
+    try:
+        nonce = normalize_nonce(nonce_raw)
+    except ValueError as exc:
+        print(f"erro: nonce invalido ({exc})", file=sys.stderr)
+        return 2
+    if not args.nonce and not os.environ.get("GRID402_PAYCENSUS_NONCE"):
+        print("aviso: usando o nonce default do script; se o POST falhar com 400, "
+              "copie o nonce atual do portal e passe --nonce <hex>.", file=sys.stderr)
+
+    vid_raw = os.environ.get("GRID402_PAYCENSUS_VID", "").strip()
+    try:
+        vid = args.vid or (int(vid_raw) if vid_raw else DEFAULT_VID)
+    except ValueError:
+        print(f"erro: GRID402_PAYCENSUS_VID={vid_raw!r} nao e um inteiro", file=sys.stderr)
+        return 2
+    domain = args.domain or os.environ.get("GRID402_DOMAIN", DEFAULT_DOMAIN)
+    message = build_message(nonce)
+    url_profile = profile_url(domain)
 
     env_key = os.environ.get("GRID402_SOLANA_SIGNING_KEY", "").strip()
     if args.keypair:
@@ -131,20 +208,19 @@ def main() -> int:
     print(f"endereco derivado (base58): {addr}")
     if addr == DECLARED_PAYTO:
         print(">>> coincide com o payTo declarado em .well-known/x402.json (wallet de producao)")
-    elif addr.upper() == "CSGJYQTWEHB3VF2VBSDMUUBPUCVX1VDEEHGVVCCF8C".upper():
-        print(">>> coincide com a variante anotada no bloco de notas do Thiago")
     else:
         print(">>> endereco novo: sera esse o vinculado ao perfil (qualquer keypair seu serve)")
 
-    print(f"mensagem assinada (UTF-8 exato): {MESSAGE.decode('utf-8')}")
+    print(f"vid: {vid}")
+    print(f"mensagem assinada (UTF-8 exato): {message.decode('utf-8')}")
 
     # auto-conferida local antes de gastar o nonce no servidor
-    sig = sk.sign(MESSAGE).signature
-    sk.verify_key.verify(MESSAGE, sig)
+    sig = sk.sign(message).signature
+    sk.verify_key.verify(message, sig)
     sig_b58 = b58(sig)
     print(f"assinatura ed25519 (base58, {len(sig)} bytes): {sig_b58}")
 
-    status, profile = http_json(PROFILE_URL)
+    status, profile = http_json(url_profile)
     already = any(
         a.get("chain") == "solana" and a.get("addr") == addr and a.get("proven")
         for a in (profile.get("addresses") if status == 200 else [])
@@ -155,18 +231,21 @@ def main() -> int:
 
     if args.dry_run:
         print("\n[dry-run] payload que seria POSTado:")
-        print(json.dumps({"vid": VID, "addr": addr, "signature": sig_b58}, indent=2))
+        print(json.dumps({"vid": vid, "addr": addr, "signature": sig_b58}, indent=2))
         return 0
 
-    status, resp = http_json(ENDPOINT, method="POST", payload={"vid": VID, "addr": addr, "signature": sig_b58})
+    status, resp = http_json(ENDPOINT, method="POST", payload={"vid": vid, "addr": addr, "signature": sig_b58})
     print(f"\nPOST {ENDPOINT} -> HTTP {status}")
     print(json.dumps(resp, indent=2, ensure_ascii=False))
     if status != 200 or not resp.get("ok"):
         print("falha no bind; nao prossiga sem conferir o nonce/vid no portal.", file=sys.stderr)
+        if status == 400:
+            print("dica: o nonce e de uso unico e pode ter expirado; copie o atual do portal "
+                  "e rode de novo com --nonce <hex>.", file=sys.stderr)
         return 1
 
-    status, profile = http_json(PROFILE_URL)
-    print(f"\nGET {PROFILE_URL} -> HTTP {status}")
+    status, profile = http_json(url_profile)
+    print(f"\nGET {url_profile} -> HTTP {status}")
     for a in profile.get("addresses", []):
         print(f"  {a.get('chain'):>6} {a.get('addr')} proven={a.get('proven')}")
     bound = any(a.get("addr") == addr and a.get("proven") for a in profile.get("addresses", []))
