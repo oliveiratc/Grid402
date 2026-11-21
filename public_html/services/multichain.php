@@ -318,7 +318,7 @@ function grid402_rpc_get_evm_receipt(string $network, string $txHash): ?array {
 
         if ($httpCode === 200 && is_string($response) && $response !== '') {
             $decoded = @json_decode($response, true);
-            if (is_array($decoded) && array_key_exists('result', $decoded) && is_array($decoded['result'])) {
+            if (is_array($decoded) && array_key_exists('result', $decoded) && $decoded['result'] !== null && $decoded['result'] !== false && is_array($decoded['result']) && !empty($decoded['result']) && (isset($decoded['result']['transactionHash']) || isset($decoded['result']['blockNumber']))) {
                 return $decoded['result'];
             }
         }
@@ -463,7 +463,7 @@ function grid402_rpc_get_solana_transaction(string $signature): ?array {
 
         if ($httpCode === 200 && is_string($response) && $response !== '') {
             $decoded = @json_decode($response, true);
-            if (is_array($decoded) && array_key_exists('result', $decoded) && is_array($decoded['result'])) {
+            if (is_array($decoded) && array_key_exists('result', $decoded) && $decoded['result'] !== null && $decoded['result'] !== false && is_array($decoded['result']) && !empty($decoded['result']) && (isset($decoded['result']['transactionHash']) || isset($decoded['result']['blockNumber']))) {
                 return $decoded['result'];
             }
         }

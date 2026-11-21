@@ -272,6 +272,29 @@ final class JsonFlockPassRepository implements PassStorageInterface {
                 }
             }
 
+            // FIX: Security gate - For non-sandbox passes with real-looking tx hashes
+            // (EVM: 0x + 64 hex, or Solana: Base58 64-90 chars), verify the tx hash
+            // was previously validated on-chain (exists in used_txs lock file).
+            // This prevents phantom passes from being created with fake tx hashes.
+            if (!$isSandbox && $record === null && $cleanTx !== '') {
+                $isEvmTx = (bool) preg_match('/^0x[a-f0-9]{64}$/', $cleanTx);
+                $isSolanaSig = (strlen($cleanTx) >= 64 && strlen($cleanTx) <= 90 && !str_starts_with($cleanTx, '0x'));
+                if ($isEvmTx || $isSolanaSig) {
+                    // Check if tx hash exists in the on-chain verification lock file
+                    $usedTxsFile = defined('GRID402_FILE_USED_TXS') ? GRID402_FILE_USED_TXS : (GRID402_PRIVATE_DIR . '/used_txs.json');
+                    $txs = [];
+                    if (file_exists($usedTxsFile)) {
+                        $txs = @json_decode((string) file_get_contents($usedTxsFile), true);
+                        if (!is_array($txs)) {
+                            $txs = [];
+                        }
+                    }
+                    if (!isset($txs[$cleanTx])) {
+                        throw new RuntimeException('Transação não verificada on-chain. O hash ' . $txHash . ' não foi validado contra a blockchain. Emissão de pass negada.');
+                    }
+                }
+            }
+
             if ($record === null) {
                 $prefix = $isSandbox ? 'demo' : 'live';
                 $passId = $prefix . bin2hex(random_bytes(6));

@@ -52,8 +52,13 @@ function grid402_rpc_get_receipt(string $txHash): ?array {
 
         if ($httpCode === 200 && is_string($response)) {
             $json = @json_decode($response, true);
-            if (isset($json['result'])) {
-                return $json['result'];
+            // FIX: Use array_key_exists + strict null check to prevent bypass
+            // when RPC returns {"result": null} (isset returns false for null,
+            // but we also reject false/0/empty to be safe)
+            if (is_array($json) && array_key_exists('result', $json) && $json['result'] !== null && $json['result'] !== false && $json['result'] !== 0 && $json['result'] !== '' && $json['result'] !== []) {
+                if (is_array($json['result'])) {
+                    return $json['result'];
+                }
             }
         }
     }
