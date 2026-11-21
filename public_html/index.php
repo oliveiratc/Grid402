@@ -3968,6 +3968,9 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 <a href="https://mcptry.com/servers/io.github.oliveiratc/grid402" target="_blank" rel="noopener noreferrer" style="display:inline-flex; line-height:0;">
                     <img src="https://mcptry.com/badge/io.github.oliveiratc/grid402" alt="mcptry Verified MCP" loading="lazy" style="height:22px;">
                 </a>
+                <a href="https://wellknown.network/agents/grid402-mcp" target="_blank" rel="noopener noreferrer" style="display:inline-flex; line-height:0;">
+                    <img src="https://wellknown.network/agents/grid402-mcp/badge.svg" alt="Wellknown Verified MCP Status" loading="lazy" style="height:22px;">
+                </a>
             </div>
         </section>
 

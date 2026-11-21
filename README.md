@@ -20,6 +20,7 @@
 ![PHP](https://img.shields.io/badge/PHP-8.1%20%7C%208.2%20%7C%208.3-777BB4?logo=php)
 ![Server](https://img.shields.io/badge/Server-Hostinger_LiteSpeed-blue)
 [![mcptry](https://mcptry.com/badge/io.github.oliveiratc/grid402)](https://mcptry.com/servers/io.github.oliveiratc/grid402)
+[![Wellknown](https://wellknown.network/agents/grid402-mcp/badge.svg)](https://wellknown.network/agents/grid402-mcp)
 
 [![Grid402 — Brazil Public Data and Network Oracle MCP server](public_html/assets/mcprush-card.svg)](https://mcprush.com/to/grid402-brazil-public-data-network-oracle-mcp?ref=badge)
 
