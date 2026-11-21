@@ -5,9 +5,13 @@ if (!defined('GRID402_EXEC')) {
     define('GRID402_EXEC', true);
 }
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/pass-reengagement-banner.php';
+require_once __DIR__ . '/includes/pass-queue-helper.php';
 require_once __DIR__ . '/services/mercadopago.php';
 require_once __DIR__ . '/services/multichain.php';
 require_once __DIR__ . '/metrics.php';
+
+$userIdleStats = grid402_get_user_idle_pass_stats();
 
 grid402_record_page_visit('/pass');
 
@@ -72,6 +76,12 @@ $supportedNets = grid402_supported_networks();
 <body>
 <?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '/pass', 'domain' => $domain, 'show_lang' => true]); ?>
 <div class="wrap">
+    <?php echo grid402_pass_reengagement_banner([
+        'idle_passes' => $userIdleStats['idle_passes'],
+        'idle_usdc'   => $userIdleStats['idle_usdc'],
+        'expires_in'  => $userIdleStats['expires_min_days'],
+        'lang'        => 'pt-BR',
+    ]); ?>
 
     <h1 data-i18n-html="pass.title">Buy Session Pass <code>pass_g402_...</code></h1>
     <p data-i18n-html="pass.subtitle">Pay once in <strong>BRL (Pix or Card via Mercado Pago)</strong> or in <strong>USDC on the Base network</strong> and instantly receive a token loaded with thousands of requests (&lt;15ms), without signing a transaction on every call. Ideal for n8n, Make, Zapier, Python, Node, and MCP.</p>
@@ -281,6 +291,13 @@ function showIssuedPass(data) {
     document.getElementById('mp-token-snippet').textContent =
         `curl -s -H "X-Payment: ${data.pass_token}" "${window.location.origin}/api/v1/cnpj?cnpj=00000000000191"`;
     showPanel('Pagamento confirmado!', 'Seu Session Pass já está ativo e pronto para uso.', true);
+    // Persiste o token em cookie para o banner de reengagement reconhecer o usuário
+    try {
+        document.cookie = 'g402_pass_token=' + encodeURIComponent(data.pass_token) + '; path=/; max-age=2592000; SameSite=Lax';
+        if (location.protocol === 'https:') {
+            document.cookie = 'g402_pass_token=' + encodeURIComponent(data.pass_token) + '; path=/; max-age=2592000; Secure; SameSite=Lax';
+        }
+    } catch (_) {}
 }
 
 async function pollOrderStatus(orderId, paymentId = null) {

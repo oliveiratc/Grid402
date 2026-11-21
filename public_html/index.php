@@ -5934,6 +5934,10 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
                     try {
                         localStorage.setItem('grid402_last_pass_token', passData.pass_token);
+                        document.cookie = 'g402_pass_token=' + encodeURIComponent(passData.pass_token) + '; path=/; max-age=2592000; SameSite=Lax';
+                        if (location.protocol === 'https:') {
+                            document.cookie = 'g402_pass_token=' + encodeURIComponent(passData.pass_token) + '; path=/; max-age=2592000; Secure; SameSite=Lax';
+                        }
                     } catch (e) {}
 
                     successCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -6008,6 +6012,10 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
                     try {
                         localStorage.setItem('grid402_last_pass_token', passData.pass_token);
+                        document.cookie = 'g402_pass_token=' + encodeURIComponent(passData.pass_token) + '; path=/; max-age=2592000; SameSite=Lax';
+                        if (location.protocol === 'https:') {
+                            document.cookie = 'g402_pass_token=' + encodeURIComponent(passData.pass_token) + '; path=/; max-age=2592000; Secure; SameSite=Lax';
+                        }
                     } catch (e) {}
 
                     successCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });

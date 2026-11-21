@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 define('GRID402_EXEC', true);
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/pass-reengagement-banner.php';
+require_once __DIR__ . '/includes/pass-queue-helper.php';
 require_once __DIR__ . '/metrics.php';
 require_once __DIR__ . '/growth.php';
 require_once __DIR__ . '/services/pass.php';
+
+$userIdleStats = grid402_get_user_idle_pass_stats();
 
 $token = trim((string) ($_GET['token'] ?? ''));
 $filterEndpoint = trim((string) ($_GET['endpoint'] ?? ''));
@@ -74,6 +78,13 @@ $jsonUrl = '/api/v1/pass/statement?' . http_build_query(array_merge($baseQuery, 
 <body>
 <?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '', 'show_lang' => true]); ?>
 <main>
+    <?php echo grid402_pass_reengagement_banner([
+        'idle_passes' => $userIdleStats['idle_passes'],
+        'idle_usdc'   => $userIdleStats['idle_usdc'],
+        'expires_in'  => $userIdleStats['expires_min_days'],
+        'lang'        => 'pt-BR',
+    ]); ?>
+
     <h1 data-i18n="paydash.title">Payment Dashboard</h1>
     <p data-i18n="paydash.subtitle">Tracking hub for individual x402 payments and Session Pass. Both products are distinct and displayed here with separate rules.</p>
 
