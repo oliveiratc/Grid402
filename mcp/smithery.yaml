@@ -22,5 +22,12 @@ startCommand:
         description: "Prepaid Session Pass token (pass_g402_...) for sub-15ms calls (optional)"
       GRID402_PRIVATE_KEY:
         type: string
-        description: "EVM private key on Base Mainnet for automated 0.0050 to 0.0500 USDC x402 payment settlement (optional)"
+        description: "EVM (0x...) or Solana (Base58) private key for automated Multi-Chain USDC x402 payment settlement (optional)"
+      GRID402_SOLANA_PRIVATE_KEY:
+        type: string
+        description: "Solana Ed25519 private key (Base58 or JSON byte array) for automated SPL USDC x402 payment settlement (optional)"
+      GRID402_PAYMENT_NETWORK:
+        type: string
+        description: "Preferred payment network for automatic x402 settlement: base, polygon, arbitrum, solana, optimism, or ethereum (default: base)"
+        default: "base"
 

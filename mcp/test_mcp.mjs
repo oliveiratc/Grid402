@@ -3,8 +3,21 @@
  */
 
 import assert from 'node:assert';
+import crypto from 'node:crypto';
 import { MCP_TOOLS_DEFINITIONS, executeGrid402Request } from './tools.mjs';
-import { settleX402Payment, GRID402_RECIPIENT_WALLET } from './x402_payer.mjs';
+import {
+  settleX402Payment,
+  GRID402_RECIPIENT_WALLET,
+  GRID402_SOLANA_RECIPIENT_WALLET,
+  USDC_MINT_SOLANA,
+  SUPPORTED_X402_NETWORKS,
+  normalizePaymentNetwork,
+  encodeBase58,
+  decodeBase58,
+  parseSolanaKeypair,
+  buildSolanaX402PaymentPayload,
+  buildEip3009PaymentPayload,
+} from './x402_payer.mjs';
 
 async function runTests() {
   console.log('=== Testando Servidor MCP Grid402 ===\n');
@@ -83,15 +96,62 @@ async function runTests() {
   assert.ok(workdaysChallenge.challenge, 'Workdays deve conter desafio');
   console.log('  ✓ Desafio x402 capturado com instruções e carteira oficial para DNS, CNPJ, Indicadores, Feriados e Workdays!');
 
-  // 4. Teste de Validação Defensiva de Chave Privada
-  console.log('\n[4/5] Testando validação defensiva de formato de chave privada...');
+  // 4. Teste de Validação Defensiva de Chave Privada e Auto-Payer Multi-Chain (Base, Polygon, Arbitrum e Solana)
+  console.log('\n[4/7] Testando validação defensiva de chave privada e Auto-Payer Multi-Chain (EVM + Solana SPL USDC)...');
   try {
     await settleX402Payment({}, 'chave_invalida');
     assert.fail('Deveria ter lançado erro para chave inválida');
   } catch (err) {
     assert.ok(err.message.includes('Chave privada inválida'), 'Deve rejeitar chave mal formatada');
-    console.log('  ✓ Rejeição de chave privada inválida validada com sucesso!');
   }
+
+  // 4.1 Redes suportadas e normalização
+  for (const net of ['base', 'polygon', 'arbitrum', 'optimism', 'ethereum', 'solana']) {
+    assert.ok(SUPPORTED_X402_NETWORKS[net], `Rede ${net} deve estar registrada em SUPPORTED_X402_NETWORKS`);
+  }
+  assert.strictEqual(normalizePaymentNetwork('solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp'), 'solana');
+  assert.strictEqual(normalizePaymentNetwork('eip155:137'), 'polygon');
+  assert.strictEqual(normalizePaymentNetwork('eip155:42161'), 'arbitrum');
+
+  // 4.2 Teste de keypair Solana Ed25519 + construção de payload x402 v2 SVM (SPL USDC TransferChecked)
+  const solSeed = crypto.randomBytes(32);
+  const solSeedB58 = encodeBase58(solSeed);
+  assert.strictEqual(normalizePaymentNetwork(null, solSeedB58), 'solana', 'Deve auto-detectar chave Base58 como Solana');
+  const solKp = parseSolanaKeypair(solSeedB58);
+  assert.strictEqual(solKp.publicKeyBytes.length, 32, 'Pubkey Solana deve ter 32 bytes');
+  assert.strictEqual(decodeBase58(solKp.publicKeyBase58).length, 32, 'Pubkey Base58 deve decodificar para 32 bytes');
+
+  const dummyAtaSource = encodeBase58(crypto.randomBytes(32));
+  const dummyAtaDest = encodeBase58(crypto.randomBytes(32));
+  const dummyBlockhash = encodeBase58(crypto.randomBytes(32));
+  const solX402 = buildSolanaX402PaymentPayload({
+    privateKey: solSeedB58,
+    sourceTokenAccount: dummyAtaSource,
+    destinationTokenAccount: dummyAtaDest,
+    recentBlockhash: dummyBlockhash,
+    rawUnits: 5000n,
+  });
+  assert.strictEqual(solX402.payload.x402Version, 2);
+  assert.strictEqual(solX402.payload.network, 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp');
+  assert.strictEqual(solX402.payload.accepted.asset, USDC_MINT_SOLANA);
+  assert.strictEqual(solX402.payload.accepted.payTo, GRID402_SOLANA_RECIPIENT_WALLET);
+  assert.ok(Buffer.from(solX402.payload.payload.transaction, 'base64').length > 150, 'Transação Solana SPL USDC assinada deve ter > 150 bytes');
+
+  // 4.3 Teste de assinatura Gasless EIP-3009 (Base, Polygon e Arbitrum) via settleX402Payment
+  const testEvmKey = '0x' + crypto.randomBytes(32).toString('hex');
+  for (const evmNet of ['base', 'polygon', 'arbitrum']) {
+    const gaslessRes = await settleX402Payment({ price_raw_units: 5000 }, testEvmKey, null, {
+      network: evmNet,
+      gasless: true,
+    });
+    assert.strictEqual(gaslessRes.network, evmNet);
+    assert.strictEqual(gaslessRes.mode, 'x402_gasless');
+    const decodedPayload = JSON.parse(Buffer.from(gaslessRes.paymentHeader, 'base64').toString('utf8'));
+    assert.strictEqual(decodedPayload.x402Version, 2);
+    assert.strictEqual(decodedPayload.network, SUPPORTED_X402_NETWORKS[evmNet].caip2);
+    assert.strictEqual(decodedPayload.accepted.payTo, GRID402_RECIPIENT_WALLET);
+  }
+  console.log('  ✓ Rejeição de chave inválida e Auto-Payer Multi-Chain (Base, Polygon, Arbitrum e Solana SPL USDC) validados com sucesso!');
 
   // 5. Teste de Repasse Transparente de Prova Criptografica de Oraculo (_oracle_proof)
   console.log('\n[5/5] Testando presenca da prova de oraculo (_oracle_proof) em modo sandbox...');

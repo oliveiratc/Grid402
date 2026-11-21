@@ -27,7 +27,7 @@ export const MCP_TOOLS_DEFINITIONS = [
       properties: {
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet comprovando o pagamento de 0.0050 USDC caso não utilize liquidação automática.',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum ou Solana: 0x..., polygon:0x..., arbitrum:0x..., solana:<base58>, payload x402 base64 ou token pass_g402_...).',
         },
       },
       required: [],
@@ -41,7 +41,7 @@ export const MCP_TOOLS_DEFINITIONS = [
       properties: {
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet com 0.0050 USDC.',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum ou Solana: 0x..., polygon:0x..., arbitrum:0x..., solana:<base58>, payload x402 base64 ou token pass_g402_...).',
         },
       },
       required: [],
@@ -59,7 +59,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet com 0.0050 USDC.',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum ou Solana: 0x..., polygon:0x..., arbitrum:0x..., solana:<base58>, payload x402 base64 ou token pass_g402_...).',
         },
       },
       required: ['domain'],
@@ -77,7 +77,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet com 0.0050 USDC.',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum ou Solana: 0x..., polygon:0x..., arbitrum:0x..., solana:<base58>, payload x402 base64 ou token pass_g402_...).',
         },
       },
       required: ['host'],
@@ -95,7 +95,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet com 0.0050 USDC.',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum ou Solana: 0x..., polygon:0x..., arbitrum:0x..., solana:<base58>, payload x402 base64 ou token pass_g402_...).',
         },
       },
       required: [],
@@ -113,7 +113,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet com 0.0150 USDC.',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0150 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
         },
       },
       required: ['domain'],
@@ -131,7 +131,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet com 0.0200 USDC.',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0200 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
         },
       },
       required: ['cnpj'],
@@ -149,7 +149,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet com 0.0500 USDC ou token pass_g402_...',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0500 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
         },
       },
       required: ['cnpj'],
@@ -163,7 +163,7 @@ export const MCP_TOOLS_DEFINITIONS = [
       properties: {
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet com 0.0150 USDC.',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0150 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
         },
       },
       required: [],
@@ -181,7 +181,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet com 0.0050 USDC.',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum ou Solana: 0x..., polygon:0x..., arbitrum:0x..., solana:<base58>, payload x402 base64 ou token pass_g402_...).',
         },
       },
       required: ['code'],
@@ -199,7 +199,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet com 0.0200 USDC.',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0200 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
         },
       },
       required: ['cnpj'],
@@ -213,7 +213,7 @@ export const MCP_TOOLS_DEFINITIONS = [
       properties: {
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet comprovando o pagamento de 0.0050 USDC caso não utilize liquidação automática.',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum ou Solana: 0x..., polygon:0x..., arbitrum:0x..., solana:<base58>, payload x402 base64 ou token pass_g402_...).',
         },
       },
       required: [],
@@ -231,7 +231,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet comprovando o pagamento de 0.0050 USDC caso não utilize liquidação automática.',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum ou Solana: 0x..., polygon:0x..., arbitrum:0x..., solana:<base58>, payload x402 base64 ou token pass_g402_...).',
         },
       },
       required: [],
@@ -261,7 +261,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transacao na Base Mainnet comprovando o pagamento de 0.0050 USDC caso nao utilize liquidacao automatica.',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0050 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
         },
       },
       required: [],
@@ -321,7 +321,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet com 0.0200 USDC.',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0200 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
         },
       },
       required: ['lei'],
@@ -339,7 +339,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet com 0.0200 USDC.',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0200 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
         },
       },
       required: ['target'],
@@ -357,7 +357,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet com 0.0050 USDC.',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum ou Solana: 0x..., polygon:0x..., arbitrum:0x..., solana:<base58>, payload x402 base64 ou token pass_g402_...).',
         },
       },
       required: ['content'],
@@ -383,7 +383,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet com 0.0050 USDC.',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum ou Solana: 0x..., polygon:0x..., arbitrum:0x..., solana:<base58>, payload x402 base64 ou token pass_g402_...).',
         },
       },
       required: [],
@@ -441,7 +441,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação na Base Mainnet para emissão de novo passe.',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum, Optimism, Ethereum ou Solana) para emissão de novo passe.',
         },
       },
       required: [],
@@ -482,8 +482,14 @@ export const MCP_TOOLS_DEFINITIONS = [
  */
 export async function executeGrid402Request(service, params = {}, options = {}) {
   const endpoint = (options.endpoint || DEFAULT_ENDPOINT).replace(/\/$/, '');
-  const privateKey = options.privateKey || process.env.GRID402_PRIVATE_KEY || null;
-  const preferredRpc = options.rpcUrl || process.env.GRID402_BASE_RPC_URL || null;
+  const paymentNetwork = options.network || params.payment_network || process.env.GRID402_PAYMENT_NETWORK || null;
+  const solanaPrivateKey = options.solanaPrivateKey || process.env.GRID402_SOLANA_PRIVATE_KEY || null;
+  const privateKey = options.privateKey
+    || (String(paymentNetwork || '').toLowerCase() === 'solana' && solanaPrivateKey ? solanaPrivateKey : null)
+    || process.env.GRID402_PRIVATE_KEY
+    || solanaPrivateKey
+    || null;
+  const preferredRpc = options.rpcUrl || process.env.GRID402_RPC_URL || process.env.GRID402_BASE_RPC_URL || null;
 
   let path = '';
   const queryParams = new URLSearchParams();
@@ -658,13 +664,19 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
   if (response.status === 402) {
     const challenge = await response.json();
 
-    // Se temos uma chave privada configurada, tenta pagamento on-chain automático
+    // Se temos uma chave privada configurada (EVM ou Solana), tenta pagamento Multi-Chain automático
     if (privateKey) {
       try {
-        const paymentResult = await settleX402Payment(challenge, privateKey, preferredRpc);
+        const paymentResult = await settleX402Payment(challenge, privateKey, preferredRpc, {
+          network: paymentNetwork,
+          gasless: options.gasless,
+        });
 
-        // Refaz a requisição com o hash da transação confirmada na Base
-        headers['X-Payment'] = paymentResult.txHash;
+        // Refaz a requisição com o comprovante Multi-Chain (Base, Polygon, Arbitrum ou Solana)
+        headers['X-Payment'] = paymentResult.paymentHeader || paymentResult.txHash;
+        if (paymentResult.network && paymentResult.network !== 'base') {
+          headers['X-Payment-Network'] = paymentResult.network;
+        }
         const retryResponse = await fetch(url, { headers });
 
         if (retryResponse.status === 200) {
@@ -672,8 +684,8 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
           return {
             ...data,
             _x402_settlement: {
-              status: 'CONFIRMED_ON_CHAIN',
-              network: 'Base',
+              status: paymentResult.mode === 'x402_gasless' ? 'SETTLED_VIA_FACILITATOR' : 'CONFIRMED_ON_CHAIN',
+              network: paymentResult.networkName || 'Base',
               tx_hash: paymentResult.txHash,
               block_number: paymentResult.blockNumber,
               amount_usdc: paymentResult.amountUsdc,
@@ -692,9 +704,9 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
     // Se não há chave privada ou session pass configurados, retorna o desafio de pagamento estruturado
     return {
       payment_required: true,
-      message: 'Esta consulta requer micropagamento em USDC na rede Base via protocolo x402.',
+      message: 'Esta consulta requer micropagamento em USDC Multi-Chain (Base, Polygon, Arbitrum ou Solana) via protocolo x402.',
       challenge,
-      instructions: 'Opções de acesso: (1) Teste grátis definindo GRID402_SANDBOX=true; (2) Use um passe pré-pago sem expor chave privada definindo GRID402_SESSION_PASS=pass_g402_...; (3) Para auto-liquidação on-chain x402, defina GRID402_PRIVATE_KEY.',
+      instructions: 'Opções de acesso: (1) Teste grátis definindo GRID402_SANDBOX=true; (2) Use um passe pré-pago sem expor chave privada definindo GRID402_SESSION_PASS=pass_g402_...; (3) Para auto-liquidação x402 Multi-Chain, defina GRID402_PRIVATE_KEY (EVM Base/Polygon/Arbitrum) ou GRID402_SOLANA_PRIVATE_KEY (Solana SPL USDC) e opcionalmente GRID402_PAYMENT_NETWORK=base|polygon|arbitrum|solana.',
     };
   }
 

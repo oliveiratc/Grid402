@@ -74,7 +74,9 @@ Adicione ao seu arquivo de configuração (`claude_desktop_config.json`):
         "GRID402_ENDPOINT": "https://grid402.online",
         "GRID402_SANDBOX": "false",
         "GRID402_SESSION_PASS": "pass_g402_seu_passe_aqui_opcional",
-        "GRID402_PRIVATE_KEY": "0xsua_chave_privada_base_aqui_opcional"
+        "GRID402_PAYMENT_NETWORK": "base",
+        "GRID402_PRIVATE_KEY": "0xsua_chave_privada_evm_opcional",
+        "GRID402_SOLANA_PRIVATE_KEY": "sua_chave_privada_solana_base58_opcional"
       }
     }
   }
@@ -85,7 +87,7 @@ Adicione ao seu arquivo de configuração (`claude_desktop_config.json`):
 >
 > 💡 **Session Pass (Sem Chave Privada):** Se preferir não informar `GRID402_PRIVATE_KEY`, adquira um passe pré-pago em `https://grid402.online/pass` e defina `"GRID402_SESSION_PASS": "pass_g402_..."` para execução em `<15ms`.
 >
-> 💡 **Nota de Segurança:** A variável `GRID402_PRIVATE_KEY` é opcional. Se informada, o servidor MCP realiza a transferência automática de USDC on-chain na Base a cada consulta paga. Se não informada ou sem saldo, o servidor retorna o desafio x402 com amostra de dados. A chave é processada estritamente na sua máquina local e nunca é enviada ao servidor do Grid402.
+> 💡 **Auto-Payer Multi-Chain (Base, Polygon, Arbitrum e Solana):** O módulo `x402_payer.mjs` suporta liquidação automática Multi-Chain tanto para carteiras EVM (`GRID402_PRIVATE_KEY` em `base`, `polygon`, `arbitrum`, `optimism`, `ethereum`, com suporte a modo gasless EIP-3009 `GRID402_X402_GASLESS=true`) quanto para carteiras **Solana SPL USDC** (`GRID402_SOLANA_PRIVATE_KEY` em Base58 ou JSON array com `GRID402_PAYMENT_NETWORK=solana`, on-chain ou gasless PayAI SVM). As chaves são processadas estritamente na sua máquina local e nunca são enviadas ao servidor do Grid402.
 
 ---
 
