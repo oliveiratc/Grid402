@@ -35,46 +35,47 @@ if (!function_exists('grid402_pass_reengagement_banner')) {
                 'title'   => 'Você tem créditos de Session Pass parados',
                 'body'    => 'Seu(s) pass(s) não foi(ram) usado(s) ainda. Os créditos não expiram imediatamente, mas vale a pena começar a usar antes que o saldo fique esquecido.',
                 'cta'     => 'Ver meus passes',
-                'url'     => '/payment_dashboard',
+                'url'     => '/payment-dashboard',
                 'subtitle'=> 'Consulte forex, cnpj, dossier e mais de 25 serviços em <15ms.',
             ],
             'en' => [
                 'title'   => 'You have idle Session Pass credits',
                 'body'    => 'Your pass(es) have not been used yet. Credits do not expire immediately, but it is worth starting to use them before the balance is forgotten.',
                 'cta'     => 'View my passes',
-                'url'     => '/payment_dashboard',
+                'url'     => '/payment-dashboard',
                 'subtitle'=> 'Query forex, cnpj, dossier and 25+ services in <15ms.',
             ],
         ];
         $t = $texts[$isPt ? 'pt-BR' : 'en'];
+        $url = $t['url'];
 
         // ----- Variação por urgência -----
         if ($idle > 0 && $hasExpiry && $days <= 7) {
-            $badgeText  = $isPt ? 'Expira em ' . $days . ' dias' : 'Expires in ' . $days . ' days';
-            $badgeClass = 'g402-banner-badge--urgent';
-            $title      = $isPt ? 'Seus créditos expiram em breve' : 'Your credits expire soon';
-            $body       = $isPt
+            $badgeText    = $isPt ? 'Expira em ' . $days . ' dias' : 'Expires in ' . $days . ' days';
+            $variantClass = 'g402-banner-reengagement--urgent';
+            $title        = $isPt ? 'Seus créditos expiram em breve' : 'Your credits expire soon';
+            $body         = $isPt
                 ? "Você tem {$idle} pass(es) com {$usdc} USDC parado(s) e expira(m) em {$days} dia(s). Use agora para não perder o saldo."
                 : "You have {$idle} pass(es) with {$usdc} USDC idle expiring in {$days} day(s). Use them now to avoid losing the balance.";
-            $cta        = $isPt ? 'Usar meus créditos agora' : 'Use my credits now';
+            $cta          = $isPt ? 'Usar meus créditos agora' : 'Use my credits now';
         } elseif ($idle > 0) {
-            $badgeText  = $isPt ? $idle . ' pass(es) sem uso' : $idle . ' unused pass(es)';
-            $badgeClass = 'g402-banner-badge--idle';
-            $title      = $t['title'];
-            $body       = $isPt
-                ? "Você tem {$idle} pass(es) com {$usdc} USDC parado(s). Comece a usar em https://grid402.online/pass"
-                : "You have {$idle} unused pass(es) with {$usdc} USDC idle. Start using at https://grid402.online/pass";
-            $cta        = $t['cta'];
+            $badgeText    = $isPt ? $idle . ' pass(es) sem uso' : $idle . ' unused pass(es)';
+            $variantClass = 'g402-banner-reengagement--idle';
+            $title        = $t['title'];
+            $body         = $isPt
+                ? "Você tem {$idle} pass(es) com {$usdc} USDC parado(s). Comece a usar em https://grid402.online/payment-dashboard"
+                : "You have {$idle} unused pass(es) with {$usdc} USDC idle. Start using at https://grid402.online/payment-dashboard";
+            $cta          = $t['cta'];
         } else {
             // Banner genérico de conscientização (quando não há dados do usuário)
-            $badgeText  = $isPt ? 'Session Pass' : 'Session Pass';
-            $badgeClass = 'g402-banner-badge--info';
-            $title      = $isPt ? 'Compre um Session Pass e pague por chamada' : 'Buy a Session Pass and pay per call';
-            $body       = $isPt
-                ? 'Adquira créditos pré-pagos (2 / 5 / 20 USDC) e consulte APIs sem assinar transação a cada chamada.'
-                : 'Purchase prepaid credits (2 / 5 / 20 USDC) and query APIs without signing a transaction on every call.';
-            $cta        = $isPt ? 'Comprar Session Pass' : 'Buy Session Pass';
-            $url        = '/pass';
+            $badgeText    = 'Session Pass';
+            $variantClass = 'g402-banner-reengagement--info';
+            $title        = $isPt ? 'Compre um Session Pass e pague por chamada' : 'Buy a Session Pass and pay per call';
+            $body         = $isPt
+                ? 'Adquira créditos pré-pagos (R$ 12 Pix ou 2 / 5 / 20 USDC) e consulte APIs em <15ms sem assinar transação a cada chamada.'
+                : 'Purchase prepaid credits (R$ 12 Pix or 2 / 5 / 20 USDC) and query APIs in <15ms without signing a transaction on every call.';
+            $cta          = $isPt ? 'Comprar Session Pass' : 'Buy Session Pass';
+            $url          = '/pass?tier=starter&autopix=1';
         }
         $url = $opts['url'] ?? $url;
 
@@ -126,7 +127,7 @@ if (!function_exists('grid402_pass_reengagement_banner')) {
             text-decoration: none; border: none; cursor: pointer; transition: transform .1s ease, filter .15s ease;
         }
         .g402-banner-btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
-        .g402-banner-reengagement--info  .g402-banner-btn { background: #0052FF; color: #041024; }
+        .g402-banner-reengagement--info  .g402-banner-btn { background: #0052FF; color: #FFFFFF; }
         .g402-banner-reengagement--idle  .g402-banner-btn { background: #F59E0B; color: #04120D; }
         .g402-banner-reengagement--urgent .g402-banner-btn { background: #EF4444; color: #fff; }
         .g402-banner-close {
@@ -141,7 +142,7 @@ if (!function_exists('grid402_pass_reengagement_banner')) {
         }
         </style>
 
-        <section class="g402-banner-reengagement <?php echo $badgeClass; ?>" role="banner" aria-label="<?php echo htmlspecialchars($title, ENT_QUOTES, 'UTF-8'); ?>">
+        <section class="g402-banner-reengagement <?php echo $variantClass; ?>" role="banner" aria-label="<?php echo htmlspecialchars($title, ENT_QUOTES, 'UTF-8'); ?>">
             <div class="g402-banner-icon" aria-hidden="true"><?php echo $hasExpiry && $days <= 7 ? '⏰' : ($idle > 0 ? '💳' : '🪪'); ?></div>
             <div class="g402-banner-content">
                 <span class="g402-banner-badge"><?php echo htmlspecialchars($badgeText, ENT_QUOTES, 'UTF-8'); ?></span>

@@ -76,12 +76,14 @@ $supportedNets = grid402_supported_networks();
 <body>
 <?php require_once __DIR__ . '/includes/nav.php'; grid402_render_public_nav(['active' => '/pass', 'domain' => $domain, 'show_lang' => true]); ?>
 <div class="wrap">
+    <?php if (($userIdleStats['idle_passes'] ?? 0) > 0): ?>
     <?php echo grid402_pass_reengagement_banner([
         'idle_passes' => $userIdleStats['idle_passes'],
         'idle_usdc'   => $userIdleStats['idle_usdc'],
         'expires_in'  => $userIdleStats['expires_min_days'],
         'lang'        => 'pt-BR',
     ]); ?>
+    <?php endif; ?>
 
     <h1 data-i18n-html="pass.title">Buy Session Pass <code>pass_g402_...</code></h1>
     <p data-i18n-html="pass.subtitle">Pay once in <strong>BRL (Pix or Card via Mercado Pago)</strong> or in <strong>USDC on the Base network</strong> and instantly receive a token loaded with thousands of requests (&lt;15ms), without signing a transaction on every call. Ideal for n8n, Make, Zapier, Python, Node, and MCP.</p>
