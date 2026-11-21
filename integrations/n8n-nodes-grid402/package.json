@@ -1,0 +1,54 @@
+{
+  "name": "@oliveiratco1/n8n-nodes-grid402",
+  "version": "1.0.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "Official n8n Community Node for Grid402 - 25 Verifiable Public Data, Brazil KYB 360 (CNPJ, Simples/MEI, CGU Sanctions), ANBIMA Workdays, Web-to-Markdown, Zero-PII Email Verify, GLEIF LEI, OFAC and Network Utility APIs with Session Pass (Pix/Card/USDC) and ECDSA Oracle Proof.",
+  "keywords": [
+    "n8n-community-node-package",
+    "n8n",
+    "grid402",
+    "cnpj",
+    "kyb",
+    "receita-federal",
+    "simples-nacional",
+    "cgu",
+    "anbima",
+    "cep",
+    "ptax",
+    "email-verify",
+    "markdown",
+    "x402",
+    "ai-agent"
+  ],
+  "license": "MIT",
+  "homepage": "https://grid402.online",
+  "author": {
+    "name": "Grid402 Team",
+    "email": "contato@grid402.online"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oliveiratc/Grid402.git"
+  },
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node test_n8n_node.cjs"
+  },
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/Grid402Api.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/Grid402/Grid402.node.js"
+    ]
+  }
+}

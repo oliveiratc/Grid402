@@ -132,6 +132,13 @@ $supportedNets = grid402_supported_networks();
     </div>
 
     <h2 data-i18n="pass.packages.title">Packages</h2>
+    <div class="note" style="border-color:rgba(16,185,129,.45);background:rgba(16,185,129,.08);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem;">
+        <div>
+            <strong style="color:#10B981;">⚡ Ativação Instantânea via Pix (Sem Cadastro / Zero-PII):</strong>
+            <span style="color:var(--text);"> Clique em <em>Pay with Pix</em> abaixo, escaneie o QR Code no app do seu banco e receba seu token <code>pass_g402_...</code> na tela em menos de 5 segundos (100% dados públicos sob a Lei nº 12.527/2011 - LAI).</span>
+        </div>
+        <button type="button" class="btn btn-pix" style="width:auto;padding:.55rem 1rem;" onclick="startMpPix('starter', this)">⚡ Gerar QR Pix R$ 12 Agora (400 créditos)</button>
+    </div>
     <div class="grid">
         <?php foreach ($packages as $tier => $pkg): ?>
         <div class="card <?php echo $tier === 'pro' ? 'featured' : ''; ?>">
@@ -425,10 +432,11 @@ function copyToken(btn) {
         return;
     }
 
-    // Conversão instantânea (1 clique vindo do Playground ou CTA externo): /pass?tier=starter&method=pix
-    const reqTier = (params.get('tier') || '').toLowerCase();
+    // Conversão instantânea (1 clique vindo do Playground, MCP ou CTA externo): /pass?tier=starter&method=pix ou /pass?tier=starter&autopix=1
+    const reqTier = (params.get('tier') || 'starter').toLowerCase();
     const reqMethod = (params.get('method') || '').toLowerCase();
-    if (reqMethod === 'pix' && ['starter', 'pro', 'fleet'].includes(reqTier)) {
+    const autoPix = params.get('autopix') === '1' || params.get('autopix') === 'true';
+    if ((reqMethod === 'pix' || autoPix) && ['starter', 'pro', 'fleet'].includes(reqTier)) {
         const pixBtn = document.querySelector(`button[onclick*="startMpPix('${reqTier}'"]`);
         if (pixBtn) {
             setTimeout(() => startMpPix(reqTier, pixBtn), 250);
