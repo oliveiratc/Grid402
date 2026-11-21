@@ -39,6 +39,7 @@ export const DEFAULT_DOMAIN = "grid402.online";
 export const DEFAULT_EVM_ADDR = "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90";
 export const BASE_URL = "https://trust.paycensus.com";
 export const ENDPOINT = `${BASE_URL}/api/verify/addr-proof`;
+export const MESSAGE_ENDPOINT = `${BASE_URL}/api/verify/addr-proof-message`;
 export const NONCE_PREFIX = "paycensus-verify=";
 export const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
@@ -129,6 +130,32 @@ export function normalizeSignatureVariants(signature) {
  */
 export function profileUrl(domain) {
   return `${BASE_URL}/api/profile?domain=${encodeURIComponent(domain)}`;
+}
+
+/**
+ * Retorna a URL oficial para buscar a mensagem exata a assinar (`GET /api/verify/addr-proof-message?vid=<vid>`).
+ */
+export function messageUrl(vid) {
+  return `${MESSAGE_ENDPOINT}?vid=${encodeURIComponent(String(vid))}`;
+}
+
+/**
+ * Busca programaticamente a mensagem UTF-8 exata a assinar no endpoint oficial da PayCensus.
+ */
+export async function fetchOfficialMessage(vid) {
+  try {
+    const res = await httpJson(messageUrl(vid));
+    if (
+      res.status === 200 &&
+      typeof res.data?.message === "string" &&
+      res.data.message.startsWith("paycensus-addr-proof=")
+    ) {
+      return res.data.message.trim();
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -915,18 +942,28 @@ export async function main(argv = process.argv.slice(2)) {
 
   let nonceRaw = args.nonce || (process.env.GRID402_PAYCENSUS_NONCE || "").trim();
   let nonceOrigin = args.nonce ? "flag --nonce" : "env GRID402_PAYCENSUS_NONCE";
-  if (!nonceRaw) {
-    const dnsNonce = await resolveDnsNonce(domain);
-    if (dnsNonce) {
-      nonceRaw = dnsNonce;
-      nonceOrigin = `DNS TXT _paycensus.${domain}`;
+  let fetchedMessage = null;
+  if (!nonceRaw && !args.rawMessage) {
+    fetchedMessage = await fetchOfficialMessage(vid);
+    if (fetchedMessage) {
+      nonceRaw = fetchedMessage.slice("paycensus-addr-proof=".length);
+      nonceOrigin = `API GET /api/verify/addr-proof-message?vid=${vid}`;
     } else {
-      nonceRaw = DEFAULT_NONCE;
-      nonceOrigin = "default estatico";
-      console.error(
-        `aviso: nao foi possivel resolver _paycensus.${domain}; usando nonce default estatico.`
-      );
+      const dnsNonce = await resolveDnsNonce(domain);
+      if (dnsNonce) {
+        nonceRaw = dnsNonce;
+        nonceOrigin = `DNS TXT _paycensus.${domain}`;
+      } else {
+        nonceRaw = DEFAULT_NONCE;
+        nonceOrigin = "default estatico";
+        console.error(
+          `aviso: nao foi possivel resolver _paycensus.${domain}; usando nonce default estatico.`
+        );
+      }
     }
+  } else if (!nonceRaw) {
+    nonceRaw = DEFAULT_NONCE;
+    nonceOrigin = "default estatico";
   }
 
   let nonce;
@@ -937,7 +974,7 @@ export async function main(argv = process.argv.slice(2)) {
     return 2;
   }
 
-  const message = args.rawMessage ? args.rawMessage : buildMessage(nonce);
+  const message = args.rawMessage ? args.rawMessage : (fetchedMessage || buildMessage(nonce));
   const urlProfile = profileUrl(domain);
 
   if (args.printMessage) {

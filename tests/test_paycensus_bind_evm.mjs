@@ -13,6 +13,7 @@ import {
   buildPayload,
   isEvmAlreadyProven,
   loadDotenv,
+  messageUrl,
   normalizeNonce,
   normalizePrivateKey,
   normalizeSignatureVariants,
@@ -43,6 +44,10 @@ async function runTests() {
   assert.equal(
     buildMessage(DEFAULT_NONCE),
     "paycensus-addr-proof=paycensus-verify=c05e1ee27fe0c75e2b907b9d842ee45f"
+  );
+  assert.equal(
+    messageUrl(12),
+    "https://trust.paycensus.com/api/verify/addr-proof-message?vid=12"
   );
 
   // 3. normalizePrivateKey (aceita com/sem 0x, nao vaza chave no erro)

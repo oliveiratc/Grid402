@@ -49,6 +49,7 @@ DEFAULT_NONCE = "paycensus-verify=c05e1ee27fe0c75e2b907b9d842ee45f"
 DEFAULT_DOMAIN = "grid402.online"
 BASE_URL = "https://trust.paycensus.com"
 ENDPOINT = BASE_URL + "/api/verify/addr-proof-solana"
+MESSAGE_ENDPOINT = BASE_URL + "/api/verify/addr-proof-message"
 NONCE_PREFIX = "paycensus-verify="
 # payTo declarado em public_html/.well-known/x402.json (SPL USDC na Solana)
 DECLARED_PAYTO = "CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C"
@@ -97,6 +98,18 @@ def build_message(nonce: str) -> bytes:
 
 def profile_url(domain: str) -> str:
     return f"{BASE_URL}/api/profile?domain={domain}"
+
+
+def fetch_official_message(vid: int) -> str | None:
+    """Busca programaticamente a mensagem UTF-8 exata em GET /api/verify/addr-proof-message?vid=<vid>."""
+    try:
+        status, data = http_json(f"{MESSAGE_ENDPOINT}?vid={vid}")
+        msg = data.get("message") if status == 200 and isinstance(data, dict) else None
+        if isinstance(msg, str) and msg.startswith("paycensus-addr-proof="):
+            return msg.strip()
+    except Exception:
+        pass
+    return None
 
 
 def signing_key_from_b58(text: str) -> SigningKey:
@@ -168,24 +181,31 @@ def main() -> int:
         os.path.join(REPO_ROOT, "private_data", ".env"),
     ])
 
-    nonce_raw = args.nonce or os.environ.get("GRID402_PAYCENSUS_NONCE", "") or DEFAULT_NONCE
-    try:
-        nonce = normalize_nonce(nonce_raw)
-    except ValueError as exc:
-        print(f"erro: nonce invalido ({exc})", file=sys.stderr)
-        return 2
-    if not args.nonce and not os.environ.get("GRID402_PAYCENSUS_NONCE"):
-        print("aviso: usando o nonce default do script; se o POST falhar com 400, "
-              "copie o nonce atual do portal e passe --nonce <hex>.", file=sys.stderr)
-
     vid_raw = os.environ.get("GRID402_PAYCENSUS_VID", "").strip()
     try:
         vid = args.vid or (int(vid_raw) if vid_raw else DEFAULT_VID)
     except ValueError:
         print(f"erro: GRID402_PAYCENSUS_VID={vid_raw!r} nao e um inteiro", file=sys.stderr)
         return 2
+
+    explicit_nonce = args.nonce or os.environ.get("GRID402_PAYCENSUS_NONCE", "")
+    fetched_msg = None if explicit_nonce else fetch_official_message(vid)
+    if fetched_msg:
+        nonce_raw = fetched_msg[len("paycensus-addr-proof="):]
+    else:
+        nonce_raw = explicit_nonce or DEFAULT_NONCE
+
+    try:
+        nonce = normalize_nonce(nonce_raw)
+    except ValueError as exc:
+        print(f"erro: nonce invalido ({exc})", file=sys.stderr)
+        return 2
+    if not explicit_nonce and not fetched_msg:
+        print("aviso: usando o nonce default do script; se o POST falhar com 400, "
+              "copie o nonce atual do portal e passe --nonce <hex>.", file=sys.stderr)
+
     domain = args.domain or os.environ.get("GRID402_DOMAIN", DEFAULT_DOMAIN)
-    message = build_message(nonce)
+    message = fetched_msg.encode("utf-8") if fetched_msg else build_message(nonce)
     url_profile = profile_url(domain)
 
     env_key = os.environ.get("GRID402_SOLANA_SIGNING_KEY", "").strip()

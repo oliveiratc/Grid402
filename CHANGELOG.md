@@ -7,6 +7,7 @@ Todas as mudanças relevantes de arquitetura, catálogo de serviços, segurança
 ## [Unreleased]
 
 ### Adicionado
+- **Integração com endpoint oficial `GET /api/verify/addr-proof-message` da PayCensus (`scripts/paycensus_bind_evm.mjs`, `scripts/paycensus_bind_solana.py`):** Ambos os scripts agora buscam programaticamente a mensagem UTF-8 canônica em `https://trust.paycensus.com/api/verify/addr-proof-message?vid=12` antes do fallback para DNS TXT / nonce estático, prevenindo divergências de transcrição manual.
 - **Suporte multi-API para `X-RapidAPI-Proxy-Secret` e specs OpenAPI `3.0.3` (`public_html/config.php`, `public_html/admin.php`, `scripts/generate_rapidapi_openapi.mjs`):** `grid402_resolve_rapidapi_proxy_secret()` e `grid402_is_valid_rapidapi_proxy_request()` agora combinam múltiplos segredos do `.env` e de `rapidapi_config.json` (separados por vírgula/quebra de linha, até 10 APIs simultâneas) via `hash_equals`; painel `/admin` aceita e contabiliza múltiplas APIs (`ativo (N APIs)`). Geradas specs OpenAPI `3.0.3` compatíveis com RapidAPI Studio em `docs/revenue/openapi/` (`rapidapi-global.json`, `rapidapi-brazil-kyb.json` e `rapidapi-all.json`).
 - **Diagnóstico real de falhas de pagamento no `/admin` (`public_html/logger.php` + `public_html/admin.php`):** Adicionado leitor Zero-PII `grid402_read_recent_payment_failures()` sobre `requests.jsonl` e painel interativo **Diagnóstico Real de Falhas de Pagamento** exibindo os motivos exatos das últimas 25 tentativas rejeitadas (sem desafios 402 vazios).
 
