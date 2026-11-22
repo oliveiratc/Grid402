@@ -239,6 +239,10 @@ function grid402_read_recent_payment_failures(int $limit = 25): array {
         if ($svc === 'pass-emitir' && $status === 400 && $err === 'InvalidTxHash') {
             continue;
         }
+        // Ignora bloqueios esperados de cota gratuita de sandbox (429) para nao ofuscar falhas reais de pagamento
+        if ($status === 429 && $src === 'sandbox' && str_starts_with($err, 'SandboxRateLimitExceeded')) {
+            continue;
+        }
         $failures[] = [
             'ts' => (string) ($entry['ts'] ?? ''),
             'request_id' => (string) ($entry['request_id'] ?? ''),

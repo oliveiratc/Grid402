@@ -265,11 +265,13 @@ function grid402_growth_event(string $type, array $context = []): array {
                 'second_paid_at' => null,
                 'wallet_last4' => isset($context['payer']) ? substr(strtolower((string)$context['payer']), -4) : null,
                 'services' => [],
+                'paid_services' => [],
                 'paid_requests' => 0,
                 'paid_revenue_usdc' => 0.0,
                 'requests_24h' => 0,
                 'requests_24h_start' => $now,
                 'sandbox_requests' => 0,
+                'sandbox_rate_limited' => 0,
                 'challenges_402' => 0,
                 'days_active' => 0,
                 'active_days' => [],
@@ -286,20 +288,28 @@ function grid402_growth_event(string $type, array $context = []): array {
         }
 
         $service = grid402_growth_clean_text(isset($context['service']) ? (string)$context['service'] : 'unknown', 80);
-        $p['services'][$service] = (int)($p['services'][$service] ?? 0) + 1;
+        if ($type !== 'sandbox_rate_limited') {
+            $p['services'][$service] = (int)($p['services'][$service] ?? 0) + 1;
+        }
 
         $isPaid = !empty($context['is_paid']) || $type === 'paid_request';
         $amount = (float)($context['amount_usdc'] ?? 0.0);
 
         if ($type === 'challenge_402') {
             $p['challenges_402'] = (int)($p['challenges_402'] ?? 0) + 1;
-        } elseif ($type === 'sandbox' || !empty($context['sandbox'])) {
+        } elseif ($type === 'sandbox_rate_limited') {
+            $p['sandbox_rate_limited'] = (int)($p['sandbox_rate_limited'] ?? 0) + 1;
+        } elseif ($type === 'sandbox' || $type === 'sandbox_request' || !empty($context['sandbox'])) {
             $p['sandbox_requests'] = (int)($p['sandbox_requests'] ?? 0) + 1;
         } elseif ($type === 'pass_purchase' || $type === 'promo_pass') {
             // Compra de créditos não tem receita incremental de consulta; rastreamos como sinal de intenção.
         } elseif ($isPaid) {
             $p['paid_requests'] = (int)($p['paid_requests'] ?? 0) + 1;
             $p['paid_revenue_usdc'] = round((float)($p['paid_revenue_usdc'] ?? 0.0) + $amount, 8);
+            if (!isset($p['paid_services']) || !is_array($p['paid_services'])) {
+                $p['paid_services'] = [];
+            }
+            $p['paid_services'][$service] = (int)($p['paid_services'][$service] ?? 0) + 1;
             if (empty($p['first_paid_at'])) {
                 $p['first_paid_at'] = $now;
                 $p['first_service'] = $service;
@@ -539,8 +549,13 @@ function grid402_growth_metrics(): array {
         if ((int)($p['paid_requests'] ?? 0) >= 3) {
             $recurrent++;
         }
-        foreach ((array)($p['services'] ?? []) as $svc => $count) {
-            $paidServices[$svc] = (int)($paidServices[$svc] ?? 0) + (int)$count;
+        if ($paidRequests > 0) {
+            $serviceSource = (isset($p['paid_services']) && is_array($p['paid_services']) && !empty($p['paid_services']))
+                ? $p['paid_services']
+                : (array)($p['services'] ?? []);
+            foreach ($serviceSource as $svc => $count) {
+                $paidServices[$svc] = (int)($paidServices[$svc] ?? 0) + (int)$count;
+            }
         }
         $day = grid402_metrics_day_of((string)($p['first_seen_at'] ?? 'now'));
         $newByDay[$day] = (int)($newByDay[$day] ?? 0) + 1;

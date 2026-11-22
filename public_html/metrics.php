@@ -130,6 +130,7 @@ function grid402_default_metrics(): array {
             'replay' => 0,
             'facilitator_unavailable' => 0,
             'facilitator_disabled' => 0,
+            'sandbox_rate_limited' => 0,
             'unknown' => 0,
         ],
         'daily' => [],
@@ -321,6 +322,7 @@ function grid402_record_telemetry(
             'replay' => 0,
             'facilitator_unavailable' => 0,
             'facilitator_disabled' => 0,
+            'sandbox_rate_limited' => 0,
             'unknown' => 0,
         ];
         if (!isset($metrics['payment_sources']) || !is_array($metrics['payment_sources'])) {
@@ -727,11 +729,12 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
     $todayTs = strtotime(grid402_metrics_today());
     for ($i = 13; $i >= 0; $i--) {
         $dayStr = gmdate('Y-m-d', $todayTs - ($i * 86400));
-        $dayData = $rawDaily[$dayStr] ?? ['requests' => 0, 'paid' => 0, 'usdc' => 0.0];
+        $dayData = $rawDaily[$dayStr] ?? ['requests' => 0, 'page_views' => 0, 'paid' => 0, 'usdc' => 0.0];
         $dailyHistory14d[] = [
             'date' => $dayStr,
             'label' => gmdate('d/m', strtotime($dayStr)),
             'requests' => (int)($dayData['requests'] ?? 0),
+            'page_views' => (int)($dayData['page_views'] ?? 0),
             'paid' => (int)($dayData['paid'] ?? 0),
             'usdc' => (float)($dayData['usdc'] ?? 0.0),
         ];

@@ -46,7 +46,7 @@ if (Test-Path "$publicHtml\private_data\.htaccess") {
     Copy-Item -Path "$publicHtml\private_data\.htaccess" -Destination "$privateTarget\.htaccess" -Force
 }
 
-Remove-Item -Path "$tempStage\private_data\*.json" -Force -ErrorAction SilentlyContinue
+Remove-Item -Path "$tempStage\private_data\*.json", "$tempStage\private_data\*.jsonl", "$tempStage\private_data\*.lock" -Force -ErrorAction SilentlyContinue
 # Segredos de env nao devem ir no pacote de deploy (sao configurados no .env da raiz do host)
 Remove-Item -Path "$tempStage\private_data\.env" -Force -ErrorAction SilentlyContinue
 

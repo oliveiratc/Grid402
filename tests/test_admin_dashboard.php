@@ -947,8 +947,9 @@ try {
 
 echo "[5/5] Homologação completa do Painel Administrativo concluída com 100% de sucesso!\n";
 
-// Validação de filtragem de ruído de scanners gratuitos em grid402_read_recent_payment_failures()
+// Validação de filtragem de ruído de scanners gratuitos e 429 sandbox em grid402_read_recent_payment_failures()
 require_once __DIR__ . '/../public_html/logger.php';
+require_once __DIR__ . '/../public_html/growth.php';
 $tmpLogFile = sys_get_temp_dir() . '/grid402_test_failures_' . bin2hex(random_bytes(4)) . '.jsonl';
 putenv('GRID402_FILE_REQUEST_LOGS=' . $tmpLogFile);
 $_ENV['GRID402_FILE_REQUEST_LOGS'] = $tmpLogFile;
@@ -956,15 +957,45 @@ try {
     grid402_log_request(['service' => 'pass-balance', 'status' => 400, 'payment_source' => 'free', 'error' => 'InvalidPassTokenFormat']);
     grid402_log_request(['service' => 'pass-statement', 'status' => 400, 'payment_source' => 'free', 'error' => 'InvalidPassTokenFormat']);
     grid402_log_request(['service' => 'pass-emitir', 'status' => 400, 'payment_source' => 'unknown', 'error' => 'InvalidTxHash']);
+    grid402_log_request(['service' => 'dossier', 'status' => 429, 'payment_source' => 'sandbox', 'error' => 'SandboxRateLimitExceeded: Limite de 3 consultas gratuitas de sandbox por dia atingido']);
     grid402_log_request(['service' => 'dns', 'status' => 402, 'payment_source' => 'facilitator', 'error' => 'PaymentFailed: O facilitador rejeitou a autorizacao: invalid_exact_evm_insufficient_balance']);
+    grid402_log_request(['service' => 'cnpj', 'status' => 429, 'payment_source' => 'pass', 'error' => 'PassDailyLimitExceeded: Limite diario do passe atingido']);
     $recentFailures = grid402_read_recent_payment_failures(25);
-    assert(count($recentFailures) === 1, 'Deve filtrar probes gratuitos de pass-balance/pass-statement/pass-emitir e manter apenas falhas reais de pagamento');
-    assert($recentFailures[0]['service'] === 'dns' && $recentFailures[0]['payment_source'] === 'facilitator', 'Deve preservar falha real do facilitador em dns');
+    assert(count($recentFailures) === 2, 'Deve filtrar probes gratuitos e 429 sandbox, mantendo falhas reais de facilitador e Session Pass');
+    assert($recentFailures[0]['service'] === 'cnpj' && $recentFailures[0]['payment_source'] === 'pass', 'Deve preservar 429 real de Session Pass');
+    assert($recentFailures[1]['service'] === 'dns' && $recentFailures[1]['payment_source'] === 'facilitator', 'Deve preservar falha real do facilitador em dns');
 } finally {
     @unlink($tmpLogFile);
     @unlink($tmpLogFile . '.lock');
     putenv('GRID402_FILE_REQUEST_LOGS');
     unset($_ENV['GRID402_FILE_REQUEST_LOGS']);
+}
+
+// Validação de daily_history_14d com page_views, categoria sandbox_rate_limited e isolamento de paid_requests_per_service no Growth
+$sampleMetrics = grid402_default_metrics();
+assert(array_key_exists('sandbox_rate_limited', $sampleMetrics['failure_categories']), 'default_metrics deve conter sandbox_rate_limited');
+$todayKey = grid402_metrics_today();
+$sampleMetrics['daily'][$todayKey] = ['requests' => 42, 'page_views' => 17, 'paid' => 2, 'usdc' => 0.01];
+$sampleAnalytics = grid402_compute_admin_analytics($sampleMetrics, 5.50);
+$lastDay = $sampleAnalytics['daily_history_14d'][count($sampleAnalytics['daily_history_14d']) - 1] ?? [];
+assert((int)($lastDay['page_views'] ?? -1) === 17, 'daily_history_14d deve expor page_views do dia');
+
+$growthFile = grid402_growth_file();
+$growthBackup = is_file($growthFile) ? file_get_contents($growthFile) : null;
+try {
+    @unlink($growthFile);
+    grid402_growth_event('sandbox_rate_limited', ['service' => 'dossier', 'ip' => '8.209.10.10']);
+    grid402_growth_event('challenge_402', ['service' => 'dossier', 'ip' => '8.209.10.10']);
+    grid402_growth_event('paid_request', ['service' => 'dns', 'payer' => '0x1111111111111111111111111111111111111111', 'amount_usdc' => 0.005]);
+    $gMetrics = grid402_growth_metrics();
+    assert((int)($gMetrics['paid_requests_per_service']['dossier'] ?? 0) === 0, 'Rajadas sandbox_rate_limited/challenge_402 nao devem inflar paid_requests_per_service');
+    assert((int)($gMetrics['paid_requests_per_service']['dns'] ?? 0) === 1, 'paid_requests_per_service deve contabilizar apenas consultas pagas');
+} finally {
+    if ($growthBackup !== null) {
+        file_put_contents($growthFile, $growthBackup);
+    } else {
+        @unlink($growthFile);
+    }
 }
 
 

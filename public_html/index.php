@@ -1261,6 +1261,8 @@ if ($isValidApiAction) {
     $emitPaymentFailure = static function (array $valResult) use ($apiParam, $servicePriceDisplay, $servicePriceRaw, &$proofIsPayload, &$proofForLog, $paymentProof): never {
         $serviceLabel = $apiParam !== '' ? $apiParam : 'technical-utility';
         $statusCode = (int) ($valResult['code'] ?? 402);
+        $isSandboxRateLimited = ($statusCode === 429 && (!empty($valResult['sandbox']) || ($valResult['category'] ?? '') === 'sandbox_rate_limited'));
+        $failureCategory = (string) ($valResult['category'] ?? ($isSandboxRateLimited ? 'sandbox_rate_limited' : 'payment_rejected'));
         grid402_record_telemetry(
             $serviceLabel,
             $statusCode,
@@ -1269,7 +1271,7 @@ if ($isValidApiAction) {
             null,
             (float) $servicePriceDisplay,
             null,
-            ['failure_category' => $valResult['category'] ?? 'payment_rejected']
+            ['failure_category' => $failureCategory]
         );
         http_response_code($statusCode);
         header('Content-Type: application/json; charset=utf-8');
@@ -1287,7 +1289,7 @@ if ($isValidApiAction) {
         } elseif ($statusCode === 429 || $statusCode === 503) {
             header('Retry-After: ' . ($valResult['retry_after'] ?? 3600));
         }
-        grid402_growth_event('challenge_402', [
+        grid402_growth_event($isSandboxRateLimited ? 'sandbox_rate_limited' : 'challenge_402', [
             'service' => $serviceLabel,
             'amount_usdc' => (float) $servicePriceDisplay,
             'proof' => $proofForLog ?? $paymentProof ?? '',

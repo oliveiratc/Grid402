@@ -1146,6 +1146,7 @@ $failureCategoryLabels = [
     'replay' => 'Replay (já usado)',
     'facilitator_unavailable' => 'Facilitador indisponível',
     'facilitator_disabled' => 'Facilitador desativado',
+    'sandbox_rate_limited' => 'Cota sandbox atingida (429)',
     'unknown' => 'Outros',
 ];
 $paymentSourceKeys = array_keys($paymentSourceLabels);
@@ -1234,8 +1235,10 @@ function grid402_admin_recent_pulse(array $metrics): array {
         'today_date' => $todayDt->format('d/m'),
         'yesterday_date' => $todayDt->modify('-1 day')->format('d/m'),
         'today_requests' => (int) ($todayRow['requests'] ?? 0),
+        'today_page_views' => (int) ($todayRow['page_views'] ?? 0),
         'today_paid' => (int) ($todayRow['paid'] ?? 0),
         'yesterday_requests' => (int) ($yesterdayRow['requests'] ?? 0),
+        'yesterday_page_views' => (int) ($yesterdayRow['page_views'] ?? 0),
         'yesterday_paid' => (int) ($yesterdayRow['paid'] ?? 0),
         'buffer_total' => count($events),
         'last_1h_count' => $last1h,
@@ -3122,6 +3125,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
             // Barras e Eixo X
             history.forEach((d, i) => {
                 const reqs = Number(d.requests || 0);
+                const pageViews = Number(d.page_views || 0);
                 const paid = Number(d.paid || 0);
                 const usdc = Number(d.usdc || 0);
                 const barH = reqs > 0 ? Math.max(4, Math.round((reqs / maxReqs) * chartH)) : 0;
@@ -3146,6 +3150,7 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
                 <rect x="${slotX}" y="${padT}" width="${slotW}" height="${chartH}" fill="transparent" style="cursor: pointer;"
                     data-date="${safeHtmlText(d.date || '')}"
                     data-requests="${reqs}"
+                    data-pageviews="${pageViews}"
                     data-paid="${paid}"
                     data-usdc="${usdc.toFixed(4)}"
                     onmouseenter="handleBarHover(event, this)"
@@ -3163,12 +3168,14 @@ $conversionRate = ($reqs402 + $paidReqs > 0) ? round(($paidReqs / ($reqs402 + $p
 
             const date = el.getAttribute('data-date');
             const reqs = el.getAttribute('data-requests');
+            const pageViews = el.getAttribute('data-pageviews') || '0';
             const paid = el.getAttribute('data-paid');
             const usdc = el.getAttribute('data-usdc');
 
             tooltip.innerHTML = `
                 <div style="font-weight: 700; color: var(--accent); margin-bottom: 2px;">📅 ${date}</div>
                 <div>📊 Total: <strong>${reqs}</strong> requisições</div>
+                <div>👁️ Page views: <strong>${pageViews}</strong></div>
                 <div>🟢 Pagas (x402): <strong>${paid}</strong></div>
                 <div>💰 Faturamento: <strong>US$ ${usdc}</strong></div>
             `;
