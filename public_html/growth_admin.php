@@ -120,7 +120,13 @@ $compare = grid402_onchain_stats_compare($onchain, $standardMetrics);
 <body>
 <?php require_once __DIR__ . '/includes/admin_nav.php'; grid402_render_admin_nav(['active' => 'growth', 'logout_url' => '/admin?action=logout']); ?>
 <div class="container">
-    <h1>Growth Administration</h1>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem;">
+        <div>
+            <h1 style="margin:0;">Growth Administration</h1>
+            <p class="muted" style="margin:.25rem 0 0;font-size:.86rem;">Central de configuração do Growth Engine, reconciliação on-chain e aprovação de rewards/builders. Para visão consolidada de audiência e funil, acesse o Cockpit Admin.</p>
+        </div>
+        <a href="/admin#tab-audiencia" style="display:inline-flex;align-items:center;gap:.4rem;padding:.5rem .9rem;border-radius:8px;border:1px solid rgba(0,240,255,.35);background:rgba(0,240,255,.08);color:var(--cyan);text-decoration:none;font-weight:600;font-size:.85rem;">← Ver Audiência e Funil no /admin</a>
+    </div>
     <?php if ($msg): ?><div class="panel ok"><?php echo htmlspecialchars($msg); ?></div><?php endif; ?>
     <?php if ($err): ?><div class="panel" style="border-color:#EF4444;color:#FECACA;"><?php echo htmlspecialchars($err); ?></div><?php endif; ?>
 

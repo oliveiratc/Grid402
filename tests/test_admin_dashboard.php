@@ -423,6 +423,10 @@ try {
     assert(isset($statsJson['telegram_status']['configured'], $statsJson['telegram_status']['token_configured'], $statsJson['telegram_status']['chat_id_configured']), 'API deve conter telegram_status sem segredos');
     assert(defined('GRID402_TELEGRAM_BOT_TOKEN') && (GRID402_TELEGRAM_BOT_TOKEN === '' || !str_contains($authStats['body'], GRID402_TELEGRAM_BOT_TOKEN)), 'API stats nunca deve vazar GRID402_TELEGRAM_BOT_TOKEN');
     assert(isset($statsJson['error_5xx_count']), 'API deve conter error_5xx_count');
+    assert(isset($statsJson['today_vs_yesterday']['metrics']['requests'], $statsJson['today_vs_yesterday']['metrics']['page_views'], $statsJson['today_vs_yesterday']['metrics']['new_wallets']), 'API deve conter today_vs_yesterday estruturado');
+    assert(isset($statsJson['operational_health']['services_up'], $statsJson['operational_health']['services_total'], $statsJson['operational_health']['uptime_30d_pct']), 'API deve conter operational_health consolidado');
+    assert(isset($statsJson['alerts']) && is_array($statsJson['alerts']), 'API deve conter lista de alerts');
+    assert(isset($statsJson['alerts_summary']['high'], $statsJson['alerts_summary']['medium'], $statsJson['alerts_summary']['low']), 'API deve conter alerts_summary');
     echo "     ✓ Snapshot JSON em tempo real com saldos on-chain, ARPU, SLA, gráfico 14D e top consumidores validado!\n";
 
     // 4.5. Testar exportação de CSV autenticado
@@ -469,6 +473,10 @@ try {
     assert(str_contains($dashResp['body'], 'Origem / Falha'), 'Deve conter coluna Origem / Falha no feed');
     assert(str_contains($dashResp['body'], 'payment-source-bars-container'), 'Deve conter container das barras de origem');
     assert(str_contains($dashResp['body'], 'failure-bars-container'), 'Deve conter container das barras de falha');
+    assert(str_contains($dashResp['body'], 'role="tablist"') && str_contains($dashResp['body'], 'id="tab-resumo"') && str_contains($dashResp['body'], 'id="tab-audiencia"') && str_contains($dashResp['body'], 'id="tab-receita"') && str_contains($dashResp['body'], 'id="tab-saude"') && str_contains($dashResp['body'], 'id="tab-eventos"'), 'Dashboard deve conter as 5 abas UX com role=tablist');
+    assert(str_contains($dashResp['body'], 'chart.umd.min.js') && str_contains($dashResp['body'], 'chart-14d-canvas') && str_contains($dashResp['body'], 'chart-14d-fallback') && str_contains($dashResp['body'], 'daily-history-14d-tbody'), 'Dashboard deve conter Chart.js v4 com fallback e tabela 14 dias');
+    assert(str_contains($dashResp['body'], 'settings-drawer') && str_contains($dashResp['body'], 'alerts-container') && str_contains($dashResp['body'], 'paid-vs-total-services-tbody'), 'Dashboard deve conter drawer de configuracoes, alertas e ranking de servicos pagos reais');
+    assert(preg_match_all('/<h1\b/i', $dashResp['body']) === 1, 'Dashboard autenticado deve conter exatamente um unico h1 semantico');
 
     preg_match('/name="csrf-token"\s+content="([a-f0-9]{64})"/', $dashResp['body'], $authCsrfMatches);
     $authCsrf = $authCsrfMatches[1] ?? '';
@@ -997,5 +1005,68 @@ try {
         @unlink($growthFile);
     }
 }
+
+// Validação unitária do motor de insights executivos, 7 regras de alertas e cooldown Zero-DB no Telegram
+require_once __DIR__ . '/../public_html/services/admin_insights.php';
+$tzBrt = new DateTimeZone('America/Sao_Paulo');
+$dayToday = (new DateTimeImmutable('now', $tzBrt))->format('Y-m-d');
+$dayYesterday = (new DateTimeImmutable('now', $tzBrt))->modify('-1 day')->format('Y-m-d');
+
+$mockMetrics = grid402_default_metrics();
+$mockMetrics['total_requests'] = 500;
+$mockMetrics['total_page_views'] = 120;
+$mockMetrics['total_paid_requests'] = 10;
+$mockMetrics['total_revenue_usdc'] = 1.5;
+$mockMetrics['daily'][$dayToday] = ['requests' => 150, 'page_views' => 40, 'paid' => 5, 'usdc' => 0.5];
+$mockMetrics['daily'][$dayYesterday] = ['requests' => 100, 'page_views' => 0, 'paid' => 2, 'usdc' => 0.25];
+$mockGrowth = ['wallets_connected' => 12, 'new_wallets_by_day' => [$dayToday => 1, $dayYesterday => 2]];
+
+$tvsy = grid402_admin_today_vs_yesterday($mockMetrics, $mockGrowth, 5.0);
+assert($tvsy['metrics']['requests']['delta'] === 50 && $tvsy['metrics']['requests']['delta_pct'] === 50.0, 'Delta % de requests Hoje vs Ontem deve ser +50.0%');
+assert($tvsy['metrics']['page_views']['delta_pct'] === null, 'Quando ontem for 0, delta_pct deve ser null sem divisao por zero');
+assert($tvsy['metrics']['new_wallets']['delta'] === -1 && $tvsy['metrics']['new_wallets']['delta_pct'] === -50.0, 'Delta de novas wallets deve refletir -50.0%');
+
+$mockAnalytics = [
+    'error_5xx_count' => 2,
+    'technical_success_rate' => 98.5,
+    'latency_p50_ms' => 120.0,
+    'latency_p95_ms' => 1250.0,
+    'passes_stats' => ['active_passes' => 2, 'total_credits' => 800, 'remaining_credits' => 800, 'active_remaining_credits' => 800],
+];
+$mockHealth = [
+    'error_5xx_count' => 2,
+    'technical_success_rate' => 98.5,
+    'collector_stale' => true,
+    'collector_age_sec' => 900,
+    'burst_429_recent' => 25,
+    'latency_p50_ms' => 120.0,
+    'latency_p95_ms' => 1250.0,
+];
+$mockWallet = ['rpc_operational' => true, 'usdc_balance' => 4.29, 'eth_balance' => 0.0];
+$evalAlerts = grid402_admin_evaluate_alerts($mockMetrics, $mockAnalytics, $mockHealth, $mockWallet);
+assert($evalAlerts['summary']['high'] === 3, 'Deve detectar os 3 alertas de severidade high (5xx, collector_stale, burst_429)');
+assert($evalAlerts['summary']['medium'] === 2, 'Deve detectar os 2 alertas de severidade medium (p95 > 1000ms, passes ociosos)');
+assert($evalAlerts['summary']['low'] === 2, 'Deve detectar os 2 alertas de severidade low (0 ETH, baixa tracao)');
+assert($evalAlerts['alerts'][0]['severity'] === 'high' && $evalAlerts['alerts'][count($evalAlerts['alerts']) - 1]['severity'] === 'low', 'Alertas devem estar ordenados high -> medium -> low');
+
+$tmpAlertsState = sys_get_temp_dir() . '/grid402_test_alerts_state_' . bin2hex(random_bytes(4)) . '.json';
+try {
+    $dispatchedIds = [];
+    $fakeSender = static function (array $al) use (&$dispatchedIds): bool {
+        $dispatchedIds[] = $al['id'];
+        return true;
+    };
+    $t0 = 1795340000;
+    $r1 = grid402_dispatch_high_severity_alerts($evalAlerts['alerts'], 3600, $fakeSender, $tmpAlertsState, $t0);
+    assert(count($r1['sent']) === 3 && empty($r1['suppressed']), '1a execucao deve enviar exatamente os 3 alertas high (nunca medium/low)');
+    $r2 = grid402_dispatch_high_severity_alerts($evalAlerts['alerts'], 3600, $fakeSender, $tmpAlertsState, $t0 + 600);
+    assert(empty($r2['sent']) && count($r2['suppressed']) === 3, '2a execucao dentro do cooldown de 60min deve suprimir todos os 3 alertas');
+    $r3 = grid402_dispatch_high_severity_alerts($evalAlerts['alerts'], 3600, $fakeSender, $tmpAlertsState, $t0 + 3605);
+    assert(count($r3['sent']) === 3 && empty($r3['suppressed']), 'Apos expirar cooldown de 60min, alertas high ainda ativos devem ser reenviados');
+    assert(count($dispatchedIds) === 6, 'Total de envios nas 3 rodadas deve ser 6 (3 + 0 + 3)');
+} finally {
+    @unlink($tmpAlertsState);
+}
+echo "[6/6] Motor de insights executivos, 7 regras de alertas e cooldown Telegram validados com sucesso!\n";
 
 

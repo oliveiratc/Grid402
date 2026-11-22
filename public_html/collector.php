@@ -363,6 +363,27 @@ $summaryPayload = [
 // Persistência em summary_free.json
 grid402_atomic_write_json(GRID402_FILE_FREE, $summaryPayload);
 
+// Avaliação proativa de alertas críticos (severidade Alta) no Telegram com cooldown Zero-DB de 60 min
+if (!defined('GRID402_INTERNAL_BOOTSTRAP')) {
+    try {
+        require_once __DIR__ . '/x402.php';
+        require_once __DIR__ . '/services/admin_insights.php';
+        $collectorMetrics = grid402_get_metrics();
+        $collectorAnalytics = grid402_compute_admin_analytics($collectorMetrics, (float) $usdRate);
+        $collectorRuntime = [
+            'facilitator' => ['mode' => defined('GRID402_FACILITATOR_MODE') ? GRID402_FACILITATOR_MODE : 'settle', 'host' => '', 'multichain_accepts' => 4],
+            'collector' => ['summary_exists' => true, 'summary_age_sec' => 0, 'summary_stale' => false],
+            'telegram' => function_exists('grid402_telegram_runtime_status') ? grid402_telegram_runtime_status() : ['configured' => false],
+            'rapidapi' => ['configured' => false, 'count' => 0],
+        ];
+        $collectorHealth = grid402_admin_operational_health($collectorMetrics, $collectorAnalytics, $collectorRuntime, []);
+        $collectorAlerts = grid402_admin_evaluate_alerts($collectorMetrics, $collectorAnalytics, $collectorHealth, []);
+        grid402_dispatch_high_severity_alerts($collectorAlerts['alerts'], 3600);
+    } catch (Throwable $e) {
+        // Nunca interrompe nem atrasa a conclusão da coleta agendada
+    }
+}
+
 // Saída em CLI ou resposta HTTP
 $svcCount = count($servicesSummary);
 $logMessage = "[Grid402 Collector] Hub sincronizado em {$totalDurationMs} ms. {$svcCount}/{$svcCount} serviços operantes.\n";

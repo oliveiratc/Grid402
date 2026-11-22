@@ -443,6 +443,7 @@ define('GRID402_FILE_USED_NONCES', GRID402_PRIVATE_DIR . '/used_nonces.json');
 define('GRID402_FILE_MP_ORDERS', GRID402_PRIVATE_DIR . '/mp_orders.json');
 define('GRID402_FILE_UPTIME_HISTORY', (string) grid402_env('GRID402_FILE_UPTIME_HISTORY', GRID402_PRIVATE_DIR . '/uptime_history.json'));
 define('GRID402_FILE_IDEMPOTENCY', (string) grid402_env('GRID402_FILE_IDEMPOTENCY', GRID402_PRIVATE_DIR . '/idempotency_cache.json'));
+define('GRID402_FILE_ADMIN_ALERTS_STATE', (string) grid402_env('GRID402_FILE_ADMIN_ALERTS_STATE', GRID402_PRIVATE_DIR . '/admin_alerts_state.json'));
 define('GRID402_IDEMPOTENCY_TTL_SEC', 300);
 define('GRID402_OPERATOR_NAME', 'Grid402 Network Intelligence');
 
