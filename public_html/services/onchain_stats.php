@@ -28,11 +28,12 @@ require_once __DIR__ . '/../config.php';
  * Tenta todos os nós; retorna o primeiro sucesso.
  */
 function grid402_base_rpc_call(string $method, array $params, int $timeoutSec = 4): ?array {
-    $rpcUrls = [
+    $rpcUrls = array_values(array_unique([
+        'https://base-rpc.publicnode.com',
         GRID402_BASE_RPC_URL,
         'https://base.llamarpc.com',
         'https://1rpc.io/base',
-    ];
+    ]));
 
     $payload = json_encode([
         'jsonrpc' => '2.0',
@@ -202,10 +203,11 @@ function grid402_onchain_fetch_logs_chunked(array $filter, int $fromBlock, int $
     $logs = [];
     $chunksFailed = 0;
     $chunksTotal = 0;
+    $step = ($toBlock - $fromBlock) > 60000 ? 40000 : 10000;
 
-    for ($start = $fromBlock; $start <= $toBlock; $start += 5000) {
+    for ($start = $fromBlock; $start <= $toBlock; $start += $step) {
         $chunksTotal++;
-        $end = min($toBlock, $start + 4999);
+        $end = min($toBlock, $start + $step - 1);
         $chunkFilter = $filter;
         $chunkFilter['fromBlock'] = '0x' . dechex($start);
         $chunkFilter['toBlock'] = '0x' . dechex($end);
@@ -224,11 +226,30 @@ function grid402_onchain_fetch_logs_chunked(array $filter, int $fromBlock, int $
 }
 
 /**
- * Atualiza o snapshot on-chain via eth_getLogs. Read-only.
- * Janela limitada a 60.000 blocos por chamada (~33h na Base).
+ * Consulta o saldo atual de USDC (ERC-20 balanceOf) da carteira oficial na Base Mainnet.
  */
-function grid402_onchain_stats_refresh(int $blockWindow = 30000): array {
-    $blockWindow = max(1000, min(60000, $blockWindow));
+function grid402_onchain_fetch_wallet_usdc_balance(): ?float {
+    $cleanAddr = str_starts_with(strtolower(GRID402_WALLET_ADDRESS), '0x')
+        ? substr(strtolower(GRID402_WALLET_ADDRESS), 2)
+        : strtolower(GRID402_WALLET_ADDRESS);
+    $callData = '0x70a08231' . str_pad($cleanAddr, 64, '0', STR_PAD_LEFT);
+    $res = grid402_base_rpc_call('eth_call', [[
+        'to' => GRID402_USDC_CONTRACT,
+        'data' => $callData,
+    ], 'latest'], 4);
+    if (!$res || empty($res['ok']) || !is_string($res['result'] ?? null) || !str_starts_with($res['result'], '0x')) {
+        return null;
+    }
+    $raw = hexdec(substr($res['result'], 2));
+    return round($raw / 1000000, 6);
+}
+
+/**
+ * Atualiza o snapshot on-chain via eth_getLogs + balanceOf. Read-only.
+ * Base opera a ~5 blocos/s (~18.000 blocos/h, ~432.000 blocos/24h).
+ */
+function grid402_onchain_stats_refresh(int $blockWindow = 100000): array {
+    $blockWindow = max(1000, min(500000, $blockWindow));
 
     $latest = grid402_base_rpc_call('eth_blockNumber', []);
     $cached = grid402_onchain_stats_read();
@@ -277,11 +298,14 @@ function grid402_onchain_stats_refresh(int $blockWindow = 30000): array {
         ? ('partial: ' . $chunksFailed . '/' . $chunksTotal . ' chunks failed; values are undercounted')
         : null;
 
+    $walletUsdcBalance = grid402_onchain_fetch_wallet_usdc_balance();
+
     $snapshot = array_merge([
         'generated_at' => gmdate('Y-m-d\TH:i:s\Z'),
         'window_blocks' => $blockWindow,
         'from_block' => $fromBlock,
         'to_block' => $toBlock,
+        'wallet_usdc_balance' => $walletUsdcBalance,
         'rpc_ok' => true,
         'partial' => $chunksFailed > 0,
         'chunks_failed' => $chunksFailed,
@@ -331,19 +355,28 @@ function grid402_onchain_stats_compare(array $onchain, array $metrics): array {
 
     $onchainUsdc = (float)($onchain['received_usdc'] ?? 0.0);
     $onchainTransfers = (int)($onchain['transfers'] ?? 0);
+    $walletUsdc = isset($onchain['wallet_usdc_balance']) && is_numeric($onchain['wallet_usdc_balance'])
+        ? (float) $onchain['wallet_usdc_balance']
+        : null;
 
-    $revenueDelta = round($onchainUsdc - (float)($metrics['total_revenue_usdc'] ?? 0.0), 8);
+    // Compara saldo acumulado real na carteira contra receita acumulada (quando disponivel),
+    // evitando falso alarme ao comparar janela curta de blocos contra total vitalicio.
+    $referenceUsdc = $walletUsdc !== null ? $walletUsdc : $onchainUsdc;
+    $revenueDelta = round($referenceUsdc - (float)($metrics['total_revenue_usdc'] ?? 0.0), 8);
 
     return [
         'window_blocks' => (int)($onchain['window_blocks'] ?? 0),
         'onchain_received_usdc' => $onchainUsdc,
+        'wallet_usdc_balance' => $walletUsdc,
         'onchain_transfers' => $onchainTransfers,
         'onchain_unique_senders' => (int)($onchain['unique_senders'] ?? 0),
         'telemetry_total_revenue_usdc' => round($telemetryRevenue, 8),
         'telemetry_paid_requests' => $telemetryPaid,
         'telemetry_txhash_and_facilitator_count' => $telemetryTxHashPayments,
         'revenue_delta_usdc' => $revenueDelta,
-        'note' => 'delta inclui pass purchases e qualquer Transfer recebida na janela; use como sinal, nao como verdade absoluta',
+        'note' => $walletUsdc !== null
+            ? 'delta calculado entre saldo USDC real na carteira Base e receita registrada na telemetria (transfers da janela exibidos separadamente)'
+            : 'delta inclui pass purchases e qualquer Transfer recebida na janela; use como sinal, nao como verdade absoluta',
         'generated_at' => $onchain['generated_at'] ?? null,
         'rpc_ok' => (bool)($onchain['rpc_ok'] ?? false),
     ];

@@ -1576,6 +1576,15 @@ if ($isValidApiAction) {
     if ($httpStatus !== 200) {
         if (!empty($validation['needs_settle'])) {
             grid402_abort_verified_exact_payment($validation);
+        } elseif (!empty($validation['session_pass']) && !$isPassEmitir && !empty($validation['credits_debited']) && function_exists('grid402_refund_session_pass')) {
+            // Estorna créditos debitados de Session Pass quando o endpoint falha antes de entregar dados
+            grid402_refund_session_pass($paymentProof, (int) $validation['credits_debited'], $apiParam, ['http_status' => $httpStatus]);
+        } elseif (!empty($validation['lock_key']) && function_exists('grid402_release_transaction_lock')) {
+            // Libera trava anti-replay de tx_hash direto (EVM/Solana) para não queimar pagamento sem entrega
+            $srcErr = (string) ($validation['source'] ?? '');
+            if ($srcErr === 'tx_hash' || $srcErr === 'solana_spl' || str_starts_with($srcErr, 'evm_') || str_starts_with($srcErr, 'multichain_')) {
+                grid402_release_transaction_lock((string) $validation['lock_key']);
+            }
         }
         $errSource = (string) ($validation['source'] ?? '');
         $errTx = $validation['settlement_tx'] ?? $proofForLog;
@@ -1669,11 +1678,14 @@ if ($isValidApiAction) {
             ['payment_source' => $validation['source'] ?? null, 'defer_latency_sample' => true]
         );
         $txForNotification = (string) ($settlementTx ?? $proofForLog ?? '');
-        $validatedNetSlug = (string) ($validation['network'] ?? 'base');
+        $rawValidatedNet = (string) ($validation['network'] ?? 'base');
+        $validatedNetSlug = function_exists('grid402_normalize_network_slug')
+            ? (grid402_normalize_network_slug($rawValidatedNet) ?? 'base')
+            : strtolower($rawValidatedNet);
         $isValidNotifTx = (preg_match('/^0x[a-f0-9]{64}$/i', $txForNotification) === 1)
             || ($validatedNetSlug === 'solana' && function_exists('grid402_is_valid_solana_signature') && grid402_is_valid_solana_signature($txForNotification));
         if (!$isSandbox && !$isVerifyOnly && $paymentSourceVal !== 'pass' && $isValidNotifTx) {
-            grid402_notify_telegram_purchase($apiParam, (float) $servicePriceDisplay, $txForNotification, false, $validatedNetSlug);
+            grid402_notify_telegram_purchase($apiParam, (float) $actualPaidUsdc, $txForNotification, false, $validatedNetSlug);
         }
     }
 

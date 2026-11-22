@@ -97,10 +97,7 @@ function grid402_mp_with_orders(callable $callback): mixed {
 
     $result = null;
     if (flock($fp, LOCK_EX)) {
-        clearstatcache(true, $file);
-        $size = (int) @filesize($file);
-        $raw = $size > 0 ? (string) fread($fp, $size) : '';
-        $store = $raw !== '' ? (@json_decode($raw, true) ?: []) : [];
+        $store = grid402_read_locked_json($fp, []);
         if (!isset($store['orders']) || !is_array($store['orders'])) {
             $store['orders'] = [];
         }
@@ -439,11 +436,77 @@ function grid402_mp_verify_webhook_signature(string $xSignature, string $xReques
  * Finaliza ordem aprovada e emite Session Pass de forma estritamente idempotente.
  */
 function grid402_mp_finalize_approved_order(string $orderId, string $mpPaymentId, float $paidAmount, bool $isSandbox): array {
-    $res = grid402_mp_with_orders(static function (array &$store) use ($orderId, $mpPaymentId, $paidAmount, $isSandbox): array {
+    // Passo 1 (lock em mp_orders.json): valida ordem, idempotencia e valor minimo sem segurar dois locks simultaneos
+    $precheck = grid402_mp_with_orders(static function (array &$store) use ($orderId, $mpPaymentId, $paidAmount, $isSandbox): array {
+        if (!isset($store['orders'][$orderId])) {
+            return [['done' => true, 'response' => ['ok' => false, 'code' => 404, 'error' => 'OrderNotFound', 'message' => 'Ordem nao encontrada.']], false];
+        }
+
+        $order = $store['orders'][$orderId];
+        if (!empty($order['pass_token']) && $order['status'] === 'approved') {
+            return [['done' => true, 'response' => [
+                'ok' => true,
+                'code' => 200,
+                'order_id' => $orderId,
+                'status' => 'approved',
+                'pass_token' => $order['pass_token'],
+                'tier' => $order['tier'],
+                'credits' => $order['credits'],
+                'raw_usdc_units' => (int) ($order['raw_usdc_units'] ?? 0),
+                'ttl_days' => $order['ttl_days'],
+                'sandbox' => (bool) ($order['sandbox'] ?? $isSandbox),
+                'idempotent' => true,
+            ]], false];
+        }
+
+        // Protecao contra reutilizacao de um mesmo mp_payment_id em ordens diferentes
+        if ($mpPaymentId !== '' && isset($store['payment_map'][$mpPaymentId])) {
+            $existingOrderId = (string) $store['payment_map'][$mpPaymentId];
+            if ($existingOrderId !== $orderId && !empty($store['orders'][$existingOrderId]['pass_token'])) {
+                $existing = $store['orders'][$existingOrderId];
+                return [['done' => true, 'response' => [
+                    'ok' => true,
+                    'code' => 200,
+                    'order_id' => $existingOrderId,
+                    'status' => 'approved',
+                    'pass_token' => $existing['pass_token'],
+                    'tier' => $existing['tier'],
+                    'credits' => $existing['credits'],
+                    'raw_usdc_units' => (int) ($existing['raw_usdc_units'] ?? 0),
+                    'ttl_days' => $existing['ttl_days'],
+                    'sandbox' => (bool) ($existing['sandbox'] ?? $isSandbox),
+                    'idempotent' => true,
+                ]], false];
+            }
+        }
+
+        $expectedBrl = (float) ($order['amount_brl'] ?? 0);
+        if ($paidAmount + 0.01 < $expectedBrl) {
+            return [['done' => true, 'response' => ['ok' => false, 'code' => 402, 'error' => 'InsufficientAmount', 'message' => 'Valor pago inferior ao valor do pacote.']], false];
+        }
+
+        return [['done' => false, 'order' => $order], false];
+    });
+
+    if (!is_array($precheck)) {
+        return ['ok' => false, 'code' => 500, 'error' => 'StorageError', 'message' => 'Falha ao acessar armazenamento de ordens Mercado Pago.'];
+    }
+    if (!empty($precheck['done'])) {
+        return $precheck['response'];
+    }
+
+    $orderSnapshot = $precheck['order'];
+    // Passo 2 (fora do lock de mp_orders.json): emite Session Pass idempotente em session_passes.json
+    $issued = grid402_issue_session_pass('mp_pay_' . $mpPaymentId, (int) $orderSnapshot['raw_usdc_units'], $isSandbox);
+    if (empty($issued['pass_token'])) {
+        return ['ok' => false, 'code' => 500, 'error' => 'PassIssuanceFailed', 'message' => 'Falha ao emitir Session Pass.'];
+    }
+
+    // Passo 3 (lock rápido em mp_orders.json): persiste aprovacao respeitando idempotencia concorrente
+    $res = grid402_mp_with_orders(static function (array &$store) use ($orderId, $mpPaymentId, $issued, $isSandbox): array {
         if (!isset($store['orders'][$orderId])) {
             return [['ok' => false, 'code' => 404, 'error' => 'OrderNotFound', 'message' => 'Ordem nao encontrada.'], false];
         }
-
         $order = $store['orders'][$orderId];
         if (!empty($order['pass_token']) && $order['status'] === 'approved') {
             return [[
@@ -459,37 +522,6 @@ function grid402_mp_finalize_approved_order(string $orderId, string $mpPaymentId
                 'sandbox' => (bool) ($order['sandbox'] ?? $isSandbox),
                 'idempotent' => true,
             ], false];
-        }
-
-        // Protecao contra reutilizacao de um mesmo mp_payment_id em ordens diferentes
-        if ($mpPaymentId !== '' && isset($store['payment_map'][$mpPaymentId])) {
-            $existingOrderId = (string) $store['payment_map'][$mpPaymentId];
-            if ($existingOrderId !== $orderId && !empty($store['orders'][$existingOrderId]['pass_token'])) {
-                $existing = $store['orders'][$existingOrderId];
-                return [[
-                    'ok' => true,
-                    'code' => 200,
-                    'order_id' => $existingOrderId,
-                    'status' => 'approved',
-                    'pass_token' => $existing['pass_token'],
-                    'tier' => $existing['tier'],
-                    'credits' => $existing['credits'],
-                    'raw_usdc_units' => (int) ($existing['raw_usdc_units'] ?? 0),
-                    'ttl_days' => $existing['ttl_days'],
-                    'sandbox' => (bool) ($existing['sandbox'] ?? $isSandbox),
-                    'idempotent' => true,
-                ], false];
-            }
-        }
-
-        $expectedBrl = (float) ($order['amount_brl'] ?? 0);
-        if ($paidAmount + 0.01 < $expectedBrl) {
-            return [['ok' => false, 'code' => 402, 'error' => 'InsufficientAmount', 'message' => 'Valor pago inferior ao valor do pacote.'], false];
-        }
-
-        $issued = grid402_issue_session_pass('mp_pay_' . $mpPaymentId, (int) $order['raw_usdc_units'], $isSandbox);
-        if (empty($issued['pass_token'])) {
-            return [['ok' => false, 'code' => 500, 'error' => 'PassIssuanceFailed', 'message' => 'Falha ao emitir Session Pass.'], false];
         }
 
         $now = time();
@@ -509,7 +541,7 @@ function grid402_mp_finalize_approved_order(string $orderId, string $mpPaymentId
             'status' => 'approved',
             'pass_token' => $issued['pass_token'],
             'tier' => $order['tier'],
-            'credits' => $issued['credits'] ?? $order['credits'],
+            'credits' => $issued['credits_total'] ?? $order['credits'],
             'raw_usdc_units' => (int) ($order['raw_usdc_units'] ?? 0),
             'ttl_days' => $order['ttl_days'],
             'expires_at' => $issued['expires_at'] ?? null,
@@ -663,13 +695,44 @@ function grid402_mp_get_order_status(string $orderId, ?string $paymentIdHint = n
 
     $pid = trim((string) ($paymentIdHint ?? $order['mp_payment_id'] ?? ''));
     $hasTransport = is_callable($GLOBALS['grid402_mp_http_transport'] ?? null);
-    if ($order['status'] === 'pending' && $pid !== '' && (!empty($hasTransport) || empty($order['sandbox']))) {
-        $sync = grid402_mp_sync_payment($pid, $orderId);
-        if (!empty($sync['pass_token'])) {
-            return $sync;
-        }
-        if (isset($sync['status'])) {
-            $order['status'] = $sync['status'];
+    if ($order['status'] === 'pending' && (!empty($hasTransport) || empty($order['sandbox']))) {
+        if ($pid !== '') {
+            $sync = grid402_mp_sync_payment($pid, $orderId);
+            if (!empty($sync['pass_token'])) {
+                return $sync;
+            }
+            if (isset($sync['status'])) {
+                $order['status'] = $sync['status'];
+            }
+        } else {
+            // Fallback Checkout Pro: quando webhook atrasa e nao ha payment_id na URL, busca por external_reference
+            $searchResp = grid402_mp_http('GET', '/v1/payments/search?external_reference=' . rawurlencode($orderId) . '&sort=date_created&criteria=desc');
+            $results = is_array($searchResp['data']['results'] ?? null) ? $searchResp['data']['results'] : [];
+            if ($searchResp['status'] >= 200 && $searchResp['status'] < 300 && !empty($results)) {
+                $chosen = null;
+                foreach ($results as $cand) {
+                    if (is_array($cand) && strtolower((string) ($cand['status'] ?? '')) === 'approved') {
+                        $chosen = $cand;
+                        break;
+                    }
+                }
+                if ($chosen === null && is_array($results[0])) {
+                    $chosen = $results[0];
+                }
+                if ($chosen !== null && !empty($chosen['id'])) {
+                    $chosenStatus = strtolower((string) ($chosen['status'] ?? 'pending'));
+                    if ($chosenStatus === 'approved') {
+                        $paidAmt = (float) ($chosen['transaction_amount'] ?? 0);
+                        $isOrderSandbox = isset($chosen['live_mode']) ? !$chosen['live_mode'] : grid402_mp_is_sandbox();
+                        $fin = grid402_mp_finalize_approved_order($orderId, (string) $chosen['id'], $paidAmt, $isOrderSandbox);
+                        if (!empty($fin['pass_token'])) {
+                            return $fin;
+                        }
+                    } else {
+                        $order['status'] = $chosenStatus;
+                    }
+                }
+            }
         }
     }
 

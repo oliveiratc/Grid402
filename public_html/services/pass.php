@@ -111,6 +111,13 @@ function grid402_consume_session_pass(string $token, int $requiredRawUnits = 500
 }
 
 /**
+ * Estorna atomicamente créditos debitados de um Session Pass quando a execução do serviço falha (HTTP != 200)
+ */
+function grid402_refund_session_pass(string $token, int $creditsToRefund, ?string $endpointId = null, array $auditContext = []): bool {
+    return grid402_pass_repository()->refundPass($token, $creditsToRefund, $endpointId, $auditContext);
+}
+
+/**
  * Registra evento estruturado Zero-PII no extrato do Session Pass (ex.: replay idempotente)
  */
 function grid402_record_pass_statement_event(string $token, array $event): bool {

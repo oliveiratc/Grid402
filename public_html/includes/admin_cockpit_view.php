@@ -908,7 +908,10 @@ $pricingLookup = [
 
             <div class="analytics-row">
                 <div class="panel">
-                    <div class="panel-title">Origem dos Pagamentos</div>
+                    <div class="panel-title">
+                        <span>Origem dos Pagamentos</span>
+                        <a href="/admin?api=export_csv&amp;scope=paid" class="btn-outline" style="font-size: 0.72rem; padding: 0.28rem 0.6rem;">📥 CSV Pagas (Histórico)</a>
+                    </div>
                     <div id="payment-source-bars-container">
                         <?php
                         $sourceCounts = $metrics['payment_sources'] ?? [];

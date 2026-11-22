@@ -56,8 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $msg = isset($result['error']) ? $result['error'] : 'Configuração atualizada.';
         $data = grid402_growth_read();
     } elseif ($action === 'reconcile_onchain') {
-        $window = (int)($_POST['window'] ?? 10000);
-        $window = in_array($window, [10000, 30000, 60000], true) ? $window : 10000;
+        $window = (int)($_POST['window'] ?? 100000);
+        $window = in_array($window, [18000, 100000, 432000], true) ? $window : 100000;
         $snapshot = grid402_onchain_stats_refresh($window);
         $msg = !empty($snapshot['rpc_ok'])
             ? ('Snapshot on-chain atualizado (blocos ' . ($snapshot['from_block'] ?? '?') . '–' . ($snapshot['to_block'] ?? '?') . ')' . (!empty($snapshot['partial']) ? ' — parcial: ' . ($snapshot['chunks_failed'] ?? '?') . '/' . ($snapshot['chunks_total'] ?? '?') . ' chunks falharam' : ''))
@@ -148,11 +148,11 @@ $compare = grid402_onchain_stats_compare($onchain, $standardMetrics);
         <form method="post" action="/growth_admin" style="display:flex;gap:.6rem;align-items:end;flex-wrap:wrap;margin-bottom:.75rem;">
             <input type="hidden" name="action" value="reconcile_onchain">
             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
-            <label>Janela de blocos
+            <label>Janela de blocos (Base ~5 blocos/s)
                 <select name="window">
-                    <option value="10000" selected>10.000 blocos (~5,5h)</option>
-                    <option value="30000">30.000 blocos (~16h)</option>
-                    <option value="60000">60.000 blocos (~33h, limite máximo)</option>
+                    <option value="18000">18.000 blocos (~1h)</option>
+                    <option value="100000" selected>100.000 blocos (~5,5h)</option>
+                    <option value="432000">432.000 blocos (~24h)</option>
                 </select>
             </label>
             <button type="submit" class="primary">Reconciliar agora</button>
@@ -161,8 +161,8 @@ $compare = grid402_onchain_stats_compare($onchain, $standardMetrics);
             <tbody>
                 <tr><th>Última atualização</th><td><?php echo htmlspecialchars((string)($compare['generated_at'] ?? 'nunca')); ?> <?php echo $compare['rpc_ok'] ? '<span class="ok">(RPC ok)</span>' : '<span class="warn">(RPC indisponível — último snapshot mantido)</span>'; ?></td></tr>
                 <tr><th>Janela</th><td><?php echo (int)$compare['window_blocks']; ?> blocos (<?php echo htmlspecialchars((string)($onchain['from_block'] ?? '?')); ?>–<?php echo htmlspecialchars((string)($onchain['to_block'] ?? '?')); ?>)<?php echo !empty($onchain['partial']) ? ' — <span class="warn">parcial (' . (int)$onchain['chunks_failed'] . '/' . (int)$onchain['chunks_total'] . ' chunks falharam)</span>' : ''; ?></td></tr>
-                <tr><th>Transfers recebidas on-chain</th><td><?php echo (int)$compare['onchain_transfers']; ?> de <?php echo (int)$compare['onchain_unique_senders']; ?> carteiras únicas (pós-filtro)</td></tr>
-                <tr><th>USDC recebido on-chain</th><td><?php echo number_format((float)$compare['onchain_received_usdc'], 4); ?> USDC</td></tr>
+                <tr><th>Transfers recebidas na janela</th><td><?php echo (int)$compare['onchain_transfers']; ?> de <?php echo (int)$compare['onchain_unique_senders']; ?> carteiras únicas (<?php echo number_format((float)$compare['onchain_received_usdc'], 4); ?> USDC na janela)</td></tr>
+                <tr><th>Saldo real na carteira Base (USDC)</th><td><?php echo isset($compare['wallet_usdc_balance']) && $compare['wallet_usdc_balance'] !== null ? number_format((float)$compare['wallet_usdc_balance'], 4) . ' USDC' : '<span class="muted">Reconcilie para consultar saldo</span>'; ?></td></tr>
                 <tr><th>Receita registrada (telemetria)</th><td><?php echo number_format((float)$compare['telemetry_total_revenue_usdc'], 4); ?> USDC em <?php echo (int)$compare['telemetry_paid_requests']; ?> chamadas pagas</td></tr>
                 <tr><th>Delta (on-chain − telemetria)</th><td class="<?php echo abs((float)$compare['revenue_delta_usdc']) > 0.01 ? 'warn' : 'ok'; ?>"><?php echo number_format((float)$compare['revenue_delta_usdc'], 4); ?> USDC</td></tr>
             </tbody>

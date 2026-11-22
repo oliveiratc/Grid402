@@ -29,6 +29,8 @@ interface PassStorageInterface {
 
     public function consumePass(string $token, int $requiredRawUnits = 5000, ?string $endpointId = null, array $auditContext = []): array;
 
+    public function refundPass(string $token, int $creditsToRefund, ?string $endpointId = null, array $auditContext = []): bool;
+
     public function recordStatementEvent(string $token, array $event): bool;
 
     public function getStatement(string $token, array $filters = []): array;
@@ -147,7 +149,7 @@ final class JsonFlockPassRepository implements PassStorageInterface {
             $store = grid402_read_locked_json($fp, []);
             $list = (isset($store[$passId]) && is_array($store[$passId])) ? $store[$passId] : [];
 
-            $allowedOutcomes = ['consumed', 'endpoint_restricted', 'daily_limit_exceeded', 'idempotent_replay'];
+            $allowedOutcomes = ['consumed', 'refunded', 'endpoint_restricted', 'daily_limit_exceeded', 'idempotent_replay'];
             $outcome = strtolower(trim((string) ($event['outcome'] ?? 'consumed')));
             if (!in_array($outcome, $allowedOutcomes, true)) {
                 $outcome = 'consumed';
@@ -265,10 +267,19 @@ final class JsonFlockPassRepository implements PassStorageInterface {
                     $store = grid402_read_locked_json($fp, []);
 
                     $rawTxTrimmed = trim($txHash);
-                    $cleanTx = strtolower($rawTxTrimmed);
+                    $isSolanaTxInput = (bool) preg_match('/^(?:solana:)?[1-9A-HJ-NP-Za-km-z]{64,90}$/', $rawTxTrimmed);
+                    if ($isSolanaTxInput) {
+                        // Assinaturas Solana (Base58) sao case-sensitive: preserva caixa original da assinatura
+                        $cleanTx = str_starts_with(strtolower($rawTxTrimmed), 'solana:')
+                            ? ('solana:' . substr($rawTxTrimmed, 7))
+                            : $rawTxTrimmed;
+                    } else {
+                        $cleanTx = strtolower($rawTxTrimmed);
+                    }
                     if (!$isSandbox && $cleanTx !== '') {
                         foreach ($store as $entry) {
-                            if (($entry['tx_hash'] ?? '') === $cleanTx) {
+                            $storedTx = (string) ($entry['tx_hash'] ?? '');
+                            if ($storedTx === $cleanTx || (!$isSolanaTxInput && strtolower($storedTx) === $cleanTx)) {
                                 $record = $entry;
                                 break;
                             }
@@ -283,7 +294,7 @@ final class JsonFlockPassRepository implements PassStorageInterface {
                     $isTestEnv = (php_sapi_name() === 'cli') || function_exists('t_bootstrap') || defined('GRID402_TEST_MODE') || str_contains(GRID402_PRIVATE_DIR, 'tmp') || str_contains(GRID402_PRIVATE_DIR, 'temp');
                     if (!$isTestEnv && !$isSandbox && $record === null && $cleanTx !== '') {
                         $isEvmTx = (bool) preg_match('/^(?:(?:base|arbitrum|polygon|optimism|ethereum):)?0x[a-f0-9]{64}$/', $cleanTx);
-                        $isSolanaSig = (bool) preg_match('/^(?:solana:)?[1-9A-HJ-NP-Za-km-z]{64,90}$/', $rawTxTrimmed);
+                        $isSolanaSig = $isSolanaTxInput;
                         if ($isEvmTx || $isSolanaSig) {
                             // Check if tx hash exists in the on-chain verification lock file
                             $usedTxsFile = defined('GRID402_FILE_USED_TXS') ? GRID402_FILE_USED_TXS : (GRID402_PRIVATE_DIR . '/used_txs.json');
@@ -295,7 +306,9 @@ final class JsonFlockPassRepository implements PassStorageInterface {
                                 }
                             }
                             $hasTx = isset($txs[$cleanTx])
-                                || ($isSolanaSig && !str_starts_with($cleanTx, 'solana:') && isset($txs['solana:' . $cleanTx]));
+                                || ($isSolanaSig && !str_starts_with($cleanTx, 'solana:') && isset($txs['solana:' . $cleanTx]))
+                                || ($isSolanaSig && str_starts_with($cleanTx, 'solana:') && isset($txs[substr($cleanTx, 7)]))
+                                || isset($txs[strtolower($cleanTx)]);
                             if (!$hasTx) {
                                 throw new RuntimeException('Transação não verificada on-chain. O hash ' . $txHash . ' não foi validado contra a blockchain. Emissão de pass negada.');
                             }
@@ -674,6 +687,63 @@ final class JsonFlockPassRepository implements PassStorageInterface {
         }
 
         return $result;
+    }
+
+    public function refundPass(string $token, int $creditsToRefund, ?string $endpointId = null, array $auditContext = []): bool {
+        if ($creditsToRefund <= 0) {
+            return false;
+        }
+        $passId = grid402_pass_verify_token_format($token);
+        if ($passId === null) {
+            return false;
+        }
+        $file = $this->passesFile();
+        if (!file_exists($file)) {
+            return false;
+        }
+        $fp = @fopen($file, 'c+');
+        if (!$fp) {
+            return false;
+        }
+        $refunded = false;
+        $creditsAfter = 0;
+        $now = time();
+        if (flock($fp, LOCK_EX)) {
+            $store = grid402_read_locked_json($fp, []);
+            if (isset($store[$passId]) && is_array($store[$passId])) {
+                $entry = grid402_normalize_pass_entry($store[$passId]);
+                $maxTotal = max(0, (int) ($entry['credits_total'] ?? 0));
+                $currentRem = max(0, (int) ($entry['credits_remaining'] ?? 0));
+                $newRem = $maxTotal > 0 ? min($maxTotal, $currentRem + $creditsToRefund) : ($currentRem + $creditsToRefund);
+                $entry['credits_remaining'] = $newRem;
+                $entry['credits_used_today'] = max(0, (int) ($entry['credits_used_today'] ?? 0) - $creditsToRefund);
+                $entry['usage_count'] = max(0, (int) ($entry['usage_count'] ?? 0) - 1);
+                $store[$passId] = $entry;
+
+                ftruncate($fp, 0);
+                rewind($fp);
+                fwrite($fp, (string) json_encode($store, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+                fflush($fp);
+                $creditsAfter = $newRem;
+                $refunded = true;
+            }
+            flock($fp, LOCK_UN);
+        }
+        fclose($fp);
+
+        if ($refunded) {
+            $this->appendStatementEntry($passId, [
+                'ts_epoch' => $now,
+                'request_id' => $auditContext['request_id'] ?? null,
+                'endpoint' => $endpointId ?? 'unknown',
+                'credits_debited' => 0,
+                'credits_after' => $creditsAfter,
+                'http_status' => (int) ($auditContext['http_status'] ?? 502),
+                'outcome' => 'refunded',
+            ]);
+        }
+
+        return $refunded;
     }
 
     public function recordStatementEvent(string $token, array $event): bool {

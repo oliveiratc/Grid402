@@ -1267,9 +1267,55 @@ if ($apiParam === 'export_csv') {
     $metrics = grid402_get_metrics();
     $forex = grid402_service_forex();
     $usdRate = (float)($forex['rates']['USD']['bid'] ?? 5.50);
+    $csvScope = strtolower(trim((string) ($_GET['scope'] ?? 'recent')));
     $events = $metrics['recent_events'] ?? [];
 
-    $filename = 'grid402_telemetria_' . grid402_metrics_today() . '.csv';
+    if ($csvScope === 'paid') {
+        // Exportacao historica de todas as transacoes pagas a partir do requests.jsonl (nao afetada por rajadas no buffer de 100)
+        $paidSourcesList = ['facilitator', 'tx_hash', 'pass', 'rapidapi', 'mercadopago', 'web3_topup', 'solana_spl'];
+        $historicalPaid = [];
+        $logPath = function_exists('grid402_get_request_log_path') ? grid402_get_request_log_path() : (GRID402_PRIVATE_DIR . '/requests.jsonl');
+        $priceMap = [
+            'dossier' => 0.0500, 'compliance' => 0.0300, 'kyb-audit' => 0.0200, 'ofac' => 0.0200, 'lei' => 0.0200,
+            'cnpj' => 0.0200, 'domain-audit' => 0.0150, 'market-snapshot' => 0.0150, 'sanctions' => 0.0100,
+            'simples' => 0.0100, 'pass' => 2.0000, 'pass-emitir' => 2.0000, 'extract' => 0.0050, 'email-verify' => 0.0050,
+            'notarize' => 0.0050, 'forex' => 0.0050, 'crypto' => 0.0050, 'indicators' => 0.0050, 'holidays' => 0.0050,
+            'workdays' => 0.0050, 'global-markets' => 0.0050, 'dns' => 0.0050, 'ssl' => 0.0050, 'asn' => 0.0050, 'cep' => 0.0050,
+        ];
+        if (is_file($logPath) && is_readable($logPath)) {
+            $lines = @file($logPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            if (is_array($lines)) {
+                foreach (array_reverse($lines) as $ln) {
+                    $row = @json_decode($ln, true);
+                    if (!is_array($row)) continue;
+                    $src = strtolower((string) ($row['payment_source'] ?? ''));
+                    if ((int) ($row['status'] ?? 0) !== 200) continue;
+                    if (!in_array($src, $paidSourcesList, true) && !str_starts_with($src, 'evm_') && !str_starts_with($src, 'multichain_')) continue;
+                    $svc = strtolower((string) ($row['service'] ?? ''));
+                    $isZeroRec = in_array($src, ['pass', 'rapidapi'], true);
+                    $rowPrice = isset($row['price_usdc']) && is_numeric($row['price_usdc'])
+                        ? (float) $row['price_usdc']
+                        : (float) ($priceMap[$svc] ?? 0.0050);
+                    $historicalPaid[] = [
+                        'timestamp' => (string) ($row['ts'] ?? ''),
+                        'service' => $svc,
+                        'status' => 200,
+                        'type' => 'paid',
+                        'is_paid' => true,
+                        'price_usdc' => $isZeroRec ? 0.0 : $rowPrice,
+                        'tx_hash' => (string) ($row['request_id'] ?? ''),
+                        'payment_source' => $src,
+                        'failure_category' => '',
+                        'settlement_tx' => '',
+                        'ip_masked' => (string) ($row['ip_hmac'] ?? ''),
+                    ];
+                }
+            }
+        }
+        $events = $historicalPaid;
+    }
+
+    $filename = ($csvScope === 'paid' ? 'grid402_pagas_historico_' : 'grid402_telemetria_') . grid402_metrics_today() . '.csv';
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="' . $filename . '"');
     header('Cache-Control: no-cache, no-store, must-revalidate');

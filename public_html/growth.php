@@ -256,14 +256,19 @@ function grid402_growth_event(string $type, array $context = []): array {
             isset($context['ip']) ? (string)$context['ip'] : null
         );
 
+        $isRapidApiProxy = (strtolower(trim((string)($context['payer'] ?? ''))) === 'rapidapi_proxy')
+            || (strtolower(trim((string)($context['type'] ?? ''))) === 'rapidapi');
         if (!isset($data['profiles'][$actor]) || !is_array($data['profiles'][$actor])) {
             $data['profiles'][$actor] = [
                 'actor_id' => $actor,
+                'channel' => $isRapidApiProxy ? 'rapidapi' : 'web3',
                 'first_seen_at' => $now,
                 'last_seen_at' => $now,
                 'first_paid_at' => null,
                 'second_paid_at' => null,
-                'wallet_last4' => isset($context['payer']) ? substr(strtolower((string)$context['payer']), -4) : null,
+                'wallet_last4' => (!$isRapidApiProxy && isset($context['payer']) && trim((string)$context['payer']) !== '')
+                    ? substr(strtolower((string)$context['payer']), -4)
+                    : null,
                 'services' => [],
                 'paid_services' => [],
                 'paid_requests' => 0,
@@ -507,11 +512,11 @@ function grid402_growth_issue_pending_reward(string $rewardId): array {
     if ($credits <= 0) {
         return ['error' => 'no_credits'];
     }
-    $issued = grid402_issue_session_pass('promo_' . $rewardId, $credits * 500, false);
-    $data['rewards'][$idx]['status'] = $issued['status'] === 'ACTIVE' ? 'issued' : 'failed';
+    $issued = grid402_issue_session_pass('promo_' . $rewardId, $credits * 5000, false);
+    $data['rewards'][$idx]['status'] = ($issued['status'] ?? '') === 'ACTIVE' ? 'issued' : 'failed';
     $data['rewards'][$idx]['pass_token'] = $issued['pass_token'] ?? null;
     $data['rewards'][$idx]['updated_at'] = gmdate('Y-m-d\TH:i:s\Z');
-    $data = grid402_growth_persist_locked($data);
+    grid402_growth_persist_locked($data);
     return ['ok' => true, 'credits' => $credits, 'reward' => $data['rewards'][$idx] ?? $r];
 }
 
@@ -523,9 +528,10 @@ function grid402_growth_metrics(): array {
     $profiles = is_array($data['profiles'] ?? null) ? $data['profiles'] : [];
     $cfg = $data['config'];
 
-    $walletsConnected = count($profiles);
+    $walletsConnected = 0;
     $walletsPaying = 0;
     $walletsSecondPayment = 0;
+    $rapidapiPaidRequests = 0;
     $revenue = 0.0;
     $txs = 0;
     $paidServices = [];
@@ -537,18 +543,12 @@ function grid402_growth_metrics(): array {
     $builders = count($data['builders']);
 
     foreach ($profiles as $p) {
+        $isProxyChannel = (($p['channel'] ?? '') === 'rapidapi')
+            || (strtolower((string)($p['wallet_last4'] ?? '')) === 'roxy');
         $paidRequests = (int)($p['paid_requests'] ?? 0);
         $txs += $paidRequests;
         $revenue += (float)($p['paid_revenue_usdc'] ?? 0.0);
-        if ($paidRequests > 0) {
-            $walletsPaying++;
-        }
-        if (!empty($p['second_paid_at'])) {
-            $walletsSecondPayment++;
-        }
-        if ((int)($p['paid_requests'] ?? 0) >= 3) {
-            $recurrent++;
-        }
+
         if ($paidRequests > 0) {
             $serviceSource = (isset($p['paid_services']) && is_array($p['paid_services']) && !empty($p['paid_services']))
                 ? $p['paid_services']
@@ -556,6 +556,22 @@ function grid402_growth_metrics(): array {
             foreach ($serviceSource as $svc => $count) {
                 $paidServices[$svc] = (int)($paidServices[$svc] ?? 0) + (int)$count;
             }
+        }
+
+        if ($isProxyChannel) {
+            $rapidapiPaidRequests += $paidRequests;
+            continue;
+        }
+
+        $walletsConnected++;
+        if ($paidRequests > 0) {
+            $walletsPaying++;
+        }
+        if (!empty($p['second_paid_at'])) {
+            $walletsSecondPayment++;
+        }
+        if ($paidRequests >= 3) {
+            $recurrent++;
         }
         $day = grid402_metrics_day_of((string)($p['first_seen_at'] ?? 'now'));
         $newByDay[$day] = (int)($newByDay[$day] ?? 0) + 1;
@@ -582,6 +598,7 @@ function grid402_growth_metrics(): array {
         'revenue_per_agent_usdc' => $revenuePerAgent,
         'paid_revenue_usdc' => round($revenue, 8),
         'paid_transactions' => $txs,
+        'rapidapi_paid_requests' => $rapidapiPaidRequests,
         'paid_requests_per_service' => $paidServices,
         'paid_requests' => $txs,
         'usdc_transaction_volume' => round($revenue, 8),
