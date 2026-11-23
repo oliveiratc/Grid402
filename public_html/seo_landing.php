@@ -159,7 +159,7 @@ $pages = [
         'faq' => [
             [
                 'q' => 'How much does URL-to-Markdown extraction cost?',
-                'a' => 'Each extraction costs $0.0050 USDC (1 credit). You can pay per call with gasless x402 v2 (Base, Polygon, Arbitrum, Solana), buy a prepaid Session Pass (400 pages for $2 USDC), or subscribe with Credit Card on RapidAPI ($9.90/mo for 2,500 calls).',
+                'a' => 'Each extraction costs $0.0050 USDC (1 credit). You can pay per call with gasless x402 v2 (Base, Polygon, Arbitrum, Solana), buy a prepaid Session Pass (400 pages for $2 USDC), or subscribe with Credit Card on RapidAPI ($9.90/mo for 1,500 standard calls).',
             ],
             [
                 'q' => 'Does Grid402 store the extracted web pages?',

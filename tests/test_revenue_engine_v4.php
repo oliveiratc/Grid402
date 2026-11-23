@@ -475,6 +475,99 @@ try {
         $rRapidPassBlock['code'] === 402,
         "Code={$rRapidPassBlock['code']}"
     );
+
+    // -----------------------------------------------------------------
+    // 9. Passo 1 — Higiene de Precos, Comparador ROI Verificavel, Garantias e Trava RapidAPI
+    // -----------------------------------------------------------------
+    echo "\n[9/9] Higiene de Preços, Comparador Verificável, Garantias e Trava Anti-Arbitragem RapidAPI:\n";
+
+    $rHome = $httpCall("{$baseUrl}/");
+    t_assert('Home (/) traz comparador ROI verificável (OpenSanctions/Infosimples/Direct Data, presets 40/600) sem $ 285.00 legado',
+        $rHome['code'] === 200 &&
+        str_contains($rHome['body'], 'OpenSanctions') &&
+        str_contains($rHome['body'], 'Infosimples') &&
+        str_contains($rHome['body'], 'Direct Data') &&
+        str_contains($rHome['body'], 'setRoiPreset(40)') &&
+        str_contains($rHome['body'], 'setRoiPreset(600)') &&
+        !str_contains($rHome['body'], '$ 285.00')
+    );
+
+    $rPassPage = $httpCall("{$baseUrl}/pass");
+    $rCatalogPage = $httpCall("{$baseUrl}/catalog");
+    $rDossiePage = $httpCall("{$baseUrl}/dossie-kyb");
+    t_assert('/pass, /catalog e /dossie-kyb destacam garantias pró-cliente (estorno automático + Idempotency-Key)',
+        $rPassPage['code'] === 200 && str_contains($rPassPage['body'], 'guarantees.g1.title') &&
+        $rCatalogPage['code'] === 200 && str_contains($rCatalogPage['body'], 'guarantees.g1.title') &&
+        $rDossiePage['code'] === 200 && str_contains($rDossiePage['body'], 'Erro não cobra')
+    );
+
+    t_assert('HTTP 402 em /api/v1/extract exibe tabela sincronizada (Pro R$ 29, Fleet R$ 115, RapidAPI 1,500 std calls)',
+        str_contains((string) ($j402Ext['fiat_and_card_checkout']['pix_instant_brl']['pricing'] ?? ''), 'Pro R$ 29') &&
+        str_contains((string) ($j402Ext['fiat_and_card_checkout']['pix_instant_brl']['pricing'] ?? ''), 'Fleet R$ 115') &&
+        str_contains((string) ($j402Ext['fiat_and_card_checkout']['rapidapi_credit_card_usd']['plans'] ?? ''), '1,500 std calls')
+    );
+
+    // Teste isolado da trava suave anti-arbitragem RapidAPI (GRID402_RAPIDAPI_DOSSIER_DAILY_CAP=2 + BLOCKED=compliance)
+    $guardDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'grid402_rapid_guard_' . bin2hex(random_bytes(4));
+    @mkdir($guardDir, 0775, true);
+    $guardCode = <<<'PHP'
+define('GRID402_EXEC', true);
+require __DIR__ . '/public_html/config.php';
+$_SERVER['HTTP_X_RAPIDAPI_USER'] = 'alice_pro_sub';
+$g1 = grid402_check_rapidapi_endpoint_guard('dossier');
+$g2 = grid402_check_rapidapi_endpoint_guard('dossier');
+$g3 = grid402_check_rapidapi_endpoint_guard('dossier');
+// Estorna 1 slot (simulando HTTP != 200) e verifica liberacao
+grid402_refund_rapidapi_endpoint_guard('dossier');
+$g4 = grid402_check_rapidapi_endpoint_guard('dossier');
+// Outro assinante deve ter cota isolada
+$_SERVER['HTTP_X_RAPIDAPI_USER'] = 'bob_pro_sub';
+$gBob = grid402_check_rapidapi_endpoint_guard('dossier');
+// Rota nao-dossier nao e bloqueada pelo cap de dossier
+$gHol = grid402_check_rapidapi_endpoint_guard('holidays');
+// Rota em GRID402_RAPIDAPI_BLOCKED_ENDPOINTS retorna 403
+$gComp = grid402_check_rapidapi_endpoint_guard('compliance');
+$rawFile = (string) @file_get_contents(GRID402_FILE_RAPIDAPI_LIMITS);
+$ok = !empty($g1['allowed']) && ($g1['used_today'] ?? 0) === 1
+    && !empty($g2['allowed']) && ($g2['used_today'] ?? 0) === 2
+    && empty($g3['allowed']) && ($g3['http_status'] ?? 0) === 429 && ($g3['error'] ?? '') === 'RapidApiEndpointCapExceeded' && ($g3['retry_after'] ?? 0) > 0
+    && !empty($g4['allowed']) && ($g4['used_today'] ?? 0) === 2
+    && !empty($gBob['allowed']) && ($gBob['used_today'] ?? 0) === 1
+    && !empty($gHol['allowed'])
+    && empty($gComp['allowed']) && ($gComp['http_status'] ?? 0) === 403 && ($gComp['error'] ?? '') === 'RapidApiEndpointRestricted'
+    && !str_contains($rawFile, 'alice_pro_sub') && !str_contains($rawFile, 'bob_pro_sub');
+echo $ok ? 'GUARD_OK' : ('GUARD_FAIL:' . json_encode([$g1, $g2, $g3, $g4, $gBob, $gHol, $gComp]));
+PHP;
+    $guardEnv = array_merge($_ENV, $_SERVER, [
+        'GRID402_STORAGE_DIR' => $guardDir,
+        'GRID402_RAPIDAPI_DOSSIER_DAILY_CAP' => '2',
+        'GRID402_RAPIDAPI_BLOCKED_ENDPOINTS' => 'compliance',
+    ]);
+    // Filtra apenas variaveis escalares para proc_open
+    $cleanGuardEnv = [];
+    foreach ($guardEnv as $ek => $ev) {
+        if (is_string($ek) && (is_string($ev) || is_numeric($ev))) {
+            $cleanGuardEnv[$ek] = (string) $ev;
+        }
+    }
+    $descSpec = [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']];
+    $gProc = proc_open([PHP_BINARY, '-r', $guardCode], $descSpec, $gPipes, dirname(__DIR__), $cleanGuardEnv);
+    $gOut = '';
+    $gErr = '';
+    $gExit = -1;
+    if (is_resource($gProc)) {
+        fclose($gPipes[0]);
+        $gOut = (string) stream_get_contents($gPipes[1]);
+        $gErr = (string) stream_get_contents($gPipes[2]);
+        fclose($gPipes[1]);
+        fclose($gPipes[2]);
+        $gExit = proc_close($gProc);
+    }
+    t_rmdir($guardDir);
+    t_assert('Trava suave RapidAPI aplica cap diário (429), estorno em erro, isolamento Zero-PII por assinante e bloqueio explícito (403)',
+        $gExit === 0 && trim($gOut) === 'GUARD_OK',
+        "Exit={$gExit} Out={$gOut} Err={$gErr}"
+    );
 } finally {
     grid402_stop_server($server);
     t_rmdir($storageDir);

@@ -44,12 +44,29 @@
 
 ## 3. Tabela de Planos Recomendados na RapidAPI (Margem Saudável após 20% de Taxa RapidAPI)
 
+### 3.1. Endpoints Padrão (Listagem Global — `0.0050` a `0.0150 USDC`)
+
 | Plano RapidAPI | Preço Mensal | Cota Mensal | Overage | Equivalente Direto Grid402 |
 |---|---|---|---|---|
 | **Basic (Free)** | $0/mês | 25 req/mês (rate limit 1 req/min) | Hard limit | Sandbox direto `3 req/dia` |
 | **Pro** | $9,90/mês | 1.500 req/mês | $0.010 / req | Starter Pass R$ 12 (400 cr) / Pro R$ 29 (1.000 cr) |
 | **Ultra** | $29,00/mês | 6.000 req/mês | $0.006 / req | Fleet Pass R$ 115 / 20 USDC (6.000 cr) |
 | **Mega** | $79,00/mês | 25.000 req/mês | $0.004 / req | Enterprise Custom |
+
+### 3.2. Proteção Anti-Arbitragem para Endpoints Premium (`/dossier` e `/compliance` — Per-Endpoint Quotas)
+
+> **Atenção crítica de margem:** nunca exponha `/api/v1/dossier` (`0.0500 USDC`) ou `/api/v1/compliance` (`0.0300 USDC`) na mesma cota plana de `1.500–25.000 req/mês` dos endpoints padrão, pois um assinante Pro pagaria `$0,0066` por dossiê (quase 8× abaixo do preço direto). No **RapidAPI Provider Studio → Monetize → Objects / Per-Endpoint Quotas**, configure cotas dedicadas para essas rotas:
+
+| Endpoint Premium | Preço Direto Grid402 | Basic (Free) | Pro ($9,90/mês) | Ultra ($29,00/mês) | Mega ($79,00/mês) |
+|---|---|---|---|---|---|
+| `GET /api/v1/dossier` | `0.0500 USDC` (10 cr) | `3 / mês` (hard) | `100 / mês` (overage `$0.08`) | `400 / mês` (overage `$0.06`) | `1.500 / mês` (overage `$0.05`) |
+| `GET /api/v1/compliance` | `0.0300 USDC` (6 cr) | `5 / mês` (hard) | `200 / mês` (overage `$0.05`) | `800 / mês` (overage `$0.035`) | `3.000 / mês` (overage `$0.03`) |
+
+### 3.3. Trava Suave de Segurança no Backend PHP (`.env` — Defesa em Profundidade)
+
+Além das cotas no RapidAPI Studio, o gateway Grid402 (`public_html/config.php` + `public_html/index.php`) suporta duas salvaguardas opt-in via `.env` (Zero-DB com `flock(LOCK_EX)` e Zero-PII usando HMAC de `X-RapidAPI-User`):
+- `GRID402_RAPIDAPI_DOSSIER_DAILY_CAP=5` *(padrão `0` = desativado)*: limita chamadas diárias em `/api/v1/dossier` por assinante RapidAPI (retorna `HTTP 429 RapidApiEndpointCapExceeded` com `Retry-After` e link para `/pass`; falhas `HTTP != 200` estornam o contador automaticamente).
+- `GRID402_RAPIDAPI_BLOCKED_ENDPOINTS=` *(padrão vazio)*: lista separada por vírgula (ex.: `dossier`) para restringir rotas específicas exclusivamente a Session Pass (Pix/USDC) ou x402 direto (`HTTP 403 RapidApiEndpointRestricted`).
 
 > **Dica de conversão cruzada:** Na descrição da API na RapidAPI, inclua o aviso: *"Need pay-per-call crypto settlement (Base, Polygon, Arbitrum, Solana) or Pix (R$ 12 = 400 credits) with zero monthly retainer? Visit https://grid402.online/pass"*.
 

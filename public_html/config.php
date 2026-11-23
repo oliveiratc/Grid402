@@ -192,6 +192,8 @@ define('GRID402_SOLANA_USDC_MINT', trim((string) grid402_env('GRID402_SOLANA_USD
 define('GRID402_PAYAI_SOLANA_FEE_PAYER', trim((string) grid402_env('GRID402_PAYAI_SOLANA_FEE_PAYER', 'CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww')));
 define('GRID402_CRON_SECRET', (string) grid402_env('GRID402_CRON_SECRET', 'grid402_secret_token_change_me'));
 define('GRID402_RAPIDAPI_PROXY_SECRET', trim((string) grid402_env('GRID402_RAPIDAPI_PROXY_SECRET', '')));
+define('GRID402_RAPIDAPI_DOSSIER_DAILY_CAP', max(0, (int) grid402_env('GRID402_RAPIDAPI_DOSSIER_DAILY_CAP', 0)));
+define('GRID402_RAPIDAPI_BLOCKED_ENDPOINTS', trim((string) grid402_env('GRID402_RAPIDAPI_BLOCKED_ENDPOINTS', '')));
 
 /**
  * Caminho persistente para o segredo do RapidAPI Proxy salvo via painel /admin (imune a deploys).
@@ -316,6 +318,7 @@ function grid402_rapidapi_runtime_status(): array {
         'configured' => ($resolved['count'] > 0),
         'count' => $resolved['count'],
         'source' => $resolved['source'],
+        'dossier_daily_cap' => defined('GRID402_RAPIDAPI_DOSSIER_DAILY_CAP') ? (int) GRID402_RAPIDAPI_DOSSIER_DAILY_CAP : 0,
     ];
 }
 
@@ -351,6 +354,162 @@ function grid402_is_valid_rapidapi_proxy_request(): bool {
         }
     }
     return $matched;
+}
+
+/**
+ * Resolve o identificador Zero-PII (HMAC curto) do assinante RapidAPI para controle suave de cota por rota.
+ */
+function grid402_rapidapi_subscriber_bucket(): string {
+    $rawUser = trim((string) ($_SERVER['HTTP_X_RAPIDAPI_USER'] ?? ''));
+    if ($rawUser === '' && function_exists('apache_request_headers')) {
+        $hdrs = apache_request_headers();
+        if (is_array($hdrs)) {
+            foreach ($hdrs as $k => $v) {
+                if (strtolower((string) $k) === 'x-rapidapi-user') {
+                    $rawUser = trim((string) $v);
+                    break;
+                }
+            }
+        }
+    }
+    if ($rawUser === '') {
+        return 'proxy_default';
+    }
+    $salt = defined('GRID402_CRON_SECRET') ? GRID402_CRON_SECRET : 'grid402_rapidapi_bucket';
+    return 'sub_' . substr(hash_hmac('sha256', strtolower($rawUser), $salt), 0, 16);
+}
+
+/**
+ * Valida salvaguardas anti-arbitragem opt-in para chamadas vindas via RapidAPI Proxy:
+ * - GRID402_RAPIDAPI_BLOCKED_ENDPOINTS: bloqueio explicito (HTTP 403)
+ * - GRID402_RAPIDAPI_DOSSIER_DAILY_CAP: teto diario UTC em /api/v1/dossier por assinante (HTTP 429)
+ */
+function grid402_check_rapidapi_endpoint_guard(string $endpointId): array {
+    $endpoint = strtolower(trim($endpointId));
+    $upgradeUrl = (defined('GRID402_CANONICAL_DOMAIN') ? rtrim((string) GRID402_CANONICAL_DOMAIN, '/') : 'https://grid402.online') . '/pass';
+
+    $blockedRaw = defined('GRID402_RAPIDAPI_BLOCKED_ENDPOINTS') ? (string) GRID402_RAPIDAPI_BLOCKED_ENDPOINTS : '';
+    if ($blockedRaw !== '') {
+        $blockedList = preg_split('/[\s,;]+/', strtolower($blockedRaw), -1, PREG_SPLIT_NO_EMPTY);
+        if (is_array($blockedList) && in_array($endpoint, $blockedList, true)) {
+            return [
+                'allowed' => false,
+                'consumed' => false,
+                'http_status' => 403,
+                'error' => 'RapidApiEndpointRestricted',
+                'reason' => "Endpoint /api/v1/{$endpoint} is restricted to direct Session Pass (Pix/USDC) or x402 settlement.",
+                'upgrade_url' => $upgradeUrl,
+            ];
+        }
+    }
+
+    $dossierCap = defined('GRID402_RAPIDAPI_DOSSIER_DAILY_CAP') ? (int) GRID402_RAPIDAPI_DOSSIER_DAILY_CAP : 0;
+    if ($endpoint !== 'dossier' || $dossierCap <= 0) {
+        return [
+            'allowed' => true,
+            'consumed' => false,
+            'daily_cap' => 0,
+        ];
+    }
+
+    $limitsFile = defined('GRID402_FILE_RAPIDAPI_LIMITS')
+        ? GRID402_FILE_RAPIDAPI_LIMITS
+        : (GRID402_PRIVATE_DIR . '/rapidapi_limits.json');
+    $dir = dirname($limitsFile);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+    }
+
+    $todayUtc = gmdate('Y-m-d');
+    $bucket = grid402_rapidapi_subscriber_bucket();
+    $key = $todayUtc . ':' . $endpoint . ':' . $bucket;
+    $secondsUntilReset = max(60, (int) (strtotime($todayUtc . ' 23:59:59 UTC') - time() + 1));
+
+    $fp = @fopen($limitsFile, 'c+');
+    if (!$fp) {
+        return ['allowed' => true, 'consumed' => false, 'daily_cap' => $dossierCap];
+    }
+
+    $result = ['allowed' => true, 'consumed' => false, 'daily_cap' => $dossierCap];
+    if (flock($fp, LOCK_EX)) {
+        $store = grid402_read_locked_json($fp, []);
+        $cleaned = [];
+        foreach ($store as $k => $count) {
+            if (is_string($k) && str_starts_with($k, $todayUtc . ':')) {
+                $cleaned[$k] = max(0, (int) $count);
+            }
+        }
+        $usedToday = (int) ($cleaned[$key] ?? 0);
+        if ($usedToday >= $dossierCap) {
+            $result = [
+                'allowed' => false,
+                'consumed' => false,
+                'http_status' => 429,
+                'error' => 'RapidApiEndpointCapExceeded',
+                'reason' => "Daily RapidAPI safety cap ({$dossierCap}/day) reached for /api/v1/dossier. Use a Grid402 Session Pass (Pix R$ 12 = 40 dossiers or USDC) or x402 for unrestricted volume.",
+                'daily_cap' => $dossierCap,
+                'used_today' => $usedToday,
+                'retry_after' => $secondsUntilReset,
+                'upgrade_url' => $upgradeUrl,
+            ];
+        } else {
+            $cleaned[$key] = $usedToday + 1;
+            ftruncate($fp, 0);
+            rewind($fp);
+            fwrite($fp, (string) json_encode($cleaned, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            fflush($fp);
+            $result = [
+                'allowed' => true,
+                'consumed' => true,
+                'daily_cap' => $dossierCap,
+                'used_today' => $usedToday + 1,
+                'remaining_today' => max(0, $dossierCap - ($usedToday + 1)),
+            ];
+        }
+        flock($fp, LOCK_UN);
+    }
+    fclose($fp);
+
+    return $result;
+}
+
+/**
+ * Estorna o incremento da trava suave RapidAPI quando a rota falha antes de retornar HTTP 200.
+ */
+function grid402_refund_rapidapi_endpoint_guard(string $endpointId): void {
+    $endpoint = strtolower(trim($endpointId));
+    $dossierCap = defined('GRID402_RAPIDAPI_DOSSIER_DAILY_CAP') ? (int) GRID402_RAPIDAPI_DOSSIER_DAILY_CAP : 0;
+    if ($endpoint !== 'dossier' || $dossierCap <= 0) {
+        return;
+    }
+
+    $limitsFile = defined('GRID402_FILE_RAPIDAPI_LIMITS')
+        ? GRID402_FILE_RAPIDAPI_LIMITS
+        : (GRID402_PRIVATE_DIR . '/rapidapi_limits.json');
+    if (!is_file($limitsFile)) {
+        return;
+    }
+
+    $todayUtc = gmdate('Y-m-d');
+    $bucket = grid402_rapidapi_subscriber_bucket();
+    $key = $todayUtc . ':' . $endpoint . ':' . $bucket;
+
+    $fp = @fopen($limitsFile, 'c+');
+    if (!$fp) {
+        return;
+    }
+    if (flock($fp, LOCK_EX)) {
+        $store = grid402_read_locked_json($fp, []);
+        if (isset($store[$key]) && (int) $store[$key] > 0) {
+            $store[$key] = (int) $store[$key] - 1;
+            ftruncate($fp, 0);
+            rewind($fp);
+            fwrite($fp, (string) json_encode($store, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            fflush($fp);
+        }
+        flock($fp, LOCK_UN);
+    }
+    fclose($fp);
 }
 
 // 2.2. Notificacoes de Pagamento em Tempo Real no Telegram (Opcional)
@@ -443,6 +602,7 @@ define('GRID402_FILE_USED_NONCES', GRID402_PRIVATE_DIR . '/used_nonces.json');
 define('GRID402_FILE_MP_ORDERS', GRID402_PRIVATE_DIR . '/mp_orders.json');
 define('GRID402_FILE_UPTIME_HISTORY', (string) grid402_env('GRID402_FILE_UPTIME_HISTORY', GRID402_PRIVATE_DIR . '/uptime_history.json'));
 define('GRID402_FILE_IDEMPOTENCY', (string) grid402_env('GRID402_FILE_IDEMPOTENCY', GRID402_PRIVATE_DIR . '/idempotency_cache.json'));
+define('GRID402_FILE_RAPIDAPI_LIMITS', (string) grid402_env('GRID402_FILE_RAPIDAPI_LIMITS', GRID402_PRIVATE_DIR . '/rapidapi_limits.json'));
 define('GRID402_FILE_ADMIN_ALERTS_STATE', (string) grid402_env('GRID402_FILE_ADMIN_ALERTS_STATE', GRID402_PRIVATE_DIR . '/admin_alerts_state.json'));
 define('GRID402_IDEMPOTENCY_TTL_SEC', 300);
 define('GRID402_OPERATOR_NAME', 'Grid402 Network Intelligence');

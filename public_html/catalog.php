@@ -80,6 +80,12 @@ ksort($services);
         <div class="card"><h3 data-i18n="catalog.limits.c4.title">Rate limit and Spend Controls</h3><p data-i18n-html="catalog.limits.c4.desc">Timeout: <?php echo GRID402_TIMEOUT_MS; ?> ms. Check balance for free at <code>GET /api/v1/pass/balance</code> and configure daily cap (<code>daily_credit_limit</code>) and route whitelist.</p></div>
     </div>
 
+    <div class="grid" style="margin-top:1rem;" role="region" aria-label="Transparent Billing Guarantees">
+        <div class="card" style="border-color:rgba(16,185,129,.35);"><h3 style="color:#34D399;" data-i18n="guarantees.g1.title">Errors Never Bill (Auto-Refund)</h3><p data-i18n-html="guarantees.g1.desc">If any call fails (HTTP ≠ 200), Session Pass credits are refunded automatically and x402 facilitator settlement is aborted.</p></div>
+        <div class="card" style="border-color:rgba(16,185,129,.35);"><h3 style="color:#34D399;" data-i18n="guarantees.g2.title">Free Safe Retries (300s)</h3><p data-i18n-html="guarantees.g2.desc">Send an <code>Idempotency-Key</code> header to safely retry requests after network timeouts with zero duplicate billing for 5 minutes.</p></div>
+        <div class="card" style="border-color:rgba(16,185,129,.35);"><h3 style="color:#34D399;" data-i18n="guarantees.g3.title">Clear Credit Consumption</h3><p data-i18n-html="guarantees.g3.desc"><code>1 credit = 0.0050 USDC</code> on standard routes; composite bundles consume 2 to 10 credits (e.g., 400 credits = 400 standard calls or 40 KYB 360º Dossiers).</p></div>
+    </div>
+
     <h2 data-i18n="catalog.table.title">Endpoints, price, provenance, status (<?php echo count($services); ?>/<?php echo count($services); ?> UP) and example</h2>
     <input class="search" id="filter" type="text" placeholder="Filter by endpoint, name, official source, or category…" aria-label="Filter services" data-i18n-placeholder="catalog.search.placeholder">
     <div class="table-wrap">
@@ -134,6 +140,6 @@ ksort($services);
 const input=document.getElementById('filter');
 input.addEventListener('input',()=>{const q=input.value.toLowerCase();document.querySelectorAll('#catalog tbody tr').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none');});
 </script>
-<script src="/assets/js/i18n.js?v=3.4.0"></script>
+<script src="/assets/js/i18n.js?v=3.4.1"></script>
 </body>
 </html>

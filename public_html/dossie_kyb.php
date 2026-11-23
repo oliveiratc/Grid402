@@ -325,6 +325,15 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
         </div>
     </section>
 
+    <section class="card no-print" aria-label="Garantias Transparentes de Cobrança" style="border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.06);">
+        <div style="font-size:.82rem;text-transform:uppercase;letter-spacing:.06em;color:#34D399;font-weight:700;margin-bottom:.65rem;">Garantias Transparentes de Cobrança</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.85rem;font-size:.86rem;color:var(--muted);">
+            <div><strong style="color:#F8FAFC;display:block;margin-bottom:.2rem;">Erro não cobra (estorno automático)</strong>Se a Receita ou CGU falhar (HTTP ≠ 200), seus 10 créditos são estornados na hora automaticamente.</div>
+            <div><strong style="color:#F8FAFC;display:block;margin-bottom:.2rem;">Retentativa segura (300s)</strong>Integrações via API podem enviar <code>Idempotency-Key</code> para repetir chamadas por 5 minutos sem cobrança duplicada.</div>
+            <div><strong style="color:#F8FAFC;display:block;margin-bottom:.2rem;">Leitura clara de créditos</strong><code>1 crédito = R$ 0,03</code> no Starter Pass; cada Dossiê 360º consome <code>10 créditos</code> (R$ 0,30) e 400 créditos rendem 40 dossiês ou 400 consultas padrão.</div>
+        </div>
+    </section>
+
     <!-- Passo 3: Relatório Visual Completo + Impressão PDF -->
     <article id="report-section" class="report-wrap" aria-live="polite">
         <div class="print-only-header">

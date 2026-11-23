@@ -795,7 +795,7 @@ curl -X POST "https://grid402.online/api/v1/verify" \
             });
         }
     </script>
-    <script src="/assets/js/i18n.js?v=3.4.0"></script>
+    <script src="/assets/js/i18n.js?v=3.4.1"></script>
 </body>
 </html>
 

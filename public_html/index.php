@@ -305,7 +305,7 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
             <div data-i18n="inst.footer.copy">© <?php echo date('Y'); ?> Grid402 Network Intelligence. All rights reserved.</div>
         </footer>
     </div>
-    <script src="/assets/js/i18n.js?v=3.4.0"></script>
+    <script src="/assets/js/i18n.js?v=3.4.1"></script>
 </body>
 </html>
     <?php
@@ -1344,7 +1344,7 @@ if ($isValidApiAction) {
                     'pix_instant_pro_url' => 'https://grid402.online/pass?tier=pro&autopix=1',
                     'starter_tier' => 'R$ 12,00 (Pix/Cartao) ou 2.0000 USDC = 400 creditos',
                     'rapidapi_credit_card_usd' => [
-                        'plans' => 'PRO $9.90/mo (2,500 calls) | ULTRA $29.90/mo (10,000 calls) | MEGA $79.90/mo (50,000 calls)',
+                        'plans' => 'BASIC Free (25/mo) | PRO $9.90/mo (1,500 std calls) | ULTRA $29.00/mo (6,000 std calls) | MEGA $79.00/mo (25,000 std calls; dedicated KYB quotas for /dossier and /compliance)',
                         'all_25_apis_url' => 'https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities',
                         'web_markdown_email_network_url' => 'https://rapidapi.com/oliveiratc/api/grid402-web-to-markdown-email-verify-network-utilities',
                         'brazil_kyb_cnpj_anbima_url' => 'https://rapidapi.com/oliveiratc/api/brazil-kyb-cnpj-cgu-sanctions-anbima-workdays-api',
@@ -1379,6 +1379,40 @@ if ($isValidApiAction) {
         ];
     } elseif ($isRapidApiProxy && $paymentProof === '') {
         // Chamada autenticada pelo proxy RapidAPI (faturamento em USD via assinatura RapidAPI)
+        // Aplica salvaguarda anti-arbitragem opt-in (.env) para endpoints premium (/dossier)
+        $rapidGuard = function_exists('grid402_check_rapidapi_endpoint_guard')
+            ? grid402_check_rapidapi_endpoint_guard($apiParam)
+            : ['allowed' => true, 'consumed' => false];
+        if (empty($rapidGuard['allowed'])) {
+            $guardCode = (int) ($rapidGuard['http_status'] ?? 429);
+            http_response_code($guardCode);
+            header('Content-Type: application/json; charset=utf-8');
+            if ($guardCode === 429 && !empty($rapidGuard['retry_after'])) {
+                header('Retry-After: ' . (int) $rapidGuard['retry_after']);
+            }
+            $guardErr = (string) ($rapidGuard['error'] ?? 'RapidApiEndpointCapExceeded');
+            $guardReason = (string) ($rapidGuard['reason'] ?? 'RapidAPI endpoint limit reached.');
+            grid402_log_request([
+                'service' => $apiParam,
+                'status' => $guardCode,
+                'payment_source' => 'rapidapi',
+                'error' => $guardErr . ': ' . $guardReason,
+            ]);
+            $guardPayload = [
+                'error' => $guardErr,
+                'code' => $guardCode,
+                'endpoint' => '/api/v1/' . $apiParam,
+                'reason' => $guardReason,
+                'upgrade_url' => (string) ($rapidGuard['upgrade_url'] ?? 'https://grid402.online/pass'),
+                'pix_instant_starter_url' => 'https://grid402.online/pass?tier=starter&autopix=1',
+            ];
+            if (isset($rapidGuard['daily_cap'])) {
+                $guardPayload['daily_cap'] = (int) $rapidGuard['daily_cap'];
+                $guardPayload['used_today'] = (int) ($rapidGuard['used_today'] ?? 0);
+            }
+            echo json_encode($guardPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            exit;
+        }
         $validation = [
             'valid' => true,
             'sandbox' => false,
@@ -1387,6 +1421,7 @@ if ($isValidApiAction) {
             'settlement_tx' => null,
             'network' => 'rapidapi',
             'raw_amount' => $servicePriceRaw,
+            'rapidapi_guard_consumed' => !empty($rapidGuard['consumed']),
         ];
     } else {
         $validation = grid402_validate_payment(
@@ -1579,6 +1614,9 @@ if ($isValidApiAction) {
         } elseif (!empty($validation['session_pass']) && !$isPassEmitir && !empty($validation['credits_debited']) && function_exists('grid402_refund_session_pass')) {
             // Estorna créditos debitados de Session Pass quando o endpoint falha antes de entregar dados
             grid402_refund_session_pass($paymentProof, (int) $validation['credits_debited'], $apiParam, ['http_status' => $httpStatus]);
+        } elseif (($validation['source'] ?? '') === 'rapidapi' && !empty($validation['rapidapi_guard_consumed']) && function_exists('grid402_refund_rapidapi_endpoint_guard')) {
+            // Estorna o contador diario da trava suave RapidAPI quando o endpoint falha (HTTP != 200)
+            grid402_refund_rapidapi_endpoint_guard($apiParam);
         } elseif (!empty($validation['lock_key']) && function_exists('grid402_release_transaction_lock')) {
             // Libera trava anti-replay de tx_hash direto (EVM/Solana) para não queimar pagamento sem entrega
             $srcErr = (string) ($validation['source'] ?? '');
@@ -3259,12 +3297,12 @@ grid402_log_public_visit('/');
             <?php endforeach; ?>
         </div>
 
-        <!-- Comparativo e Calculadora de Economia: Tradicional vs Grid402 -->
+        <!-- Comparativo e Calculadora de Economia: Benchmarks Verificaveis vs Grid402 -->
         <section id="comparador" class="roi-calculator-box">
             <div class="playground-header-wrap">
-                <div class="hero-tag" style="margin-bottom: 0.4rem; background: rgba(0, 240, 255, 0.12); color: var(--accent); border: 1px solid rgba(0, 240, 255, 0.3);" data-i18n="roi.tag">Real Cost Reduction for Startups and Autonomous Agents</div>
-                <h2 data-i18n="roi.title">Why pay $100+/month when your agent can pay from $0.0050 per query?</h2>
-                <p data-i18n="roi.desc">Compare traditional data bureaus (mandatory monthly retainers, credit checks, and 12-month lock-in contracts) with Grid402’s open M2M model settled via x402 on Base.</p>
+                <div class="hero-tag" style="margin-bottom: 0.4rem; background: rgba(0, 240, 255, 0.12); color: var(--accent); border: 1px solid rgba(0, 240, 255, 0.3);" data-i18n="roi.tag">Verifiable Benchmarks · Compliance &amp; KYB 360º</div>
+                <h2 data-i18n="roi.title">Why pay $54–$99+/month for KYB &amp; sanctions when you can audit from $0.02–$0.05 per call?</h2>
+                <p data-i18n="roi.desc">Compare published entry rates for corporate KYB and sanctions screening (Infosimples, Direct Data, OpenSanctions, 1Lookup) with Grid402’s zero-retainer model settled via Pix Session Pass or HTTP x402.</p>
             </div>
 
             <div class="roi-grid">
@@ -3272,95 +3310,95 @@ grid402_log_public_visit('/');
                 <div class="roi-table-card">
                     <div>
                         <div style="font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 0.75rem;" data-i18n="roi.table.title">
-                            Technical and Commercial Comparison
+                            KYB 360º &amp; Compliance Benchmark Comparison
                         </div>
                         <div class="roi-table-wrap">
                             <table class="roi-table">
                                 <thead>
                                     <tr>
                                         <th data-i18n="roi.table.th.criteria">Criteria</th>
-                                        <th data-i18n="roi.table.th.trad">Traditional Bureaus</th>
-                                        <th data-i18n="roi.table.th.grid">Grid402 (x402)</th>
+                                        <th data-i18n="roi.table.th.trad">Published Entry Tiers*</th>
+                                        <th data-i18n="roi.table.th.grid">Grid402 (Pass / x402)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     <tr>
-                                        <td><strong data-i18n="roi.table.cnpj">CNPJ Query</strong></td>
-                                        <td class="col-trad" data-i18n="roi.table.cnpj.trad">$0.10 to $0.50</td>
-                                        <td class="col-grid" data-i18n="roi.table.cnpj.grid">$0.0200 USDC (~$0.02)</td>
+                                        <td><strong data-i18n="roi.table.cnpj">KYB 360º / Sanctions</strong></td>
+                                        <td class="col-trad" data-i18n="roi.table.cnpj.trad">~$0.108/req (OpenSanctions entry, sanctions only)</td>
+                                        <td class="col-grid" data-i18n="roi.table.cnpj.grid">$0.0500 Dossier (10 cr) · $0.0200 OFAC (4 cr)</td>
                                     </tr>
                                     <tr>
-                                        <td><strong data-i18n="roi.table.monthly">Minimum Monthly Fee</strong></td>
-                                        <td class="col-trad" data-i18n="roi.table.monthly.trad">$100 to $400 / month</td>
-                                        <td class="col-grid" data-i18n="roi.table.monthly.grid">$0.00 (Zero retainer)</td>
+                                        <td><strong data-i18n="roi.table.monthly">Minimum Entry / Retainer</strong></td>
+                                        <td class="col-trad" data-i18n="roi.table.monthly.trad">€50 (~$54) OpenSanctions · $99/mo 1Lookup</td>
+                                        <td class="col-grid" data-i18n="roi.table.monthly.grid">$0.00 retainer (from $2 USDC or R$ 12 Pix)</td>
                                     </tr>
                                     <tr>
-                                        <td><strong data-i18n="roi.table.contract">Bureaucracy and Contracts</strong></td>
-                                        <td class="col-trad" data-i18n="roi.table.contract.trad">12-month lock-in contract</td>
-                                        <td class="col-grid" data-i18n="roi.table.contract.grid">Zero contracts, no signup</td>
+                                        <td><strong data-i18n="roi.table.contract">Failed Calls &amp; Retries</strong></td>
+                                        <td class="col-trad" data-i18n="roi.table.contract.trad">Varies by provider / custom retry logic</td>
+                                        <td class="col-grid" data-i18n="roi.table.contract.grid">Auto-refund on HTTP ≠ 200 + free 300s Idempotency</td>
                                     </tr>
                                     <tr>
-                                        <td><strong data-i18n="roi.table.auth">Authentication</strong></td>
-                                        <td class="col-trad" data-i18n="roi.table.auth.trad">Expiring API keys</td>
-                                        <td class="col-grid" data-i18n="roi.table.auth.grid">Native x402 protocol</td>
+                                        <td><strong data-i18n="roi.table.auth">Integration &amp; Sources</strong></td>
+                                        <td class="col-trad" data-i18n="roi.table.auth.trad">3–4 separate APIs + manual onboarding</td>
+                                        <td class="col-grid" data-i18n="roi.table.auth.grid">1 unified call (HTTP x402, Session Pass or MCP)</td>
                                     </tr>
                                     <tr>
-                                        <td><strong data-i18n="roi.table.math">Mathematical Guarantee</strong></td>
-                                        <td class="col-trad" data-i18n="roi.table.math.trad">None (raw data)</td>
-                                        <td class="col-grid" data-i18n="roi.table.math.grid">secp256k1 ECDSA signature</td>
+                                        <td><strong data-i18n="roi.table.math">Auditability &amp; Proof</strong></td>
+                                        <td class="col-trad" data-i18n="roi.table.math.trad">Unsigned raw JSON</td>
+                                        <td class="col-grid" data-i18n="roi.table.math.grid">secp256k1 ECDSA _oracle_proof + Zero-PII</td>
                                     </tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
                     <div style="margin-top: 1rem; font-size: 0.78rem; color: var(--text-muted); line-height: 1.5;" data-i18n="roi.table.disclaimer">
-                        * Market benchmarks based on entry tiers from traditional corporate data providers.
+                        * Published entry benchmarks (Nov/2026): OpenSanctions (€50 ≈ $54 min; €0.10 ≈ $0.108/req), 1Lookup ($99/mo Starter), Infosimples (R$ 100/mo min; R$ 0.22+/source), and Direct Data (R$ 0.16 CNPJ + R$ 0.36 Simples). Note: for high-volume raw CNPJ-only lookups without Simples/CGU/ECDSA, specialized volume APIs or free BrasilAPI may cost less per call.
                     </div>
                 </div>
 
                 <!-- Coluna 2: Calculadora Interativa de Economia -->
                 <div class="roi-calc-card">
                     <div style="font-size: 0.95rem; font-weight: 700; color: #fff;" data-i18n="roi.calc.title">
-                        Data and CNPJ Cost Savings Simulator
+                        KYB 360º Dossier Cost Simulator (/dossier)
                     </div>
                     <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem;" data-i18n="roi.calc.subtitle">
-                        Tune the monthly query volume of your bot or autonomous system:
+                        Compare monthly KYB 360º dossiers (10 credits each) vs. OpenSanctions entry pricing:
                     </div>
 
                     <div class="roi-slider-wrap">
                         <div class="roi-slider-label">
-                            <span data-i18n="roi.calc.label">Monthly Query Volume:</span>
-                            <span id="roi-vol-display" class="roi-slider-val">1,000 / month</span>
+                            <span data-i18n="roi.calc.label">Monthly KYB 360º Dossiers:</span>
+                            <span id="roi-vol-display" class="roi-slider-val">100 / month</span>
                         </div>
-                        <input type="range" id="roi-slider-input" class="roi-slider" min="100" max="20000" step="100" value="1000" oninput="updateRoiCalc(this.value)">
+                        <input type="range" id="roi-slider-input" class="roi-slider" min="10" max="1000" step="10" value="100" oninput="updateRoiCalc(this.value)">
                         
                         <div class="roi-presets-row">
-                            <button type="button" class="roi-preset-btn" onclick="setRoiPreset(500)">500/mo</button>
-                            <button type="button" class="roi-preset-btn" onclick="setRoiPreset(1000)">1,000/mo</button>
-                            <button type="button" class="roi-preset-btn" onclick="setRoiPreset(5000)">5,000/mo</button>
-                            <button type="button" class="roi-preset-btn" onclick="setRoiPreset(15000)">15,000/mo</button>
+                            <button type="button" class="roi-preset-btn" onclick="setRoiPreset(40)">40/mo</button>
+                            <button type="button" class="roi-preset-btn" onclick="setRoiPreset(100)">100/mo</button>
+                            <button type="button" class="roi-preset-btn" onclick="setRoiPreset(300)">300/mo</button>
+                            <button type="button" class="roi-preset-btn" onclick="setRoiPreset(600)">600/mo</button>
                         </div>
                     </div>
 
                     <div class="roi-cost-summary">
                         <div class="roi-cost-item">
-                            <div class="roi-cost-item-label" data-i18n="roi.calc.cost.trad">Traditional Cost</div>
-                            <div id="roi-cost-trad" class="roi-cost-item-val" style="color: #EF4444;">$ 285.00</div>
+                            <div class="roi-cost-item-label" data-i18n="roi.calc.cost.trad">Entry Benchmark*</div>
+                            <div id="roi-cost-trad" class="roi-cost-item-val" style="color: #EF4444;">$ 54.00</div>
                         </div>
                         <div class="roi-cost-item">
-                            <div class="roi-cost-item-label" data-i18n="roi.calc.cost.grid">Grid402 Cost</div>
-                            <div id="roi-cost-grid" class="roi-cost-item-val" style="color: var(--primary);">$ 20.00</div>
+                            <div class="roi-cost-item-label" data-i18n="roi.calc.cost.grid">Grid402 (/dossier)</div>
+                            <div id="roi-cost-grid" class="roi-cost-item-val" style="color: var(--primary);">$ 5.00</div>
                         </div>
                     </div>
 
                     <div class="roi-savings-badge">
-                        <div id="roi-savings-val" class="roi-savings-num">$ 265.00</div>
-                        <div id="roi-savings-desc" class="roi-savings-sub">Estimated monthly savings of 93%!</div>
+                        <div id="roi-savings-val" class="roi-savings-num">$ 49.00</div>
+                        <div id="roi-savings-desc" class="roi-savings-sub">Estimated savings of 91% · Pro Pass ($5 = 100 dossiers)</div>
                     </div>
 
                     <div style="display: flex; gap: 0.6rem; margin-top: 1.25rem;">
                         <a href="/agents" class="btn-sm btn-primary" style="flex: 1; text-decoration: none; padding: 0.6rem; display: inline-block;" data-i18n="roi.calc.btn.agents">🤖 Integrate AI Agent</a>
-                        <a href="#playground" class="btn-sm btn-outline" style="flex: 1; text-decoration: none; padding: 0.6rem; display: inline-block; border-color: var(--primary); color: var(--primary);" onclick="selectPlaygroundPreset('cnpj')" data-i18n="roi.calc.btn.test">⚡ Test CNPJ Query</a>
+                        <a href="/dossie-kyb" class="btn-sm btn-outline" style="flex: 1; text-decoration: none; padding: 0.6rem; display: inline-block; border-color: var(--primary); color: var(--primary);" data-i18n="roi.calc.btn.test">📄 Test KYB 360º Dossier</a>
                     </div>
                 </div>
             </div>
@@ -6270,9 +6308,9 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             }
         });
 
-        // Calculadora de Economia / ROI (Tradicional vs Grid402)
+        // Calculadora de Economia / ROI — Dossie 360 KYB vs Benchmarks Publicos Verificaveis (Nov/2026)
         function updateRoiCalc(val) {
-            const count = parseInt(val, 10) || 1000;
+            const count = Math.max(10, parseInt(val, 10) || 100);
             const displayEl = document.getElementById('roi-vol-display');
             const tradEl = document.getElementById('roi-cost-trad');
             const gridEl = document.getElementById('roi-cost-grid');
@@ -6280,26 +6318,55 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             const descEl = document.getElementById('roi-savings-desc') || document.getElementById('roi-savings-sub');
             const slider = document.getElementById('roi-slider-input');
 
-            const isEn = (typeof currentLanguage !== 'undefined' && currentLanguage === 'en');
+            const isEn = (typeof currentLanguage === 'undefined' || currentLanguage === 'en');
 
             if (slider) {
                 slider.value = count;
             }
             if (displayEl) {
-                displayEl.textContent = count.toLocaleString(isEn ? 'en-US' : 'pt-BR') + (isEn ? ' / month' : ' / mes');
+                displayEl.textContent = count.toLocaleString(isEn ? 'en-US' : 'pt-BR') + (isEn ? ' / month' : ' / mês');
             }
 
-            // Modelo Tradicional: R$ 500 (~$95) mensalidade base + R$ 1,00 ($0.19) por consulta media
-            const costTrad = isEn ? (95 + (count * 0.19)) : (500 + (count * 1.00));
+            // Benchmarks publicos verificaveis (Nov/2026):
+            // - EN: OpenSanctions entrada (€50 ~= $54 min ou €0.10 ~= $0.108/consulta, apenas sancoes)
+            // - PT-BR: Infosimples franquia minima R$ 100/mes ou 3 fontes separadas (CNPJ + Simples + CGU) x R$ 0,22 = R$ 0,66/dossie
+            const costTrad = isEn
+                ? Math.max(54.0, count * 0.108)
+                : Math.max(100.0, count * 0.66);
 
-            // Grid402: 0.0200 USDC por consulta
-            const costGrid = isEn ? (count * 0.0200) : (count * (0.0200 * 5.42));
+            // Grid402 /api/v1/dossier (10 creditos por dossie 360 completo):
+            // Starter: R$ 12 / $2 (40 dossies) | Pro: R$ 29 / $5 (100 dossies) | Fleet: R$ 115 / $20 (600 dossies)
+            let costGrid;
+            let tierNote;
+            if (isEn) {
+                if (count <= 40) {
+                    costGrid = count * 0.05;
+                    tierNote = 'Starter Pass ($2 = 40 dossiers)';
+                } else if (count <= 100) {
+                    costGrid = count * 0.05;
+                    tierNote = 'Pro Pass ($5 = 100 dossiers)';
+                } else {
+                    costGrid = count * (20 / 600);
+                    tierNote = 'Fleet Pass rate ($0.0333/dossier)';
+                }
+            } else {
+                if (count <= 40) {
+                    costGrid = count * 0.30;
+                    tierNote = 'Starter Pass (R$ 12 = 40 dossiês)';
+                } else if (count <= 100) {
+                    costGrid = count * 0.29;
+                    tierNote = 'Pro Pass (R$ 29 = 100 dossiês)';
+                } else {
+                    costGrid = count * (115 / 600);
+                    tierNote = 'Tarifa proporcional Fleet (R$ 0,19/dossiê)';
+                }
+            }
 
             const savings = Math.max(0, costTrad - costGrid);
-            const savingsPct = Math.round((savings / costTrad) * 100);
+            const savingsPct = costTrad > 0 ? Math.round((savings / costTrad) * 100) : 0;
 
             if (tradEl) {
-                tradEl.textContent = isEn 
+                tradEl.textContent = isEn
                     ? '$ ' + costTrad.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                     : 'R$ ' + costTrad.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             }
@@ -6315,8 +6382,8 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             }
             if (descEl) {
                 descEl.textContent = isEn
-                    ? 'Estimated monthly savings of ' + savingsPct + '%!'
-                    : 'Economia estimada de ' + savingsPct + '% todos os meses!';
+                    ? 'Estimated savings of ' + savingsPct + '% · ' + tierNote
+                    : 'Economia estimada de ' + savingsPct + '% · ' + tierNote;
             }
         }
 
@@ -6324,11 +6391,11 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             updateRoiCalc(val);
         }
 
-        // Inicializa a calculadora com 1000 consultas ao carregar
+        // Inicializa a calculadora com 100 dossies/mes ao carregar
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() { updateRoiCalc(1000); });
+            document.addEventListener('DOMContentLoaded', function() { updateRoiCalc(100); });
         } else {
-            updateRoiCalc(1000);
+            updateRoiCalc(100);
         }
 
         // WebMCP: Model Context Protocol no navegador para agentes de IA
@@ -6435,6 +6502,6 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             }
         }
     </script>
-    <script src="/assets/js/i18n.js?v=3.4.0"></script>
+    <script src="/assets/js/i18n.js?v=3.4.1"></script>
 </body>
 </html>

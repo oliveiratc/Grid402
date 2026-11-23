@@ -43,7 +43,7 @@ function grid402_mp_packages(): array {
             'tier' => 'fleet',
             'label' => 'Fleet / Enterprise Pass',
             'amount_brl' => 115.00,
-            'raw_usdc_units' => 20000000, // 20 USDC -> 5.000 + 1.000 bonus = 6.000 creditos
+            'raw_usdc_units' => 20000000, // 20 USDC -> 4.000 base + 2.000 bonus = 6.000 creditos
             'credits' => 6000,
             'ttl_days' => 60,
         ],

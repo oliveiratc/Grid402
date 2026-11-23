@@ -168,6 +168,24 @@ $supportedNets = grid402_supported_networks();
         <?php endforeach; ?>
     </div>
 
+    <section aria-label="Transparent Billing Guarantees" style="margin:1.5rem 0; background:rgba(16,185,129,.06); border:1px solid rgba(16,185,129,.3); border-radius:12px; padding:1.15rem 1.25rem;">
+        <h2 style="margin:0 0 .85rem; font-size:1.05rem; color:#34D399;" data-i18n="guarantees.title">Transparent Billing Guarantees</h2>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:.9rem;">
+            <div>
+                <strong style="display:block; font-size:.9rem; color:#F8FAFC; margin-bottom:.25rem;" data-i18n="guarantees.g1.title">Errors Never Bill (Auto-Refund)</strong>
+                <span style="font-size:.83rem; color:var(--muted);" data-i18n-html="guarantees.g1.desc">If any call fails (HTTP ≠ 200), Session Pass credits are refunded automatically and x402 facilitator settlement is aborted.</span>
+            </div>
+            <div>
+                <strong style="display:block; font-size:.9rem; color:#F8FAFC; margin-bottom:.25rem;" data-i18n="guarantees.g2.title">Free Safe Retries (300s)</strong>
+                <span style="font-size:.83rem; color:var(--muted);" data-i18n-html="guarantees.g2.desc">Send an <code>Idempotency-Key</code> header to safely retry requests after network timeouts with zero duplicate billing for 5 minutes.</span>
+            </div>
+            <div>
+                <strong style="display:block; font-size:.9rem; color:#F8FAFC; margin-bottom:.25rem;" data-i18n="guarantees.g3.title">Clear Credit Consumption</strong>
+                <span style="font-size:.83rem; color:var(--muted);" data-i18n-html="guarantees.g3.desc"><code>1 credit = 0.0050 USDC</code> on standard routes; composite bundles consume 2 to 10 credits (e.g., 400 credits = 400 standard calls or 40 KYB 360º Dossiers).</span>
+            </div>
+        </div>
+    </section>
+
     <section id="multichain-web3" style="margin-top:2rem; background:var(--surface); border:1px solid rgba(0,240,255,.35); border-radius:14px; padding:1.5rem;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; margin-bottom:.75rem;">
             <h2 style="margin:0; font-size:1.25rem;">⚡ Pagamento Web3 Multi-Chain (USDC)</h2>
@@ -446,6 +464,6 @@ function copyToken(btn) {
     }
 })();
 </script>
-<script src="/assets/js/i18n.js?v=3.4.0"></script>
+<script src="/assets/js/i18n.js?v=3.4.1"></script>
 </body>
 </html>

@@ -6,6 +6,13 @@ Todas as mudanças relevantes de arquitetura, catálogo de serviços, segurança
 
 ## [Unreleased]
 
+### Alterado
+- **Passo 1 — Higiene de Preços, Credibilidade do Comparador ROI, Garantias Pró-Cliente e Proteção Anti-Arbitragem RapidAPI:**
+  - **Comparador ROI verificável (`public_html/index.php` + `public_html/assets/js/i18n.js?v=3.4.1`):** Substituído o simulador genérico de CNPJ por comparativo auditável do **Dossiê 360º KYB (`/api/v1/dossier`)** frente a tabelas públicas verificáveis (`Infosimples`, `Direct Data`, `OpenSanctions`, `1Lookup`, referência Nov/2026), com presets reais de pacotes (`40 / 100 / 300 / 600` dossiês/mês) e nota transparente de escopo.
+  - **Garantias pró-cliente em destaque (`public_html/pass.php`, `catalog.php`, `dossie_kyb.php`, `i18n.js`):** Adicionado bloco explícito comunicando estorno automático em qualquer falha (`HTTP != 200`), retentativa gratuita por 300s (`Idempotency-Key`) e regra transparente de consumo em créditos (`1 cr` padrão vs. `2–10 cr` bundles).
+  - **Sincronização de preços e Fleet Pass (`public_html/x402.php`, `index.php`, `seo_landing.php`, `services/mercadopago.php`, `.agents/skills/grid402/SKILL.md`, `docs/revenue/rapidapi-pack.md`):** Corrigido resíduo `Pro R$ 28 / Fleet R$ 110` para `Pro R$ 29 / Fleet R$ 115` em `x402.php`, alinhado descritivo do Fleet Pass para `4.000 base + 2.000 bônus = 6.000 créditos` e unificados os planos RapidAPI (`1.500 / 6.000 / 25.000` chamadas padrão + cotas dedicadas para `/dossier` e `/compliance`).
+  - **Trava suave anti-arbitragem RapidAPI (`public_html/config.php`, `public_html/index.php`, `.env.example`, `tests/test_revenue_engine_v4.php`):** Adicionadas salvaguardas opt-in `GRID402_RAPIDAPI_DOSSIER_DAILY_CAP` (teto diário UTC por assinante com `flock(LOCK_EX)`, HMAC Zero-PII de `X-RapidAPI-User`, `HTTP 429` + `Retry-After` e estorno automático em erro) e `GRID402_RAPIDAPI_BLOCKED_ENDPOINTS` (`HTTP 403`).
+
 ### Corrigido
 - **Alinhamento sistêmico e documental (`25` micro-serviços, `27` tools MCP `v2.0.0`, Sandbox `3 req/dia`, tarifas de Session Pass e UI i18n):**
   - `public_html/services/pass_repository.php`: corrigida a tabela `credit_rates` retornada em `issuePass()` (`domain-audit` e `market-snapshot` movidos de 1 para 3 créditos; incluídos `extract` e `email-verify` em 1 crédito e `dossier` em 10 créditos).
