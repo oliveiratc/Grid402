@@ -409,7 +409,7 @@
     "/api/v1/lei": {
       "get": {
         "summary": "Global Corporate Identity via GLEIF LEI (CC0 1.0 Public Domain)",
-        "description": "Queries the official Global Legal Entity Identifier Foundation (GLEIF) registry across 200+ jurisdictions. Price: 0.0200 USDC (4 Session Pass credits).",
+        "description": "Queries the official Global Legal Entity Identifier Foundation (GLEIF) registry across 200+ jurisdictions. Price: 0.0100 USDC (2 Session Pass credits).",
         "tags": [
           "Global-LEI"
         ],

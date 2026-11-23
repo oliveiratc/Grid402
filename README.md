@@ -51,18 +51,18 @@
 | **Inspetor SSL/TLS** | `GET /api/v1/ssl?host=...` | 0.0050 USDC (1 crédito) | Emissor, validade, dias restantes e cipher suite |
 | **Inteligência ASN** | `GET /api/v1/asn?ip=...` | 0.0050 USDC (1 crédito) | BGP, número ASN, organização detentora e país |
 | **Auditoria de Domínio** | `GET /api/v1/domain-audit?domain=...` | 0.0150 USDC (3 créditos) | Bundle consolidado DNS + TLS/SSL + BGP/ASN em chamada única |
-| **Dossiê KYB Audit** | `GET /api/v1/kyb-audit?cnpj=...` | 0.0200 USDC (4 créditos) | Auditoria corporativa global: Receita Federal CNPJ + Sanções OFAC/ONU + GLEIF LEI |
+| **Dossiê KYB Audit** | `GET /api/v1/kyb-audit?cnpj=...` | 0.0250 USDC (5 créditos) | Auditoria corporativa global: Receita Federal CNPJ + Sanções OFAC/ONU + GLEIF LEI |
 | **Dossiê 360º KYB + Veredito IA** | `GET /api/v1/dossier?cnpj=...` | 0.0500 USDC (10 créditos) | Dossiê corporativo premium: RFB + Simples/MEI + CGU CEIS/CNEP + Veredito IA (APPROVED/FLAGGED/REJECTED) |
 | **Market Snapshot** | `GET /api/v1/market-snapshot` | 0.0150 USDC (3 créditos) | Panorama macro e financeiro: Câmbio + Cripto + Selic/CDI/IPCA + ANBIMA |
 | **Consulta Postal CEP** | `GET /api/v1/cep?code=...` | 0.0050 USDC (1 crédito) | Logradouro, bairro, cidade, UF e código IBGE oficial |
-| **Consulta CNPJ** | `GET /api/v1/cnpj?cnpj=...` | 0.0200 USDC (4 créditos) | Razão social, status cadastral, CNAE e dados da Receita Federal |
+| **Consulta CNPJ** | `GET /api/v1/cnpj?cnpj=...` | 0.0100 USDC (2 créditos) | Razão social, status cadastral, CNAE e dados da Receita Federal |
 | **Indicadores BCB/IBGE** | `GET /api/v1/indicators` | 0.0050 USDC (1 crédito) | Taxas oficiais Selic, CDI e IPCA acumulado 12m |
 | **Feriados Nacionais** | `GET /api/v1/holidays?year=...` | 0.0050 USDC (1 crédito) | Calendário nacional e bancário ANBIMA/Febraban |
 | **Dias Úteis ANBIMA** | `GET /api/v1/workdays` | 0.0050 USDC (1 crédito) | Contagem e projeção de vencimentos D+N bancários |
 | **Sanções CEIS/CNEP** | `GET /api/v1/sanctions?cnpj=...` | 0.0100 USDC (2 créditos) | Checagem de inidoneidade e punições administrativas na CGU |
 | **Simples Nacional e MEI** | `GET /api/v1/simples?cnpj=...` | 0.0100 USDC (2 créditos) | Enquadramento tributário Simples Nacional e SIMEI |
 | **Compliance Score 360** | `GET /api/v1/compliance?cnpj=...` | 0.0300 USDC (6 créditos) | Score de risco corporativo de 0 a 100 cruzando RF e CGU |
-| **Identidade Global LEI** | `GET /api/v1/lei?lei=...` | 0.0200 USDC (4 créditos) | Registro corporativo global ISO 17442 via GLEIF (200+ jurisdições) |
+| **Identidade Global LEI** | `GET /api/v1/lei?lei=...` | 0.0100 USDC (2 créditos) | Registro corporativo global ISO 17442 via GLEIF (200+ jurisdições) |
 | **Sanções OFAC e AML** | `GET /api/v1/ofac?target=...` | 0.0200 USDC (4 créditos) | Triagem OFAC SDN, ONU e risco AML Web3 na Base Mainnet |
 | **Notarização SHA-256** | `GET /api/v1/notarize?content=...` | 0.0050 USDC (1 crédito) | Carimbo do tempo criptográfico e prova de existência ECDSA |
 | **Mercados Globais e BCE** | `GET /api/v1/global-markets` | 0.0050 USDC (1 crédito) | Calendário US/EU/UK/BR e 30+ taxas de câmbio do BCE |

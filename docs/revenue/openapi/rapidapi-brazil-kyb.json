@@ -72,7 +72,7 @@
     "/api/v1/kyb-audit": {
       "get": {
         "summary": "Consolidated Global KYB Audit (CNPJ + OFAC/UN + GLEIF LEI)",
-        "description": "Single-call global corporate KYB audit combining Receita Federal CNPJ registration, US Treasury OFAC SDN / UN sanctions screening, and GLEIF LEI lookup. Price: 0.0200 USDC (4 Session Pass credits).",
+        "description": "Single-call global corporate KYB audit combining Receita Federal CNPJ registration, US Treasury OFAC SDN / UN sanctions screening, and GLEIF LEI lookup. Price: 0.0250 USDC (5 Session Pass credits).",
         "tags": [
           "CNPJ",
           "Compliance"
@@ -99,7 +99,7 @@
     "/api/v1/cnpj": {
       "get": {
         "summary": "Brazilian Federal Revenue Corporate CNPJ Lookup",
-        "description": "Retrieves public corporate registration data, status, CNAE economic activities, and address from Brazilian Receita Federal. Requires x402 micropayment of 0.0200 USDC on Base.",
+        "description": "Retrieves public corporate registration data, status, CNAE economic activities, and address from Brazilian Receita Federal. Requires x402 micropayment of 0.0100 USDC (2 Session Pass credits) on Base.",
         "tags": [
           "CNPJ"
         ],

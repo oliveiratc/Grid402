@@ -45,9 +45,10 @@ Esta skill consolida todo o conhecimento técnico, regras de negócio, invariant
 ### Tabela de Custo por Endpoint (25 Micro-Serviços no Catálogo)
 Consulte a tabela completa com fontes *upstream* e TTL de cache em [`references/catalog-and-pricing.md`](./references/catalog-and-pricing.md):
 - **1 crédito (`0.0050 USDC` / `5000 raw`):** `forex`, `crypto`, `dns`, `ssl`, `asn`, `cep`, `indicators`, `holidays`, `workdays`, `notarize`, `global-markets`, `extract`, `email-verify`
-- **2 créditos (`0.0100 USDC` / `10000 raw`):** `sanctions`, `simples`
+- **2 créditos (`0.0100 USDC` / `10000 raw`):** `cnpj`, `lei`, `sanctions`, `simples`
 - **3 créditos (`0.0150 USDC` / `15000 raw`):** `domain-audit`, `market-snapshot`
-- **4 créditos (`0.0200 USDC` / `20000 raw`):** `cnpj`, `lei`, `ofac`, `kyb-audit`
+- **4 créditos (`0.0200 USDC` / `20000 raw`):** `ofac`
+- **5 créditos (`0.0250 USDC` / `25000 raw`):** `kyb-audit`
 - **6 créditos (`0.0300 USDC` / `30000 raw`):** `compliance` (Compliance Score 360)
 - **10 créditos (`0.0500 USDC` / `50000 raw`):** `dossier` (Dossiê 360° KYB + Veredito Determinístico para IA: `APPROVED`, `FLAGGED`, `REJECTED`)
 - **Gratuitos (`0 USDC`):** `/status` (`/api/v1/summary`), `/api/v1/verify`, `/api/v1/pass/balance` (ou `/api/v1/pass?status=...`), `/api/v1/pass/statement` (`format=json|csv`), `/catalog`, `/trust`, `/payment-dashboard`, `/dossie-kyb`

@@ -232,7 +232,7 @@ O sistema SHALL prover o endpoint `/api/v1/lei` consultando a base pública CC0 
 #### Scenario: Desafio 402 com amostra prévia no endpoint LEI
 - GIVEN uma requisição GET para `/api/v1/lei?lei=5493006MHB84DD0ZWV18` sem header `X-Payment`
 - WHEN o oráculo emite o desafio x402
-- THEN retorna HTTP 402 com tarifa `0.0200 USDC`, bloco `preview` contendo o código LEI e jurisdição, e `locked_fields`
+- THEN retorna HTTP 402 com tarifa `0.0100 USDC`, bloco `preview` contendo o código LEI e jurisdição, e `locked_fields`
 
 ---
 

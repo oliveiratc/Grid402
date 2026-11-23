@@ -305,7 +305,7 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
             <div data-i18n="inst.footer.copy">© <?php echo date('Y'); ?> Grid402 Network Intelligence. All rights reserved.</div>
         </footer>
     </div>
-    <script src="/assets/js/i18n.js?v=3.4.2"></script>
+    <script src="/assets/js/i18n.js?v=3.4.3"></script>
 </body>
 </html>
     <?php
@@ -890,9 +890,10 @@ if ($isValidApiAction) {
     $isPassEmitir = ($apiParam === 'pass-emitir');
     $isDossier = ($apiParam === 'dossier');
     $isCompliance = ($apiParam === 'compliance');
-    $isSanctionsOrSimples = in_array($apiParam, ['sanctions', 'simples'], true);
+    $isKybAudit = ($apiParam === 'kyb-audit');
+    $isOfac = ($apiParam === 'ofac');
     $isCompositeMedium = in_array($apiParam, ['domain-audit', 'market-snapshot'], true);
-    $isCorporateTier = in_array($apiParam, ['cnpj', 'lei', 'ofac', 'kyb-audit'], true);
+    $isTwoCreditTier = in_array($apiParam, ['cnpj', 'lei', 'sanctions', 'simples'], true);
 
     if ($isPass) {
         $servicePriceDisplay = '2.0000';
@@ -903,15 +904,18 @@ if ($isValidApiAction) {
     } elseif ($isCompliance) {
         $servicePriceDisplay = '0.0300';
         $servicePriceRaw = 30000; // 0.030000 USDC (6 creditos)
-    } elseif ($isCorporateTier) {
-        $servicePriceDisplay = GRID402_PRICE_CNPJ;
-        $servicePriceRaw = GRID402_USDC_CNPJ_RAW; // 0.020000 USDC (4 creditos)
+    } elseif ($isKybAudit) {
+        $servicePriceDisplay = GRID402_PRICE_KYB_AUDIT;
+        $servicePriceRaw = GRID402_USDC_KYB_AUDIT_RAW; // 0.025000 USDC (5 creditos)
+    } elseif ($isOfac) {
+        $servicePriceDisplay = '0.0200';
+        $servicePriceRaw = 20000; // 0.020000 USDC (4 creditos)
     } elseif ($isCompositeMedium) {
         $servicePriceDisplay = '0.0150';
         $servicePriceRaw = 15000; // 0.015000 USDC (3 creditos)
-    } elseif ($isSanctionsOrSimples) {
-        $servicePriceDisplay = '0.0100';
-        $servicePriceRaw = 10000; // 0.010000 USDC (2 creditos)
+    } elseif ($isTwoCreditTier) {
+        $servicePriceDisplay = ($apiParam === 'cnpj') ? GRID402_PRICE_CNPJ : '0.0100';
+        $servicePriceRaw = ($apiParam === 'cnpj') ? GRID402_USDC_CNPJ_RAW : 10000; // 0.010000 USDC (2 creditos)
     } else {
         $servicePriceDisplay = GRID402_PRICE_DISPLAY;
         $servicePriceRaw = GRID402_USDC_REQUIRED_RAW; // 0.005000 USDC (1 credito)
@@ -3411,7 +3415,7 @@ grid402_log_public_visit('/');
                 <h2 style="font-size: 1.8rem; letter-spacing: -0.5px; margin-bottom: 0.75rem;" data-i18n="topup.title">1-Click Web3 Credit Top-Up (Session Passes)</h2>
                 <p style="text-align: center; color: var(--text-muted); font-size: 0.98rem; line-height: 1.6;" data-i18n="topup.desc">Pay once in USDC on Base Mainnet and instantly receive a pass_g402_... token with thousands of high-speed (&lt;15ms) requests without signing transactions on every single GET.</p>
                 <div style="text-align:center; background: rgba(0,240,255,.08); border:1px solid rgba(0,240,255,.24); border-radius:8px; padding:.75rem .9rem; margin-bottom:1.2rem; font-size:.82rem; color:#CBD5E1;" data-i18n-html="topup.how_to_read">
-                    <strong>How to read balances:</strong> 1 credit costs <strong>0.0050 USDC</strong> on standard endpoints; 0.0100 USDC = 2 credits, 0.0150 USDC = 3 credits, 0.0200 USDC = 4 credits, 0.0300 USDC = 6 credits, and 0.0500 USDC (KYB 360 AI Dossier) = 10 credits.
+                    <strong>How to read balances:</strong> 1 credit costs <strong>0.0050 USDC</strong> on standard endpoints; 0.0100 USDC = 2 credits (CNPJ, LEI, Sanctions, Simples), 0.0150 USDC = 3 credits, 0.0200 USDC = 4 credits (OFAC), 0.0250 USDC = 5 credits (KYB Audit), 0.0300 USDC = 6 credits, and 0.0500 USDC (KYB 360 AI Dossier) = 10 credits.
                 </div>
                 <div style="display: flex; justify-content: center; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem; font-size: 0.85rem; color: #8FA2B9;" id="topup-active-net-summary" data-i18n-html="topup.network_bar">
                     <strong>Network:</strong> Base Mainnet (8453) • <strong>Token:</strong> USDC • <strong>Contract:</strong> <a href="https://basescan.org/token/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" target="_blank" rel="noopener noreferrer" style="color: #00F0FF; font-family: var(--font-mono); text-decoration: none;">0x8335...2913</a>
@@ -4271,7 +4275,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 name: 'Auditoria Global KYB (CNPJ + OFAC + LEI)',
                 icon: '🏛️',
                 endpoint: '/api/v1/kyb-audit',
-                desc: 'Bundle composto em 1 chamada: Receita Federal CNPJ + Sancoes OFAC/ONU + Identidade Global GLEIF LEI (0.0200 USDC).',
+                desc: 'Bundle composto em 1 chamada: Receita Federal CNPJ + Sancoes OFAC/ONU + Identidade Global GLEIF LEI (0.0250 USDC).',
                 params: [
                     { key: 'cnpj', label: 'CNPJ (14 digitos)', value: '00000000000191' },
                     { key: 'lei', label: 'Codigo LEI (opcional)', value: '' },
@@ -5382,10 +5386,10 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             'simples': { amountRaw: 10000, priceUsdc: '0.0100' },
             'domain-audit': { amountRaw: 15000, priceUsdc: '0.0150' },
             'market-snapshot': { amountRaw: 15000, priceUsdc: '0.0150' },
-            'cnpj': { amountRaw: 20000, priceUsdc: '0.0200' },
-            'lei': { amountRaw: 20000, priceUsdc: '0.0200' },
+            'cnpj': { amountRaw: 10000, priceUsdc: '0.0100' },
+            'lei': { amountRaw: 10000, priceUsdc: '0.0100' },
             'ofac': { amountRaw: 20000, priceUsdc: '0.0200' },
-            'kyb-audit': { amountRaw: 20000, priceUsdc: '0.0200' },
+            'kyb-audit': { amountRaw: 25000, priceUsdc: '0.0250' },
             'dossier': { amountRaw: 50000, priceUsdc: '0.0500' },
         };
 
@@ -6502,6 +6506,6 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             }
         }
     </script>
-    <script src="/assets/js/i18n.js?v=3.4.2"></script>
+    <script src="/assets/js/i18n.js?v=3.4.3"></script>
 </body>
 </html>

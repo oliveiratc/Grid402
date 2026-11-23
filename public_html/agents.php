@@ -605,7 +605,7 @@ curl -X POST "https://grid402.online/api/v1/verify" \
                 <tr>
                     <td><span class="endpoint-name">/api/v1/kyb-audit</span></td>
                     <td data-i18n="svc.kyb-audit.desc">Composite 1-call global bundle: Receita Federal CNPJ + US Treasury OFAC/UN Sanctions + GLEIF Global LEI.</td>
-                    <td><span class="tag-price">0.0200 USDC (4 cr)</span></td>
+                    <td><span class="tag-price">0.0250 USDC (5 cr)</span></td>
                     <td><span class="proof-yes" data-i18n="agents.yes">✓ Yes</span></td>
                 </tr>
                 <tr>
@@ -617,7 +617,7 @@ curl -X POST "https://grid402.online/api/v1/verify" \
                 <tr>
                     <td><span class="endpoint-name">/api/v1/lei</span></td>
                     <td data-i18n="svc.lei.desc">Global Corporate Identity in 200+ countries via GLEIF LEI (ISO 17442, CC0)</td>
-                    <td><span class="tag-price">0.0200 USDC (4 cr)</span></td>
+                    <td><span class="tag-price">0.0100 USDC (2 cr)</span></td>
                     <td><span class="proof-yes" data-i18n="agents.yes">✓ Yes</span></td>
                 </tr>
                 <tr>
@@ -677,7 +677,7 @@ curl -X POST "https://grid402.online/api/v1/verify" \
                 <tr>
                     <td><span class="endpoint-name">/api/v1/cnpj</span></td>
                     <td data-i18n="svc.cnpj.desc">Official Brazilian corporate tax registry (Receita Federal)</td>
-                    <td><span class="tag-price">0.0200 USDC (4 cr)</span></td>
+                    <td><span class="tag-price">0.0100 USDC (2 cr)</span></td>
                     <td><span class="proof-yes" data-i18n="agents.yes">✓ Yes</span></td>
                 </tr>
                 <tr>
@@ -795,7 +795,7 @@ curl -X POST "https://grid402.online/api/v1/verify" \
             });
         }
     </script>
-    <script src="/assets/js/i18n.js?v=3.4.2"></script>
+    <script src="/assets/js/i18n.js?v=3.4.3"></script>
 </body>
 </html>
 

@@ -568,6 +568,29 @@ PHP;
         $gExit === 0 && trim($gOut) === 'GUARD_OK',
         "Exit={$gExit} Out={$gOut} Err={$gErr}"
     );
+
+    // 10. Passo 3 — Rebalanceamento de precos x402 (/cnpj 0.0100, /lei 0.0100, /ofac 0.0200, /kyb-audit 0.0250)
+    $r402Cnpj = $httpCall("{$baseUrl}/api/v1/cnpj?cnpj=00000000000191");
+    $j402Cnpj = json_decode($r402Cnpj['body'], true);
+    $r402Lei = $httpCall("{$baseUrl}/api/v1/lei?lei=5493006MHB84DD0ZWV18");
+    $j402Lei = json_decode($r402Lei['body'], true);
+    $r402Ofac = $httpCall("{$baseUrl}/api/v1/ofac?target=0x8589427373d6d84e98730d7795d8f6f8731fda16");
+    $j402Ofac = json_decode($r402Ofac['body'], true);
+    $r402Kyb = $httpCall("{$baseUrl}/api/v1/kyb-audit?cnpj=00000000000191");
+    $j402Kyb = json_decode($r402Kyb['body'], true);
+
+    t_assert('Desafios HTTP 402 refletem tabela rebalanceada: /cnpj=0.0100, /lei=0.0100, /ofac=0.0200 e /kyb-audit=0.0250',
+        $r402Cnpj['code'] === 402 && ($j402Cnpj['price_usdc'] ?? '') === '0.0100' && (($j402Cnpj['accepts'][0]['amount'] ?? '') === '10000') &&
+        $r402Lei['code'] === 402 && ($j402Lei['price_usdc'] ?? '') === '0.0100' && (($j402Lei['accepts'][0]['amount'] ?? '') === '10000') &&
+        $r402Ofac['code'] === 402 && ($j402Ofac['price_usdc'] ?? '') === '0.0200' && (($j402Ofac['accepts'][0]['amount'] ?? '') === '20000') &&
+        $r402Kyb['code'] === 402 && ($j402Kyb['price_usdc'] ?? '') === '0.0250' && (($j402Kyb['accepts'][0]['amount'] ?? '') === '25000'),
+        'Prices=' . json_encode([
+            'cnpj' => $j402Cnpj['price_usdc'] ?? null,
+            'lei' => $j402Lei['price_usdc'] ?? null,
+            'ofac' => $j402Ofac['price_usdc'] ?? null,
+            'kyb' => $j402Kyb['price_usdc'] ?? null,
+        ])
+    );
 } finally {
     grid402_stop_server($server);
     t_rmdir($storageDir);

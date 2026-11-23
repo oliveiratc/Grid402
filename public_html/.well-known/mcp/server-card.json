@@ -61,7 +61,7 @@
     },
     {
       "name": "grid402_kyb_audit",
-      "description": "Composite single-call global KYB audit: Receita Federal CNPJ + OFAC/UN Sanctions + GLEIF LEI (0.0200 USDC / 4 credits)."
+      "description": "Composite single-call global KYB audit: Receita Federal CNPJ + OFAC/UN Sanctions + GLEIF LEI (0.0250 USDC / 5 credits)."
     },
     {
       "name": "grid402_get_dossier_360",
@@ -77,7 +77,7 @@
     },
     {
       "name": "grid402_cnpj",
-      "description": "Queries official Brazilian corporate registry data from Receita Federal (0.0200 USDC / 4 credits)."
+      "description": "Queries official Brazilian corporate registry data from Receita Federal (0.0100 USDC / 2 credits)."
     },
     {
       "name": "grid402_indicators",
@@ -105,7 +105,7 @@
     },
     {
       "name": "grid402_lei",
-      "description": "Queries global ISO 17442 corporate identity across 200+ jurisdictions via GLEIF CC0 open data (0.0200 USDC / 4 credits)."
+      "description": "Queries global ISO 17442 corporate identity across 200+ jurisdictions via GLEIF CC0 open data (0.0100 USDC / 2 credits)."
     },
     {
       "name": "grid402_ofac",

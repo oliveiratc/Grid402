@@ -149,7 +149,7 @@ Resposta de verificacao:
 
 ### 8. Cadastro de Pessoa Juridica (CNPJ)
 - Rota: `GET /api/v1/cnpj?cnpj={cnpj}`
-- Tarifa: 0.0200 USDC
+- Tarifa: 0.0100 USDC (2 creditos)
 - Exemplo: `/api/v1/cnpj?cnpj=00000000000191`
 - Descricao: Razao social, nome fantasia, situacao cadastral, CNAE principal, socios e capital social na Receita Federal.
 
@@ -195,7 +195,7 @@ Resposta de verificacao:
 
 ### 16. Identidade Corporativa Mundial (GLEIF LEI)
 - Rota: `GET /api/v1/lei?lei={lei}` (ou `?q={nome}`)
-- Tarifa: 0.0200 USDC (4 creditos)
+- Tarifa: 0.0100 USDC (2 creditos)
 - Exemplo: `/api/v1/lei?lei=5493006MHB84DD0ZWV18`
 - Descricao: Registro global ISO 17442 de empresas em 200+ jurisdicoes via base CC0 1.0 da GLEIF.
 
@@ -222,7 +222,7 @@ Resposta de verificacao:
 
 ### 21. Auditoria Consolidada KYB e Compliance (CNPJ + OFAC + LEI)
 - Rota: `GET /api/v1/kyb-audit?cnpj={cnpj}` (parametros opcionais: `name={nome}`, `lei={lei}`)
-- Tarifa: 0.0200 USDC (4 creditos)
+- Tarifa: 0.0250 USDC (5 creditos)
 - Descricao: Triagem corporativa consolidada unindo Receita Federal, OFAC SDN e GLEIF LEI em 1 chamada.
 
 ### 22. Snapshot Consolidado de Mercado (Forex + Crypto + Indicadores)

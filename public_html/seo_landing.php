@@ -33,13 +33,13 @@ $pages = [
         'h1' => 'API de Consulta CNPJ da Receita Federal sem Mensalidade e com Pix',
         'lead' => 'Enriqueça cadastros B2B, validações de onboarding e fluxos no n8n com dados oficiais de Pessoa Jurídica (razão social, situação cadastral, CNAE, capital social e endereço) pagando apenas pelo uso — a partir de R$ 0,12 por consulta no Starter Pass Pix.',
         'endpoint' => '/api/v1/cnpj?cnpj=00000000000191',
-        'price_usdc' => '0.0200 USDC',
+        'price_usdc' => '0.0100 USDC',
         'credits' => '4 créditos (100 consultas por R$ 12 no Starter Pass)',
         'curl_example' => "curl -sL \"https://grid402.online/api/v1/cnpj?cnpj=00000000000191\" \\\n  -H \"X-Payment: pass_g402_SEU_TOKEN\"",
         'python_example' => "import requests\n\nresp = requests.get(\n    \"https://grid402.online/api/v1/cnpj\",\n    params={\"cnpj\": \"00000000000191\"},\n    headers={\"X-Payment\": \"pass_g402_SEU_TOKEN\"},\n    timeout=10,\n)\ndados = resp.json()\nprint(dados[\"razao_social\"], dados[\"situacao_cadastral\"], dados[\"cnae_fiscal\"])",
         'n8n_example' => "Node: HTTP Request (GET)\nURL: https://grid402.online/api/v1/cnpj?cnpj={{ \$json.cnpj }}\nHeader Name: X-Payment\nHeader Value: pass_g402_SEU_TOKEN\nRetorno: JSON estruturado + _oracle_proof pronto para Switch/IF",
         'traditional_cost' => 'R$ 300 a R$ 1.200/mês (franquia mínima + fidelidade 12 meses)',
-        'grid_cost' => 'R$ 12,00 no Pix = 400 créditos (100 consultas CNPJ ou 40 Dossiês 360º)',
+        'grid_cost' => 'R$ 12,00 no Pix = 400 créditos (200 consultas CNPJ ou 40 Dossiês 360º)',
         'features' => [
             'Validação matemática prévia dos dígitos verificadores (rejeita CNPJ inválido com HTTP 400 sem cobrar créditos).',
             'Conformidade rigorosa LGPD Art. 1º (Zero-PII): descarta na origem CPF de sócios e contatos pessoais.',
@@ -49,7 +49,7 @@ $pages = [
         'faq' => [
             [
                 'q' => 'Quanto custa consultar um CNPJ na API Grid402?',
-                'a' => 'Cada consulta em /api/v1/cnpj custa 4 créditos (0.0200 USDC). No Starter Pass de R$ 12 via Pix (400 créditos), você faz 100 consultas CNPJ sem mensalidade e sem expiração antecipada dentro de 180 dias.',
+                'a' => 'Cada consulta em /api/v1/cnpj custa 2 créditos (0.0100 USDC). No Starter Pass de R$ 12 via Pix (400 créditos), você faz 200 consultas CNPJ (R$ 0,06 cada) sem mensalidade e sem expiração antecipada dentro de 180 dias.',
             ],
             [
                 'q' => 'Preciso criar conta ou assinar contrato comercial?',
@@ -180,14 +180,14 @@ $pages = [
         'h1' => 'Global & LatAm KYB API: GLEIF LEI, OFAC Sanctions & Brazil CNPJ',
         'lead' => 'Verify corporate entities across 200+ jurisdictions without $1,000/mo enterprise contracts. Combine official GLEIF LEI, US Treasury OFAC SDN / UN Sanctions, Web3 AML screening, and Brazil Receita Federal + CGU compliance in a single cryptographically signed JSON response.',
         'endpoint' => '/api/v1/kyb-audit?cnpj=00000000000191',
-        'price_usdc' => '0.0200 USDC',
+        'price_usdc' => '0.0100 USDC',
         'credits' => '4 credits ($0.02 per KYB audit / $9.90/mo on RapidAPI)',
         'rapidapi_url' => 'https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities',
         'curl_example' => "curl -sL \"https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18\" \\\n  -H \"X-Payment: pass_g402_YOUR_TOKEN\"",
         'python_example' => "from grid402 import Grid402Client\n\nclient = Grid402Client(session_pass=\"pass_g402_YOUR_TOKEN\")\nlei = client.get_lei(\"5493006MHB84DD0ZWV18\")\nofac = client.get_ofac(\"0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90\")\nprint(lei[\"entity\"][\"legal_name\"], ofac[\"risk_level\"])",
         'n8n_example' => "MCP Server (Claude / Cursor / AgentKit):\nnpx -y grid402-mcp  (Tools: grid402_lei, grid402_ofac, grid402_kyb_audit, grid402_get_dossier_360)\n\nRapidAPI Credit Card Hub:\nhttps://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities",
         'traditional_cost' => '$0.50 to $2.00 per KYB check + $500+/mo minimum enterprise commitment',
-        'grid_cost' => '$0.0200 per LEI/OFAC/KYB check ($0.0500 for Dossier 360) via USDC or RapidAPI ($9.90/mo)',
+        'grid_cost' => '$0.0100 per LEI · $0.0200 OFAC · $0.0250 KYB Audit ($0.0500 Dossier 360) via USDC or RapidAPI ($9.90/mo)',
         'features' => [
             '100% Public Corporate Registries & Open Licenses: GLEIF ISO 17442 (CC0 1.0), US OFAC SDN (17 U.S.C. § 105), UN Consolidated Lists, and Brazilian Public Registries (Law 12.527/2011).',
             'Strict GDPR Recital 14 & LGPD Art. 1 Zero-PII compliance: strips individual shareholder CPFs, personal phones, and private emails at ingestion.',

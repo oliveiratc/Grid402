@@ -53,13 +53,13 @@ assertTest($cachedData['cached'] === true, 'Segunda consulta recuperada do cache
 assertTest(isset($cachedData['cache_age_seconds']) && $cachedData['cache_age_seconds'] >= 0, 'Idade do cache computada em segundos');
 
 // 4. Teste de Validação de Preço e Desafio 402
-echo "\n[4/4] Testando parâmetros de tarifação x402 para CNPJ ($0.0200 USDC)...\n";
-assertTest(defined('GRID402_PRICE_CNPJ') && GRID402_PRICE_CNPJ === '0.0200', 'Constante GRID402_PRICE_CNPJ configurada como 0.0200');
-assertTest(defined('GRID402_USDC_CNPJ_RAW') && GRID402_USDC_CNPJ_RAW === 20000, 'Constante GRID402_USDC_CNPJ_RAW configurada como 20000 unidades');
+echo "\n[4/4] Testando parâmetros de tarifação x402 para CNPJ ($0.0100 USDC / 2 créditos)...\n";
+assertTest(defined('GRID402_PRICE_CNPJ') && GRID402_PRICE_CNPJ === '0.0100', 'Constante GRID402_PRICE_CNPJ configurada como 0.0100');
+assertTest(defined('GRID402_USDC_CNPJ_RAW') && GRID402_USDC_CNPJ_RAW === 10000, 'Constante GRID402_USDC_CNPJ_RAW configurada como 10000 unidades');
 
 $catalog = grid402_get_utility_services();
 assertTest(isset($catalog['cnpj']), 'Serviço cnpj registrado no catálogo oficial');
-assertTest(($catalog['cnpj']['price_usdc'] ?? '') === '0.0200', 'Preço de 0.0200 registrado no catálogo de serviços');
+assertTest(($catalog['cnpj']['price_usdc'] ?? '') === '0.0100', 'Preço de 0.0100 registrado no catálogo de serviços');
 
 echo "\n=== Resultado dos Testes: {$testsPassed}/{$totalTests} testes aprovados! ===\n";
 

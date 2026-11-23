@@ -121,7 +121,7 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_kyb_audit',
-    description: 'Auditoria corporativa global KYB em chamada única: Receita Federal CNPJ + Sanções OFAC/ONU + Identidade Global GLEIF LEI (0.0200 USDC / 4 créditos).',
+    description: 'Auditoria corporativa global KYB em chamada única: Receita Federal CNPJ + Sanções OFAC/ONU + Identidade Global GLEIF LEI (0.0250 USDC / 5 créditos).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -131,7 +131,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0200 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0250 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
         },
       },
       required: ['cnpj'],
@@ -189,7 +189,7 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_cnpj',
-    description: 'Consulta dados cadastrais públicos de Pessoa Jurídica da Receita Federal (razão social, nome fantasia, situação cadastral, CNAE, endereço e capital social). Requer 0.0200 USDC (4 créditos).',
+    description: 'Consulta dados cadastrais públicos de Pessoa Jurídica da Receita Federal (razão social, nome fantasia, situação cadastral, CNAE, endereço e capital social). Requer 0.0100 USDC (2 créditos).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -199,7 +199,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0200 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0100 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
         },
       },
       required: ['cnpj'],
@@ -311,7 +311,7 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_lei',
-    description: 'Consulta identidade corporativa internacional oficial (ISO 17442) em mais de 200 jurisdições via GLEIF (0.0200 USDC / 4 créditos).',
+    description: 'Consulta identidade corporativa internacional oficial (ISO 17442) em mais de 200 jurisdições via GLEIF (0.0100 USDC / 2 créditos).',
     inputSchema: {
       type: 'object',
       properties: {
@@ -321,7 +321,7 @@ export const MCP_TOOLS_DEFINITIONS = [
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0200 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
+          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0100 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
         },
       },
       required: ['lei'],

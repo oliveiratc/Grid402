@@ -115,8 +115,8 @@
     },
     {
       "name": "grid402_kyb_audit",
-      "description": "Composite single-call global KYB audit: Receita Federal CNPJ + OFAC/UN Sanctions + GLEIF LEI (0.0200 USDC / 4 credits).",
-      "cost_usdc": "0.0200",
+      "description": "Composite single-call global KYB audit: Receita Federal CNPJ + OFAC/UN Sanctions + GLEIF LEI (0.0250 USDC / 5 credits).",
+      "cost_usdc": "0.0250",
       "endpoint": "https://grid402.online/api/v1/kyb-audit",
       "inputSchema": {
         "type": "object",
@@ -174,8 +174,8 @@
     },
     {
       "name": "grid402_cnpj",
-      "description": "Queries official Brazilian corporate registry data from Receita Federal without exposing partner PII (0.0200 USDC / 4 credits).",
-      "cost_usdc": "0.0200",
+      "description": "Queries official Brazilian corporate registry data from Receita Federal without exposing partner PII (0.0100 USDC / 2 credits).",
+      "cost_usdc": "0.0100",
       "endpoint": "https://grid402.online/api/v1/cnpj",
       "inputSchema": {
         "type": "object",
@@ -293,8 +293,8 @@
     },
     {
       "name": "grid402_lei",
-      "description": "Queries global ISO 17442 corporate identity across 200+ jurisdictions via GLEIF CC0 open data (0.0200 USDC / 4 credits).",
-      "cost_usdc": "0.0200",
+      "description": "Queries global ISO 17442 corporate identity across 200+ jurisdictions via GLEIF CC0 open data (0.0100 USDC / 2 credits).",
+      "cost_usdc": "0.0100",
       "endpoint": "https://grid402.online/api/v1/lei",
       "inputSchema": {
         "type": "object",

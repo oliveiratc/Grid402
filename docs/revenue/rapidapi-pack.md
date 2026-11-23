@@ -33,7 +33,7 @@
 - **Subtítulo:** Verified Receita Federal CNPJ, Simples/MEI, CGU CEIS/CNEP Sanctions, KYB 360 AI Dossier & ANBIMA Workdays — Zero-PII (LGPD) with ECDSA Oracle Proof.
 - **Endpoints incluídos:**
   - `GET /api/v1/dossier?cnpj=00000000000191` *(0.0500 USDC / 10 cr)*
-  - `GET /api/v1/cnpj?cnpj=00000000000191` *(0.0200 USDC / 4 cr)*
+  - `GET /api/v1/cnpj?cnpj=00000000000191` *(0.0100 USDC / 2 cr)*
   - `GET /api/v1/sanctions?cnpj=00000000000191` *(0.0100 USDC / 2 cr)*
   - `GET /api/v1/simples?cnpj=00000000000191` *(0.0100 USDC / 2 cr)*
   - `GET /api/v1/compliance?cnpj=00000000000191` *(0.0300 USDC / 6 cr)*

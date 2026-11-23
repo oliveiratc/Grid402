@@ -386,9 +386,10 @@ final class JsonFlockPassRepository implements PassStorageInterface {
                 'header' => 'X-Payment: ' . $record['pass_token'],
                 'credit_rates' => [
                     'standard_0.0050_usdc' => '1 credit (forex, crypto, dns, ssl, asn, cep, indicators, holidays, workdays, notarize, global-markets, extract, email-verify)',
-                    'compliance_0.0100_usdc' => '2 credits (sanctions, simples)',
+                    'registry_0.0100_usdc' => '2 credits (cnpj, lei, sanctions, simples)',
                     'bundle_0.0150_usdc' => '3 credits (domain-audit, market-snapshot)',
-                    'corporate_0.0200_usdc' => '4 credits (cnpj, lei, ofac, kyb-audit)',
+                    'ofac_0.0200_usdc' => '4 credits (ofac)',
+                    'kyb_bundle_0.0250_usdc' => '5 credits (kyb-audit)',
                     'score360_0.0300_usdc' => '6 credits (compliance)',
                     'dossier360_0.0500_usdc' => '10 credits (dossier)',
                 ],

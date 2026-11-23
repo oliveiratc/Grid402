@@ -183,8 +183,10 @@ define('GRID402_SANDBOX_RATE_LIMIT', (int) grid402_env('GRID402_SANDBOX_RATE_LIM
 define('GRID402_SANDBOX_WINDOW_SECONDS', (int) grid402_env('GRID402_SANDBOX_WINDOW_SECONDS', 86400)); // Janela de 24h (86400s) para cota sandbox
 define('GRID402_USDC_REQUIRED_RAW', (int) grid402_env('GRID402_USDC_REQUIRED_RAW', 5000)); // 0.005000 USDC
 define('GRID402_PRICE_DISPLAY', (string) grid402_env('GRID402_PRICE_DISPLAY', '0.0050'));
-define('GRID402_PRICE_CNPJ', (string) grid402_env('GRID402_PRICE_CNPJ', '0.0200'));
-define('GRID402_USDC_CNPJ_RAW', (int) grid402_env('GRID402_USDC_CNPJ_RAW', 20000)); // 0.020000 USDC
+define('GRID402_PRICE_CNPJ', (string) grid402_env('GRID402_PRICE_CNPJ', '0.0100'));
+define('GRID402_USDC_CNPJ_RAW', (int) grid402_env('GRID402_USDC_CNPJ_RAW', 10000)); // 0.010000 USDC (2 créditos)
+define('GRID402_PRICE_KYB_AUDIT', (string) grid402_env('GRID402_PRICE_KYB_AUDIT', '0.0250'));
+define('GRID402_USDC_KYB_AUDIT_RAW', (int) grid402_env('GRID402_USDC_KYB_AUDIT_RAW', 25000)); // 0.025000 USDC (5 créditos)
 define('GRID402_PRICE_DOSSIER', (string) grid402_env('GRID402_PRICE_DOSSIER', '0.0500'));
 define('GRID402_USDC_DOSSIER_RAW', (int) grid402_env('GRID402_USDC_DOSSIER_RAW', 50000)); // 0.050000 USDC (10 créditos)
 define('GRID402_SOLANA_WALLET_ADDRESS', trim((string) grid402_env('GRID402_SOLANA_WALLET_ADDRESS', 'CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C')));
@@ -718,7 +720,7 @@ function grid402_get_utility_services(): array {
             'endpoint' => '/api/v1/kyb-audit',
             'category' => 'Compliance',
             'type' => 'on_demand',
-            'price_usdc' => '0.0200',
+            'price_usdc' => GRID402_PRICE_KYB_AUDIT,
             'upstream_source' => 'Composite Registry: Receita Federal (CNPJ) + US Treasury OFAC SDN + GLEIF LEI',
             'cache_ttl_sec' => 3600,
         ],
@@ -839,7 +841,7 @@ function grid402_get_utility_services(): array {
             'endpoint' => '/api/v1/lei',
             'category' => 'Global (CC0)',
             'type' => 'on_demand',
-            'price_usdc' => '0.0200',
+            'price_usdc' => '0.0100',
             'upstream_source' => 'Global Legal Entity Identifier Foundation (GLEIF API v1 - CC0 1.0)',
             'cache_ttl_sec' => 86400,
         ],
