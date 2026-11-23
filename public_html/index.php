@@ -536,6 +536,37 @@ if (str_starts_with($requestPath, '/api/v1/pass/mp-')) {
     exit;
 }
 
+// 1.3b. Cupons Promocionais de Session Pass (/api/v1/pass/promo-status e /api/v1/pass/promo-claim)
+if ($requestPath === '/api/v1/pass/promo-status' || $requestPath === '/api/v1/pass/promo-claim') {
+    require_once __DIR__ . '/services/promo_pass.php';
+    $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    $rawBody = (string) @file_get_contents('php://input');
+    $jsonBody = @json_decode($rawBody, true);
+    $input = is_array($jsonBody) ? $jsonBody : $_POST;
+
+    if ($requestPath === '/api/v1/pass/promo-status' && $method === 'GET') {
+        $promoCode = (string) ($_GET['code'] ?? $_GET['promo'] ?? '');
+        $res = grid402_promo_get_status($promoCode);
+    } elseif ($requestPath === '/api/v1/pass/promo-claim' && $method === 'POST') {
+        $promoCode = (string) ($input['code'] ?? $input['promo'] ?? $_GET['code'] ?? $_GET['promo'] ?? '');
+        $res = grid402_promo_claim_pass($promoCode);
+    } else {
+        $res = ['ok' => false, 'code' => 405, 'error' => 'MethodNotAllowed', 'message' => 'Use GET /api/v1/pass/promo-status?code=... or POST /api/v1/pass/promo-claim.'];
+    }
+
+    http_response_code((int) ($res['code'] ?? 200));
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    grid402_log_request([
+        'service' => 'pass-promo',
+        'status' => (int) ($res['code'] ?? 200),
+        'payment_source' => 'free',
+        'error' => !empty($res['ok']) ? null : (string) ($res['error'] ?? null),
+    ]);
+    echo json_encode($res, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
 // 2. Classificação de Rotas
 $isStatusRoute = ($requestPath === '/status' || $requestPath === '/api/v1/summary' || $requestPath === '/telemetry');
 $isHomeRoute = ($requestPath === '/' || $requestPath === '/index.php');

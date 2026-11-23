@@ -9,6 +9,7 @@ require_once __DIR__ . '/includes/pass-reengagement-banner.php';
 require_once __DIR__ . '/includes/pass-queue-helper.php';
 require_once __DIR__ . '/services/mercadopago.php';
 require_once __DIR__ . '/services/multichain.php';
+require_once __DIR__ . '/services/promo_pass.php';
 require_once __DIR__ . '/metrics.php';
 
 $userIdleStats = grid402_get_user_idle_pass_stats();
@@ -19,6 +20,9 @@ $domain = defined('GRID402_CANONICAL_DOMAIN') ? rtrim(GRID402_CANONICAL_DOMAIN, 
 $packages = grid402_mp_packages();
 $isSandbox = grid402_mp_is_sandbox();
 $supportedNets = grid402_supported_networks();
+$requestedPromo = strtoupper(trim((string) ($_GET['promo'] ?? $_GET['code'] ?? '')));
+$promoStatus = $requestedPromo !== '' ? grid402_promo_get_status($requestedPromo) : null;
+$promoCampaign = (is_array($promoStatus) && !empty($promoStatus['ok'])) ? $promoStatus['campaign'] : null;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -87,6 +91,44 @@ $supportedNets = grid402_supported_networks();
 
     <h1 data-i18n-html="pass.title">Buy Session Pass <code>pass_g402_...</code></h1>
     <p data-i18n-html="pass.subtitle">Pay once in <strong>BRL (Pix or Card via Mercado Pago)</strong> or in <strong>USDC on the Base network</strong> and instantly receive a token loaded with thousands of requests (&lt;15ms), without signing a transaction on every call. Ideal for n8n, Make, Zapier, Python, Node, and MCP.</p>
+
+    <!-- Cyber Monday / Promo Code Claim Box -->
+    <section id="promo-claim-section" aria-label="Promo Code Redemption" style="margin:1.25rem 0; background:linear-gradient(135deg, rgba(0,82,255,.16), rgba(0,240,255,.10)); border:1px solid <?php echo $promoCampaign ? 'var(--cyan)' : 'rgba(0,240,255,.35)'; ?>; border-radius:12px; padding:1.25rem; <?php echo $promoCampaign ? 'box-shadow:0 8px 28px rgba(0,240,255,.16);' : ''; ?>">
+        <?php if ($promoCampaign): ?>
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; margin-bottom:.45rem;">
+                <strong style="font-size:1.08rem; color:#fff;">⚡ <?php echo htmlspecialchars((string) $promoCampaign['title'], ENT_QUOTES, 'UTF-8'); ?></strong>
+                <span id="promo-remaining-badge" class="status-pill <?php echo !empty($promoCampaign['active']) ? 'ok' : ''; ?>">
+                    <?php echo !empty($promoCampaign['active']) ? ((int) $promoCampaign['remaining_claims'] . ' / ' . (int) $promoCampaign['max_claims'] . ' remaining') : (!empty($promoCampaign['exhausted']) ? 'Fully claimed' : 'Campaign ended'); ?>
+                </span>
+            </div>
+            <p style="margin:.25rem 0 .85rem; color:#E2E8F0; font-size:.93rem;">
+                <?php echo htmlspecialchars((string) $promoCampaign['description'], ENT_QUOTES, 'UTF-8'); ?>
+                <br><span style="color:var(--muted); font-size:.84rem;">Code: <code><?php echo htmlspecialchars((string) $promoCampaign['code'], ENT_QUOTES, 'UTF-8'); ?></code> • Valid <?php echo (int) $promoCampaign['validity_days']; ?> days • Daily cap: <?php echo (int) $promoCampaign['daily_credit_limit']; ?> credits/day • Limit: 1 pass per IP (Zero-PII).</span>
+            </p>
+            <div style="display:flex; gap:.65rem; flex-wrap:wrap; align-items:center;">
+                <input type="hidden" id="promo-code-input" value="<?php echo htmlspecialchars((string) $promoCampaign['code'], ENT_QUOTES, 'UTF-8'); ?>" />
+                <button type="button" id="btn-promo-claim" class="btn btn-card" style="width:auto; padding:.72rem 1.35rem;" onclick="claimPromoPass(this)" <?php echo empty($promoCampaign['active']) ? 'disabled' : ''; ?>>
+                    ⚡ Claim <?php echo (int) $promoCampaign['credits']; ?> Free Credits Now (No Wallet Needed)
+                </button>
+                <span id="promo-feedback" style="font-size:.86rem; color:var(--muted);"></span>
+            </div>
+        <?php else: ?>
+            <div style="display:flex; gap:.65rem; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+                <div style="font-size:.9rem; color:#E2E8F0;">
+                    <strong>🎁 Have a promo code?</strong> <span style="color:var(--muted);">Redeem free starter credits with zero signup or wallet required.</span>
+                </div>
+                <div style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
+                    <input type="text" id="promo-code-input" class="input" style="min-width:170px; max-width:210px; text-transform:uppercase;" placeholder="e.g. MCPTRY50" value="<?php echo htmlspecialchars($requestedPromo, ENT_QUOTES, 'UTF-8'); ?>" aria-label="Promo code" />
+                    <button type="button" id="btn-promo-claim" class="btn btn-card" style="width:auto; padding:.68rem 1.1rem;" onclick="claimPromoPass(this)">Redeem Code</button>
+                </div>
+            </div>
+            <div id="promo-feedback" style="margin-top:.5rem; font-size:.86rem; color:<?php echo ($requestedPromo !== '' && !$promoCampaign) ? '#F59E0B' : 'var(--muted)'; ?>;">
+                <?php if ($requestedPromo !== '' && !$promoCampaign): ?>
+                    Promo code <code><?php echo htmlspecialchars($requestedPromo, ENT_QUOTES, 'UTF-8'); ?></code> was not found.
+                <?php endif; ?>
+            </div>
+        <?php endif; ?>
+    </section>
 
     <?php if ($isSandbox): ?>
     <div class="note" style="border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.08);" data-i18n-html="pass.sandbox_note">
@@ -314,10 +356,16 @@ function showIssuedPass(data) {
     document.getElementById('mp-pix-area').style.display = 'none';
     document.getElementById('mp-success-area').style.display = 'block';
     document.getElementById('mp-token-value').textContent = data.pass_token;
-    document.getElementById('mp-token-meta').textContent = `${data.credits} créditos • Validade ${data.ttl_days || 180} dias` + (data.sandbox ? ' • SANDBOX' : '');
-    document.getElementById('mp-token-snippet').textContent =
-        `curl -s -H "X-Payment: ${data.pass_token}" "${window.location.origin}/api/v1/cnpj?cnpj=00000000000191"`;
-    showPanel('Pagamento confirmado!', 'Seu Session Pass já está ativo e pronto para uso.', true);
+    const extraCap = data.daily_credit_limit ? ` • Daily cap ${data.daily_credit_limit} cr/day` : '';
+    document.getElementById('mp-token-meta').textContent = `${data.credits} credits • Valid ${data.ttl_days || 180} days${extraCap}` + (data.sandbox ? ' • SANDBOX' : '');
+    const curlLine = data.curl_snippet || `curl -s -H "X-Payment: ${data.pass_token}" "${window.location.origin}/api/v1/cnpj?cnpj=00000000000191"`;
+    const mcpLine = data.mcp_snippet ? `\n# MCP (Claude Desktop / Cursor):\n${data.mcp_snippet}` : '';
+    document.getElementById('mp-token-snippet').textContent = curlLine + mcpLine;
+    showPanel(
+        data.promo_code ? `Promo ${data.promo_code} Activated!` : 'Payment Confirmed!',
+        data.promo_code ? 'Your free promotional Session Pass is active and ready to use across all 25 APIs and 27 MCP tools.' : 'Your Session Pass is active and ready to use.',
+        true
+    );
     // Persiste o token em cookie para o banner de reengagement reconhecer o usuário
     try {
         document.cookie = 'g402_pass_token=' + encodeURIComponent(data.pass_token) + '; path=/; max-age=2592000; SameSite=Lax';
@@ -325,6 +373,45 @@ function showIssuedPass(data) {
             document.cookie = 'g402_pass_token=' + encodeURIComponent(data.pass_token) + '; path=/; max-age=2592000; Secure; SameSite=Lax';
         }
     } catch (_) {}
+}
+
+async function claimPromoPass(btn) {
+    const inp = document.getElementById('promo-code-input');
+    const fb = document.getElementById('promo-feedback');
+    const badge = document.getElementById('promo-remaining-badge');
+    const code = (inp ? inp.value : '').trim().toUpperCase();
+    if (!code) {
+        if (fb) { fb.style.color = '#F59E0B'; fb.textContent = 'Enter a promo code first (e.g. MCPTRY50).'; }
+        return;
+    }
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Issuing Session Pass...';
+    if (fb) { fb.style.color = 'var(--muted)'; fb.textContent = 'Validating promo code...'; }
+    try {
+        const res = await fetch('/api/v1/pass/promo-claim', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code })
+        });
+        const data = await res.json();
+        if (res.ok && data.ok && data.pass_token) {
+            if (fb) { fb.style.color = '#10B981'; fb.textContent = '✓ ' + data.credits + ' free credits issued! Copy your token below.'; }
+            if (badge && typeof data.remaining_claims === 'number' && typeof data.max_claims === 'number') {
+                badge.textContent = data.remaining_claims + ' / ' + data.max_claims + ' remaining';
+            }
+            showIssuedPass(data);
+            const panel = document.getElementById('mp-status-panel');
+            if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+            if (fb) { fb.style.color = '#F59E0B'; fb.textContent = data.message || data.error || 'Unable to redeem promo code.'; }
+        }
+    } catch (e) {
+        if (fb) { fb.style.color = '#EF4444'; fb.textContent = 'Network error while claiming promo code. Please try again.'; }
+    } finally {
+        btn.disabled = false;
+        btn.textContent = orig;
+    }
 }
 
 async function pollOrderStatus(orderId, paymentId = null) {
