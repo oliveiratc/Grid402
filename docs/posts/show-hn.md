@@ -9,11 +9,11 @@ Main focus is public corporate/compliance registries and M2M utilities:
 
 No signup, no API keys, no contracts — an HTTP 402 response carries the exact price, you pay USDC across **6 chains** (Base, Arbitrum, Polygon, Optimism, Ethereum, or **Solana SPL USDC** — zero bridge fees), and every paid/sandbox response includes an offline-verifiable ECDSA secp256k1 `_oracle_proof`.
 
-Example (free 3 req/dayour sandbox, no wallet needed):
+Example (free 3 req/day sandbox, no wallet needed):
 
     curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
 
-Pricing: `0.0050`–`0.0500` USDC per call (`1 credit = 0.0050 USDC`), or `<15ms` prepaid Session Passes (Starter: 2 USDC = 400 credits; Pro: 5 USDC = 1,000 credits; Fleet: 20 USDC = 4,000 base + 2,000 bonus = 6,000 credits) with `Idempotency-Key` and Spend Controls (`daily_credit_limit`, `allowed_endpoints`). `/status`, `/api/v1/verify`, and `/api/v1/pass/balance` are free.
+Pricing: `0.0050`–`0.0500` USDC per call (`1 credit = 0.0050 USDC`), or `<15ms` prepaid Session Passes (Starter: 2 USDC = 400 credits / 180d; Pro: 5 USDC = 1,000 base + 200 bonus = 1,200 credits / 180d; Fleet: 20 USDC = 4,000 base + 2,000 bonus = 6,000 credits / 365d) with `Idempotency-Key` and Spend Controls (`daily_credit_limit`, `allowed_endpoints`). `/status`, `/api/v1/verify`, and `/api/v1/pass/balance` are free.
 
 - MCP server (stdio): `npx -y grid402-mcp` | Remote MCP (streamable HTTP): `https://grid402.online/mcp`
 - SDKs & Frameworks: `pip install grid402`, `npm install grid402`, Coinbase AgentKit, ElizaOS, LangChain/CrewAI quickstart

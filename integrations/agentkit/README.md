@@ -10,7 +10,7 @@ Com este provedor, qualquer agente de IA (LangChain, CrewAI, AutoGen ou ElizaOS)
 
 | Acao / Ferramenta | Descricao | Tarifa x402 (Base) |
 |---|---|---|
-| `query_cnpj` | Dados cadastrais completos da PJ na Receita Federal (Razao, CNAEs, Capital, Endereco) | 0.0200 USDC |
+| `query_cnpj` | Dados cadastrais completos da PJ na Receita Federal (Razao, CNAEs, Capital, Endereco) | 0.0100 USDC |
 | `query_cep` | Resolucao de CEP postal brasileiro e codigo IBGE | 0.0050 USDC |
 | `query_forex` | Cotacoes cambiais oficiais de USD, EUR e GBP para BRL | 0.0050 USDC |
 | `query_crypto` | Precos spot de mercado de BTC, ETH, SOL e USDC | 0.0050 USDC |
@@ -43,7 +43,7 @@ const grid402 = new Grid402ActionProvider({
   sandbox: false, // configure true para testar sem custos (cota de 3 req/dia)
 });
 
-// 3. Executa a consulta com auto-liquidacao de 0.0200 USDC
+// 3. Executa a consulta com auto-liquidacao de 0.0100 USDC
 const empresa = await grid402.queryCnpj("00000000000191", walletProvider);
 
 console.log("Razao Social:", empresa.razao_social);

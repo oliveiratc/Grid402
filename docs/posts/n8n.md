@@ -19,9 +19,9 @@ Publicamos um workflow de **enriquecimento e auditoria B2B** pronto para importa
 ## Para produção (via Pix/Cartão ou Multi-Chain USDC)
 
 Troque `'demo'` por um **Session Pass** emitido em https://grid402.online/pass (aceita **Pix/Cartão** ou **USDC em 6 redes**: Base, Arbitrum, Polygon, Optimism, Ethereum e Solana SPL):
-- **Starter:** R$ 12 / 2 USDC = **400 créditos** (30 dias)
-- **Pro:** R$ 29 / 5 USDC = **1.000 créditos** (30 dias)
-- **Fleet:** R$ 115 / 20 USDC = **6.000 créditos** (`4.000 base + 2.000 bônus`, 60 dias)
+- **Starter:** R$ 12 / 2 USDC = **400 créditos** (180 dias)
+- **Pro:** R$ 29 / 5 USDC = **1.200 créditos** (`1.000 base + 200 bônus`, 180 dias)
+- **Fleet:** R$ 115 / 20 USDC = **6.000 créditos** (`4.000 base + 2.000 bônus`, 365 dias)
 - Latência `<15 ms` por chamada, com Spend Controls (`daily_credit_limit`, `allowed_endpoints`) e `Idempotency-Key`.
 
 ## Casos de uso prontos

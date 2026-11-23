@@ -149,7 +149,7 @@ else:
 | `get_ssl(host)` | Inspecao e auditoria de certificado TLS e SSL na porta 443 | 0.0050 |
 | `get_asn(ip)` | Inteligencia de roteamento BGP, bloco alocado e ASN | 0.0050 |
 | `get_cep(code)` | Consulta de logradouro postal brasileiro e codigo IBGE | 0.0050 |
-| `get_cnpj(cnpj)` | Dados cadastrais completos de PJ na Receita Federal | 0.0200 |
+| `get_cnpj(cnpj)` | Dados cadastrais completos de PJ na Receita Federal | 0.0100 |
 | `get_indicators()` | Indicadores macroeconomicos oficiais (Selic meta e diaria, CDI anual e IPCA) | 0.0050 |
 | `get_holidays(year)` | Calendario oficial de feriados nacionais e bancarios ANBIMA | 0.0050 |
 | `get_workdays(start_date?, end_date?, days?, date?)` | Calculadora de dias uteis financeiros e projecao de vencimentos ANBIMA | 0.0050 |

@@ -27,9 +27,9 @@ One single call returns:
 No more "my agent's USDC is on Arbitrum/Polygon/Solana".
 
 Pay directly per call (`X-Payment: solana:<sig>` or `X-Payment: arbitrum:0x...`) OR top up a `<15ms` Session Pass in 1 click (MetaMask, Coinbase Wallet, Phantom, Solflare):
-• Starter: 2 USDC = 400 credits
-• Pro: 5 USDC = 1,000 credits
-• Fleet: 20 USDC = 6,000 credits (4,000 base + 2,000 bonus)
+• Starter: 2 USDC = 400 credits (180 days)
+• Pro: 5 USDC = 1,200 credits (1,000 base + 200 bonus, 180 days)
+• Fleet: 20 USDC = 6,000 credits (4,000 base + 2,000 bonus, 365 days)
 
 **Tweet 4 (27 MCP Tools + Verificações):**
 Verified across the agent ecosystem:
@@ -40,7 +40,7 @@ Verified across the agent ecosystem:
 ✅ Ready for Claude Desktop, Cursor, Coinbase AgentKit, ElizaOS, LangChain & CrewAI
 
 **Tweet 5 (Try in 10 seconds / CTA):**
-Test free right now (3 req/dayour sandbox, no wallet needed):
+Test free right now (3 req/day sandbox, no wallet needed):
 
 ```bash
 curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
@@ -109,7 +109,7 @@ curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=000000
 ### Cast `/solana`
 > Solana agents can now pay natively in **SPL USDC** on Grid402 ⚡
 >
-> 23 public-data & network intelligence APIs (KYB Dossier 360 + AI Verdict, GLEIF LEI, OFAC/UN + Web3 AML, ECB FX, DNS/SSL/ASN, ECDSA notarization) — zero signup, zero API keys.
+> 25 public-data & network intelligence APIs (KYB Dossier 360 + AI Verdict, GLEIF LEI, OFAC/UN + Web3 AML, ECB FX, DNS/SSL/ASN, ECDSA notarization) — zero signup, zero API keys.
 >
 > Connect Phantom/Solflare at https://grid402.online/pass for `<15ms` Session Passes or pay per call with `X-Payment: solana:<tx_sig>`.
 >
@@ -165,7 +165,7 @@ Links oficiais:
 ## 5. Comunidades Discord / Telegram (Base, Solana, x402, MCP, LangChain Brasil)
 
 ### Versão EN (Discord Base / x402 / Solana / MCP)
-> Hey everyone! Sharing a fresh production update on **Grid402** (`https://grid402.online`), our x402 verifiable public-data & network utility hub for AI agents (23 services, 27 MCP tools):
+> Hey everyone! Sharing a fresh production update on **Grid402** (`https://grid402.online`), our x402 verifiable public-data & network utility hub for AI agents (25 services, 27 MCP tools):
 >
 > • **Multi-Chain USDC Support (6 chains):** Base, Arbitrum, Polygon, Optimism, Ethereum + **Solana SPL USDC** (both pay-per-call via `X-Payment: <chain>:<tx>` and 1-click `<15ms` Session Passes at `/pass`).
 > • **New `/api/v1/dossier` (`0.0500 USDC`):** single-call corporate KYB dossier (Federal Revenue CNPJ + Simples/MEI + CGU CEIS/CNEP sanctions) with a deterministic **AI Verdict** (`APPROVED` / `FLAGGED` / `REJECTED`), Zero-PII, and ECDSA secp256k1 `_oracle_proof`.

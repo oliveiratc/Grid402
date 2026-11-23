@@ -146,7 +146,7 @@ if (verificacao.valid) {
 | `getSsl(host, txHash?)` | Inspecao e auditoria de certificado TLS e SSL na porta 443 | 0.0050 |
 | `getAsn(ip?, txHash?)` | Inteligencia de roteamento BGP, bloco alocado e ASN | 0.0050 |
 | `getCep(code, txHash?)` | Consulta de logradouro postal brasileiro e codigo IBGE | 0.0050 |
-| `getCnpj(cnpj, txHash?)` | Dados cadastrais completos de PJ na Receita Federal | 0.0200 |
+| `getCnpj(cnpj, txHash?)` | Dados cadastrais completos de PJ na Receita Federal | 0.0100 |
 | `getIndicators(txHash?)` | Indicadores macroeconomicos oficiais (Selic meta e diaria, CDI anual e IPCA) | 0.0050 |
 | `getHolidays(year?, txHash?)` | Calendario oficial de feriados nacionais e bancarios ANBIMA | 0.0050 |
 | `getWorkdays(params?, txHash?)` | Calculadora de dias uteis financeiros e projecao de vencimentos ANBIMA | 0.0050 |

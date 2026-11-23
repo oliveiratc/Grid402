@@ -59,8 +59,8 @@ $formatDeltaBadge = static function (?float $pct): array {
 
 $servicesCatalogOrder = ['dossier', 'extract', 'email-verify', 'lei', 'ofac', 'notarize', 'global-markets', 'pass', 'compliance', 'sanctions', 'simples', 'workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'kyb-audit', 'domain-audit', 'market-snapshot', 'summary'];
 $pricingLookup = [
-    'dossier' => 0.0500, 'compliance' => 0.0300, 'kyb-audit' => 0.0200, 'ofac' => 0.0200, 'lei' => 0.0200,
-    'cnpj' => 0.0200, 'domain-audit' => 0.0150, 'market-snapshot' => 0.0150, 'sanctions' => 0.0100,
+    'dossier' => 0.0500, 'compliance' => 0.0300, 'kyb-audit' => 0.0250, 'ofac' => 0.0200, 'lei' => 0.0100,
+    'cnpj' => 0.0100, 'domain-audit' => 0.0150, 'market-snapshot' => 0.0150, 'sanctions' => 0.0100,
     'simples' => 0.0100, 'pass' => 2.0000, 'extract' => 0.0050, 'email-verify' => 0.0050, 'notarize' => 0.0050,
     'forex' => 0.0050, 'crypto' => 0.0050, 'indicators' => 0.0050, 'holidays' => 0.0050, 'workdays' => 0.0050,
     'global-markets' => 0.0050, 'dns' => 0.0050, 'ssl' => 0.0050, 'asn' => 0.0050, 'cep' => 0.0050, 'summary' => 0.0000,

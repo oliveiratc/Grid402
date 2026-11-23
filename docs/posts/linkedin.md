@@ -26,7 +26,7 @@ Teste grátis no sandbox (3 req/day, sem cartão): links no primeiro comentário
 6 consultas públicas que seu agente de IA já pode executar sozinho (sem API key e sem mensalidade fixa):
 
 1. **Dossiê 360º KYB + Veredito IA (`/api/v1/dossier`)** → RFB + Simples/MEI + CGU CEIS/CNEP + Veredito `APPROVED/FLAGGED/REJECTED` — US$ 0,0500 (10 créditos)
-2. **Auditoria KYB Global (`/api/v1/kyb-audit`)** → CNPJ + Sanções OFAC/ONU + GLEIF LEI — US$ 0,0200 (4 créditos)
+2. **Auditoria KYB Global (`/api/v1/kyb-audit`)** → CNPJ + Sanções OFAC/ONU + GLEIF LEI — US$ 0,0250 (5 créditos)
 3. **Compliance Score 360 (`/api/v1/compliance`)** → score de integridade 0–100 (RF + CGU) — US$ 0,0300 (6 créditos)
 4. **Sanções CEIS/CNEP (`/api/v1/sanctions`)** → inidoneidade e impedimentos na CGU — US$ 0,0100 (2 créditos)
 5. **CEP + IBGE (`/api/v1/cep`)** → logradouro, bairro, município e código IBGE — US$ 0,0050 (1 crédito)

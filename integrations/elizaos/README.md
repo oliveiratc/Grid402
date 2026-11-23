@@ -14,8 +14,8 @@ Equip your AI agents with real-time financial market tickers, global corporate i
 | `GET_CRYPTO_PRICE` | Spot market tickers and 24h variation for BTC, ETH, SOL, USDC, BASE | 0.0050 USDC (or Session Pass) |
 | `GET_GLOBAL_MARKETS` | ECB reference rates (30+ currencies) and stock exchange holiday status (NYSE/LSE) | 0.0050 USDC (or Session Pass) |
 | `CHECK_SANCTIONS_OFAC` | Real-time AML compliance check against US Treasury OFAC SDN & UN lists | 0.0200 USDC (or Session Pass) |
-| `LOOKUP_LEI` | GLEIF Legal Entity Identifier (ISO 17442) verification across 200+ countries | 0.0200 USDC (or Session Pass) |
-| `LOOKUP_CNPJ` | Brazilian Federal Revenue corporate registry, status, CNAE, and partners | 0.0200 USDC (or Session Pass) |
+| `LOOKUP_LEI` | GLEIF Legal Entity Identifier (ISO 17442) verification across 200+ countries | 0.0100 USDC (or Session Pass) |
+| `LOOKUP_CNPJ` | Brazilian Federal Revenue corporate registry, status, CNAE, and partners | 0.0100 USDC (or Session Pass) |
 
 ---
 

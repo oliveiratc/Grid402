@@ -3,7 +3,7 @@
 >
 > Now accepting native USDC across **6 chains** (Base, Arbitrum, Polygon, Optimism, Ethereum + **Solana SPL**) with zero bridge fees, no API keys, no signup:
 > • New `/api/v1/dossier` (0.0500 USDC): CNPJ + Simples/MEI + CGU sanctions + deterministic **AI Verdict** (`APPROVED`/`FLAGGED`/`REJECTED`)
-> • 23 public-data & network endpoints (GLEIF LEI, OFAC/AML, ECB FX, ANBIMA calendar, DNS/SSL/ASN, ECDSA notarization)
+> • 25 public-data & network endpoints (GLEIF LEI, OFAC/AML, ECB FX, ANBIMA calendar, DNS/SSL/ASN, ECDSA notarization)
 > • 27 MCP tools — **Grade A on mcprush**, verified on Glama & x402scan
 >
 > $0.0050–$0.0500 USDC per call. Free sandbox (3 req/day): `X-Payment: demo`. Starter Session Pass: 2 USDC = 400 credits (<15ms).

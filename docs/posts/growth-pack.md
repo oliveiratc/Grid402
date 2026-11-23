@@ -11,7 +11,7 @@
 Grid402 is a verifiable pay-per-call data & network intelligence hub for autonomous AI agents (25 endpoints, 27 MCP tools — mcprush Grade A, Glama & x402scan Verified).
 Flagship `GET /api/v1/dossier` (`0.0500 USDC`) delivers a complete KYB corporate dossier (Federal Revenue CNPJ + Simples/MEI + CGU CEIS/CNEP sanctions) with a deterministic **AI Verdict** (`APPROVED` / `FLAGGED` / `REJECTED`), Zero-PII, and offline-verifiable ECDSA secp256k1 `_oracle_proof`.
 Also includes GLEIF LEI (CC0), OFAC SDN + Web3 AML, CEP/IBGE, ANBIMA holidays/workdays, ECB FX, crypto spot, and DNS/SSL/ASN/domain-audit.
-Pay per call (`0.0050`–`0.0500 USDC`) across **6 chains** (Base, Arbitrum, Polygon, Optimism, Ethereum + **Solana SPL USDC**) or top up `<15ms` Session Passes (Starter: 2 USDC / R$ 12 = 400 credits; Pro: 5 USDC = 1,000 credits; Fleet: 20 USDC = 4,000 base + 2,000 bonus = 6,000 credits).
+Pay per call (`0.0050`–`0.0500 USDC`) across **6 chains** (Base, Arbitrum, Polygon, Optimism, Ethereum + **Solana SPL USDC**) or top up `<15ms` Session Passes (Starter: 2 USDC / R$ 12 = 400 credits; Pro: 5 USDC = 1,000 base + 200 bonus = 1,200 credits; Fleet: 20 USDC = 4,000 base + 2,000 bonus = 6,000 credits).
 Free sandbox: `3 req/day per IP` via `X-Payment: demo`.
 MCP server: `npx -y grid402-mcp` · Remote MCP: `https://grid402.online/mcp` · Python: `pip install grid402`
 
@@ -64,8 +64,8 @@ MCP: `npx -y grid402-mcp` · Remote MCP: `https://grid402.online/mcp` · Python:
 
 - **“O que é x402?”** → Protocolo HTTP 402 em que o agente paga em USDC diretamente pelo recurso. Sem cadastro, sem API key: o preço vem no header 402 e o agente liquida via EIP-3009, transferência Multi-Chain ou Session Pass `<15 ms`.
 - **“Preciso de USDC só na Base?”** → Não mais! Aceitamos USDC nativo em **6 redes** sem taxa de bridge: Base, Arbitrum, Polygon, Optimism, Ethereum e **Solana (SPL USDC)** — além de **Pix/Cartão** em Reais no `/pass`.
-- **“Qual a diferença entre `/api/v1/kyb-audit` e `/api/v1/dossier`?”** → `/api/v1/kyb-audit` (`0.0200 USDC` / 4 créditos) faz triagem global combinando CNPJ + OFAC/ONU + GLEIF LEI. Já `/api/v1/dossier` (`0.0500 USDC` / 10 créditos) é o dossiê corporativo 360º brasileiro aprofundado (RFB + Simples/MEI + CGU CEIS/CNEP + Score 0–100 + **AI Verdict** `APPROVED`/`FLAGGED`/`REJECTED`).
-- **“Quanto custa?”** → `0.0050` a `0.0500 USDC` por chamada (`1 crédito = 0.0050 USDC`). Session Pass: Starter `2 USDC / R$ 12` = 400 créditos; Pro `5 USDC / R$ 29` = 1.000 créditos; Fleet `20 USDC / R$ 115` = 4.000 base + 2.000 bônus (+50%) = 6.000 créditos. Sandbox grátis: `3 req/day` por IP via `X-Payment: demo`.
+- **“Qual a diferença entre `/api/v1/kyb-audit` e `/api/v1/dossier`?”** → `/api/v1/kyb-audit` (`0.0250 USDC` / 5 créditos) faz triagem global combinando CNPJ + OFAC/ONU + GLEIF LEI. Já `/api/v1/dossier` (`0.0500 USDC` / 10 créditos) é o dossiê corporativo 360º brasileiro aprofundado (RFB + Simples/MEI + CGU CEIS/CNEP + Score 0–100 + **AI Verdict** `APPROVED`/`FLAGGED`/`REJECTED`).
+- **“Quanto custa?”** → `0.0050` a `0.0500 USDC` por chamada (`1 crédito = 0.0050 USDC`). Session Pass: Starter `2 USDC / R$ 12` = 400 créditos (180 dias); Pro `5 USDC / R$ 29` = 1.000 base + 200 bônus (+20%) = 1.200 créditos (180 dias); Fleet `20 USDC / R$ 115` = 4.000 base + 2.000 bônus (+50%) = 6.000 créditos (365 dias). Sandbox grátis: `3 req/day` por IP via `X-Payment: demo`.
 
 ---
 

@@ -564,7 +564,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(['success' => false, 'error' => 'Token CSRF de seguranca ausente ou invalido.']);
             exit;
         }
-        $sent = grid402_notify_telegram_purchase('cnpj', 0.0200, '0x' . str_repeat('a', 64), true);
+        $sent = grid402_notify_telegram_purchase('cnpj', 0.0100, '0x' . str_repeat('a', 64), true);
         $tgStatus = grid402_telegram_runtime_status();
         $errDetail = (string) ($tgStatus['last_status']['error'] ?? '');
         echo json_encode([
@@ -620,7 +620,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $skipTest = ((string)($_POST['skip_test'] ?? '') === '1');
-        $sent = $skipTest ? false : grid402_notify_telegram_purchase('cnpj', 0.0200, '0x' . str_repeat('a', 64), true);
+        $sent = $skipTest ? false : grid402_notify_telegram_purchase('cnpj', 0.0100, '0x' . str_repeat('a', 64), true);
         $tgStatus = grid402_telegram_runtime_status();
         $errDetail = (string) ($tgStatus['last_status']['error'] ?? '');
 

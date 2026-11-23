@@ -482,13 +482,13 @@ export const MCP_TOOLS_DEFINITIONS = [
  */
 export const CHECKOUT_OPTIONS = {
   pix_instant_brl: {
-    starter_400_credits: 'https://grid402.online/pass?tier=starter&autopix=1 (R$ 12,00 via Pix = 400 créditos)',
+    starter_400_credits: 'https://grid402.online/pass?tier=starter&autopix=1 (R$ 12,00 via Pix = 400 créditos · 180 dias)',
     pro_1200_credits: 'https://grid402.online/pass?tier=pro&autopix=1 (R$ 29,00 via Pix = 1.200 créditos · 180 dias)',
-    fleet_6000_credits: 'https://grid402.online/pass?tier=fleet&autopix=1 (R$ 110,00 via Pix = 6.000 créditos)',
+    fleet_6000_credits: 'https://grid402.online/pass?tier=fleet&autopix=1 (R$ 115,00 via Pix = 6.000 créditos · 365 dias)',
     how_to_use: 'Defina GRID402_SESSION_PASS=pass_g402_... no ambiente do MCP para chamadas em <15ms sem chave privada.',
   },
   rapidapi_credit_card_usd: {
-    plans: 'PRO $9.90/mês (2.500 chamadas) | ULTRA $29.90/mês (10.000 chamadas) | MEGA $79.90/mês (50.000 chamadas)',
+    plans: 'PRO $9.90/mês (1.500 chamadas) | ULTRA $29.00/mês (6.000 chamadas) | MEGA $79.00/mês (25.000 chamadas)',
     all_25_apis: 'https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities',
     web_markdown_email_network: 'https://rapidapi.com/oliveiratc/api/grid402-web-to-markdown-email-verify-network-utilities',
     brazil_kyb_cnpj_anbima: 'https://rapidapi.com/oliveiratc/api/brazil-kyb-cnpj-cgu-sanctions-anbima-workdays-api',
