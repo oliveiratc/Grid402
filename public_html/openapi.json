@@ -1090,7 +1090,7 @@
                   "/api/v1/pass":  {
                                        "get":  {
                                                    "summary":  "x402 Prepaid Session Pass Issuance \u0026 Free Balance Check",
-                                                   "description":  "Issues a signed pass_g402_\u003cid\u003e_\u003chmac\u003e token when paid via X-Payment (Starter 2.0000 USDC = 400 credits, Pro 5.0000 USDC = 1,000 credits, Fleet 20.0000 USDC = 6,000 credits; 1 credit = 0.0050 USDC), or checks remaining credits for free via ?status=pass_g402_...",
+                                                   "description":  "Issues a signed pass_g402_\u003cid\u003e_\u003chmac\u003e token when paid via X-Payment (Starter 2.0000 USDC = 400 credits/180d, Pro 5.0000 USDC = 1,200 credits/180d, Fleet 20.0000 USDC = 6,000 credits/365d; 1 credit = 0.0050 USDC), or checks remaining credits for free via ?status=pass_g402_...",
                                                    "tags":  [
                                                                 "Session-Pass"
                                                             ],

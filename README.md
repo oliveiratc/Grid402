@@ -159,9 +159,9 @@ Para agentes e desenvolvedores que buscam alta frequência (abaixo de 15ms) sem 
 - **5 Redes EVM** (`0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`): **Base**, **Arbitrum One**, **Polygon PoS**, **Optimism** e **Ethereum Mainnet**
 - **Solana Mainnet** (`CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C`): **SPL USDC** (`EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`)
 - Acesse [https://grid402.online/pass](https://grid402.online/pass) ou [https://grid402.online/pass#multichain-web3](https://grid402.online/pass#multichain-web3), escolha a rede e selecione seu pacote (`1 crédito = 0.0050 USDC`):
-  - **Starter:** 2 USDC / R$ 12 $\rightarrow$ 400 créditos (= 400 chamadas padrão, validade 30 dias)
-  - **Pro:** 5 USDC / R$ 29 $\rightarrow$ 1.000 créditos (= 1.000 chamadas padrão, validade 30 dias)
-  - **Fleet:** 20 USDC / R$ 115 $\rightarrow$ 6.000 créditos (4.000 base + 2.000 bônus (+50%) = 6.000 chamadas padrão, validade 60 dias)
+  - **Starter:** 2 USDC / R$ 12 $\rightarrow$ 400 créditos (= 400 chamadas padrão, validade 180 dias)
+  - **Pro:** 5 USDC / R$ 29 $\rightarrow$ 1.200 créditos (1.000 base + 200 bônus (+20%) = 1.200 chamadas padrão, validade 180 dias)
+  - **Fleet:** 20 USDC / R$ 115 $\rightarrow$ 6.000 créditos (4.000 base + 2.000 bônus (+50%) = 6.000 chamadas padrão, validade 365 dias)
 - Para pagamentos avulsos multi-chain por chamada, envie `X-Payment: arbitrum:0x...`, `X-Payment: polygon:0x...`, `X-Payment: solana:<assinatura>` ou o cabeçalho `X-Payment-Network`. Na Base, `X-Payment: 0x...` permanece como padrão retrocompatível.
 
 ### 7. Dossiê Institucional Base Grants e Coinbase CDP

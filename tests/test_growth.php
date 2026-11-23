@@ -27,10 +27,10 @@ ok(isset($result['referrals']), 'Referral criado');
 $metrics = grid402_growth_metrics();
 ok(is_array($metrics) && isset($metrics['wallets_connected']), 'Métricas retornadas');
 
-// Escala v2_5000 oficial (400 / 1000 / 6000) e migracao automatica de defaults legados
+// Escala v2_5000 oficial (400 / 1200 / 6000) e migracao automatica de defaults legados
 $defs = grid402_growth_defaults();
 ok(($defs['recharge_starter_credits'] ?? 0) === 400, 'Default starter deve ser 400 creditos');
-ok(($defs['recharge_pro_credits'] ?? 0) === 1000, 'Default pro deve ser 1000 creditos');
+ok(($defs['recharge_pro_credits'] ?? 0) === 1200, 'Default pro deve ser 1200 creditos');
 ok(($defs['recharge_fleet_credits'] ?? 0) === 6000, 'Default fleet deve ser 6000 creditos');
 ok(($defs['starter_promo_requires_first_paid'] ?? false) === true, 'Politica anti-abuso deve exigir 1a compra');
 ok(($defs['promo_auto_issue'] ?? true) === false, 'Emissao automatica deve permanecer desabilitada');
@@ -43,7 +43,7 @@ $migrated = grid402_growth_normalize([
     ],
 ]);
 ok(($migrated['config']['recharge_starter_credits'] ?? 0) === 400, 'Migracao legado starter 4000 -> 400');
-ok(($migrated['config']['recharge_pro_credits'] ?? 0) === 1000, 'Migracao legado pro 10000 -> 1000');
+ok(($migrated['config']['recharge_pro_credits'] ?? 0) === 1200, 'Migracao legado pro 10000 -> 1200');
 ok(($migrated['config']['recharge_fleet_credits'] ?? 0) === 6000, 'Migracao legado fleet 50000 -> 6000');
 
 echo "\nResultado: $pass passaram, $fail falharam\n";

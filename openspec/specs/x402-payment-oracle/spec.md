@@ -144,12 +144,12 @@ O servidor SHALL emitir uma notificacao push instantanea para o Telegram do mant
 - THEN nenhuma notificacao e enviada para o canal de compras do Telegram
 
 ### Requirement: Web3 One-Click Top-Up de Passes no Portal
-O portal web do Grid402 SHALL disponibilizar um componente visual interativo para aquisição em lote de Session Passes pré-pagos via carteiras Web3 (MetaMask, Coinbase Smart Wallet, Rainbow) na rede Base (Chain ID 8453) ou Pix/Cartão, transferindo USDC diretamente para a carteira do oráculo e exibindo a matemática unificada (`1 crédito = 0.0050 USDC`: Starter = 400 créditos, Pro = 1.000 créditos, Fleet = 6.000 créditos com bônus).
+O portal web do Grid402 SHALL disponibilizar um componente visual interativo para aquisição em lote de Session Passes pré-pagos via carteiras Web3 (MetaMask, Coinbase Smart Wallet, Rainbow) na rede Base (Chain ID 8453) ou Pix/Cartão, transferindo USDC diretamente para a carteira do oráculo e exibindo a matemática unificada (`1 crédito = 0.0050 USDC`: Starter = 400 créditos / 180 dias, Pro = 1.200 créditos com +20% bônus / 180 dias, Fleet = 6.000 créditos com +50% bônus / 365 dias).
 
 #### Scenario: Aquisição bem-sucedida de Session Pass via carteira Web3
 - **GIVEN** um usuário navegando no portal `grid402.online` com uma carteira conectada na rede Base
 - **WHEN** selecionar um plano (ex: Pro 5 USDC) e aprovar a transferência de 5 USDC para a carteira do oráculo
-- **THEN** o frontend SHALL enviar o hash da transação confirmada para a API `/api/v1/pass`, receber o token `pass_g402_...` com 1.000 créditos e exibi-lo com botão de cópia rápida.
+- **THEN** o frontend SHALL enviar o hash da transação confirmada para a API `/api/v1/pass`, receber o token `pass_g402_...` com 1.200 créditos (validade de 180 dias) e exibi-lo com botão de cópia rápida.
 
 #### Scenario: Tentativa em rede incorreta
 - **GIVEN** um usuário com carteira conectada em rede diferente de Base Mainnet (8453)
@@ -157,12 +157,12 @@ O portal web do Grid402 SHALL disponibilizar um componente visual interativo par
 - **THEN** o sistema SHALL solicitar a alternância de rede para Base Mainnet via `wallet_switchEthereumChain`.
 
 ### Requirement: Emissão de Passe On-Demand por Transação USDC
-O endpoint `/api/v1/pass` SHALL aceitar parâmetro `tx` (ou `txHash`), verificar o comprovante de transferência ERC-20 de USDC na Base Mainnet, creditar a cota correspondente ao valor transferido na razão `1 crédito = 0.0050 USDC` (2 USDC = 400 créditos; 5 USDC = 1.000 créditos; 20 USDC = 6.000 créditos incluindo bônus) e emitir um token criptograficamente assinado com HMAC.
+O endpoint `/api/v1/pass` SHALL aceitar parâmetro `tx` (ou `txHash`), verificar o comprovante de transferência ERC-20 de USDC na Base Mainnet, creditar a cota correspondente ao valor transferido na razão `1 crédito = 0.0050 USDC` (2 USDC = 400 créditos / 180 dias; 5 USDC = 1.200 créditos incluindo +20% bônus / 180 dias; 20 USDC = 6.000 créditos incluindo +50% bônus / 365 dias) e emitir um token criptograficamente assinado com HMAC.
 
 #### Scenario: Emissão de passe para transação de 2 USDC
 - **GIVEN** uma transação na Base confirmada transferindo 2.000000 USDC para a carteira do oráculo
 - **WHEN** a API `/api/v1/pass?tx=0x...` for chamada
-- **THEN** o servidor SHALL responder com HTTP 200, status `active`, total de 400 créditos (`1 crédito = 0.0050 USDC`), validade de 30 dias e token estruturado `pass_g402_{id}_{hmac}`.
+- **THEN** o servidor SHALL responder com HTTP 200, status `active`, total de 400 créditos (`1 crédito = 0.0050 USDC`), validade de 180 dias e token estruturado `pass_g402_{id}_{hmac}`.
 
 #### Scenario: Transação duplicada ou já utilizada
 - **GIVEN** uma transação que já teve seu passe emitido anteriormente
@@ -227,7 +227,7 @@ O repositório SHALL incluir uma suíte automatizada de testes de concorrência 
 - **THEN** estritamente 1 processo SHALL obter o lock de cada identificador e todos os demais SHALL falhar imediatamente.
 
 ### Requirement: Emissão e Consumo de Passe de Sessão Pré-pago x402 (REQ-PASS-001)
-O sistema SHALL permitir a emissão de passes de sessão pré-pagos (`pass_g402_<id>_<hmac>`) através do endpoint `/api/v1/pass` mediante liquidação em USDC na Base (escala oficial `v2_5000`: `0.0050 USDC` = 1 crédito universal; Starter `2 USDC` = 400 créditos, Pro `5 USDC` = 1.000 créditos, Fleet `20 USDC` = 6.000 créditos) e aceitar esse token no cabeçalho `X-Payment` em todos os micro-serviços do Grid402.
+O sistema SHALL permitir a emissão de passes de sessão pré-pagos (`pass_g402_<id>_<hmac>`) através do endpoint `/api/v1/pass` mediante liquidação em USDC na Base (escala oficial `v2_5000`: `0.0050 USDC` = 1 crédito universal; Starter `2 USDC` = 400 créditos / 180 dias, Pro `5 USDC` = 1.200 créditos / 180 dias, Fleet `20 USDC` = 6.000 créditos / 365 dias) e aceitar esse token no cabeçalho `X-Payment` em todos os micro-serviços do Grid402.
 
 #### Scenario: Emissão de Session Pass e débito atômico em chamadas subsequentes
 - GIVEN que um cliente ou agente obtém um token `pass_g402_...` com créditos ativos

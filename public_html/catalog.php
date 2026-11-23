@@ -75,7 +75,7 @@ ksort($services);
     <h2 data-i18n="catalog.limits.title">Limits and authentication</h2>
     <div class="grid">
         <div class="card"><h3 data-i18n="catalog.limits.c1.title">x402 micropayment</h3><p data-i18n-html="catalog.limits.c1.desc">Send <code>PAYMENT-SIGNATURE</code> (gasless PayAI x402 v2 across Base, Polygon, Arbitrum, and Solana) or tx hash to the official wallet <code><?php echo htmlspecialchars(GRID402_WALLET_ADDRESS); ?></code>; the service responds in milliseconds.</p></div>
-        <div class="card"><h3 data-i18n="catalog.limits.c2.title">Session Pass (1 credit = 0.0050 USDC)</h3><p data-i18n-html="catalog.limits.c2.desc">Buy credits at <a href="/pass" style="color:var(--primary)">/pass</a> (Pix from R$ 12 or USDC); send <code>X-Payment: pass_g402_...</code>. Starter (2 USDC = 400 credits), Pro (5 USDC = 1,000 credits), Fleet (20 USDC = 4,000 base + 2,000 bonus = 6,000 credits).</p></div>
+        <div class="card"><h3 data-i18n="catalog.limits.c2.title">Session Pass (1 credit = 0.0050 USDC)</h3><p data-i18n-html="catalog.limits.c2.desc">Buy credits at <a href="/pass" style="color:var(--primary)">/pass</a> (Pix from R$ 12 or USDC); send <code>X-Payment: pass_g402_...</code>. Starter (2 USDC = 400 credits, 180d), Pro (5 USDC = 1,000 base + 200 bonus = 1,200 credits, 180d), Fleet (20 USDC = 4,000 base + 2,000 bonus = 6,000 credits, 365d).</p></div>
         <div class="card"><h3 data-i18n="catalog.limits.c3.title">Sandbox &amp; Idempotency</h3><p data-i18n-html="catalog.limits.c3.desc">For testing: <code>X-Payment: demo</code> (3 req/day per IP). In production, send <code>Idempotency-Key</code> for retries without duplicate billing (300s TTL).</p></div>
         <div class="card"><h3 data-i18n="catalog.limits.c4.title">Rate limit and Spend Controls</h3><p data-i18n-html="catalog.limits.c4.desc">Timeout: <?php echo GRID402_TIMEOUT_MS; ?> ms. Check balance for free at <code>GET /api/v1/pass/balance</code> and configure daily cap (<code>daily_credit_limit</code>) and route whitelist.</p></div>
     </div>
@@ -140,6 +140,6 @@ ksort($services);
 const input=document.getElementById('filter');
 input.addEventListener('input',()=>{const q=input.value.toLowerCase();document.querySelectorAll('#catalog tbody tr').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none');});
 </script>
-<script src="/assets/js/i18n.js?v=3.4.1"></script>
+<script src="/assets/js/i18n.js?v=3.4.2"></script>
 </body>
 </html>

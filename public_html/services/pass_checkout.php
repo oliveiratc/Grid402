@@ -167,6 +167,7 @@ function grid402_emitir_passe_por_tx(string $txHash, ?string $network = null): a
             'credits_remaining' => (int)($issued['credits_remaining'] ?? 0),
             'issued_at' => $issued['issued_at'] ?? null,
             'expires_at' => $issued['expires_at'] ?? null,
+            'ttl_days' => (int) ($issued['validity_days'] ?? (($issued['tier'] ?? '') === 'fleet' ? 365 : 180)),
             'usage_instructions' => $issued['usage_instructions'] ?? [],
         ];
 

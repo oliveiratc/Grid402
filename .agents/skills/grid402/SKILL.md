@@ -37,9 +37,9 @@ Esta skill consolida todo o conhecimento técnico, regras de negócio, invariant
 ### Escala Oficial (`v2_5000`)
 - **Unidade Base:** `1 crédito = 0.0050 USDC = 5.000 raw units` (= 1 chamada em endpoint padrão).
 - **Pacotes de Emissão (`/api/v1/pass` via Web3 USDC ou Mercado Pago Pix):**
-  - **Starter:** `2.0000 USDC` (`2.000.000 raw units` / `R$ 12,00`) $\rightarrow$ **400 créditos** (validade 30 dias)
-  - **Pro:** `5.0000 USDC` (`5.000.000 raw units` / `R$ 29,00`) $\rightarrow$ **1.000 créditos** (validade 30 dias)
-  - **Fleet:** `20.0000 USDC` (`20.000.000 raw units` / `R$ 115,00`) $\rightarrow$ **6.000 créditos** (`4.000 base + 2.000 de bônus`, validade 60 dias)
+  - **Starter:** `2.0000 USDC` (`2.000.000 raw units` / `R$ 12,00`) $\rightarrow$ **400 créditos** (validade 180 dias)
+  - **Pro:** `5.0000 USDC` (`5.000.000 raw units` / `R$ 29,00`) $\rightarrow$ **1.200 créditos** (`1.000 base + 200 de bônus (+20%)`, validade 180 dias)
+  - **Fleet:** `20.0000 USDC` (`20.000.000 raw units` / `R$ 115,00`) $\rightarrow$ **6.000 créditos** (`4.000 base + 2.000 de bônus (+50%)`, validade 365 dias)
 - **Retrocompatibilidade (`grid402_normalize_pass_entry`):** Passes antigos gravados na escala legada `100x` (sem `'credit_scale' => 'v2_5000'`) são normalizados automaticamente em tempo de leitura dividindo `credits_total` e `credits_remaining` por `100`.
 
 ### Tabela de Custo por Endpoint (25 Micro-Serviços no Catálogo)

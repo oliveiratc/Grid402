@@ -137,7 +137,7 @@ $sbxApprove = grid402_mp_sandbox_approve($sbxPix['order_id']);
 t_assert('Aprovacao sandbox emite pass_g402_... marcado como sandbox', $sbxApprove['ok'] === true && str_starts_with((string) $sbxApprove['pass_token'], 'pass_g402_') && $sbxApprove['sandbox'] === true);
 
 $prodPassStatus = grid402_get_session_pass_status($okWh['pass_token']);
-t_assert('Token Pro de producao possui 1000 creditos em grid402_get_session_pass_status', !empty($prodPassStatus['valid']) && (int) $prodPassStatus['credits_remaining'] === 1000);
+t_assert('Token Pro de producao possui 1200 creditos em grid402_get_session_pass_status', !empty($prodPassStatus['valid']) && (int) $prodPassStatus['credits_remaining'] === 1200);
 $passStatus = grid402_get_session_pass_status($sbxApprove['pass_token']);
 t_assert('Token emitido em sandbox funciona em grid402_get_session_pass_status (100 creditos Sandbox)', !empty($passStatus['valid']) && (int) $passStatus['credits_remaining'] === 100);
 

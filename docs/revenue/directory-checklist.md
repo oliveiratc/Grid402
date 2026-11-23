@@ -60,6 +60,6 @@ node scripts/bazaar_seed.mjs --only=dossier,extract,email-verify --execute
 ## 5. Resumo Oficial de Preços (Fonte Única de Verdade)
 - **Pay-per-call x402 (gasless via PayAI em Base, Polygon, Arbitrum e Solana):** `0.0050 USDC` (padrão: `extract`, `email-verify`, `forex`, `crypto`, `dns`, `ssl`, `asn`, `cep`, `indicators`, `holidays`, `workdays`, `notarize`, `global-markets`) até `0.0500 USDC` (`dossier`).
 - **Session Pass Pré-Pago (Pix / Cartão / USDC 6 redes — `1 crédito = 0.0050 USDC`):**
-  - **Starter:** R$ 12,00 ou 2 USDC → **400 créditos** (= 40 Dossiês KYB ou 400 chamadas padrão, 30 dias)
-  - **Pro:** R$ 29,00 ou 5 USDC → **1.000 créditos** (= 100 Dossiês KYB ou 1.000 chamadas padrão, 30 dias)
-  - **Fleet:** R$ 115,00 ou 20 USDC → **6.000 créditos** (4.000 base + 2.000 bônus, 60 dias)
+  - **Starter:** R$ 12,00 ou 2 USDC → **400 créditos** (= 40 Dossiês KYB ou 400 chamadas padrão, 180 dias)
+  - **Pro:** R$ 29,00 ou 5 USDC → **1.200 créditos** (1.000 base + 200 bônus = 120 Dossiês KYB ou 1.200 chamadas padrão, 180 dias)
+  - **Fleet:** R$ 115,00 ou 20 USDC → **6.000 créditos** (4.000 base + 2.000 bônus, 365 dias)

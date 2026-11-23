@@ -7,7 +7,7 @@
 | Segmento ICP | Dor Principal | Oferta Grid402 que Fecha na Hora | Ticket Esperado |
 |---|---|---|---|
 | **1. Escritórios de Contabilidade e BPO Financeiro** | Consultam CNPJ, Simples/MEI e regularidade de fornecedores manualmente todos os dias | Gerador PDF `/dossie-kyb` por **R$ 12 no Pix (40 dossiês = R$ 0,30 cada)** | R$ 12 → R$ 29/mês |
-| **2. Agências de Automação (n8n / Make / IA)** | Precisam enriquecer CNPJ, validar e-mails B2B e extrair sites para RAG sem mensalidade cara | Session Pass **Pro R$ 29 (1.000 cr)** ou **Fleet R$ 115 (6.000 cr)** | R$ 29 → R$ 115/mês |
+| **2. Agências de Automação (n8n / Make / IA)** | Precisam enriquecer CNPJ, validar e-mails B2B e extrair sites para RAG sem mensalidade cara | Session Pass **Pro R$ 29 (1.200 cr · 180d)** ou **Fleet R$ 115 (6.000 cr · 365d)** | R$ 29 → R$ 115/mês |
 | **3. Factorings, FIDCs, Correspondentes e Deptos. de Compras** | Homologação de sacados/fornecedores com evidência auditável (CGU CEIS/CNEP + Receita) | Dossiê 360º KYB PDF com assinatura criptográfica ECDSA (`_oracle_proof`) | R$ 29 → R$ 115/mês |
 | **4. Desenvolvedores de Agentes IA (Web3 / MCP / Base / Solana)** | Precisam de ferramentas baratas (`0.0050 USDC`) para extrair Markdown (`/extract`), validar e-mail (`/email-verify`) e KYB | Gasless x402 via PayAI (Base, Polygon, Arbitrum, Solana) ou `npx -y grid402-mcp` | 2 a 20 USDC/lote |
 
@@ -57,9 +57,9 @@
   > No **Grid402** consolidamos essas 3 fontes oficiais em um **Dossiê 360º KYB** com veredito determinístico (`APPROVED` / `FLAGGED` / `REJECTED`), exportação em PDF e assinatura criptográfica ECDSA para trilha de auditoria — estritamente Zero-PII (LGPD Art. 1º).
   >
   > - Sem contrato e sem mensalidade
-  > - **Starter Pass:** R$ 12 no Pix = 400 créditos (= **40 dossiês completos**)
-  > - **Pro Pass:** R$ 29 no Pix = 1.000 créditos (= **100 dossiês**)
-  > - **Fleet Pass:** R$ 115 no Pix = 6.000 créditos (= **600 dossiês**)
+  > - **Starter Pass:** R$ 12 no Pix = 400 créditos (= **40 dossiês completos**, validade 180 dias)
+  > - **Pro Pass:** R$ 29 no Pix = 1.200 créditos (= **120 dossiês**, +20% bônus, validade 180 dias)
+  > - **Fleet Pass:** R$ 115 no Pix = 6.000 créditos (= **600 dossiês**, +50% bônus, validade 365 dias)
   >
   > Teste uma prévia gratuita agora (sem cadastro): https://grid402.online/dossie-kyb
   >

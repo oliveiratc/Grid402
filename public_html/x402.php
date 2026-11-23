@@ -801,7 +801,7 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
             'starter_url' => $canonicalBase . '/pass?tier=starter&autopix=1',
             'pro_url' => $canonicalBase . '/pass?tier=pro&autopix=1',
             'fleet_url' => $canonicalBase . '/pass?tier=fleet&autopix=1',
-            'pricing' => 'Starter R$ 12 (400 credits) | Pro R$ 29 (1,000 credits) | Fleet R$ 115 (6,000 credits)',
+            'pricing' => 'Starter R$ 12 (400 credits, 180d) | Pro R$ 29 (1,200 credits, 180d) | Fleet R$ 115 (6,000 credits, 365d)',
             'header_usage' => 'X-Payment: pass_g402_<token>',
         ],
         'rapidapi_credit_card_usd' => [

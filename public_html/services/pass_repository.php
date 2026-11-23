@@ -223,7 +223,7 @@ final class JsonFlockPassRepository implements PassStorageInterface {
         $file = $this->passesFile();
         $this->ensureDir($file);
 
-        $validityDays = 30;
+        $validityDays = 180;
         $tier = 'standard';
         if ($isSandbox) {
             $credits = 100;
@@ -232,22 +232,24 @@ final class JsonFlockPassRepository implements PassStorageInterface {
         } else {
             if ($rawUsdcUnits >= 20000000) {
                 $baseCredits = intdiv($rawUsdcUnits, 5000);
-                $bonusCredits = intdiv($baseCredits, 5);
-                $credits = max(6000, $baseCredits + max(1000, $bonusCredits));
+                $bonusCredits = intdiv($baseCredits, 2); // +50% bonus (20 USDC -> 4.000 base + 2.000 bonus = 6.000)
+                $credits = max(6000, $baseCredits + max(2000, $bonusCredits));
                 $tier = 'fleet';
-                $validityDays = 60;
+                $validityDays = 365;
             } elseif ($rawUsdcUnits >= 5000000) {
-                $credits = intdiv($rawUsdcUnits, 5000);
+                $baseCredits = intdiv($rawUsdcUnits, 5000);
+                $bonusCredits = intdiv($baseCredits, 5); // +20% bonus (5 USDC -> 1.000 base + 200 bonus = 1.200)
+                $credits = max(1200, $baseCredits + max(200, $bonusCredits));
                 $tier = 'pro';
-                $validityDays = 30;
+                $validityDays = 180;
             } elseif ($rawUsdcUnits >= 2000000) {
                 $credits = intdiv($rawUsdcUnits, 5000);
                 $tier = 'starter';
-                $validityDays = 30;
+                $validityDays = 180;
             } else {
                 $credits = max(1, intdiv($rawUsdcUnits, 5000));
                 $tier = 'standard';
-                $validityDays = 30;
+                $validityDays = 180;
             }
         }
         $usdcAmount = $isSandbox ? '0.0000 (Sandbox)' : number_format($rawUsdcUnits / 1e6, 4, '.', '');
@@ -379,6 +381,7 @@ final class JsonFlockPassRepository implements PassStorageInterface {
             'issued_at' => $record['issued_at'],
             'expires_at' => $record['expires_at'],
             'expires_epoch' => $record['expires_epoch'] ?? 0,
+            'validity_days' => $isSandbox ? 0 : (int) round($validityDays),
             'usage_instructions' => [
                 'header' => 'X-Payment: ' . $record['pass_token'],
                 'credit_rates' => [

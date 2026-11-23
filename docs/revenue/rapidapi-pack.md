@@ -49,7 +49,7 @@
 | Plano RapidAPI | Preço Mensal | Cota Mensal | Overage | Equivalente Direto Grid402 |
 |---|---|---|---|---|
 | **Basic (Free)** | $0/mês | 25 req/mês (rate limit 1 req/min) | Hard limit | Sandbox direto `3 req/dia` |
-| **Pro** | $9,90/mês | 1.500 req/mês | $0.010 / req | Starter Pass R$ 12 (400 cr) / Pro R$ 29 (1.000 cr) |
+| **Pro** | $9,90/mês | 1.500 req/mês | $0.010 / req | Starter Pass R$ 12 (400 cr) / Pro R$ 29 (1.200 cr) |
 | **Ultra** | $29,00/mês | 6.000 req/mês | $0.006 / req | Fleet Pass R$ 115 / 20 USDC (6.000 cr) |
 | **Mega** | $79,00/mês | 25.000 req/mês | $0.004 / req | Enterprise Custom |
 

@@ -193,7 +193,7 @@ $pollStatus = grid402_mp_get_order_status((string) $proOrder['order_id']);
 t_assert('Fallback consultou /v1/payments/search por external_reference', $mpSearchCalls === 1);
 t_assert('Ordem Checkout Pro aprovada e Session Pass emitido sem webhook previo', ($pollStatus['status'] ?? '') === 'approved' && str_starts_with((string) ($pollStatus['pass_token'] ?? ''), 'pass_g402_'));
 $proPassInfo = grid402_get_session_pass_status((string) ($pollStatus['pass_token'] ?? ''));
-t_assert('Session Pass Pro emitido via fallback possui 1000 creditos', !empty($proPassInfo['valid']) && (int) ($proPassInfo['credits_remaining'] ?? 0) === 1000);
+t_assert('Session Pass Pro emitido via fallback possui 1200 creditos', !empty($proPassInfo['valid']) && (int) ($proPassInfo['credits_remaining'] ?? 0) === 1200);
 
 $pollAgain = grid402_mp_get_order_status((string) $proOrder['order_id']);
 t_assert('Segunda consulta usa estado aprovado local sem reconsultar API MP', $mpSearchCalls === 1 && ($pollAgain['pass_token'] ?? '') === ($pollStatus['pass_token'] ?? ''));

@@ -401,7 +401,7 @@
     },
     {
       "name": "grid402_pass",
-      "description": "Issues a prepaid x402 Session Pass (Starter 2 USDC = 400 cr, Pro 5 USDC = 1,000 cr, Fleet 20 USDC = 6,000 cr) for sub-15ms M2M calls.",
+      "description": "Issues a prepaid x402 Session Pass (Starter 2 USDC = 400 cr/180d, Pro 5 USDC = 1,200 cr/180d, Fleet 20 USDC = 6,000 cr/365d) for sub-15ms M2M calls.",
       "cost_usdc": "2.0000",
       "endpoint": "https://grid402.online/api/v1/pass",
       "inputSchema": {

@@ -273,7 +273,7 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
             <div style="font-size:.76rem;text-transform:uppercase;letter-spacing:.06em;color:#34D399;font-weight:700;">Sem cadastro · Liberação imediata</div>
             <h2 style="margin:.25rem 0 .4rem;font-size:1.2rem;">Pagar via Pix — R$ 12,00</h2>
             <p style="color:var(--muted);font-size:.9rem;margin:0 0 .9rem;">
-                Você recebe um <strong>Starter Session Pass</strong> com <strong>400 créditos</strong> (validade de 30 dias), suficiente para gerar até <strong>40 Dossiês 360º KYB</strong> completos (ou 400 chamadas de API).
+                Você recebe um <strong>Starter Session Pass</strong> com <strong>400 créditos</strong> (validade de 180 dias), suficiente para gerar até <strong>40 Dossiês 360º KYB</strong> completos (ou 400 chamadas de API).
             </p>
             <?php if ($isSandboxMp): ?>
             <div style="font-size:.82rem;color:#FCD34D;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:.55rem .75rem;margin-bottom:.85rem;">
@@ -320,7 +320,7 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
             </div>
             <div id="pass-balance-info" style="margin-top:.75rem;font-size:.85rem;color:var(--muted);"></div>
             <p style="margin-top:1rem;font-size:.82rem;color:var(--muted);">
-                Precisa de mais volume (1.000 ou 6.000 créditos) ou pagar com cartão/USDC? <a href="/pass" style="color:var(--cyan);">Ver planos no /pass →</a>
+                Precisa de mais volume (1.200 ou 6.000 créditos) ou pagar com cartão/USDC? <a href="/pass" style="color:var(--cyan);">Ver planos no /pass →</a>
             </p>
         </div>
     </section>

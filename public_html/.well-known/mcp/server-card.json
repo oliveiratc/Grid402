@@ -129,7 +129,7 @@
     },
     {
       "name": "grid402_pass",
-      "description": "Issues a prepaid x402 Session Pass (400 / 1,000 / 6,000 credits; 1 credit = 0.0050 USDC) for sub-15ms M2M calls."
+      "description": "Issues a prepaid x402 Session Pass (400 / 1,200 / 6,000 credits; 180d-365d; 1 credit = 0.0050 USDC) for sub-15ms M2M calls."
     },
     {
       "name": "grid402_pass_balance",

@@ -50,7 +50,7 @@ check('wallet_balance_cache.json usa carteira oficial 0xa592...3f90 (ou ausente 
 check('GRID402_WALLET_ADDRESS aponta para 0xa592...3f90', strtolower(GRID402_WALLET_ADDRESS) === '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90');
 
 // -----------------------------------------------------------------
-// 2. Matemática Unificada de Session Pass (400 / 1.000 / 6.000 créditos)
+// 2. Matemática Unificada de Session Pass (400 / 1.200 / 6.000 créditos; 180d / 365d)
 // -----------------------------------------------------------------
 echo "\n[2/7] Matemática Unificada de Session Pass (1 crédito = 0.0050 USDC):\n";
 $txStarter = '0x' . bin2hex(random_bytes(32));
@@ -61,22 +61,23 @@ $passStarter = grid402_issue_session_pass($txStarter, 2000000);
 $passPro = grid402_issue_session_pass($txPro, 5000000);
 $passFleet = grid402_issue_session_pass($txFleet, 20000000);
 
-check('Starter (2 USDC / 2.000.000 raw units) emite 400 créditos', ($passStarter['credits_total'] ?? 0) === 400, 'Got: ' . ($passStarter['credits_total'] ?? 'null'));
-check('Pro (5 USDC / 5.000.000 raw units) emite 1.000 créditos', ($passPro['credits_total'] ?? 0) === 1000, 'Got: ' . ($passPro['credits_total'] ?? 'null'));
-check('Fleet (20 USDC / 20.000.000 raw units) emite 6.000 créditos (4.000 base + 2.000 bônus)', ($passFleet['credits_total'] ?? 0) === 6000, 'Got: ' . ($passFleet['credits_total'] ?? 'null'));
+check('Starter (2 USDC / 2.000.000 raw units) emite 400 créditos e 180 dias', ($passStarter['credits_total'] ?? 0) === 400 && ($passStarter['validity_days'] ?? 0) === 180, 'Got: ' . ($passStarter['credits_total'] ?? 'null') . ' / ' . ($passStarter['validity_days'] ?? 'null'));
+check('Pro (5 USDC / 5.000.000 raw units) emite 1.200 créditos (1.000 + 200 bônus) e 180 dias', ($passPro['credits_total'] ?? 0) === 1200 && ($passPro['validity_days'] ?? 0) === 180, 'Got: ' . ($passPro['credits_total'] ?? 'null') . ' / ' . ($passPro['validity_days'] ?? 'null'));
+check('Fleet (20 USDC / 20.000.000 raw units) emite 6.000 créditos (4.000 base + 2.000 bônus) e 365 dias', ($passFleet['credits_total'] ?? 0) === 6000 && ($passFleet['validity_days'] ?? 0) === 365, 'Got: ' . ($passFleet['credits_total'] ?? 'null') . ' / ' . ($passFleet['validity_days'] ?? 'null'));
 
 $mpPackages = grid402_mp_packages();
-check('Mercado Pago Pix Starter emite 400 créditos', ($mpPackages['starter']['credits'] ?? 0) === 400);
-check('Mercado Pago Pix Pro emite 1.000 créditos', ($mpPackages['pro']['credits'] ?? 0) === 1000);
-check('Mercado Pago Pix Fleet emite 6.000 créditos', ($mpPackages['fleet']['credits'] ?? 0) === 6000);
+check('Mercado Pago Pix Starter emite 400 créditos e 180 dias', ($mpPackages['starter']['credits'] ?? 0) === 400 && ($mpPackages['starter']['ttl_days'] ?? 0) === 180);
+check('Mercado Pago Pix Pro emite 1.200 créditos e 180 dias', ($mpPackages['pro']['credits'] ?? 0) === 1200 && ($mpPackages['pro']['ttl_days'] ?? 0) === 180);
+check('Mercado Pago Pix Fleet emite 6.000 créditos e 365 dias', ($mpPackages['fleet']['credits'] ?? 0) === 6000 && ($mpPackages['fleet']['ttl_days'] ?? 0) === 365);
 
 $llmsTxt = (string) file_get_contents($projectRoot . '/public_html/llms.txt');
 $readmeMd = (string) file_get_contents($projectRoot . '/README.md');
-check('llms.txt documenta 400 / 1.000 / 6.000 créditos',
+check('llms.txt documenta 400 / 1.200 / 6.000 créditos',
     (str_contains($llmsTxt, '400 creditos') || str_contains($llmsTxt, '400 créditos')) &&
+    (str_contains($llmsTxt, '1.200 creditos') || str_contains($llmsTxt, '1.200 créditos')) &&
     (str_contains($llmsTxt, '6.000 creditos') || str_contains($llmsTxt, '6.000 créditos'))
 );
-check('README.md documenta 400 / 1.000 / 6.000 créditos', str_contains($readmeMd, '400 créditos') && str_contains($readmeMd, '6.000 créditos'));
+check('README.md documenta 400 / 1.200 / 6.000 créditos', str_contains($readmeMd, '400 créditos') && str_contains($readmeMd, '1.200 créditos') && str_contains($readmeMd, '6.000 créditos'));
 
 // -----------------------------------------------------------------
 // 3. Cobertura 25/25 UP, Proveniência e Uptime 30d

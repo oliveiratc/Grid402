@@ -151,11 +151,11 @@ $supportedNets = grid402_supported_networks();
                 <div class="credits" data-i18n="pass.pkg.<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>.credits"><?php echo number_format((int) $pkg['credits'], 0, '.', ','); ?> credits (<?php echo number_format((int) $pkg['credits'], 0, '.', ','); ?> standard req)</div>
                 <p class="desc" data-i18n="pass.pkg.<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>.desc">
                     <?php if ($tier === 'starter'): ?>
-                        Ideal for individual developers, quick tests, and spot bots (1 credit = 0.0050 USDC). Valid for 30 days.
+                        Ideal for individual developers, quick tests, and spot bots (1 credit = 0.0050 USDC). Valid for 180 days.
                     <?php elseif ($tier === 'pro'): ?>
-                        For autonomous AI agents and continuous automation pipelines (1 credit = 0.0050 USDC). Most popular. Valid for 30 days.
+                        For autonomous AI agents and continuous automation pipelines (1,000 base + 200 bonus = 1,200 credits; 16.7% off). Most popular. Valid for 180 days.
                     <?php else: ?>
-                        Agent fleets, corporate ERP systems, and high demand (4,000 base + 2,000 bonus = 6,000 credits). Valid for 60 days.
+                        Agent fleets, corporate ERP systems, and high demand (4,000 base + 2,000 bonus = 6,000 credits; 33.3% off). Valid for 365 days.
                     <?php endif; ?>
                 </p>
             </div>
@@ -285,7 +285,7 @@ async function validateMultiChainPass(btn) {
             showIssuedPass({
                 pass_token: data.pass_token,
                 credits: data.credits_total,
-                ttl_days: 30,
+                ttl_days: data.ttl_days || (data.tier === 'fleet' ? 365 : 180),
                 sandbox: false,
             });
         } else {
@@ -314,7 +314,7 @@ function showIssuedPass(data) {
     document.getElementById('mp-pix-area').style.display = 'none';
     document.getElementById('mp-success-area').style.display = 'block';
     document.getElementById('mp-token-value').textContent = data.pass_token;
-    document.getElementById('mp-token-meta').textContent = `${data.credits} créditos • Validade ${data.ttl_days || 30} dias` + (data.sandbox ? ' • SANDBOX' : '');
+    document.getElementById('mp-token-meta').textContent = `${data.credits} créditos • Validade ${data.ttl_days || 180} dias` + (data.sandbox ? ' • SANDBOX' : '');
     document.getElementById('mp-token-snippet').textContent =
         `curl -s -H "X-Payment: ${data.pass_token}" "${window.location.origin}/api/v1/cnpj?cnpj=00000000000191"`;
     showPanel('Pagamento confirmado!', 'Seu Session Pass já está ativo e pronto para uso.', true);
@@ -464,6 +464,6 @@ function copyToken(btn) {
     }
 })();
 </script>
-<script src="/assets/js/i18n.js?v=3.4.1"></script>
+<script src="/assets/js/i18n.js?v=3.4.2"></script>
 </body>
 </html>

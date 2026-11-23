@@ -29,23 +29,23 @@ function grid402_mp_packages(): array {
             'amount_brl' => 12.00,
             'raw_usdc_units' => 2000000, // 2 USDC -> 400 creditos (1 credito = 0.0050 USDC)
             'credits' => 400,
-            'ttl_days' => 30,
+            'ttl_days' => 180,
         ],
         'pro' => [
             'tier' => 'pro',
             'label' => 'Pro / Agent Pass',
             'amount_brl' => 29.00,
-            'raw_usdc_units' => 5000000, // 5 USDC -> 1.000 creditos (1 credito = 0.0050 USDC)
-            'credits' => 1000,
-            'ttl_days' => 30,
+            'raw_usdc_units' => 5000000, // 5 USDC -> 1.000 base + 200 bonus (+20%) = 1.200 creditos
+            'credits' => 1200,
+            'ttl_days' => 180,
         ],
         'fleet' => [
             'tier' => 'fleet',
             'label' => 'Fleet / Enterprise Pass',
             'amount_brl' => 115.00,
-            'raw_usdc_units' => 20000000, // 20 USDC -> 4.000 base + 2.000 bonus = 6.000 creditos
+            'raw_usdc_units' => 20000000, // 20 USDC -> 4.000 base + 2.000 bonus (+50%) = 6.000 creditos
             'credits' => 6000,
-            'ttl_days' => 60,
+            'ttl_days' => 365,
         ],
     ];
 }

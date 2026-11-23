@@ -431,7 +431,7 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_pass',
-    description: 'Emite um Session Pass pré-pago x402 (Starter 2 USDC = 400 créditos, Pro 5 USDC = 1.000 créditos, Fleet 20 USDC = 6.000 créditos; 1 crédito = 0.0050 USDC) ou consulta status via ?status=pass_g402_...',
+    description: 'Emite um Session Pass pré-pago x402 (Starter 2 USDC = 400 créditos/180d, Pro 5 USDC = 1.200 créditos/180d, Fleet 20 USDC = 6.000 créditos/365d; 1 crédito = 0.0050 USDC) ou consulta status via ?status=pass_g402_...',
     inputSchema: {
       type: 'object',
       properties: {
@@ -483,7 +483,7 @@ export const MCP_TOOLS_DEFINITIONS = [
 export const CHECKOUT_OPTIONS = {
   pix_instant_brl: {
     starter_400_credits: 'https://grid402.online/pass?tier=starter&autopix=1 (R$ 12,00 via Pix = 400 créditos)',
-    pro_1000_credits: 'https://grid402.online/pass?tier=pro&autopix=1 (R$ 28,00 via Pix = 1.000 créditos)',
+    pro_1200_credits: 'https://grid402.online/pass?tier=pro&autopix=1 (R$ 29,00 via Pix = 1.200 créditos · 180 dias)',
     fleet_6000_credits: 'https://grid402.online/pass?tier=fleet&autopix=1 (R$ 110,00 via Pix = 6.000 créditos)',
     how_to_use: 'Defina GRID402_SESSION_PASS=pass_g402_... no ambiente do MCP para chamadas em <15ms sem chave privada.',
   },

@@ -305,7 +305,7 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
             <div data-i18n="inst.footer.copy">© <?php echo date('Y'); ?> Grid402 Network Intelligence. All rights reserved.</div>
         </footer>
     </div>
-    <script src="/assets/js/i18n.js?v=3.4.1"></script>
+    <script src="/assets/js/i18n.js?v=3.4.2"></script>
 </body>
 </html>
     <?php
@@ -1203,9 +1203,9 @@ if ($isValidApiAction) {
             $previewData = [
                 'product' => 'x402 Prepaid Session Pass (High-Frequency M2M & Web3 Top-Up)',
                 'credit_unit' => '1 credit = 0.0050 USDC (5,000 raw units) = 1 standard API call',
-                'tier_starter' => '2.0000 USDC (or R$ 12 Pix) = 400 credits (<15ms latency, 30 days validity)',
-                'tier_pro' => '5.0000 USDC (or R$ 29 Pix) = 1,000 credits (<15ms latency, 30 days validity)',
-                'tier_fleet' => '20.0000 USDC (or R$ 115 Pix) = 4,000 base + 2,000 bonus (+50%) = 6,000 credits (<15ms latency, 60 days validity)',
+                'tier_starter' => '2.0000 USDC (or R$ 12 Pix) = 400 credits (<15ms latency, 180 days validity)',
+                'tier_pro' => '5.0000 USDC (or R$ 29 Pix) = 1,000 base + 200 bonus (+20%) = 1,200 credits (<15ms latency, 180 days validity)',
+                'tier_fleet' => '20.0000 USDC (or R$ 115 Pix) = 4,000 base + 2,000 bonus (+50%) = 6,000 credits (<15ms latency, 365 days validity)',
                 'spend_controls' => 'Supports daily_credit_limit, allowed_endpoints, and free balance check via GET /api/v1/pass/balance',
                 'network' => 'Multi-Chain USDC: Base (8453), Arbitrum (42161), Polygon (137), Optimism (10), Ethereum (1), and Solana SPL USDC',
                 'token' => 'USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)',
@@ -1804,9 +1804,9 @@ if ($isValidApiAction) {
             'message' => "Consulta executada no Modo Sandbox de testes ({$remQuota}/{$limQuota} restantes hoje). Para chamadas em produção sem rate-limit (<15ms), adquira um Session Pass via Pix/Cartão (a partir de R$ 12 = 400 créditos) ou Multi-Chain USDC (Base, Polygon, Arbitrum, Solana).",
             'upgrade_to_production' => [
                 'session_pass_pix_and_multichain_url' => 'https://grid402.online/pass?tier=starter&method=pix',
-                'starter_tier' => 'R$ 12,00 (Pix/Cartão) ou 2.0000 USDC = 400 créditos (30 dias)',
-                'pro_tier' => 'R$ 29,00 (Pix/Cartão) ou 5.0000 USDC = 1.000 créditos (30 dias)',
-                'fleet_tier' => 'R$ 115,00 (Pix/Cartão) ou 20.0000 USDC = 6.000 créditos (4.000 + 2.000 bônus, 60 dias)',
+                'starter_tier' => 'R$ 12,00 (Pix/Cartão) ou 2.0000 USDC = 400 créditos (180 dias)',
+                'pro_tier' => 'R$ 29,00 (Pix/Cartão) ou 5.0000 USDC = 1.200 créditos (1.000 + 200 bônus, 180 dias)',
+                'fleet_tier' => 'R$ 115,00 (Pix/Cartão) ou 20.0000 USDC = 6.000 créditos (4.000 + 2.000 bônus, 365 dias)',
                 'supported_chains' => ['base', 'polygon', 'arbitrum', 'solana', 'optimism', 'ethereum'],
                 'header_example' => 'X-Payment: pass_g402_<id>_<hmac>',
             ],
@@ -3368,13 +3368,13 @@ grid402_log_public_visit('/');
                     <div class="roi-slider-wrap">
                         <div class="roi-slider-label">
                             <span data-i18n="roi.calc.label">Monthly KYB 360º Dossiers:</span>
-                            <span id="roi-vol-display" class="roi-slider-val">100 / month</span>
+                            <span id="roi-vol-display" class="roi-slider-val">120 / month</span>
                         </div>
-                        <input type="range" id="roi-slider-input" class="roi-slider" min="10" max="1000" step="10" value="100" oninput="updateRoiCalc(this.value)">
+                        <input type="range" id="roi-slider-input" class="roi-slider" min="10" max="1000" step="10" value="120" oninput="updateRoiCalc(this.value)">
                         
                         <div class="roi-presets-row">
                             <button type="button" class="roi-preset-btn" onclick="setRoiPreset(40)">40/mo</button>
-                            <button type="button" class="roi-preset-btn" onclick="setRoiPreset(100)">100/mo</button>
+                            <button type="button" class="roi-preset-btn" onclick="setRoiPreset(120)">120/mo</button>
                             <button type="button" class="roi-preset-btn" onclick="setRoiPreset(300)">300/mo</button>
                             <button type="button" class="roi-preset-btn" onclick="setRoiPreset(600)">600/mo</button>
                         </div>
@@ -3393,7 +3393,7 @@ grid402_log_public_visit('/');
 
                     <div class="roi-savings-badge">
                         <div id="roi-savings-val" class="roi-savings-num">$ 49.00</div>
-                        <div id="roi-savings-desc" class="roi-savings-sub">Estimated savings of 91% · Pro Pass ($5 = 100 dossiers)</div>
+                        <div id="roi-savings-desc" class="roi-savings-sub">Estimated savings of 91% · Pro Pass ($5 = 120 dossiers)</div>
                     </div>
 
                     <div style="display: flex; gap: 0.6rem; margin-top: 1.25rem;">
@@ -3443,7 +3443,7 @@ grid402_log_public_visit('/');
                         <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;" data-i18n="topup.starter.desc">Ideal for solo developers, quick prototypes, and lightweight bots.</p>
                         <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; font-size: 0.88rem; color: #d1d5db; line-height: 1.8;">
                             <li data-i18n-html="topup.starter.b1">✓ <strong>400 credits</strong> included (1 credit = 0.0050 USDC)</li>
-                            <li data-i18n-html="topup.starter.b2">✓ Valid for <strong>30 days</strong></li>
+                            <li data-i18n-html="topup.starter.b2">✓ Valid for <strong>180 days</strong></li>
                             <li data-i18n-html="topup.starter.b3">✓ Sub-15ms ultra-low latency</li>
                             <li data-i18n-html="topup.starter.b4">✓ HMAC signature + Spend Controls</li>
                         </ul>
@@ -3456,7 +3456,7 @@ grid402_log_public_visit('/');
 
                 <!-- Card 2: Pro (Mais Popular) -->
                 <div class="topup-card featured" style="background: linear-gradient(180deg, rgba(0, 82, 255, 0.15) 0%, var(--surface) 100%); border: 2px solid #0052FF; border-radius: 12px; padding: 1.75rem 1.5rem; display: flex; flex-direction: column; justify-content: space-between; position: relative; box-shadow: 0 8px 30px rgba(0, 82, 255, 0.25);">
-                    <div style="position: absolute; top: -12px; right: 20px; background: #0052FF; color: #fff; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.5px;" data-i18n="topup.pro.badge">Most Popular</div>
+                    <div style="position: absolute; top: -12px; right: 20px; background: #0052FF; color: #fff; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.5px;" data-i18n="topup.pro.badge">Most Popular · +20% Bonus</div>
                     <div>
                         <div style="font-size: 0.85rem; text-transform: uppercase; font-weight: 700; color: #00F0FF; letter-spacing: 1px; margin-bottom: 0.5rem;" data-i18n="topup.pro.tag">Pro / Agent Pass</div>
                         <div style="display: flex; align-items: baseline; gap: 0.35rem; margin-bottom: 0.2rem;">
@@ -3466,8 +3466,8 @@ grid402_log_public_visit('/');
                         <div style="font-size: 0.82rem; color: #10B981; font-weight: 600; margin-bottom: 0.75rem;" data-i18n="topup.pro.pix_label">or R$ 29.00 via Pix / Card</div>
                         <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;" data-i18n="topup.pro.desc">For autonomous AI agents and continuous automation pipelines.</p>
                         <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; font-size: 0.88rem; color: #d1d5db; line-height: 1.8;">
-                            <li data-i18n-html="topup.pro.b1">✓ <strong>1,000 credits</strong> included (1 credit = 0.0050 USDC)</li>
-                            <li data-i18n-html="topup.pro.b2">✓ Valid for <strong>30 days</strong></li>
+                            <li data-i18n-html="topup.pro.b1">✓ <strong>1,200 credits</strong> (1,000 base + 200 bonus; 16.7% off)</li>
+                            <li data-i18n-html="topup.pro.b2">✓ Valid for <strong>180 days</strong></li>
                             <li data-i18n-html="topup.pro.b3">✓ Compatible with Claude MCP and AgentKit</li>
                             <li data-i18n-html="topup.pro.b4">✓ Zero block wait per call</li>
                         </ul>
@@ -3491,7 +3491,7 @@ grid402_log_public_visit('/');
                         <p style="font-size: 0.88rem; color: var(--text-muted); margin-bottom: 1.25rem;" data-i18n="topup.fleet.desc">Autonomous agent fleets, enterprise ERPs, and heavy-duty pipelines.</p>
                         <ul style="list-style: none; padding: 0; margin: 0 0 1.5rem 0; font-size: 0.88rem; color: #d1d5db; line-height: 1.8;">
                             <li data-i18n-html="topup.fleet.b1">✓ <strong>6,000 credits</strong> (4,000 base + 2,000 bonus; 1 credit = 0.0050 USDC)</li>
-                            <li data-i18n-html="topup.fleet.b2">✓ Valid for <strong>60 days</strong></li>
+                            <li data-i18n-html="topup.fleet.b2">✓ Valid for <strong>365 days</strong></li>
                             <li data-i18n-html="topup.fleet.b3">✓ Effective rate: 0.0033 USDC / credit</li>
                             <li data-i18n-html="topup.fleet.b4">✓ Top priority on atomic cache</li>
                         </ul>
@@ -6059,7 +6059,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     document.getElementById('topup-result-token').textContent = passData.pass_token;
                     document.getElementById('topup-result-credits').textContent = Number(passData.credits_total || 0).toLocaleString();
                     document.getElementById('topup-result-tier').textContent = (passData.tier || tierName).toUpperCase() + ' (' + netCfg.name + ')';
-                    document.getElementById('topup-result-expires').textContent = passData.expires_at || '30 dias';
+                    document.getElementById('topup-result-expires').textContent = passData.expires_at || '180 dias';
 
                     const exampleCurl = 'curl "https://grid402.online/api/v1/forex" -H "X-Payment: ' + passData.pass_token + '"';
                     document.getElementById('topup-example-curl').textContent = exampleCurl;
@@ -6137,7 +6137,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     document.getElementById('topup-result-token').textContent = passData.pass_token;
                     document.getElementById('topup-result-credits').textContent = Number(passData.credits_total || 0).toLocaleString();
                     document.getElementById('topup-result-tier').textContent = (passData.tier || 'PRO').toUpperCase() + ' (' + netCfg.name + ')';
-                    document.getElementById('topup-result-expires').textContent = passData.expires_at || '30 dias';
+                    document.getElementById('topup-result-expires').textContent = passData.expires_at || '180 dias';
 
                     const exampleCurl = 'curl "https://grid402.online/api/v1/forex" -H "X-Payment: ' + passData.pass_token + '"';
                     document.getElementById('topup-example-curl').textContent = exampleCurl;
@@ -6335,30 +6335,30 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 : Math.max(100.0, count * 0.66);
 
             // Grid402 /api/v1/dossier (10 creditos por dossie 360 completo):
-            // Starter: R$ 12 / $2 (40 dossies) | Pro: R$ 29 / $5 (100 dossies) | Fleet: R$ 115 / $20 (600 dossies)
+            // Starter: R$ 12 / $2 (40 dossies, 180d) | Pro: R$ 29 / $5 (120 dossies, 180d) | Fleet: R$ 115 / $20 (600 dossies, 365d)
             let costGrid;
             let tierNote;
             if (isEn) {
                 if (count <= 40) {
                     costGrid = count * 0.05;
-                    tierNote = 'Starter Pass ($2 = 40 dossiers)';
-                } else if (count <= 100) {
-                    costGrid = count * 0.05;
-                    tierNote = 'Pro Pass ($5 = 100 dossiers)';
+                    tierNote = 'Starter Pass ($2 = 40 dossiers · 180d)';
+                } else if (count <= 120) {
+                    costGrid = count * (5 / 120);
+                    tierNote = 'Pro Pass ($5 = 120 dossiers · 180d)';
                 } else {
                     costGrid = count * (20 / 600);
-                    tierNote = 'Fleet Pass rate ($0.0333/dossier)';
+                    tierNote = 'Fleet Pass rate ($0.0333/dossier · 365d)';
                 }
             } else {
                 if (count <= 40) {
                     costGrid = count * 0.30;
-                    tierNote = 'Starter Pass (R$ 12 = 40 dossiês)';
-                } else if (count <= 100) {
-                    costGrid = count * 0.29;
-                    tierNote = 'Pro Pass (R$ 29 = 100 dossiês)';
+                    tierNote = 'Starter Pass (R$ 12 = 40 dossiês · 180d)';
+                } else if (count <= 120) {
+                    costGrid = count * (29 / 120);
+                    tierNote = 'Pro Pass (R$ 29 = 120 dossiês · 180d)';
                 } else {
                     costGrid = count * (115 / 600);
-                    tierNote = 'Tarifa proporcional Fleet (R$ 0,19/dossiê)';
+                    tierNote = 'Tarifa proporcional Fleet (R$ 0,19/dossiê · 365d)';
                 }
             }
 
@@ -6391,11 +6391,11 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             updateRoiCalc(val);
         }
 
-        // Inicializa a calculadora com 100 dossies/mes ao carregar
+        // Inicializa a calculadora com 120 dossies/mes (1 Pro Pass exato) ao carregar
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() { updateRoiCalc(100); });
+            document.addEventListener('DOMContentLoaded', function() { updateRoiCalc(120); });
         } else {
-            updateRoiCalc(100);
+            updateRoiCalc(120);
         }
 
         // WebMCP: Model Context Protocol no navegador para agentes de IA
@@ -6502,6 +6502,6 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             }
         }
     </script>
-    <script src="/assets/js/i18n.js?v=3.4.1"></script>
+    <script src="/assets/js/i18n.js?v=3.4.2"></script>
 </body>
 </html>

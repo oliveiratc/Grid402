@@ -49,7 +49,7 @@ $pages = [
         'faq' => [
             [
                 'q' => 'Quanto custa consultar um CNPJ na API Grid402?',
-                'a' => 'Cada consulta em /api/v1/cnpj custa 4 créditos (0.0200 USDC). No Starter Pass de R$ 12 via Pix (400 créditos), você faz 100 consultas CNPJ sem mensalidade e sem expiração antecipada dentro de 30 dias.',
+                'a' => 'Cada consulta em /api/v1/cnpj custa 4 créditos (0.0200 USDC). No Starter Pass de R$ 12 via Pix (400 créditos), você faz 100 consultas CNPJ sem mensalidade e sem expiração antecipada dentro de 180 dias.',
             ],
             [
                 'q' => 'Preciso criar conta ou assinar contrato comercial?',
