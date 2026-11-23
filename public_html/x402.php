@@ -618,6 +618,151 @@ function grid402_build_accepts(int $priceRawUnits): array {
 }
 
 /**
+ * Metadados semanticos canonicos em ingles para descoberta no x402 Bazaar (resource.description, tags e output.example real).
+ * Garante alto match semantico para agentes autonomos globais em vez de textos genericos ou teasers travados.
+ */
+function grid402_bazaar_service_metadata(?string $serviceName): array {
+    $slug = strtolower(trim((string) $serviceName));
+    $oracleProofSample = [
+        'algorithm' => 'secp256k1-sha256',
+        'signer' => defined('GRID402_WALLET_ADDRESS') ? GRID402_WALLET_ADDRESS : '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90',
+        'payload_hash' => '0x...',
+        'signature' => '0x...',
+    ];
+
+    $catalog = [
+        'ofac' => [
+            'description' => 'Screen EVM wallet addresses, entities and individuals against US Treasury OFAC SDN, UN Consolidated Sanctions and Base AML risk with ECDSA oracle proof.',
+            'tags' => ['ofac', 'sanctions', 'aml', 'compliance', 'kyb', 'base', 'x402'],
+            'output_example' => ['target' => '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90', 'is_sanctioned' => false, 'risk_level' => 'LOW', 'lists_screened' => ['OFAC_SDN', 'UN_CONSOLIDATED', 'BASE_ONCHAIN'], '_oracle_proof' => $oracleProofSample],
+        ],
+        'dossier' => [
+            'description' => 'Full 360-degree Brazil KYB corporate dossier (Receita Federal CNPJ, Simples Nacional/MEI, CGU CEIS/CNEP sanctions) with deterministic AI verdict (APPROVED, FLAGGED, REJECTED) and ECDSA proof.',
+            'tags' => ['kyb', 'cnpj', 'compliance', 'brazil', 'sanctions', 'due-diligence', 'x402'],
+            'output_example' => ['cnpj' => '00000000000191', 'legal_name' => 'BANCO DO BRASIL SA', 'verdict' => 'APPROVED', 'compliance_score' => 100, '_oracle_proof' => $oracleProofSample],
+        ],
+        'kyb-audit' => [
+            'description' => 'Global corporate KYB audit combining Brazil Receita Federal CNPJ, US OFAC/UN sanctions screening and GLEIF ISO 17442 LEI verification in a single signed call.',
+            'tags' => ['kyb', 'compliance', 'ofac', 'lei', 'cnpj', 'due-diligence', 'x402'],
+            'output_example' => ['cnpj' => '00000000000191', 'risk_score' => 98, 'ofac_clear' => true, 'lei_verified' => true, '_oracle_proof' => $oracleProofSample],
+        ],
+        'compliance' => [
+            'description' => 'Brazil corporate Compliance 360 risk score (0-100) cross-checking Receita Federal registration status, CGU CEIS/CNEP sanctions and tax profile.',
+            'tags' => ['compliance', 'kyb', 'cnpj', 'risk-score', 'brazil', 'x402'],
+            'output_example' => ['cnpj' => '00000000000191', 'compliance_score' => 100, 'status' => 'APPROVED', 'sanctions_count' => 0, '_oracle_proof' => $oracleProofSample],
+        ],
+        'extract' => [
+            'description' => 'SSRF-hardened web page URL to clean LLM-ready Markdown extractor for RAG and AI agents, returning title, metadata, clean Markdown body and absolute links.',
+            'tags' => ['web-scraping', 'markdown', 'rag', 'llm', 'extractor', 'x402'],
+            'output_example' => ['url' => 'https://example.com', 'title' => 'Example Domain', 'markdown' => '# Example Domain...', 'char_count' => 1420, '_oracle_proof' => $oracleProofSample],
+        ],
+        'email-verify' => [
+            'description' => 'Zero-PII B2B email deliverability and risk audit checking RFC syntax, authoritative DNS MX, SPF, DMARC, disposable domains and role-based addresses with 0-100 score.',
+            'tags' => ['email-verification', 'b2b', 'deliverability', 'dns', 'anti-fraud', 'x402'],
+            'output_example' => ['deliverable' => true, 'score' => 95, 'mx_valid' => true, 'spf_present' => true, 'dmarc_present' => true, 'disposable' => false, '_oracle_proof' => $oracleProofSample],
+        ],
+        'domain-audit' => [
+            'description' => 'Consolidated domain security and infrastructure audit (authoritative DNS + TLS/SSL certificate + BGP/ASN routing) with risk score in one call.',
+            'tags' => ['domain-audit', 'dns', 'ssl', 'asn', 'security', 'network', 'x402'],
+            'output_example' => ['domain' => 'base.org', 'tls_valid' => true, 'days_until_expiry' => 64, 'asn' => 'AS13335', 'risk_score' => 95, '_oracle_proof' => $oracleProofSample],
+        ],
+        'lei' => [
+            'description' => 'Global Legal Entity Identifier (ISO 17442) corporate identity lookup via official GLEIF registry covering 200+ jurisdictions with ECDSA oracle proof.',
+            'tags' => ['lei', 'gleif', 'kyb', 'iso-17442', 'corporate-identity', 'x402'],
+            'output_example' => ['lei' => '5493006MHB84DD0ZWV18', 'legal_name' => 'BANCO DO BRASIL S.A.', 'status' => 'ISSUED', 'jurisdiction' => 'BR', '_oracle_proof' => $oracleProofSample],
+        ],
+        'cnpj' => [
+            'description' => 'Official Brazil Receita Federal CNPJ company lookup returning legal name, trade name, active status, CNAE activity codes, address and share capital.',
+            'tags' => ['cnpj', 'brazil', 'kyb', 'receita-federal', 'company-data', 'x402'],
+            'output_example' => ['cnpj' => '00000000000191', 'legal_name' => 'BANCO DO BRASIL SA', 'status' => 'ATIVA', 'uf' => 'DF', '_oracle_proof' => $oracleProofSample],
+        ],
+        'sanctions' => [
+            'description' => 'Brazil CGU administrative sanctions lookup (CEIS and CNEP registries) checking whether a CNPJ is debarred or sanctioned.',
+            'tags' => ['sanctions', 'ceis', 'cnep', 'cgu', 'brazil', 'compliance', 'x402'],
+            'output_example' => ['cnpj' => '00000000000191', 'has_sanctions' => false, 'ceis_count' => 0, 'cnep_count' => 0, '_oracle_proof' => $oracleProofSample],
+        ],
+        'simples' => [
+            'description' => 'Brazil Simples Nacional and SIMEI (MEI) tax regime enrollment verification by CNPJ.',
+            'tags' => ['simples-nacional', 'mei', 'tax', 'cnpj', 'brazil', 'x402'],
+            'output_example' => ['cnpj' => '00000000000191', 'optante_simples' => false, 'optante_mei' => false, '_oracle_proof' => $oracleProofSample],
+        ],
+        'market-snapshot' => [
+            'description' => 'Consolidated financial and macro market snapshot combining commercial Forex (USD/EUR/GBP to BRL), Crypto spot prices, Selic/CDI/IPCA and ANBIMA calendar.',
+            'tags' => ['finance', 'markets', 'forex', 'crypto', 'macro', 'x402'],
+            'output_example' => ['usd_brl' => 5.75, 'btc_usd' => 95000, 'selic_pct' => 11.25, '_oracle_proof' => $oracleProofSample],
+        ],
+        'global-markets' => [
+            'description' => 'Global exchange settlement calendar (US NYSE/Fed, EU TARGET2, UK LSE, BR B3) and 30+ European Central Bank (ECB) FX reference rates.',
+            'tags' => ['forex', 'ecb', 'markets', 'settlement-calendar', 'finance', 'x402'],
+            'output_example' => ['market' => 'US', 'is_open' => true, 'base' => 'USD', 'rates' => ['EUR' => 0.92, 'GBP' => 0.79, 'BRL' => 5.75], '_oracle_proof' => $oracleProofSample],
+        ],
+        'forex' => [
+            'description' => 'Official commercial fiat exchange rates (USD, EUR, GBP to BRL) with daily percentage change and ECDSA oracle proof.',
+            'tags' => ['forex', 'fx', 'currency', 'brl', 'finance', 'x402'],
+            'output_example' => ['rates' => ['USD' => ['bid' => 5.75, 'ask' => 5.76], 'EUR' => ['bid' => 6.20, 'ask' => 6.21]], '_oracle_proof' => $oracleProofSample],
+        ],
+        'crypto' => [
+            'description' => 'Real-time cryptocurrency spot prices and 24h changes for BTC, ETH, SOL, USDC and BASE in USD and BRL with signed oracle proof.',
+            'tags' => ['crypto', 'prices', 'btc', 'eth', 'sol', 'base', 'x402'],
+            'output_example' => ['prices' => ['BTC' => ['usd' => 95000], 'ETH' => ['usd' => 3400], 'SOL' => ['usd' => 220]], '_oracle_proof' => $oracleProofSample],
+        ],
+        'dns' => [
+            'description' => 'Authoritative DNS record resolution returning A, AAAA, MX, TXT, NS and CNAME records with query latency.',
+            'tags' => ['dns', 'network', 'domain', 'infrastructure', 'x402'],
+            'output_example' => ['domain' => 'base.org', 'records' => ['A' => ['104.18.0.1'], 'MX' => ['aspmx.l.google.com']], '_oracle_proof' => $oracleProofSample],
+        ],
+        'ssl' => [
+            'description' => 'Port 443 TLS/SSL certificate inspector returning issuer, validity dates, SANs, cipher suite and days until expiration.',
+            'tags' => ['ssl', 'tls', 'security', 'certificates', 'network', 'x402'],
+            'output_example' => ['host' => 'base.org', 'valid' => true, 'issuer' => 'Google Trust Services', 'days_remaining' => 64, '_oracle_proof' => $oracleProofSample],
+        ],
+        'asn' => [
+            'description' => 'BGP routing and ASN intelligence returning ASN number, IP prefix, owner organization and country for any IPv4/IPv6 address.',
+            'tags' => ['asn', 'bgp', 'ip-intelligence', 'network', 'security', 'x402'],
+            'output_example' => ['ip' => '1.1.1.1', 'asn' => 'AS13335', 'organization' => 'Cloudflare, Inc.', 'country' => 'US', '_oracle_proof' => $oracleProofSample],
+        ],
+        'cep' => [
+            'description' => 'Official Brazil postal code (CEP) lookup returning street, neighborhood, city, state and IBGE municipality code.',
+            'tags' => ['cep', 'postal-code', 'address', 'ibge', 'brazil', 'x402'],
+            'output_example' => ['cep' => '01310-100', 'street' => 'Avenida Paulista', 'city' => 'Sao Paulo', 'state' => 'SP', 'ibge' => '3550308', '_oracle_proof' => $oracleProofSample],
+        ],
+        'indicators' => [
+            'description' => 'Official Brazil Central Bank (BCB) and IBGE macroeconomic indicators: Selic target/daily, CDI and 12-month IPCA inflation.',
+            'tags' => ['macro', 'selic', 'cdi', 'ipca', 'bcb', 'brazil', 'x402'],
+            'output_example' => ['selic_target_pct' => 11.25, 'cdi_annual_pct' => 11.15, 'ipca_12m_pct' => 4.5, '_oracle_proof' => $oracleProofSample],
+        ],
+        'holidays' => [
+            'description' => 'Official Brazil national and ANBIMA/Febraban banking holidays calendar for any year (1900-2100).',
+            'tags' => ['holidays', 'anbima', 'banking-calendar', 'brazil', 'finance', 'x402'],
+            'output_example' => ['year' => 2026, 'total_holidays' => 12, 'holidays' => [['date' => '2026-01-01', 'name' => 'Confraternizacao Universal']], '_oracle_proof' => $oracleProofSample],
+        ],
+        'workdays' => [
+            'description' => 'ANBIMA banking business-day calculator and D+N settlement maturity projector for Brazilian financial operations.',
+            'tags' => ['workdays', 'anbima', 'settlement', 'finance', 'brazil', 'x402'],
+            'output_example' => ['start_date' => '2026-12-23', 'end_date' => '2026-12-28', 'business_days' => 2, 'is_business_day' => true, '_oracle_proof' => $oracleProofSample],
+        ],
+        'notarize' => [
+            'description' => 'M2M cryptographic timestamping and SHA-256 proof-of-existence notarization signed with ECDSA secp256k1.',
+            'tags' => ['notarization', 'timestamp', 'sha256', 'ecdsa', 'cryptography', 'x402'],
+            'output_example' => ['sha256' => '0x...', 'timestamp_utc' => '2026-11-23T20:00:00Z', '_oracle_proof' => $oracleProofSample],
+        ],
+        'pass' => [
+            'description' => 'Issue a sub-15ms x402 prepaid Session Pass (Starter 2 USDC = 400 credits, Pro 5 USDC = 1,200 credits, Fleet 20 USDC = 6,000 credits) with Spend Controls.',
+            'tags' => ['session-pass', 'prepaid', 'high-frequency', 'x402', 'usdc'],
+            'output_example' => ['token' => 'pass_g402_...', 'credits_total' => 400, 'credits_remaining' => 400, 'expires_at' => '2027-05-22T00:00:00Z'],
+        ],
+    ];
+
+    return $catalog[$slug] ?? [
+        'description' => $slug !== ''
+            ? "Verifiable public data API '{$slug}' by Grid402 with ECDSA secp256k1 oracle proof and HTTP x402 settlement."
+            : 'Verifiable public data and network utilities API by Grid402 with ECDSA oracle proof and HTTP x402 settlement.',
+        'tags' => ['public-data', 'oracle', 'x402', 'base', 'ai-agents'],
+        'output_example' => null,
+    ];
+}
+
+/**
  * Constroi o objeto canônico `resource` para respostas 402 e payloads x402 v2 (Bazaar).
  */
 function grid402_build_resource_info(?string $serviceName = null, ?string $priceDisplay = null, ?string $fullUrl = null, ?string $customDescription = null): array {
@@ -635,16 +780,19 @@ function grid402_build_resource_info(?string $serviceName = null, ?string $price
         $fullUrl = $canonicalBase . $fullUrl;
     }
 
-    $msg = $customDescription ?? ($serviceName
-        ? "Access to Grid402 '{$serviceName}' API requires a {$priceDisplay} USDC micropayment via x402 protocol."
-        : 'Technical query requires on-demand micropayment via x402 protocol.');
+    $meta = grid402_bazaar_service_metadata($serviceName);
+    $msg = ($customDescription !== null && trim($customDescription) !== '')
+        ? $customDescription
+        : ($meta['description'] ?? ($serviceName
+            ? "Access to Grid402 '{$serviceName}' API ({$priceDisplay} USDC via HTTP x402)."
+            : 'Verifiable public data query via HTTP x402 protocol.'));
 
     return [
         'url' => $fullUrl,
         'description' => $msg,
         'mimeType' => 'application/json',
         'serviceName' => 'Grid402 ' . strtoupper((string) ($serviceName ?? 'hub')),
-        'tags' => ['public-data', 'utility', 'x402', 'base', 'agents'],
+        'tags' => $meta['tags'] ?? ['public-data', 'oracle', 'x402', 'base', 'ai-agents'],
         'iconUrl' => $canonicalBase . '/assets/icon-192x192.png',
     ];
 }
@@ -673,7 +821,10 @@ function grid402_bazaar_default_query_params(?string $serviceName): array {
  * com `info` + `schema` JSON Schema 2020-12 estrito (`additionalProperties: false` em `input`).
  */
 function grid402_build_bazaar_extension(?array $exampleOutput = null, ?string $serviceName = null): array {
-    $example = ($exampleOutput !== null && !empty($exampleOutput)) ? $exampleOutput : ['status' => 'success'];
+    $meta = grid402_bazaar_service_metadata($serviceName);
+    $canonicalExample = is_array($meta['output_example'] ?? null) ? $meta['output_example'] : null;
+    $example = $canonicalExample
+        ?? (($exampleOutput !== null && !empty($exampleOutput)) ? $exampleOutput : ['status' => 'success']);
     $queryDefaults = grid402_bazaar_default_query_params($serviceName);
 
     $inputInfo = [
@@ -781,9 +932,12 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
     header('X-Accept-Payment: base:usdc:' . GRID402_WALLET_ADDRESS . ':' . $priceDisplay);
     header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, PAYMENT-REQUIRED, Payment-Required, payment-required, PAYMENT-RESPONSE, X-PAYMENT-RESPONSE, X-Idempotent-Replay, X-Request-Id');
 
-    $msg = $errorMessage ?? ($serviceName ? "Acesso à API '{$serviceName}' requer micropagamento de {$priceDisplay} USDC via protocolo x402." : 'Consulta técnica requer micropagamento sob demanda via protocolo x402.');
+    $bazaarMeta = grid402_bazaar_service_metadata($serviceName);
+    $msg = $errorMessage ?? ($serviceName
+        ? "Access to Grid402 '{$serviceName}' API requires a {$priceDisplay} USDC micropayment via HTTP x402 (or a prepaid Session Pass)."
+        : 'Query requires on-demand micropayment via HTTP x402 protocol.');
 
-    $prBundle = grid402_emit_payment_required_header($serviceName, $priceDisplay, (int) $priceRawUnits, 'Payment required', $preview, $msg);
+    $prBundle = grid402_emit_payment_required_header($serviceName, $priceDisplay, (int) $priceRawUnits, 'Payment required', $preview, $errorMessage);
     $acceptsList = $prBundle['accepts'];
     $resourceInfo = $prBundle['resource'];
     $bazaarInfo = $prBundle['bazaar'];
@@ -815,19 +969,15 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         'starter_promo' => [
             'enabled' => (bool)($growthCfgForAds['starter_promo_enabled'] ?? false),
             'credits' => (int)($growthCfgForAds['starter_promo_credits'] ?? 10),
-            'terms' => 'Uma vez por carteira; exige primeira consulta paga validada; recompensas passam por aprovação administrativa.',
             'claim_url' => $canonicalBase . '/growth',
         ],
         'session_pass' => [
-            'description' => 'Melhor custo por chamada recorrente + latência <15ms (Pix, Cartão ou Multi-Chain USDC)',
+            'description' => 'Sub-15ms prepaid credits with Spend Controls (Pix, Card or Multi-Chain USDC)',
             'url' => $canonicalBase . '/pass',
             'pix_instant_starter_url' => $canonicalBase . '/pass?tier=starter&autopix=1',
         ],
-        'rapidapi_hub' => $fiatAndCardCheckout['rapidapi_credit_card_usd'],
-        'catalog' => [
-            'description' => 'Compare preços por endpoint e escolha seu pacote',
-            'url' => $canonicalBase . '/catalog',
-        ],
+        'rapidapi_url' => $fiatAndCardCheckout['rapidapi_credit_card_usd']['all_25_apis_url'],
+        'catalog_url' => $canonicalBase . '/catalog',
     ];
 
     $payload = [
@@ -852,13 +1002,13 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         ],
         'sandbox_test' => [
             'header' => 'X-Payment: demo',
-            'rate_limit' => GRID402_SANDBOX_RATE_LIMIT . ' req/dia por IP',
-            'description' => 'Teste a estrutura completa da resposta sem custo enviando o cabecalho X-Payment: demo.',
+            'rate_limit' => GRID402_SANDBOX_RATE_LIMIT . ' req/day per IP',
+            'description' => 'Test the full response schema for free by sending header X-Payment: demo.',
         ],
-        'action_required' => "1) Assine a autorizacao x402 v2 (cabecalho PAYMENT-SIGNATURE ou X-Payment em base64) para liquidacao gasless via PayAI Facilitator em Base, Polygon, Arbitrum ou Solana, OU envie {$priceDisplay} USDC em qualquer rede suportada (veja supported_networks) e refaca a requisicao com \"X-Payment: <tx_hash>\" (ou \"<chain>:<tx_hash>\"). 2) Para pagar em 10s via Pix/Cartao (R$ 12 = 400 creditos, latencia <15ms), acesse " . (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . "/pass?tier=starter&autopix=1 e utilize \"X-Payment: pass_g402_...\". 3) Para assinar com Cartao de Credito Internacional em USD (a partir de $9.90/mes), use o RapidAPI Hub (veja fiat_and_card_checkout). 4) Para testar gratuitamente agora (cota de " . GRID402_SANDBOX_RATE_LIMIT . " req/dia por IP), envie \"X-Payment: demo\".",
+        'action_required' => "1) Sign x402 v2 PAYMENT-SIGNATURE (gasless via PayAI on Base/Polygon/Arbitrum/Solana) or send {$priceDisplay} USDC and retry with X-Payment: <tx_hash>. 2) Sub-15ms Session Pass (USDC or Pix R$12 = 400 credits): {$canonicalBase}/pass?tier=starter&autopix=1 -> X-Payment: pass_g402_<token>. 3) Free Sandbox (" . GRID402_SANDBOX_RATE_LIMIT . " req/day): X-Payment: demo.",
         'fiat_and_card_checkout' => $fiatAndCardCheckout,
         'conversion' => $conversionInfo,
-        'docs' => (defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online') . '/llms.txt',
+        'docs' => $canonicalBase . '/llms.txt',
     ];
 
     if ($preview !== null and !empty($preview)) {
@@ -877,7 +1027,7 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
             'error' => 'PaymentRequired',
         ]);
     }
-    echo json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    echo json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
 }
 

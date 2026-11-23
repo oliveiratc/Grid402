@@ -77,7 +77,11 @@ check('llms.txt documenta 400 / 1.200 / 6.000 créditos',
     (str_contains($llmsTxt, '1.200 creditos') || str_contains($llmsTxt, '1.200 créditos')) &&
     (str_contains($llmsTxt, '6.000 creditos') || str_contains($llmsTxt, '6.000 créditos'))
 );
-check('README.md documenta 400 / 1.200 / 6.000 créditos', str_contains($readmeMd, '400 créditos') && str_contains($readmeMd, '1.200 créditos') && str_contains($readmeMd, '6.000 créditos'));
+check('README.md documenta 400 / 1.200 / 6.000 créditos',
+    (str_contains($readmeMd, '400 créditos') || str_contains($readmeMd, '400 credits')) &&
+    (str_contains($readmeMd, '1.200 créditos') || str_contains($readmeMd, '1,200 credits')) &&
+    (str_contains($readmeMd, '6.000 créditos') || str_contains($readmeMd, '6,000 credits'))
+);
 
 // -----------------------------------------------------------------
 // 3. Cobertura 25/25 UP, Proveniência e Uptime 30d

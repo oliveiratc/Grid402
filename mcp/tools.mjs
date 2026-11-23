@@ -12,7 +12,7 @@ export const DEFAULT_ENDPOINT = process.env.GRID402_ENDPOINT || process.env.GRID
 export const MCP_TOOLS_DEFINITIONS = [
   {
     name: 'grid402_summary',
-    description: 'Consulta o resumo consolidado de saúde e disponibilidade dos 25 micro-serviços do Grid402 (gratuito, sem cobrança x402).',
+    description: 'Get consolidated live health, latency and 30-day uptime summary for all 25 Grid402 public-data services (free, no x402 charge).',
     inputSchema: {
       type: 'object',
       properties: {},
@@ -21,13 +21,13 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_forex',
-    description: 'Consulta cotações fiduciárias oficiais em tempo real de USD, EUR e GBP para BRL com variação percentual diária (0.0050 USDC / 1 crédito).',
+    description: 'Get official commercial fiat exchange rates (USD, EUR, GBP to BRL) with daily percentage change and ECDSA oracle proof (0.0050 USDC / 1 credit).',
     inputSchema: {
       type: 'object',
       properties: {
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum ou Solana: 0x..., polygon:0x..., arbitrum:0x..., solana:<base58>, payload x402 base64 ou token pass_g402_...).',
+          description: 'Optional payment proof: Multi-Chain USDC tx hash (0x..., polygon:0x..., arbitrum:0x..., solana:<sig>), x402 base64 payload, Session Pass token (pass_g402_...), or "demo" for Sandbox.',
         },
       },
       required: [],
@@ -35,13 +35,13 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_crypto',
-    description: 'Consulta preços de mercado spot em tempo real de BTC, ETH, SOL, USDC e BASE em USD e BRL (0.0050 USDC / 1 crédito).',
+    description: 'Get real-time spot prices and 24h changes for BTC, ETH, SOL, USDC and BASE in USD and BRL (0.0050 USDC / 1 credit).',
     inputSchema: {
       type: 'object',
       properties: {
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum ou Solana: 0x..., polygon:0x..., arbitrum:0x..., solana:<base58>, payload x402 base64 ou token pass_g402_...).',
+          description: 'Optional payment proof: Multi-Chain USDC tx hash, x402 base64 payload, Session Pass token (pass_g402_...), or "demo" for Sandbox.',
         },
       },
       required: [],
@@ -49,17 +49,17 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_dns',
-    description: 'Executa resolução DNS autoritativa de registros A, AAAA, MX, TXT, NS e CNAME para qualquer domínio da internet (0.0050 USDC / 1 crédito).',
+    description: 'Resolve authoritative DNS records (A, AAAA, MX, TXT, NS, CNAME) for any domain with query latency (0.0050 USDC / 1 credit).',
     inputSchema: {
       type: 'object',
       properties: {
         domain: {
           type: 'string',
-          description: 'Nome do domínio a ser consultado (ex: "github.com", "base.org").',
+          description: 'Target domain name to resolve (e.g. "github.com", "base.org").',
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum ou Solana: 0x..., polygon:0x..., arbitrum:0x..., solana:<base58>, payload x402 base64 ou token pass_g402_...).',
+          description: 'Optional payment proof: Multi-Chain USDC tx hash, x402 base64 payload, Session Pass token (pass_g402_...), or "demo" for Sandbox.',
         },
       },
       required: ['domain'],
@@ -67,17 +67,17 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_ssl',
-    description: 'Inspeciona e valida o certificado TLS/SSL na porta 443 de um host (emissor, validade, SANs e contagem de dias restantes até expirar) (0.0050 USDC / 1 crédito).',
+    description: 'Inspect and validate port 443 TLS/SSL certificate (issuer, validity, SANs, cipher suite and days until expiration) (0.0050 USDC / 1 credit).',
     inputSchema: {
       type: 'object',
       properties: {
         host: {
           type: 'string',
-          description: 'Hostname ou domínio alvo para inspeção TLS (ex: "base.org", "google.com").',
+          description: 'Target hostname or domain to inspect on port 443 (e.g. "base.org", "google.com").',
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum ou Solana: 0x..., polygon:0x..., arbitrum:0x..., solana:<base58>, payload x402 base64 ou token pass_g402_...).',
+          description: 'Optional payment proof: Multi-Chain USDC tx hash, x402 base64 payload, Session Pass token (pass_g402_...), or "demo" for Sandbox.',
         },
       },
       required: ['host'],
@@ -85,17 +85,17 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_asn',
-    description: 'Consulta inteligência de rede BGP, identificando número de ASN, bloco IP alocado, provedor/organização e país de origem (0.0050 USDC / 1 crédito).',
+    description: 'Query BGP routing intelligence: ASN number, allocated IP prefix, organization/ISP and country for any IPv4/IPv6 address (0.0050 USDC / 1 credit).',
     inputSchema: {
       type: 'object',
       properties: {
         ip: {
           type: 'string',
-          description: 'Endereço IPv4 ou IPv6 a inspecionar (ex: "1.1.1.1"). Se omitido, consulta o IP público do requisitante.',
+          description: 'IPv4 or IPv6 address to inspect (e.g. "1.1.1.1"). Defaults to requester IP if omitted.',
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum ou Solana: 0x..., polygon:0x..., arbitrum:0x..., solana:<base58>, payload x402 base64 ou token pass_g402_...).',
+          description: 'Optional payment proof: Multi-Chain USDC tx hash, x402 base64 payload, Session Pass token (pass_g402_...), or "demo" for Sandbox.',
         },
       },
       required: [],
@@ -103,17 +103,17 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_domain_audit',
-    description: 'Auditoria completa de infraestrutura de domínio (DNS + TLS/SSL + BGP/ASN) em chamada única consolidada (0.0150 USDC / 3 créditos).',
+    description: 'Consolidated domain security and infrastructure audit (DNS + TLS/SSL + BGP/ASN) with risk score in a single call (0.0150 USDC / 3 credits).',
     inputSchema: {
       type: 'object',
       properties: {
         domain: {
           type: 'string',
-          description: 'Domínio alvo para auditoria completa (ex: "base.org").',
+          description: 'Target domain name to audit (e.g. "base.org").',
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0150 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
+          description: 'Optional payment proof (0.0150 USDC on Base, Polygon, Arbitrum or Solana), Session Pass token (pass_g402_...), or "demo".',
         },
       },
       required: ['domain'],
@@ -121,17 +121,17 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_kyb_audit',
-    description: 'Auditoria corporativa global KYB em chamada única: Receita Federal CNPJ + Sanções OFAC/ONU + Identidade Global GLEIF LEI (0.0250 USDC / 5 créditos).',
+    description: 'Global corporate KYB audit in one call: Brazil Receita Federal CNPJ + US OFAC/UN Sanctions + GLEIF ISO 17442 LEI (0.0250 USDC / 5 credits).',
     inputSchema: {
       type: 'object',
       properties: {
         cnpj: {
           type: 'string',
-          description: 'CNPJ de 14 dígitos da empresa (ex: "00000000000191").',
+          description: '14-digit Brazilian CNPJ number (e.g. "00000000000191").',
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0250 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
+          description: 'Optional payment proof (0.0250 USDC on Base, Polygon, Arbitrum or Solana), Session Pass token (pass_g402_...), or "demo".',
         },
       },
       required: ['cnpj'],
@@ -139,17 +139,17 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_get_dossier_360',
-    description: 'Dossiê 360º KYB Premium com Veredito Sintetizado para IA (APPROVED, FLAGGED, REJECTED), score 0-100, Receita Federal (CNPJ), Simples/MEI e Sanções CGU (CEIS/CNEP) em chamada única (0.0500 USDC / 10 créditos).',
+    description: 'Premium 360-degree Brazil KYB Dossier with deterministic AI verdict (APPROVED, FLAGGED, REJECTED), 0-100 risk score, Receita Federal CNPJ, Simples Nacional/MEI and CGU CEIS/CNEP sanctions (0.0500 USDC / 10 credits).',
     inputSchema: {
       type: 'object',
       properties: {
         cnpj: {
           type: 'string',
-          description: 'CNPJ de 14 dígitos da empresa brasileira (com ou sem pontuação, ex: "00000000000191").',
+          description: '14-digit Brazilian CNPJ number (with or without mask, e.g. "00000000000191").',
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0500 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
+          description: 'Optional payment proof (0.0500 USDC on Base, Polygon, Arbitrum or Solana), Session Pass token (pass_g402_...), or "demo".',
         },
       },
       required: ['cnpj'],
@@ -157,13 +157,13 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_market_snapshot',
-    description: 'Panorama financeiro e macroeconômico consolidado em chamada única: Câmbio + Cripto + Selic/CDI/IPCA + Calendário ANBIMA (0.0150 USDC / 3 créditos).',
+    description: 'Consolidated financial and macro market snapshot in one call: Forex + Crypto Spot + Brazil Selic/CDI/IPCA + ANBIMA calendar (0.0150 USDC / 3 credits).',
     inputSchema: {
       type: 'object',
       properties: {
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0150 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
+          description: 'Optional payment proof (0.0150 USDC on Base, Polygon, Arbitrum or Solana), Session Pass token (pass_g402_...), or "demo".',
         },
       },
       required: [],
@@ -171,17 +171,17 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_cep',
-    description: 'Consulta a base pública de endereçamento postal brasileiro retornando logradouro, bairro, município, UF e código IBGE oficial (0.0050 USDC / 1 crédito).',
+    description: 'Lookup Brazilian postal code (CEP) returning street, neighborhood, city, state and official IBGE municipality code (0.0050 USDC / 1 credit).',
     inputSchema: {
       type: 'object',
       properties: {
         code: {
           type: 'string',
-          description: 'Código de CEP brasileiro com 8 dígitos numéricos (ex: "01310100" para Av. Paulista).',
+          description: '8-digit Brazilian CEP postal code (e.g. "01310100").',
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum ou Solana: 0x..., polygon:0x..., arbitrum:0x..., solana:<base58>, payload x402 base64 ou token pass_g402_...).',
+          description: 'Optional payment proof: Multi-Chain USDC tx hash, x402 base64 payload, Session Pass token (pass_g402_...), or "demo" for Sandbox.',
         },
       },
       required: ['code'],
@@ -189,17 +189,17 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_cnpj',
-    description: 'Consulta dados cadastrais públicos de Pessoa Jurídica da Receita Federal (razão social, nome fantasia, situação cadastral, CNAE, endereço e capital social). Requer 0.0100 USDC (2 créditos).',
+    description: 'Lookup official Brazil Receita Federal CNPJ corporate registry data (legal name, trade name, active status, CNAE, address and share capital) (0.0100 USDC / 2 credits).',
     inputSchema: {
       type: 'object',
       properties: {
         cnpj: {
           type: 'string',
-          description: 'Número de CNPJ com 14 dígitos com ou sem formatação (ex: "00.000.000/0001-91" ou "00000000000191").',
+          description: '14-digit Brazilian CNPJ number with or without punctuation (e.g. "00000000000191").',
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0100 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
+          description: 'Optional payment proof (0.0100 USDC on Base, Polygon, Arbitrum or Solana), Session Pass token (pass_g402_...), or "demo".',
         },
       },
       required: ['cnpj'],
@@ -207,13 +207,13 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_indicators',
-    description: 'Consulta taxas oficiais Selic meta e diária, CDI anual e diário, IPCA acumulado 12m e mensal do Banco Central e IBGE (0.0050 USDC / 1 crédito).',
+    description: 'Get official Brazil Central Bank (BCB) and IBGE macro indicators: Selic target/daily, annual/daily CDI and 12-month IPCA inflation (0.0050 USDC / 1 credit).',
     inputSchema: {
       type: 'object',
       properties: {
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum ou Solana: 0x..., polygon:0x..., arbitrum:0x..., solana:<base58>, payload x402 base64 ou token pass_g402_...).',
+          description: 'Optional payment proof: Multi-Chain USDC tx hash, x402 base64 payload, Session Pass token (pass_g402_...), or "demo" for Sandbox.',
         },
       },
       required: [],
@@ -221,17 +221,17 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_holidays',
-    description: 'Consulta o calendário oficial de feriados nacionais e dias sem expediente bancário (ANBIMA e Febraban) com cálculo de feriados móveis (0.0050 USDC / 1 crédito).',
+    description: 'Get official Brazil national and ANBIMA/Febraban banking holidays calendar for any year including movable holidays (0.0050 USDC / 1 credit).',
     inputSchema: {
       type: 'object',
       properties: {
         year: {
           type: 'integer',
-          description: 'Ano calendário de 4 dígitos entre 1900 e 2100 (ex: 2026). Se omitido, consulta o ano corrente.',
+          description: '4-digit calendar year between 1900 and 2100 (e.g. 2026). Defaults to current year.',
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum ou Solana: 0x..., polygon:0x..., arbitrum:0x..., solana:<base58>, payload x402 base64 ou token pass_g402_...).',
+          description: 'Optional payment proof: Multi-Chain USDC tx hash, x402 base64 payload, Session Pass token (pass_g402_...), or "demo" for Sandbox.',
         },
       },
       required: [],
@@ -239,29 +239,29 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_workdays',
-    description: 'Calcula dias úteis financeiros e projeção de vencimentos na convenção ANBIMA (D+0 exclusivo no início e inclusivo no fim) ou verifica se uma data é dia útil bancário (0.0050 USDC / 1 crédito).',
+    description: 'Calculate Brazilian ANBIMA banking business days, D+N settlement maturity dates, or check if a date is a banking business day (0.0050 USDC / 1 credit).',
     inputSchema: {
       type: 'object',
       properties: {
         start_date: {
           type: 'string',
-          description: 'Data de início no formato AAAA-MM-DD para contagem de intervalo ou projeção de prazo.',
+          description: 'Start date in YYYY-MM-DD format for interval counting or D+N projection.',
         },
         end_date: {
           type: 'string',
-          description: 'Data de término no formato AAAA-MM-DD para contagem de intervalo de dias úteis.',
+          description: 'End date in YYYY-MM-DD format for business-day interval counting.',
         },
         days: {
           type: 'integer',
-          description: 'Quantidade inteira de dias úteis para projeção de vencimento (positivo para futuro, negativo para passado).',
+          description: 'Integer business days to project (positive for future, negative for past).',
         },
         date: {
           type: 'string',
-          description: 'Data pontual no formato AAAA-MM-DD para verificação de dia útil.',
+          description: 'Single date in YYYY-MM-DD format to check whether it is a banking business day.',
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0050 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
+          description: 'Optional payment proof (0.0050 USDC on Base, Polygon, Arbitrum or Solana), Session Pass token (pass_g402_...), or "demo".',
         },
       },
       required: [],
@@ -269,13 +269,13 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_sanctions',
-    description: 'Consulta o Cadastro de Empresas Inidoneas e Suspensas (CEIS) e Cadastro Nacional de Empresas Punidas (CNEP) da CGU para um CNPJ (0.0100 USDC / 2 créditos).',
+    description: 'Check Brazil CGU administrative sanctions registries (CEIS and CNEP) for a given CNPJ (0.0100 USDC / 2 credits).',
     inputSchema: {
       type: 'object',
       properties: {
         cnpj: {
           type: 'string',
-          description: 'CNPJ da Pessoa Juridica com 14 digitos para checagem de sancoes.',
+          description: '14-digit Brazilian CNPJ number to check against CEIS/CNEP sanctions.',
         },
       },
       required: ['cnpj'],
@@ -283,13 +283,13 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_simples',
-    description: 'Consulta o enquadramento de um CNPJ no regime tributario do Simples Nacional e se e Microempreendedor Individual (MEI) (0.0100 USDC / 2 créditos).',
+    description: 'Check Brazil Simples Nacional and SIMEI (MEI) tax regime enrollment status for a CNPJ (0.0100 USDC / 2 credits).',
     inputSchema: {
       type: 'object',
       properties: {
         cnpj: {
           type: 'string',
-          description: 'CNPJ da Pessoa Juridica com 14 digitos para checagem tributaria.',
+          description: '14-digit Brazilian CNPJ number for tax regime verification.',
         },
       },
       required: ['cnpj'],
@@ -297,13 +297,13 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_compliance',
-    description: 'Calcula o Compliance Score 360 consolidado (0 a 100) e status de aprovacao de um CNPJ cruzando Receita Federal, CGU e historico (0.0300 USDC / 6 créditos).',
+    description: 'Compute consolidated Brazil Compliance Score 360 (0-100) and approval status for a CNPJ cross-checking Receita Federal and CGU (0.0300 USDC / 6 credits).',
     inputSchema: {
       type: 'object',
       properties: {
         cnpj: {
           type: 'string',
-          description: 'CNPJ da Pessoa Juridica com 14 digitos para score de integridade.',
+          description: '14-digit Brazilian CNPJ number for 360 compliance scoring.',
         },
       },
       required: ['cnpj'],
@@ -311,17 +311,17 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_lei',
-    description: 'Consulta identidade corporativa internacional oficial (ISO 17442) em mais de 200 jurisdições via GLEIF (0.0100 USDC / 2 créditos).',
+    description: 'Lookup Global Legal Entity Identifier (ISO 17442) corporate identity via GLEIF across 200+ jurisdictions (0.0100 USDC / 2 credits).',
     inputSchema: {
       type: 'object',
       properties: {
         lei: {
           type: 'string',
-          description: 'Código LEI de 20 caracteres (ex: "5493006MHB84DD0ZWV18") ou razão social.',
+          description: '20-character ISO 17442 LEI code (e.g. "5493006MHB84DD0ZWV18") or legal entity name.',
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0100 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
+          description: 'Optional payment proof (0.0100 USDC on Base, Polygon, Arbitrum or Solana), Session Pass token (pass_g402_...), or "demo".',
         },
       },
       required: ['lei'],
@@ -329,17 +329,17 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_ofac',
-    description: 'Triagem de sanções globais (OFAC SDN / ONU) e risco AML Web3 na Base Mainnet para carteiras 0x, códigos LEI ou entidades (0.0200 USDC / 4 créditos).',
+    description: 'Screen EVM wallet addresses (0x...), LEI codes or entities against US Treasury OFAC SDN, UN Consolidated Sanctions and Base Mainnet AML risk (0.0200 USDC / 4 credits).',
     inputSchema: {
       type: 'object',
       properties: {
         target: {
           type: 'string',
-          description: 'Carteira EVM 0x, código LEI ou razão social para triagem OFAC/AML.',
+          description: 'EVM wallet address (0x...), LEI code or legal entity name to screen against OFAC/UN lists.',
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (0.0200 USDC em Base, Polygon, Arbitrum ou Solana) ou token pass_g402_...',
+          description: 'Optional payment proof (0.0200 USDC on Base, Polygon, Arbitrum or Solana), Session Pass token (pass_g402_...), or "demo".',
         },
       },
       required: ['target'],
@@ -347,17 +347,17 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_notarize',
-    description: 'Carimbo do tempo criptográfico M2M e prova de existência SHA-256 assinada com ECDSA secp256k1 (0.0050 USDC / 1 crédito).',
+    description: 'Create an M2M cryptographic timestamp and SHA-256 proof-of-existence signed with ECDSA secp256k1 (0.0050 USDC / 1 credit).',
     inputSchema: {
       type: 'object',
       properties: {
         content: {
           type: 'string',
-          description: 'Conteúdo textual ou hash SHA-256 hex de 64 caracteres para notarizar.',
+          description: 'Text payload or 64-char hex SHA-256 hash to timestamp and notarize.',
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum ou Solana: 0x..., polygon:0x..., arbitrum:0x..., solana:<base58>, payload x402 base64 ou token pass_g402_...).',
+          description: 'Optional payment proof: Multi-Chain USDC tx hash, x402 base64 payload, Session Pass token (pass_g402_...), or "demo" for Sandbox.',
         },
       },
       required: ['content'],
@@ -365,25 +365,25 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_global_markets',
-    description: 'Calendário de liquidação de bolsas globais (US NYSE/Fed, EU TARGET2, UK LSE, BR B3) e mais de 30 taxas de câmbio de referência do BCE (0.0050 USDC / 1 crédito).',
+    description: 'Query global exchange settlement calendars (US NYSE/Fed, EU TARGET2, UK LSE, BR B3) and 30+ European Central Bank (ECB) FX reference rates (0.0050 USDC / 1 credit).',
     inputSchema: {
       type: 'object',
       properties: {
         market: {
           type: 'string',
-          description: 'Código do mercado: US, EU, UK ou BR (padrão: US).',
+          description: 'Market code: US, EU, UK or BR (default: US).',
         },
         base: {
           type: 'string',
-          description: 'Moeda base para taxas do BCE (padrão: USD).',
+          description: 'Base currency for ECB FX reference rates (default: USD).',
         },
         date: {
           type: 'string',
-          description: 'Data opcional no formato AAAA-MM-DD.',
+          description: 'Optional target date in YYYY-MM-DD format.',
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum ou Solana: 0x..., polygon:0x..., arbitrum:0x..., solana:<base58>, payload x402 base64 ou token pass_g402_...).',
+          description: 'Optional payment proof: Multi-Chain USDC tx hash, x402 base64 payload, Session Pass token (pass_g402_...), or "demo" for Sandbox.',
         },
       },
       required: [],
@@ -391,21 +391,21 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_extract',
-    description: 'Extrai páginas web públicas HTTP/HTTPS com proteção SSRF e devolve Markdown limpo pronto para LLMs e RAG, incluindo título, descrição e links absolutos (0.0050 USDC / 1 crédito).',
+    description: 'SSRF-hardened web page URL to clean LLM-ready Markdown extractor for RAG and AI agents, returning title, metadata and absolute links (0.0050 USDC / 1 credit).',
     inputSchema: {
       type: 'object',
       properties: {
         url: {
           type: 'string',
-          description: 'URL pública HTTP ou HTTPS a ser extraída para Markdown limpo.',
+          description: 'Public HTTP or HTTPS web page URL to fetch and convert to clean Markdown.',
         },
         max_chars: {
           type: 'integer',
-          description: 'Limite opcional de caracteres no Markdown retornado (500 a 25000; padrão: 12000).',
+          description: 'Optional max output character length (500 to 25000; default: 12000).',
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação USDC ou token pass_g402_...',
+          description: 'Optional USDC tx hash, Session Pass token (pass_g402_...), or "demo".',
         },
       },
       required: ['url'],
@@ -413,17 +413,17 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_email_verify',
-    description: 'Audita entregabilidade de e-mail B2B estritamente Zero-PII: sintaxe RFC, DNS MX, SPF, DMARC, detecção de domínio descartável (disposable), provedor gratuito e role-based (0.0050 USDC / 1 crédito).',
+    description: 'Zero-PII B2B email deliverability and risk audit: RFC syntax, DNS MX, SPF, DMARC, disposable domain detection, free provider and role-based score (0.0050 USDC / 1 credit).',
     inputSchema: {
       type: 'object',
       properties: {
         email: {
           type: 'string',
-          description: 'Endereço de e-mail corporativo a auditar sem armazenamento em disco.',
+          description: 'Corporate or business email address to audit without persisting PII.',
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Hash opcional de transação USDC ou token pass_g402_...',
+          description: 'Optional USDC tx hash, Session Pass token (pass_g402_...), or "demo".',
         },
       },
       required: ['email'],
@@ -431,17 +431,17 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_pass',
-    description: 'Emite um Session Pass pré-pago x402 (Starter 2 USDC = 400 créditos/180d, Pro 5 USDC = 1.200 créditos/180d, Fleet 20 USDC = 6.000 créditos/365d; 1 crédito = 0.0050 USDC) ou consulta status via ?status=pass_g402_...',
+    description: 'Issue an x402 prepaid Session Pass (Starter 2 USDC = 400 credits/180d, Pro 5 USDC = 1,200 credits/180d, Fleet 20 USDC = 6,000 credits/365d; 1 credit = 0.0050 USDC) or check pass status.',
     inputSchema: {
       type: 'object',
       properties: {
         status: {
           type: 'string',
-          description: 'Token pass_g402_... opcional para consulta gratuita de saldo.',
+          description: 'Optional existing pass_g402_... token for free balance and status lookup.',
         },
         payment_tx_hash: {
           type: 'string',
-          description: 'Comprovante opcional de pagamento Multi-Chain USDC (Base, Polygon, Arbitrum, Optimism, Ethereum ou Solana) para emissão de novo passe.',
+          description: 'Optional Multi-Chain USDC payment proof (Base, Polygon, Arbitrum, Optimism, Ethereum or Solana) to issue a new Session Pass.',
         },
       },
       required: [],
@@ -449,13 +449,13 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_pass_balance',
-    description: 'Consulta gratuita em tempo real do saldo de créditos, validade e Spend Controls (daily_credit_limit, credits_used_today, allowed_endpoints) de um Session Pass.',
+    description: 'Free real-time lookup of Session Pass credit balance, expiration and Spend Controls (daily_credit_limit, credits_used_today, allowed_endpoints).',
     inputSchema: {
       type: 'object',
       properties: {
         token: {
           type: 'string',
-          description: 'Token pass_g402_... a consultar (ou utiliza GRID402_SESSION_PASS do ambiente).',
+          description: 'Session Pass token (pass_g402_...) to inspect (or uses GRID402_SESSION_PASS env var).',
         },
       },
       required: [],
@@ -463,13 +463,13 @@ export const MCP_TOOLS_DEFINITIONS = [
   },
   {
     name: 'grid402_verify',
-    description: 'Valida a integridade matematica da prova criptografica de oraculo (_oracle_proof) secp256k1 em uma resposta do Grid402 (gratuito).',
+    description: 'Stateless cryptographic verification of an _oracle_proof ECDSA secp256k1 signature on any Grid402 API response (free).',
     inputSchema: {
       type: 'object',
       properties: {
         payload: {
           type: 'string',
-          description: 'Payload JSON serializado da resposta da API contendo a chave _oracle_proof.',
+          description: 'Serialized JSON API response containing the _oracle_proof block to verify.',
         },
       },
       required: ['payload'],
