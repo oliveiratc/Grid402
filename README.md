@@ -1,110 +1,184 @@
 <p align="center">
-  <img src="public_html/assets/logo-horizontal-transparent.png" alt="Grid402 Logo" width="380">
+  <img src="public_html/assets/logo-horizontal-transparent.png" alt="Grid402 Logo" width="360">
 </p>
 
-# Grid402 // The Verifiable Data and x402 Payment Layer for Autonomous AI Agents
+<p align="center">
+  <strong>English</strong> · <a href="README.pt-BR.md">Português (Brasil)</a>
+</p>
 
-[![CI](https://github.com/oliveiratc/Grid402/actions/workflows/ci.yml/badge.svg)](https://github.com/oliveiratc/Grid402/actions)
-[![PayAPI Market](https://img.shields.io/badge/PayAPI_Market-Verified-10B981?logo=checkmarx)](https://payapi.market/api/grid402-brazil-public-data-network-oracle)
-[![x402scan](https://img.shields.io/badge/x402scan-Verified_Server_(24_APIs)-00F0FF)](https://www.x402scan.com/server/00294038-51ff-4073-ab29-c59fca221a50)
-[![Glama](https://img.shields.io/badge/Glama-Verified_MCP_(27_Tools)-0052FF)](https://glama.ai/mcp/connectors/io.github.oliveiratc/grid402)
-[![PayCensus Trust](https://img.shields.io/badge/PayCensus_Trust-Multi--Chain_Verified-10B981)](https://paycensus.com/s/0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90.html)
-[![SealKeeper](https://img.shields.io/badge/SealKeeper-Verified_Owner_(27_Tools)-10B981)](https://sealkeeper.run/agents/grid402.online/grid402-online)
-[![RapidAPI](https://img.shields.io/badge/RapidAPI-3_Live_APIs-0055DA?logo=rapidapi)](https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities)
-![Network](https://img.shields.io/badge/Network-Multi--Chain_(5_EVM_+_Solana)-0052FF?logo=coinbase)
-![Payment](https://img.shields.io/badge/Payment-0.0050_a_0.0500_USDC-2775CA?logo=usd-coin)
-![Protocol](https://img.shields.io/badge/Protocol-HTTP_x402-00F0FF)
-![SDK License](https://img.shields.io/badge/SDKs_%26_MCP-MIT_License-10B981)
-![Core License](https://img.shields.io/badge/Gateway_Core-Proprietary-64748B)
-[![Brand](https://img.shields.io/badge/Manual_da_Marca-Visual_Identity-0052FF)](MANUAL_DE_MARCA.md)
-![PHP](https://img.shields.io/badge/PHP-8.1%20%7C%208.2%20%7C%208.3-777BB4?logo=php)
-![Server](https://img.shields.io/badge/Server-Hostinger_LiteSpeed-blue)
-[![mcptry](https://mcptry.com/badge/io.github.oliveiratc/grid402)](https://mcptry.com/servers/io.github.oliveiratc/grid402)
-[![Wellknown](https://wellknown.network/agents/grid402-mcp/badge.svg)](https://wellknown.network/agents/grid402-mcp)
+<h1 align="center">Grid402 — Verifiable Public Data and x402 Payment Layer for AI Agents</h1>
 
-[![Grid402 — Brazil Public Data and Network Oracle MCP server](public_html/assets/mcprush-card.svg)](https://mcprush.com/to/grid402-brazil-public-data-network-oracle-mcp?ref=badge)
+<p align="center">
+  <a href="https://github.com/oliveiratc/Grid402/actions"><img src="https://github.com/oliveiratc/Grid402/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://www.npmjs.com/package/grid402-mcp"><img src="https://img.shields.io/npm/dm/grid402-mcp?label=grid402-mcp%20npm" alt="npm grid402-mcp"></a>
+  <a href="https://pypi.org/project/grid402/"><img src="https://img.shields.io/pypi/dm/grid402?label=grid402%20PyPI" alt="PyPI grid402"></a>
+  <img src="https://img.shields.io/badge/Protocol-HTTP_x402_v2-00F0FF" alt="HTTP x402 v2">
+  <img src="https://img.shields.io/badge/SDKs_and_MCP-MIT_License-10B981" alt="MIT License">
+</p>
 
-> **The Verifiable Data and x402 Payment Layer for Autonomous AI Agents.** Infraestrutura M2M de dados públicos verificáveis com assinatura ECDSA secp256k1 (`_oracle_proof`) e liquidação instantânea via HTTP x402 (USDC na rede Base) ou Session Passes pré-pagos sub-15ms.
+<p align="center">
+  <strong>25 live public-data, KYB compliance and network-intelligence APIs</strong> with cryptographic ECDSA <code>secp256k1</code> proofs (<code>_oracle_proof</code>), native <strong>HTTP x402 v2</strong> USDC micropayments (Base, Polygon, Arbitrum, Solana), sub-15ms <strong>Session Passes</strong> (USDC or Pix), and a <strong>27-tool MCP Server</strong>.
+</p>
 
----
-
-## ⚡ Destaques da Arquitetura
-
-* **Monetização Nativa via HTTP x402 (v2 Gasless Multi-Chain via PayAI):** Cobrança por chamada (0.0050 a 0.0500 USDC) com liquidação gasless nativa (`exact` via `PAYMENT-SIGNATURE`) em **4 redes** (**Base**, **Polygon**, **Arbitrum** via EIP-3009 e **Solana** via SVM), além de Session Passes pré-pagos (Pix R$ 12 ou USDC em 6 redes) sem necessidade de chaves de API estáticas.
-* **Amostras Gratuitas no HTTP 402 (Teaser Data):** O desafio 402 inclui uma prévia segura dos dados públicos encontrados (ex: razão social, município e UF no CNPJ; logradouro e bairro no CEP; status TLS no SSL) antes da liquidação financeira.
-* **Modo Sandbox para Testes e CI/CD:** Permite simulação técnica via cabeçalho `X-Payment: demo` (cota defensiva de 3 consultas/dia por IP), facilitando desenvolvimento local e pipelines de homologação antes de operar em produção.
-* **Zero Banco de Dados (Zero-DB):** Arquitetura ultraleve baseada em arquivos JSON planos com travamento concorrente (`flock`) e escrita atômica (`grid402_atomic_write`), sem sobrecarga de conexões SQL.
-* **Distribuição Smithery.ai:** Manifesto `smithery.yaml` na raiz para instalação e configuração em 1 clique em clientes MCP como Claude Desktop e Cursor.
-* **Coinbase Developer Platform (CDP) AgentKit:** Provedor de ações pronto em TypeScript e Python (`integrations/agentkit/`) para auto-liquidação M2M por agentes autônomos baseados em LangChain e CrewAI.
-* **Interface Adaptativa:** Respostas JSON limpas para agentes de IA e clientes M2M, e portal web responsivo em modo escuro com console interativo para desenvolvedores.
+<p align="center">
+  <a href="https://grid402.online">Live Portal</a> ·
+  <a href="https://grid402.online/catalog">API Catalog</a> ·
+  <a href="https://grid402.online/dossie-kyb">KYB Dossier</a> ·
+  <a href="https://grid402.online/pass">Session Pass</a> ·
+  <a href="https://grid402.online/trust">Trust Center (SLA)</a> ·
+  <a href="https://grid402.online/llms.txt">llms.txt</a>
+</p>
 
 ---
 
-## 🛠️ Catálogo de Serviços Disponíveis
+## Try It in 10 Seconds (No Signup, No API Key, No Wallet)
 
-| Serviço | Rota da API | Custo M2M | Descrição Técnica |
-|---|---|---|---|
-| **Resumo Operacional** | `GET /status` | Gratuito | Saúde geral, latências médias, uptime 30d e 25 serviços operantes |
-| **Câmbio Comercial** | `GET /api/v1/forex` | 0.0050 USDC (1 crédito) | Cotações em tempo real de USD, EUR e GBP para BRL |
-| **Preços Cripto** | `GET /api/v1/crypto` | 0.0050 USDC (1 crédito) | Cotações spot e variação 24h de BTC, ETH, SOL, USDC e BASE |
-| **Resolução DNS** | `GET /api/v1/dns?domain=...` | 0.0050 USDC (1 crédito) | Registros A, AAAA, MX, TXT, NS e CNAME com latência |
-| **Inspetor SSL/TLS** | `GET /api/v1/ssl?host=...` | 0.0050 USDC (1 crédito) | Emissor, validade, dias restantes e cipher suite |
-| **Inteligência ASN** | `GET /api/v1/asn?ip=...` | 0.0050 USDC (1 crédito) | BGP, número ASN, organização detentora e país |
-| **Auditoria de Domínio** | `GET /api/v1/domain-audit?domain=...` | 0.0150 USDC (3 créditos) | Bundle consolidado DNS + TLS/SSL + BGP/ASN em chamada única |
-| **Dossiê KYB Audit** | `GET /api/v1/kyb-audit?cnpj=...` | 0.0250 USDC (5 créditos) | Auditoria corporativa global: Receita Federal CNPJ + Sanções OFAC/ONU + GLEIF LEI |
-| **Dossiê 360º KYB + Veredito IA** | `GET /api/v1/dossier?cnpj=...` | 0.0500 USDC (10 créditos) | Dossiê corporativo premium: RFB + Simples/MEI + CGU CEIS/CNEP + Veredito IA (APPROVED/FLAGGED/REJECTED) |
-| **Market Snapshot** | `GET /api/v1/market-snapshot` | 0.0150 USDC (3 créditos) | Panorama macro e financeiro: Câmbio + Cripto + Selic/CDI/IPCA + ANBIMA |
-| **Consulta Postal CEP** | `GET /api/v1/cep?code=...` | 0.0050 USDC (1 crédito) | Logradouro, bairro, cidade, UF e código IBGE oficial |
-| **Consulta CNPJ** | `GET /api/v1/cnpj?cnpj=...` | 0.0100 USDC (2 créditos) | Razão social, status cadastral, CNAE e dados da Receita Federal |
-| **Indicadores BCB/IBGE** | `GET /api/v1/indicators` | 0.0050 USDC (1 crédito) | Taxas oficiais Selic, CDI e IPCA acumulado 12m |
-| **Feriados Nacionais** | `GET /api/v1/holidays?year=...` | 0.0050 USDC (1 crédito) | Calendário nacional e bancário ANBIMA/Febraban |
-| **Dias Úteis ANBIMA** | `GET /api/v1/workdays` | 0.0050 USDC (1 crédito) | Contagem e projeção de vencimentos D+N bancários |
-| **Sanções CEIS/CNEP** | `GET /api/v1/sanctions?cnpj=...` | 0.0100 USDC (2 créditos) | Checagem de inidoneidade e punições administrativas na CGU |
-| **Simples Nacional e MEI** | `GET /api/v1/simples?cnpj=...` | 0.0100 USDC (2 créditos) | Enquadramento tributário Simples Nacional e SIMEI |
-| **Compliance Score 360** | `GET /api/v1/compliance?cnpj=...` | 0.0300 USDC (6 créditos) | Score de risco corporativo de 0 a 100 cruzando RF e CGU |
-| **Identidade Global LEI** | `GET /api/v1/lei?lei=...` | 0.0100 USDC (2 créditos) | Registro corporativo global ISO 17442 via GLEIF (200+ jurisdições) |
-| **Sanções OFAC e AML** | `GET /api/v1/ofac?target=...` | 0.0200 USDC (4 créditos) | Triagem OFAC SDN, ONU e risco AML Web3 na Base Mainnet |
-| **Notarização SHA-256** | `GET /api/v1/notarize?content=...` | 0.0050 USDC (1 crédito) | Carimbo do tempo criptográfico e prova de existência ECDSA |
-| **Mercados Globais e BCE** | `GET /api/v1/global-markets` | 0.0050 USDC (1 crédito) | Calendário US/EU/UK/BR e 30+ taxas de câmbio do BCE |
-| **Extrator Web para Markdown** | `GET /api/v1/extract?url=...` | 0.0050 USDC (1 crédito) | Extração anti-SSRF de páginas HTTP/HTTPS para Markdown limpo (LLMs e RAG) |
-| **Auditoria de E-mail B2B** | `GET /api/v1/email-verify?email=...` | 0.0050 USDC (1 crédito) | Validação Zero-PII (RFC, MX, SPF, DMARC, disposable e score 0–100) |
-| **Session Pass x402** | `GET /api/v1/pass` | 2 / 5 / 20 USDC | Emissão de passe pré-pago de sub-15ms (400 / 1.000 / 6.000 créditos) |
-| **Saldo do Session Pass** | `GET /api/v1/pass/balance` | Gratuito | Consulta gratuita de créditos restantes, validade e Spend Controls |
-| **Verificador de Prova** | `POST /api/v1/verify` | Gratuito | Verificação matemática stateless da assinatura `_oracle_proof` |
-
----
-
-## 🤖 Formas de Integração para Agentes de IA
-
-### 1. Servidor MCP via Smithery.ai (Claude Desktop e Cursor)
-
-Instalação automática em 1 clique via CLI do Smithery:
+Test any endpoint immediately using the built-in Sandbox header (`X-Payment: demo`, up to 3 requests/day per IP):
 
 ```bash
-# Para Claude Desktop
-npx -y @smithery/cli install grid402-mcp --client claude
-
-# Para Cursor
-npx -y @smithery/cli install grid402-mcp --client cursor
+curl -s -H "X-Payment: demo" \
+  "https://grid402.online/api/v1/dossier?cnpj=00000000000191"
 ```
 
-### 2. PayAPI Market e Claude Desktop / Cursor MCP
+Example signed response (truncated):
 
-O Grid402 é verificado e listado oficialmente no [PayAPI Market](https://payapi.market/api/grid402-brazil-public-data-network-oracle):
+```json
+{
+  "cnpj": "00000000000191",
+  "legal_name": "BANCO DO BRASIL SA",
+  "verdict": "APPROVED",
+  "compliance_score": 100,
+  "_meta": {
+    "service_id": "dossier",
+    "upstream_source": "Receita Federal + CGU CEIS/CNEP + Simples Nacional",
+    "oracle_wallet": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90"
+  },
+  "_oracle_proof": {
+    "algorithm": "secp256k1-sha256",
+    "signer": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+    "payload_hash": "0x...",
+    "signature": "0x..."
+  }
+}
+```
+
+### Add All 27 Tools to Claude Desktop or Cursor (1 Command)
+
+```bash
+# Claude Desktop (via Smithery)
+npx -y @smithery/cli install grid402-mcp --client claude
+
+# Cursor (via Smithery)
+npx -y @smithery/cli install grid402-mcp --client cursor
+
+# Or run directly via stdio
+npx -y grid402-mcp
+```
+
+---
+
+## Ready-to-Use Recipes (Copy and Paste)
+
+| Use Case | Stack | File |
+|---|---|---|
+| **CNPJ Compliance 360 + CEP Automation** | n8n (no-code workflow) | [`examples/n8n/grid402_cnpj_compliance_workflow.json`](examples/n8n/grid402_cnpj_compliance_workflow.json) |
+| **CNPJ Compliance + Pix Session Pass** | n8n | [`examples/n8n_cnpj_compliance_pix.json`](examples/n8n_cnpj_compliance_pix.json) |
+| **Claude Desktop / Cursor MCP (27 tools)** | Node.js / MCP stdio + HTTP | [`mcp/README.md`](mcp/README.md) |
+| **LangChain and CrewAI Tools** | Python (`@tool` wrappers) | [`examples/langchain_quickstart.py`](examples/langchain_quickstart.py) |
+| **Coinbase CDP AgentKit Auto-Pay** | TypeScript and Python | [`integrations/agentkit/README.md`](integrations/agentkit/README.md) |
+| **ElizaOS Autonomous Character Plugin** | TypeScript (`grid402-plugin-elizaos`) | [`integrations/elizaos/README.md`](integrations/elizaos/README.md) |
+| **Autonomous x402 Buyer Agent** | Node.js / Python | [`examples/autonomous_agent.mjs`](examples/autonomous_agent.mjs) · [`examples/autonomous_agent.py`](examples/autonomous_agent.py) |
+
+---
+
+## Why Grid402?
+
+* **Pay-Per-Call HTTP x402 v2 (Gasless Multi-Chain via PayAI):** From `0.0050` to `0.0500 USDC` per call with native gasless settlement (`PAYMENT-SIGNATURE`) on **Base**, **Polygon**, **Arbitrum** (EIP-3009) and **Solana** (SVM) — no monthly subscriptions or static API keys required.
+* **Sub-15ms Prepaid Session Passes (USDC or Pix):** Avoid per-request signing latency. Top up once via **6 blockchains** (Base, Arbitrum, Polygon, Optimism, Ethereum, Solana) or **Brazilian Pix** (`R$ 12` Starter) and pass `X-Payment: pass_g402_...` with configurable **Spend Controls** (`daily_credit_limit`, `allowed_endpoints`) and `Idempotency-Key` replay safety.
+* **Free Teaser Preview on HTTP 402:** Every `402 Payment Required` challenge includes a real truncated `preview` (such as legal name and city for CNPJ, street/district for CEP, or TLS status for SSL) plus `sandbox_test` instructions before any payment is settled.
+* **Verifiable Oracle Proofs (`_oracle_proof` + `_meta`):** Every paid response carries upstream provenance metadata and an ECDSA `secp256k1` signature verifiable statelessly via `POST /api/v1/verify`.
+* **Zero-DB Architecture:** Ultra-lightweight flat-JSON storage with `flock(LOCK_EX)` concurrency safety and atomic rewrites (`grid402_atomic_write`), delivering 99.5% target SLA with ~40ms average latency.
+
+---
+
+## API Catalog (25 Paid Microservices + Free Utilities)
+
+`1 credit = 0.0050 USDC` (`5,000 raw units` on Base Mainnet).
+
+| Service | Endpoint | Price (USDC / Credits) | Description |
+|---|---|---|---|
+| **Operational Status** | `GET /status` | Free | Live health, latencies, 30-day uptime and 25 active services |
+| **KYB 360 Dossier + AI Verdict** | `GET /api/v1/dossier?cnpj=...` | `0.0500` (10 cr) | RFB CNPJ + Simples/MEI + CGU CEIS/CNEP + deterministic AI verdict (`APPROVED` / `FLAGGED` / `REJECTED`) |
+| **Compliance Score 360** | `GET /api/v1/compliance?cnpj=...` | `0.0300` (6 cr) | 0–100 corporate risk score cross-checking Federal Revenue and CGU |
+| **KYB Global Audit** | `GET /api/v1/kyb-audit?cnpj=...` | `0.0250` (5 cr) | Corporate audit combining Brazil CNPJ + OFAC/UN Sanctions + GLEIF LEI |
+| **OFAC / UN Sanctions and AML** | `GET /api/v1/ofac?target=...` | `0.0200` (4 cr) | US Treasury OFAC SDN, UN Consolidated Sanctions and Base Web3 AML screening |
+| **Domain Audit Bundle** | `GET /api/v1/domain-audit?domain=...` | `0.0150` (3 cr) | Consolidated DNS + SSL/TLS + BGP/ASN security audit in one call |
+| **Market Snapshot** | `GET /api/v1/market-snapshot` | `0.0150` (3 cr) | Macro bundle: Forex + Crypto + Selic/CDI/IPCA + ANBIMA calendar |
+| **Brazil CNPJ Lookup** | `GET /api/v1/cnpj?cnpj=...` | `0.0100` (2 cr) | Legal name, registration status, CNAE and official Receita Federal data |
+| **Simples Nacional and MEI** | `GET /api/v1/simples?cnpj=...` | `0.0100` (2 cr) | Tax regime classification (Simples Nacional and SIMEI) |
+| **Brazil Sanctions (CEIS/CNEP)** | `GET /api/v1/sanctions?cnpj=...` | `0.0100` (2 cr) | Administrative penalties and debarment checks via CGU |
+| **Global LEI Identity** | `GET /api/v1/lei?lei=...` | `0.0100` (2 cr) | ISO 17442 global legal entity registry via GLEIF (200+ jurisdictions) |
+| **Commercial Forex** | `GET /api/v1/forex` | `0.0050` (1 cr) | Live USD, EUR and GBP rates to BRL |
+| **Global Markets and ECB FX** | `GET /api/v1/global-markets` | `0.0050` (1 cr) | US/EU/UK/BR exchange status and 30+ ECB FX rates |
+| **Crypto Spot Prices** | `GET /api/v1/crypto` | `0.0050` (1 cr) | Live spot prices and 24h change for BTC, ETH, SOL, USDC and BASE |
+| **BCB / IBGE Macro Indicators** | `GET /api/v1/indicators` | `0.0050` (1 cr) | Official Selic, CDI and 12-month IPCA rates |
+| **National Holidays (BR)** | `GET /api/v1/holidays?year=...` | `0.0050` (1 cr) | National and ANBIMA/Febraban banking holiday calendar |
+| **ANBIMA Business Days** | `GET /api/v1/workdays` | `0.0050` (1 cr) | Banking workday counting and D+N maturity projection |
+| **Brazil Postal Code (CEP)** | `GET /api/v1/cep?code=...` | `0.0050` (1 cr) | Street, neighborhood, city, state and official IBGE municipality code |
+| **DNS Resolution** | `GET /api/v1/dns?domain=...` | `0.0050` (1 cr) | A, AAAA, MX, TXT, NS and CNAME records with query latency |
+| **SSL/TLS Inspector** | `GET /api/v1/ssl?host=...` | `0.0050` (1 cr) | Issuer, expiration, remaining days and cipher suite |
+| **ASN and BGP Intelligence** | `GET /api/v1/asn?ip=...` | `0.0050` (1 cr) | ASN number, BGP prefix, owner organization and country |
+| **Web-to-Markdown Extractor** | `GET /api/v1/extract?url=...` | `0.0050` (1 cr) | SSRF-hardened HTML-to-Markdown extraction for LLMs and RAG |
+| **B2B Email Verification** | `GET /api/v1/email-verify?email=...` | `0.0050` (1 cr) | Zero-PII RFC, MX, SPF, DMARC, disposable domain check and 0–100 score |
+| **SHA-256 Notarization** | `GET /api/v1/notarize?content=...` | `0.0050` (1 cr) | Cryptographic timestamp and ECDSA proof of existence |
+| **Prepaid Session Pass** | `GET /api/v1/pass` | `2 / 5 / 20 USDC` | Issue sub-15ms prepaid pass (400 / 1,200 / 6,000 credits) |
+| **Pass Balance and Statement** | `GET /api/v1/pass/balance` | Free | Check remaining credits, Spend Controls and CSV/JSON statement |
+| **Oracle Proof Verifier** | `POST /api/v1/verify` | Free | Stateless mathematical verification of `_oracle_proof` signatures |
+
+---
+
+## Payment Modes
+
+| Mode | Header / Flow | Best For | Latency |
+|---|---|---|---|
+| **Sandbox (Free)** | `X-Payment: demo` (3 req/day per IP) | Testing, CI/CD, trying endpoints | `< 40ms` |
+| **Session Pass (Prepaid)** | `X-Payment: pass_g402_<id>_<hmac>` | Production apps, n8n, MCP, high-frequency agents | **`< 15ms`** |
+| **x402 v2 Gasless** | `PAYMENT-SIGNATURE` (Base, Polygon, Arbitrum, Solana) | Autonomous Web3 agents with wallets | ~1–2s |
+| **On-Chain TxHash** | `X-Payment: 0x...` or `arbitrum:0x...` / `polygon:0x...` / `solana:<sig>` | Direct wallet transfers | ~1–3s |
+
+### Session Pass Packages (`https://grid402.online/pass`)
+* **Starter:** `2.00 USDC` or `R$ 12` (Pix) -> **400 credits** (180 days validity)
+* **Pro:** `5.00 USDC` or `R$ 29` (Pix) -> **1,200 credits** (1,000 base + 20% bonus, 180 days validity)
+* **Fleet:** `20.00 USDC` or `R$ 115` (Pix) -> **6,000 credits** (4,000 base + 50% bonus, 365 days validity)
+
+Official recipient wallets:
+* **EVM (Base, Arbitrum, Polygon, Optimism, Ethereum):** `0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`
+* **Solana Mainnet (SPL USDC):** `CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C`
+
+---
+
+## Framework Integrations
+
+### 1. MCP Server (`grid402-mcp` + `smithery.yaml`)
+Configure in Claude Desktop or Cursor using a Session Pass (no private key required):
 
 ```json
 {
   "mcpServers": {
-    "payapi": {
-      "url": "https://payapi.market/mcp"
+    "grid402": {
+      "command": "npx",
+      "args": ["-y", "grid402-mcp"],
+      "env": {
+        "GRID402_SESSION_PASS": "pass_g402_your_token_here"
+      }
     }
   }
 }
 ```
 
-### 3. Provedor de Ações Coinbase AgentKit (M2M Auto-Settlement)
+Also available via [PayAPI Market](https://payapi.market/api/grid402-brazil-public-data-network-oracle) (`https://payapi.market/mcp`) and public Streamable HTTP MCP (`https://grid402.online/mcp`).
 
-Para agentes autônomos que operam na Base com carteiras CDP:
+### 2. Coinbase CDP AgentKit (M2M Auto-Settlement)
 
 ```typescript
 import { AgentKit, CdpWalletProvider } from "@coinbase/agentkit";
@@ -117,11 +191,9 @@ const agentKit = await AgentKit.from({
 });
 ```
 
-Exemplos detalhados em TypeScript e Python disponíveis em [`integrations/agentkit/README.md`](integrations/agentkit/README.md).
+Full TypeScript and Python guides: [`integrations/agentkit/README.md`](integrations/agentkit/README.md).
 
-### 4. Plugin Oficial para ElizaOS (`grid402-plugin-elizaos`)
-
-Para agentes autônomos no framework [ElizaOS](https://github.com/elizaos/eliza):
+### 3. ElizaOS Plugin (`grid402-plugin-elizaos`)
 
 ```typescript
 import { grid402Plugin } from "grid402-plugin-elizaos";
@@ -131,17 +203,19 @@ export const character = {
   plugins: [grid402Plugin],
   settings: {
     secrets: {
-      GRID402_PASS_TOKEN: "pass_g402_live..._..." // Adquira em https://grid402.online/pass
+      GRID402_PASS_TOKEN: "pass_g402_live..."
     }
   }
 };
 ```
 
-Exemplos detalhados e guia de instalação disponíveis em [`integrations/elizaos/README.md`](integrations/elizaos/README.md).
+See [`integrations/elizaos/README.md`](integrations/elizaos/README.md).
 
-### 5. Integração com LangChain e CrewAI (Python Quickstart)
+### 4. Python SDK / LangChain and CrewAI
 
-Ferramenta leve e sem dependências externas pesadas para agentes Python:
+```bash
+pip install grid402
+```
 
 ```python
 from examples.langchain_quickstart import Grid402Client
@@ -151,114 +225,84 @@ forex = client.get_forex()
 print("USD/BRL:", forex["rates"]["USD"]["bid"])
 ```
 
-Exemplo completo com wrappers prontos para `@tool` em [`examples/langchain_quickstart.py`](examples/langchain_quickstart.py).
-
-### 6. Recarga Web3 Multi-Chain em 1 Clique (EVM + Solana SPL USDC)
-
-Para agentes e desenvolvedores que buscam alta frequência (abaixo de 15ms) sem o custo e atrito de assinar 1 transação a cada `GET`, o Grid402 aceita USDC nativamente em **6 redes** (sem taxa de bridge):
-- **5 Redes EVM** (`0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`): **Base**, **Arbitrum One**, **Polygon PoS**, **Optimism** e **Ethereum Mainnet**
-- **Solana Mainnet** (`CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C`): **SPL USDC** (`EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`)
-- Acesse [https://grid402.online/pass](https://grid402.online/pass) ou [https://grid402.online/pass#multichain-web3](https://grid402.online/pass#multichain-web3), escolha a rede e selecione seu pacote (`1 crédito = 0.0050 USDC`):
-  - **Starter:** 2 USDC / R$ 12 $\rightarrow$ 400 créditos (= 400 chamadas padrão, validade 180 dias)
-  - **Pro:** 5 USDC / R$ 29 $\rightarrow$ 1.200 créditos (1.000 base + 200 bônus (+20%) = 1.200 chamadas padrão, validade 180 dias)
-  - **Fleet:** 20 USDC / R$ 115 $\rightarrow$ 6.000 créditos (4.000 base + 2.000 bônus (+50%) = 6.000 chamadas padrão, validade 365 dias)
-- Para pagamentos avulsos multi-chain por chamada, envie `X-Payment: arbitrum:0x...`, `X-Payment: polygon:0x...`, `X-Payment: solana:<assinatura>` ou o cabeçalho `X-Payment-Network`. Na Base, `X-Payment: 0x...` permanece como padrão retrocompatível.
-
-### 7. Dossiê Institucional Base Grants e Coinbase CDP
-
-O plano de crescimento, métricas de rede e candidatura formal a subsídios da Base Foundation e Coinbase Developer Platform estão detalhados em [`docs/BASE_GRANTS_AND_CDP_DOSSIER.md`](docs/BASE_GRANTS_AND_CDP_DOSSIER.md).
-
-### 8. Chamadas Diretas via cURL
-
-#### Consulta com Desafio HTTP 402 e Amostra Gratuita:
-```bash
-curl -i "https://grid402.online/api/v1/cnpj?cnpj=00000000000191"
-```
-
-#### Liquidação On-Chain na Base:
-```bash
-curl "https://grid402.online/api/v1/cnpj?cnpj=00000000000191" \
-  -H "X-Payment: 0x<tx_hash_da_transferencia_na_base>"
-```
-
-#### Modo Sandbox Gratuito para Testes:
-```bash
-curl "https://grid402.online/api/v1/cnpj?cnpj=00000000000191" \
-  -H "X-Payment: demo"
-```
+See [`examples/langchain_quickstart.py`](examples/langchain_quickstart.py).
 
 ---
 
-## 📁 Estrutura de Arquivos
+## Verified Directories and Ecosystem Badges
+
+<details>
+<summary>Click to view all verified listings (x402scan, Glama, PayAPI Market, PayCensus, SealKeeper, RapidAPI, mcptry, Wellknown)</summary>
+
+<br>
+
+[![PayAPI Market](https://img.shields.io/badge/PayAPI_Market-Verified-10B981?logo=checkmarx)](https://payapi.market/api/grid402-brazil-public-data-network-oracle)
+[![x402scan](https://img.shields.io/badge/x402scan-Verified_Server_(24_APIs)-00F0FF)](https://www.x402scan.com/server/00294038-51ff-4073-ab29-c59fca221a50)
+[![Glama](https://img.shields.io/badge/Glama-Verified_MCP_(27_Tools)-0052FF)](https://glama.ai/mcp/connectors/io.github.oliveiratc/grid402)
+[![PayCensus Trust](https://img.shields.io/badge/PayCensus_Trust-Multi--Chain_Verified-10B981)](https://paycensus.com/s/0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90.html)
+[![SealKeeper](https://img.shields.io/badge/SealKeeper-Verified_Owner_(27_Tools)-10B981)](https://sealkeeper.run/agents/grid402.online/grid402-online)
+[![RapidAPI](https://img.shields.io/badge/RapidAPI-3_Live_APIs-0055DA?logo=rapidapi)](https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities)
+[![mcptry](https://mcptry.com/badge/io.github.oliveiratc/grid402)](https://mcptry.com/servers/io.github.oliveiratc/grid402)
+[![Wellknown](https://wellknown.network/agents/grid402-mcp/badge.svg)](https://wellknown.network/agents/grid402-mcp)
+[![Brand](https://img.shields.io/badge/Brand_Guide-Visual_Identity-0052FF)](MANUAL_DE_MARCA.md)
+
+[![Grid402 — Brazil Public Data and Network Oracle MCP server](public_html/assets/mcprush-card.svg)](https://mcprush.com/to/grid402-brazil-public-data-network-oracle-mcp?ref=badge)
+
+</details>
+
+---
+
+## Repository Structure and Local Tests
 
 ```text
-├── .env.example                       # Modelo de variáveis de ambiente
-├── smithery.yaml                      # Manifesto oficial para o registro Smithery.ai
-├── PRD.md                             # Documento de Requisitos do Produto
-├── README.md                          # Este guia completo do projeto
-├── integrations/                      # Integrações para frameworks de IA
-│   └── agentkit/                      # Provedor de ações Coinbase Developer Platform (CDP)
-│       ├── grid402_action_provider.ts # Implementação TypeScript para @coinbase/agentkit
-│       ├── grid402_action_provider.py # Implementação Python para cdp-agentkit-core
-│       └── README.md                  # Guia de uso para LangChain e CrewAI
-├── mcp/                               # Pacote oficial Model Context Protocol (grid402-mcp)
-│   ├── package.json                   # Configuração e dependências do servidor MCP
-│   ├── index.mjs                      # Ponto de entrada do protocolo MCP
-│   ├── tools.mjs                      # Implementação das 27 ferramentas MCP e cliente HTTP x402
-│   ├── test_mcp.mjs                   # Suíte de testes automatizados do MCP
-│   └── README.md                      # Documentação de configuração do servidor MCP
-├── public_html/                       # Raiz pública servida na Hostinger
-│   ├── index.php                      # Porteiro x402, roteador da API e portal interativo
-│   ├── config.php                     # Definições, alvos, provedores e carregador .env
-│   ├── x402.php                       # Validador on-chain Base e verificação de recibos
-│   ├── openapi.json                   # Especificação OpenAPI 3.1
-│   ├── llms.txt                       # Manifesto de descoberta para modelos de linguagem
-│   └── private_data/                  # Armazenamento protegido (Zero-DB)
-│       ├── summary_free.json          # Cache público do resumo operacional
-│       ├── telemetry_paid.json        # Dados consolidados dos serviços
-│       ├── sandbox_usage.json         # Controle de limites por IP no Sandbox
-│       └── used_txs.json              # Registro de transações já liquidadas
-└── tests/                             # Suíte de testes automatizados locais
-    ├── test_teaser_preview.php        # Teste de validação de amostras no HTTP 402
-    ├── test_sandbox_mode.php          # Teste de validação do Modo Sandbox
-    └── test_agentkit_integration.php  # Teste de conformidade Smithery e AgentKit
+├── smithery.yaml            # Smithery.ai 1-click MCP manifest
+├── mcp/                     # Official MCP server package (grid402-mcp, 27 tools)
+├── sdk/                     # Official JavaScript/TypeScript SDK (npm: grid402)
+├── python/                  # Official Python SDK (PyPI: grid402)
+├── integrations/            # Coinbase CDP AgentKit and ElizaOS plugins
+├── examples/                # Ready-to-run n8n, LangChain, Node and Python recipes
+├── public_html/             # Production gateway (PHP 8.1+ Zero-DB, x402, OpenAPI, llms.txt)
+├── docs/                    # Architecture and Base Grants / CDP dossier
+└── tests/                   # Automated maturity, concurrency, E2E and integration suites
 ```
 
----
-
-## 🧪 Testes Automatizados Locais
-
-Para executar os testes com PHP 8.1+ e Node.js:
+Run the local test suites (PHP 8.1+ and Node.js):
 
 ```powershell
-# 1. Testes de Amostra de Dados (Teaser)
-php tests/test_teaser_preview.php
-
-# 2. Testes de Modo Sandbox
-php tests/test_sandbox_mode.php
-
-# 3. Testes do Servidor MCP
+php scripts/verify_storage_integrity.php
+php tests/test_maturity_and_m2m_controls.php
+php tests/test_concurrency_and_load.php
+php tests/test_session_pass_statement.php
+php tests/test_agentkit_integration.php
 node mcp/test_mcp.mjs
 ```
 
 ---
 
-## 🔐 Segurança Não-Custodial e Gestão de Chaves M2M
+## Non-Custodial Security and M2M Key Hygiene
 
-- **Zero Custódia de Chaves de Agentes:** O gateway servidor nunca solicita nem armazena chaves privadas ou seed phrases de clientes.
-- **Carteiras Isoladas de Orçamento (Agentes Autônomos):** Ao utilizar `GRID402_PRIVATE_KEY` no `grid402-mcp` ou Coinbase AgentKit, utilize sempre uma carteira operacional dedicada com saldo estritamente limitado ao orçamento de automação (injetada via `.env` ou cofre de segredos, jamais versionada no Git).
-- **Session Pass com Spend Controls:** Para eliminar qualquer exposição de chave privada no runtime do agente, emita um `pass_g402_...` e configure `daily_credit_limit` e `allowed_endpoints` com acompanhamento via `GET /api/v1/pass/balance`.
+* **Zero Key Custody:** The Grid402 gateway never requests or stores client private keys or seed phrases.
+* **Isolated Agent Budgets:** When using `GRID402_PRIVATE_KEY` in `grid402-mcp` or AgentKit, always use a dedicated operational wallet funded strictly with your automation budget.
+* **Spend Controls via Session Pass:** To eliminate private key exposure in agent runtimes, issue a `pass_g402_...` token with `daily_credit_limit` and `allowed_endpoints`, and monitor usage via `GET /api/v1/pass/balance`.
 
 ---
 
-## 📄 Licenciamento (Dual-License) e Propriedade Intelectual
+## Dual Licensing
 
-O ecossistema Grid402 adota separação explícita de licenças para garantir liberdade total de adoção nos clientes de IA e proteção da infraestrutura proprietária:
-
-| Camada / Diretório | Licença Aplicável | Escopo |
+| Layer / Directory | License | Scope |
 |---|---|---|
-| **SDKs, MCP Server e Integrações** (`python/`, `mcp/`, `sdk/`, `integrations/`, `examples/`) | **MIT License** | Uso livre, comercial ou aberto, em agentes autônomos, forks clientes e produtos SaaS (PyPI `grid402`, npm `grid402-mcp`) |
-| **Gateway e Plataforma Servidora** (`public_html/`) | **Proprietária (All Rights Reserved)** | Motor HTTP x402, assinador ECDSA do Oráculo, Session Pass, interface web e painel administrativo (`Lei nº 9.609/1998` e `Lei nº 9.610/1998`) |
-| **Dados Consultados nas APIs** | **Domínio Público / CC0 / LAI** | Registros governamentais abertos e protocolos IETF sem reserva proprietária |
+| **SDKs, MCP Server and Integrations** (`python/`, `mcp/`, `sdk/`, `integrations/`, `examples/`) | **MIT License** | Free commercial and open-source use in AI agents, forks and SaaS products |
+| **Gateway and Server Platform** (`public_html/`) | **Proprietary (All Rights Reserved)** | HTTP x402 gateway, ECDSA oracle signer, Session Pass engine, web portal and admin panel |
+| **Underlying Public Data** | **Public Domain / CC0 / LAI** | Official public registries and open IETF network protocols |
 
-© 2026 **Grid402 Network Intelligence**. Consulte [LICENSE](LICENSE) e [llms.txt](public_html/llms.txt) para os termos completos.
+Institutional dossier: [`docs/BASE_GRANTS_AND_CDP_DOSSIER.md`](docs/BASE_GRANTS_AND_CDP_DOSSIER.md) · Terms: [`LICENSE`](LICENSE) · AI Discovery: [`public_html/llms.txt`](public_html/llms.txt).
+
+---
+
+## Community and Contributions
+
+* **Like what we are building?** Give this repository a **Star** so more AI and automation builders can find it.
+* **Need a new public data endpoint?** Open a thread in [GitHub Discussions](https://github.com/oliveiratc/Grid402/discussions) with the upstream source and use case.
+* **Built an n8n, Make, LangGraph or CrewAI template?** PRs adding new recipes to `examples/` (MIT licensed) are very welcome.
+
+© 2026 **Grid402 Network Intelligence**.
