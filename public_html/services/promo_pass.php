@@ -83,6 +83,7 @@ function grid402_promo_campaigns(): array {
     return [
         'MCPTRY50' => [
             'code' => 'MCPTRY50',
+            'storage_key' => 'MCPTRY50_v2',
             'title' => 'Cyber Monday x402 — mcptry Exclusive',
             'partner' => 'mcptry',
             'description' => '50 free credits (up to 50 API/MCP calls across all 27 tools) via instant prepaid Session Pass. No wallet, card, or signup required.',
@@ -111,6 +112,14 @@ function grid402_promo_find_campaign(string $rawCode): ?array {
 }
 
 /**
+ * Chave de bucket persistida em promo_claims.json (permite reset limpo via storage_key).
+ */
+function grid402_promo_bucket_key(array $campaign): string {
+    $sk = trim((string) ($campaign['storage_key'] ?? ''));
+    return $sk !== '' ? $sk : (string) $campaign['code'];
+}
+
+/**
  * Consulta o status público de uma campanha promocional (sem PII).
  */
 function grid402_promo_get_status(string $rawCode, ?int $nowEpoch = null): array {
@@ -128,14 +137,15 @@ function grid402_promo_get_status(string $rawCode, ?int $nowEpoch = null): array
     $startsEpoch = strtotime((string) $campaign['starts_at']) ?: 0;
     $endsEpoch = strtotime((string) $campaign['ends_at']) ?: 0;
     $maxClaims = (int) $campaign['max_claims'];
+    $bucketKey = grid402_promo_bucket_key($campaign);
 
     $totalClaims = 0;
     $file = grid402_promo_claims_file();
     if (is_file($file)) {
         $raw = @file_get_contents($file);
         $decoded = is_string($raw) ? @json_decode($raw, true) : null;
-        if (is_array($decoded) && isset($decoded[$campaign['code']]['total_claims'])) {
-            $totalClaims = (int) $decoded[$campaign['code']]['total_claims'];
+        if (is_array($decoded) && isset($decoded[$bucketKey]['total_claims'])) {
+            $totalClaims = (int) $decoded[$bucketKey]['total_claims'];
         }
     }
 
@@ -262,7 +272,8 @@ function grid402_promo_claim_pass(string $rawCode, ?string $clientIp = null, ?in
 
     $ip = $clientIp !== null && trim($clientIp) !== '' ? trim($clientIp) : grid402_promo_resolve_client_ip();
     $code = (string) $campaign['code'];
-    $ipHmac = grid402_promo_ip_hmac($ip, $code);
+    $bucketKey = grid402_promo_bucket_key($campaign);
+    $ipHmac = grid402_promo_ip_hmac($ip, $bucketKey);
     $maxClaims = (int) $campaign['max_claims'];
     $credits = (int) $campaign['credits'];
     $dailyLimit = (int) $campaign['daily_credit_limit'];
@@ -295,7 +306,7 @@ function grid402_promo_claim_pass(string $rawCode, ?string $clientIp = null, ?in
 
         try {
             $store = grid402_read_locked_json($fp, []);
-            $bucket = (isset($store[$code]) && is_array($store[$code])) ? $store[$code] : [
+            $bucket = (isset($store[$bucketKey]) && is_array($store[$bucketKey])) ? $store[$bucketKey] : [
                 'total_claims' => 0,
                 'claims_by_ip_hmac' => [],
             ];
@@ -355,7 +366,7 @@ function grid402_promo_claim_pass(string $rawCode, ?string $clientIp = null, ?in
             ];
             $bucket['total_claims'] = $nextIndex;
             $bucket['claims_by_ip_hmac'] = $byIp;
-            $store[$code] = $bucket;
+            $store[$bucketKey] = $bucket;
 
             ftruncate($fp, 0);
             rewind($fp);
@@ -386,4 +397,53 @@ function grid402_promo_claim_pass(string $rawCode, ?string $clientIp = null, ?in
     } finally {
         fclose($fp);
     }
+}
+
+/**
+ * Zera o contador e o histórico de IPs de uma campanha promocional (uso exclusivo admin autenticado).
+ */
+function grid402_promo_reset_campaign(string $rawCode): array {
+    $campaign = grid402_promo_find_campaign($rawCode);
+    if ($campaign === null) {
+        return ['ok' => false, 'code' => 404, 'error' => 'PromoNotFound', 'message' => 'Promo code not found.'];
+    }
+    $code = (string) $campaign['code'];
+    $bucketKey = grid402_promo_bucket_key($campaign);
+    $file = grid402_promo_claims_file();
+    $dir = dirname($file);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+    }
+    $fp = @fopen($file, 'c+');
+    if (!$fp) {
+        return ['ok' => false, 'code' => 500, 'error' => 'StorageUnavailable', 'message' => 'Unable to access promo claims storage.'];
+    }
+    try {
+        if (flock($fp, LOCK_EX)) {
+            try {
+                $store = grid402_read_locked_json($fp, []);
+                $previous = (int) ($store[$bucketKey]['total_claims'] ?? 0);
+                $store[$bucketKey] = [
+                    'total_claims' => 0,
+                    'claims_by_ip_hmac' => [],
+                ];
+                ftruncate($fp, 0);
+                rewind($fp);
+                fwrite($fp, (string) json_encode($store, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+                fflush($fp);
+            } finally {
+                flock($fp, LOCK_UN);
+            }
+        }
+    } finally {
+        fclose($fp);
+    }
+    return [
+        'ok' => true,
+        'code' => 200,
+        'promo_code' => $code,
+        'previous_claims' => $previous ?? 0,
+        'remaining_claims' => (int) $campaign['max_claims'],
+        'max_claims' => (int) $campaign['max_claims'],
+    ];
 }

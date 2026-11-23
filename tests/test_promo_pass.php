@@ -88,6 +88,12 @@ assertTrue(empty($claim3['ok']) && ($claim3['code'] ?? 0) === 410 && ($claim3['e
 $expired = grid402_promo_claim_pass('MCPTRY50', '203.0.113.99', strtotime('2026-12-09T00:00:00Z'));
 assertTrue(empty($expired['ok']) && ($expired['code'] ?? 0) === 410 && ($expired['error'] ?? '') === 'PromoExpired', 'Tentativa apos termino da campanha retorna 410 PromoExpired');
 
+// 9. Reset administrativo volta contador para max_claims e libera IP
+$reset = grid402_promo_reset_campaign('MCPTRY50');
+assertTrue(!empty($reset['ok']) && ($reset['remaining_claims'] ?? 0) === 2 && ($reset['previous_claims'] ?? 0) === 2, 'Reset administrativo restaura remaining_claims para max_claims');
+$afterReset = grid402_promo_get_status('MCPTRY50', $now);
+assertTrue(($afterReset['campaign']['claimed_count'] ?? -1) === 0 && ($afterReset['campaign']['remaining_claims'] ?? 0) === 2, 'Status apos reset mostra 0 resgates e cota cheia');
+
 // Limpeza
 foreach (glob($tmpDir . '/*') ?: [] as $f) {
     @unlink($f);

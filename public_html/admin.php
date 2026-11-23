@@ -636,6 +636,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // 3.0c. Configuracao persistente do RapidAPI Proxy Secret (salvo em storage/rapidapi_config.json)
+    if ($action === 'reset_promo_claims' || ((string) ($_POST['action'] ?? '') === 'reset_promo_claims')) {
+        header('Content-Type: application/json; charset=utf-8');
+        if (!$isLoggedIn) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'error' => 'Sessao administrativa expirada ou nao autenticada.']);
+            exit;
+        }
+        if (!grid402_validate_csrf($submittedCsrf)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'error' => 'Token CSRF de seguranca ausente ou invalido.']);
+            exit;
+        }
+        require_once __DIR__ . '/services/promo_pass.php';
+        $promoCode = trim((string) ($_POST['code'] ?? 'MCPTRY50'));
+        $res = grid402_promo_reset_campaign($promoCode);
+        http_response_code((int) ($res['code'] ?? 200));
+        echo json_encode($res, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     if ($action === 'save_rapidapi_config') {
         header('Content-Type: application/json; charset=utf-8');
         if (!$isLoggedIn) {
