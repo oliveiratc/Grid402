@@ -2,7 +2,7 @@
  * Ação ElizaOS: Resolução de Identificador Global de Entidade (GLEIF LEI)
  */
 
-import { Grid402Client } from '../client.js';
+import { Grid402Client, resolveGrid402PassToken } from '../client.js';
 
 export const lookupLeiAction = {
   name: 'LOOKUP_LEI',
@@ -17,7 +17,7 @@ export const lookupLeiAction = {
   validate: async (_runtime: any, _message: any) => true,
   handler: async (runtime: any, message: any, _state?: any, _options?: any, callback?: any) => {
     try {
-      const passToken = runtime?.getSetting?.('GRID402_PASS_TOKEN') || process.env.GRID402_PASS_TOKEN;
+      const passToken = resolveGrid402PassToken(runtime);
       const client = new Grid402Client({ passToken });
 
       const text = message?.content?.text || '';

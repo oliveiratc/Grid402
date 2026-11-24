@@ -108,20 +108,32 @@ function grid402_service_indicators(bool $forceRefresh = false): array {
 }
 
 /**
- * Gera amostra gratuita (teaser) no HTTP 402 para o servico de Indicadores
+ * Gera amostra estrutural estatica/mascarada (teaser) no HTTP 402 para o servico de Indicadores.
+ * Nao consulta BrasilAPI/BCB nem entrega a Selic/CDI/IPCA reais antes do pagamento.
  */
 function grid402_teaser_indicators(): array {
-    $data = grid402_service_indicators();
-    $inds = $data['indicators'] ?? [];
     return [
-        'selic_target' => $inds['selic_target'] ?? 13.75,
-        'reference_date' => $inds['reference_date'] ?? date('Y-m-d'),
+        'source' => 'Banco Central do Brasil (SGS) e IBGE',
+        'preview_mode' => 'static_schema_sample',
+        'indicators_available' => ['selic_target', 'selic_daily', 'cdi_annual', 'cdi_daily', 'ipca_12m', 'ipca_monthly'],
+        'selic_target' => '[LOCKED — unlock via x402 or Session Pass]',
+        'reference_date' => gmdate('Y-m-d'),
+        'sample_schema' => [
+            'selic_target' => 10.50,
+            'selic_daily' => 10.40,
+            'cdi_annual' => 10.40,
+            'cdi_daily' => 0.0393,
+            'ipca_12m' => 4.25,
+            'ipca_monthly' => 0.35,
+        ],
         'locked_fields' => [
+            'selic_target',
             'selic_daily',
             'cdi_annual',
             'cdi_daily',
             'ipca_12m',
-            'ipca_monthly'
+            'ipca_monthly',
+            '_oracle_proof',
         ]
     ];
 }

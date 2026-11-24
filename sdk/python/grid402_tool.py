@@ -1,175 +1,212 @@
 """
 Grid402 AI Agent Tool Connector
 Provides pre-built tool functions and schemas for LangChain, CrewAI, AutoGen, and LLM Function Calling.
-Access public open data and network utilities via x402 micropayments on Base.
+Covers all 25 public open data and network utility services via Session Pass, RapidAPI Hub or x402 USDC.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 import json
-from grid402 import Grid402Client, PaymentRequiredError
+try:
+    from grid402 import Grid402Client, PaymentRequiredError
+except ImportError:
+    from grid402 import Grid402Client, Grid402PaymentRequiredError as PaymentRequiredError
 
 
-def create_grid402_tools(base_url: Optional[str] = None, verify_ssl: Optional[bool] = None) -> Dict[str, Any]:
+def _wrap_call(fn: Callable[[], Any]) -> str:
+    try:
+        return json.dumps(fn(), ensure_ascii=False)
+    except PaymentRequiredError as p:
+        return json.dumps({"payment_required": True, "challenge": p.challenge}, ensure_ascii=False)
+    except Exception as e:
+        return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+
+def create_grid402_tools(
+    base_url: Optional[str] = None,
+    verify_ssl: Optional[bool] = None,
+    session_pass: Optional[str] = None,
+    rapidapi_key: Optional[str] = None,
+    rapidapi_host: Optional[str] = None,
+    sandbox: bool = False,
+) -> Dict[str, Any]:
     """
-    Cria um conjunto de funções invocáveis por agentes de IA para utilitários de rede e dados públicos.
-    Compatível com CrewAI, LangChain e Function Calling do Gemini/OpenAI/Claude.
+    Cria o conjunto completo de funcoes invocaveis por agentes de IA para todos os 25 servicos do Grid402.
+    Compativel com CrewAI, LangChain e Function Calling do Gemini/OpenAI/Claude.
     """
-    client = Grid402Client(base_url=base_url, verify_ssl=verify_ssl) if base_url else Grid402Client(verify_ssl=verify_ssl)
-
-    def get_summary() -> str:
-        """Obtém o resumo gratuito de saúde dos micro-serviços do Grid402."""
-        try:
-            return json.dumps(client.get_summary(), ensure_ascii=False)
-        except Exception as e:
-            return json.dumps({"error": str(e)}, ensure_ascii=False)
-
-    def get_forex(payment_tx_hash: Optional[str] = None) -> str:
-        """Consulta cotações fiduciárias em tempo real (USD, EUR, GBP para BRL)."""
-        try:
-            return json.dumps(client.get_forex(payment_tx_hash=payment_tx_hash), ensure_ascii=False)
-        except PaymentRequiredError as p:
-            return json.dumps({"payment_required": True, "challenge": p.challenge}, ensure_ascii=False)
-        except Exception as e:
-            return json.dumps({"error": str(e)}, ensure_ascii=False)
-
-    def get_crypto(payment_tx_hash: Optional[str] = None) -> str:
-        """Consulta cotações spot de criptoativos (BTC, ETH, SOL, USDC, BASE)."""
-        try:
-            return json.dumps(client.get_crypto(payment_tx_hash=payment_tx_hash), ensure_ascii=False)
-        except PaymentRequiredError as p:
-            return json.dumps({"payment_required": True, "challenge": p.challenge}, ensure_ascii=False)
-        except Exception as e:
-            return json.dumps({"error": str(e)}, ensure_ascii=False)
-
-    def get_dns(domain: str, payment_tx_hash: Optional[str] = None) -> str:
-        """Resolve registros DNS (A, AAAA, MX, TXT, NS, CNAME) para um domínio."""
-        try:
-            return json.dumps(client.get_dns(domain, payment_tx_hash=payment_tx_hash), ensure_ascii=False)
-        except PaymentRequiredError as p:
-            return json.dumps({"payment_required": True, "challenge": p.challenge}, ensure_ascii=False)
-        except Exception as e:
-            return json.dumps({"error": str(e)}, ensure_ascii=False)
-
-    def get_ssl(host: str, payment_tx_hash: Optional[str] = None) -> str:
-        """Inspeciona a validade e emissor de certificado TLS/SSL na porta 443 de um host."""
-        try:
-            return json.dumps(client.get_ssl(host, payment_tx_hash=payment_tx_hash), ensure_ascii=False)
-        except PaymentRequiredError as p:
-            return json.dumps({"payment_required": True, "challenge": p.challenge}, ensure_ascii=False)
-        except Exception as e:
-            return json.dumps({"error": str(e)}, ensure_ascii=False)
-
-    def get_asn(ip: Optional[str] = None, payment_tx_hash: Optional[str] = None) -> str:
-        """Resolve dados de BGP, ASN e organização responsável para um IP."""
-        try:
-            return json.dumps(client.get_asn(ip=ip, payment_tx_hash=payment_tx_hash), ensure_ascii=False)
-        except PaymentRequiredError as p:
-            return json.dumps({"payment_required": True, "challenge": p.challenge}, ensure_ascii=False)
-        except Exception as e:
-            return json.dumps({"error": str(e)}, ensure_ascii=False)
-
-    def get_cep(code: str, payment_tx_hash: Optional[str] = None) -> str:
-        """Resolve endereço público e código IBGE a partir de um CEP brasileiro."""
-        try:
-            return json.dumps(client.get_cep(code, payment_tx_hash=payment_tx_hash), ensure_ascii=False)
-        except PaymentRequiredError as p:
-            return json.dumps({"payment_required": True, "challenge": p.challenge}, ensure_ascii=False)
-        except Exception as e:
-            return json.dumps({"error": str(e)}, ensure_ascii=False)
-
-    def get_dossier_360(cnpj: str, payment_tx_hash: Optional[str] = None) -> str:
-        """Consulta o Dossiê 360 KYB com veredito determinístico (APPROVED, FLAGGED, REJECTED) para um CNPJ."""
-        try:
-            return json.dumps(client.get_dossier_360(cnpj, payment_tx_hash=payment_tx_hash), ensure_ascii=False)
-        except PaymentRequiredError as p:
-            return json.dumps({"payment_required": True, "challenge": p.challenge}, ensure_ascii=False)
-        except Exception as e:
-            return json.dumps({"error": str(e)}, ensure_ascii=False)
+    kwargs: Dict[str, Any] = {
+        "verify_ssl": verify_ssl,
+        "session_pass": session_pass,
+        "rapidapi_key": rapidapi_key,
+        "rapidapi_host": rapidapi_host,
+        "sandbox": sandbox,
+    }
+    if base_url:
+        kwargs["base_url"] = base_url
+    client = Grid402Client(**kwargs)
 
     return {
-        "get_summary": get_summary,
-        "get_forex": get_forex,
-        "get_crypto": get_crypto,
-        "get_dns": get_dns,
-        "get_ssl": get_ssl,
-        "get_asn": get_asn,
-        "get_cep": get_cep,
-        "get_dossier_360": get_dossier_360,
+        "get_summary": lambda: _wrap_call(client.get_summary),
+        "get_forex": lambda payment_tx_hash=None: _wrap_call(lambda: client.get_forex(payment_tx_hash=payment_tx_hash)),
+        "get_crypto": lambda payment_tx_hash=None: _wrap_call(lambda: client.get_crypto(payment_tx_hash=payment_tx_hash)),
+        "get_dns": lambda domain, payment_tx_hash=None: _wrap_call(lambda: client.get_dns(domain, payment_tx_hash=payment_tx_hash)),
+        "get_ssl": lambda host, payment_tx_hash=None: _wrap_call(lambda: client.get_ssl(host, payment_tx_hash=payment_tx_hash)),
+        "get_asn": lambda ip=None, payment_tx_hash=None: _wrap_call(lambda: client.get_asn(ip=ip, payment_tx_hash=payment_tx_hash)),
+        "get_cep": lambda code, payment_tx_hash=None: _wrap_call(lambda: client.get_cep(code, payment_tx_hash=payment_tx_hash)),
+        "get_cnpj": lambda cnpj, payment_tx_hash=None: _wrap_call(lambda: client.get_cnpj(cnpj, payment_tx_hash=payment_tx_hash)),
+        "get_indicators": lambda payment_tx_hash=None: _wrap_call(lambda: client.get_indicators(payment_tx_hash=payment_tx_hash)),
+        "get_holidays": lambda year=None, payment_tx_hash=None: _wrap_call(lambda: client.get_holidays(year=year, payment_tx_hash=payment_tx_hash)),
+        "get_workdays": lambda start_date=None, end_date=None, days=None, date=None, payment_tx_hash=None: _wrap_call(
+            lambda: client.get_workdays(start_date=start_date, end_date=end_date, days=days, date=date, payment_tx_hash=payment_tx_hash)
+        ),
+        "get_sanctions": lambda cnpj, payment_tx_hash=None: _wrap_call(lambda: client.get_sanctions(cnpj, payment_tx_hash=payment_tx_hash)),
+        "get_simples": lambda cnpj, payment_tx_hash=None: _wrap_call(lambda: client.get_simples(cnpj, payment_tx_hash=payment_tx_hash)),
+        "get_compliance": lambda cnpj, payment_tx_hash=None: _wrap_call(lambda: client.get_compliance(cnpj, payment_tx_hash=payment_tx_hash)),
+        "get_dossier_360": lambda cnpj, payment_tx_hash=None: _wrap_call(lambda: client.get_dossier_360(cnpj, payment_tx_hash=payment_tx_hash)),
+        "get_domain_audit": lambda domain, payment_tx_hash=None: _wrap_call(lambda: client.get_domain_audit(domain, payment_tx_hash=payment_tx_hash)),
+        "get_kyb_audit": lambda cnpj, payment_tx_hash=None: _wrap_call(lambda: client.get_kyb_audit(cnpj, payment_tx_hash=payment_tx_hash)),
+        "get_market_snapshot": lambda payment_tx_hash=None: _wrap_call(lambda: client.get_market_snapshot(payment_tx_hash=payment_tx_hash)),
+        "get_lei": lambda lei, payment_tx_hash=None: _wrap_call(lambda: client.get_lei(lei, payment_tx_hash=payment_tx_hash)),
+        "get_ofac": lambda target, payment_tx_hash=None: _wrap_call(lambda: client.get_ofac(target, payment_tx_hash=payment_tx_hash)),
+        "notarize": lambda content, payment_tx_hash=None: _wrap_call(lambda: client.notarize(content, payment_tx_hash=payment_tx_hash)),
+        "get_global_markets": lambda market=None, base=None, date=None, payment_tx_hash=None: _wrap_call(
+            lambda: client.get_global_markets(market=market, base=base, date=date, payment_tx_hash=payment_tx_hash)
+        ),
+        "extract": lambda url, max_chars=None, payment_tx_hash=None: _wrap_call(lambda: client.extract(url, max_chars=max_chars, payment_tx_hash=payment_tx_hash)),
+        "email_verify": lambda email, payment_tx_hash=None: _wrap_call(lambda: client.email_verify(email, payment_tx_hash=payment_tx_hash)),
+        "get_pass_balance": lambda token=None: _wrap_call(lambda: client.get_pass_balance(token=token)),
+        "verify_proof": lambda payload: _wrap_call(lambda: client.verify_proof_remote(payload)),
     }
 
 
-def create_grid402_tool(base_url: Optional[str] = None, verify_ssl: Optional[bool] = None):
-    """
-    Função utilitária unificada (dispatcher) para orquestradores como CrewAI e LangChain.
-    """
-    tools = create_grid402_tools(base_url=base_url, verify_ssl=verify_ssl)
+ALL_HUB_SERVICES = [
+    "summary",
+    "forex",
+    "crypto",
+    "dns",
+    "ssl",
+    "asn",
+    "cep",
+    "cnpj",
+    "indicators",
+    "holidays",
+    "workdays",
+    "sanctions",
+    "simples",
+    "compliance",
+    "dossier",
+    "domain-audit",
+    "kyb-audit",
+    "market-snapshot",
+    "lei",
+    "ofac",
+    "notarize",
+    "global-markets",
+    "extract",
+    "email-verify",
+    "pass-balance",
+    "verify",
+]
+
+
+def create_grid402_tool(
+    base_url: Optional[str] = None,
+    verify_ssl: Optional[bool] = None,
+    session_pass: Optional[str] = None,
+    rapidapi_key: Optional[str] = None,
+    sandbox: bool = False,
+):
+    """Funcao utilitaria unificada (dispatcher) para orquestradores como CrewAI e LangChain."""
+    tools = create_grid402_tools(
+        base_url=base_url,
+        verify_ssl=verify_ssl,
+        session_pass=session_pass,
+        rapidapi_key=rapidapi_key,
+        sandbox=sandbox,
+    )
 
     def grid402_query_hub(service: str, target: Optional[str] = None, payment_tx_hash: Optional[str] = None) -> str:
-        """
-        Consulta utilitários de rede ou dados públicos no Grid402.
-
-        Args:
-            service: Nome do serviço ('summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep').
-            target: Parâmetro alvo (ex: domínio para DNS/SSL, IP para ASN, CEP para CEP).
-            payment_tx_hash: Hash da transação on-chain (Base Mainnet) com US$ 0.0050 USDC caso requerido.
-        """
-        srv = (service or "").lower().strip()
+        srv = (service or "").lower().strip().replace("_", "-")
         if srv == "summary":
             return tools["get_summary"]()
-        elif srv == "forex":
+        if srv == "forex":
             return tools["get_forex"](payment_tx_hash)
-        elif srv == "crypto":
+        if srv == "crypto":
             return tools["get_crypto"](payment_tx_hash)
-        elif srv == "dns":
-            if not target:
-                return json.dumps({"error": "Parâmetro 'target' (domínio) é obrigatório para DNS"})
-            return tools["get_dns"](target, payment_tx_hash)
-        elif srv == "ssl":
-            if not target:
-                return json.dumps({"error": "Parâmetro 'target' (host) é obrigatório para SSL"})
-            return tools["get_ssl"](target, payment_tx_hash)
-        elif srv == "asn":
+        if srv == "indicators":
+            return tools["get_indicators"](payment_tx_hash)
+        if srv == "market-snapshot":
+            return tools["get_market_snapshot"](payment_tx_hash)
+        if srv == "holidays":
+            year = int(target) if (target and str(target).isdigit()) else None
+            return tools["get_holidays"](year, payment_tx_hash)
+        if srv == "workdays":
+            return tools["get_workdays"](start_date=target, payment_tx_hash=payment_tx_hash)
+        if srv == "global-markets":
+            return tools["get_global_markets"](market=target or "US", payment_tx_hash=payment_tx_hash)
+        if srv == "asn":
             return tools["get_asn"](target, payment_tx_hash)
-        elif srv == "cep":
+        if srv == "pass-balance":
+            return tools["get_pass_balance"](target)
+        if srv == "verify":
             if not target:
-                return json.dumps({"error": "Parâmetro 'target' (CEP) é obrigatório para CEP"})
-            return tools["get_cep"](target, payment_tx_hash)
-        elif srv in ("dossier", "dossier_360"):
+                return json.dumps({"error": "Parâmetro 'target' (payload JSON) é obrigatório para verify"})
+            return tools["verify_proof"](target)
+
+        required_target_map = {
+            "dns": ("domínio", tools["get_dns"]),
+            "ssl": ("host", tools["get_ssl"]),
+            "cep": ("CEP", tools["get_cep"]),
+            "cnpj": ("CNPJ", tools["get_cnpj"]),
+            "sanctions": ("CNPJ", tools["get_sanctions"]),
+            "simples": ("CNPJ", tools["get_simples"]),
+            "compliance": ("CNPJ", tools["get_compliance"]),
+            "dossier": ("CNPJ", tools["get_dossier_360"]),
+            "dossier-360": ("CNPJ", tools["get_dossier_360"]),
+            "domain-audit": ("domínio", tools["get_domain_audit"]),
+            "kyb-audit": ("CNPJ", tools["get_kyb_audit"]),
+            "lei": ("código LEI", tools["get_lei"]),
+            "ofac": ("carteira ou entidade", tools["get_ofac"]),
+            "notarize": ("conteúdo ou hash SHA-256", tools["notarize"]),
+            "extract": ("URL pública HTTP/HTTPS", lambda t, p: tools["extract"](t, None, p)),
+            "email-verify": ("e-mail corporativo", tools["email_verify"]),
+        }
+        if srv in required_target_map:
+            label, fn = required_target_map[srv]
             if not target:
-                return json.dumps({"error": "Parâmetro 'target' (CNPJ) é obrigatório para dossier"})
-            return tools["get_dossier_360"](target, payment_tx_hash)
-        else:
-            return json.dumps({"error": f"Serviço desconhecido '{service}'. Opções: summary, forex, crypto, dns, ssl, asn, cep, dossier"})
+                return json.dumps({"error": f"Parâmetro 'target' ({label}) é obrigatório para {srv}"})
+            return fn(target, payment_tx_hash)
+
+        return json.dumps({"error": f"Serviço desconhecido '{service}'. Opções: {', '.join(ALL_HUB_SERVICES)}"})
 
     return grid402_query_hub
 
 
-# Schemas JSON padrão para Gemini / OpenAI / Claude Function Calling
+# Schemas JSON padrão para Gemini / OpenAI / Claude Function Calling (todos os 25 serviços)
 GRID402_FUNCTION_SCHEMAS: List[Dict[str, Any]] = [
     {
         "type": "function",
         "function": {
             "name": "grid402_query_hub",
-            "description": "Consulta utilitários de rede de alta performance e dados públicos do Brasil e globais (Câmbio USD/EUR/BRL, Criptoativos BTC/ETH/SOL, Resolução DNS, Inspeção TLS/SSL, ASN/IP BGP e Consulta CEP/IBGE) via protocolo x402.",
+            "description": "Consulta os 25 micro-serviços públicos verificáveis do Grid402 (KYB 360 Dossier, CNPJ, Sanções CGU, Simples/MEI, Compliance, GLEIF LEI, OFAC, Web-to-Markdown extract, Email Verify, Forex, Crypto, ANBIMA Workdays/Holidays, Selic/CDI/IPCA, DNS, SSL, ASN, CEP, Notarize, Global Markets) via Session Pass, RapidAPI ou x402 USDC.",
             "parameters": {
                 "type": "object",
                 "properties": {
                     "service": {
                         "type": "string",
                         "description": "Nome do serviço a ser consultado.",
-                        "enum": ["summary", "forex", "crypto", "dns", "ssl", "asn", "cep"]
+                        "enum": ALL_HUB_SERVICES,
                     },
                     "target": {
                         "type": "string",
-                        "description": "Alvo da consulta técnica (domínio para DNS/SSL, IP para ASN, código de 8 dígitos para CEP). Opcional para summary, forex e crypto."
+                        "description": "Alvo da consulta (CNPJ para dossier/cnpj/sanctions/simples/compliance/kyb-audit, URL para extract, e-mail para email-verify, domínio para dns/ssl/domain-audit, IP para asn, CEP para cep, LEI para lei, carteira/nome para ofac, texto para notarize, ano para holidays, mercado US/EU/UK/BR para global-markets).",
                     },
                     "payment_tx_hash": {
                         "type": "string",
-                        "description": "Hash de transação hexadecimal de 32 bytes (66 caracteres) no Base Mainnet com 0.0050 USDC comprovando pagamento x402."
-                    }
+                        "description": "Opcional: token Session Pass (pass_g402_...), payload x402 v2 base64 ou txHash USDC Multi-Chain (Base/Polygon/Arbitrum/Solana).",
+                    },
                 },
-                "required": ["service"]
-            }
-        }
+                "required": ["service"],
+            },
+        },
     }
 ]

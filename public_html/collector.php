@@ -71,7 +71,11 @@ if (!$isCli && !defined('GRID402_INTERNAL_BOOTSTRAP') && (($_GET['action'] ?? ''
                 if (!empty($row['error']) && count($errorLogs) < 50) {
                     $errorLogs[] = $row;
                 }
-                if (in_array($row['payment_source'] ?? '', ['facilitator', 'tx_hash', 'pass'], true) && count($paidLogs) < 30) {
+                $rowSrc = strtolower((string) ($row['payment_source'] ?? ''));
+                $isPaidJsonlSource = in_array($rowSrc, ['facilitator', 'tx_hash', 'pass', 'web3_topup', 'mercadopago', 'rapidapi', 'solana_spl', 'mcp'], true)
+                    || str_starts_with($rowSrc, 'evm_')
+                    || str_starts_with($rowSrc, 'multichain_');
+                if ($isPaidJsonlSource && count($paidLogs) < 30) {
                     $paidLogs[] = $row;
                 }
                 if (count($errorLogs) >= 50 && count($paidLogs) >= 30) {
@@ -95,7 +99,8 @@ if (!$isCli && !defined('GRID402_INTERNAL_BOOTSTRAP') && (($_GET['action'] ?? ''
         'used_nonces_count' => count($usedNonces),
         'used_txs_count' => count($usedTxs),
         'growth_summary' => [
-            'actors_count' => count($growthData['actors'] ?? []),
+            'actors_count' => count($growthData['profiles'] ?? []),
+            'profiles_count' => count($growthData['profiles'] ?? []),
             'events_recent' => array_slice(array_reverse($growthData['events'] ?? []), 0, 30),
         ],
         'metrics' => $metricsData,
@@ -128,17 +133,17 @@ function grid402_atomic_write_json(string $filePath, array $data): bool {
 $startTime = microtime(true);
 $isoTimestamp = gmdate('Y-m-d\TH:i:s\Z');
 
-// Atualiza Câmbio e Cripto
+// Atualiza caches privados de Câmbio e Cripto (as cotações ao vivo NÃO são expostas em summary_free.json)
+$tForex = microtime(true);
 $forexData = grid402_service_forex(true);
+$forexLatencyMs = round((microtime(true) - $tForex) * 1000, 1);
+
+$tCrypto = microtime(true);
 $cryptoData = grid402_service_crypto(true);
+$cryptoLatencyMs = round((microtime(true) - $tCrypto) * 1000, 1);
 
-$usdRate = $forexData['rates']['USD']['bid'] ?? 5.50;
-$eurRate = $forexData['rates']['EUR']['bid'] ?? 5.90;
-$gbpRate = $forexData['rates']['GBP']['bid'] ?? 7.00;
-
-$btcPrice = $cryptoData['tickers']['BTC']['price_usd'] ?? 68000.0;
-$ethPrice = $cryptoData['tickers']['ETH']['price_usd'] ?? 3200.0;
-$solPrice = $cryptoData['tickers']['SOL']['price_usd'] ?? 180.0;
+// Usado apenas internamente para calculo de metricas administrativas (BRL)
+$usdRate = (float) ($forexData['rates']['USD']['bid'] ?? 5.50);
 
 $servicesSummary = [
     'forex' => [
@@ -146,18 +151,18 @@ $servicesSummary = [
         'status' => 'UP',
         'endpoint' => '/api/v1/forex',
         'category' => 'Mercado',
-        'usd_brl' => $usdRate,
-        'eur_brl' => $eurRate,
-        'gbp_brl' => $gbpRate,
+        'price_usdc' => GRID402_PRICE_DISPLAY,
+        'pairs_monitored' => ['USD/BRL', 'EUR/BRL', 'GBP/BRL'],
+        'latency_ms' => $forexLatencyMs,
     ],
     'crypto' => [
         'name' => 'Cripto Tickers',
         'status' => 'UP',
         'endpoint' => '/api/v1/crypto',
         'category' => 'Mercado',
-        'btc_usd' => $btcPrice,
-        'eth_usd' => $ethPrice,
-        'sol_usd' => $solPrice,
+        'price_usdc' => GRID402_PRICE_DISPLAY,
+        'assets_monitored' => ['BTC', 'ETH', 'SOL', 'USDC', 'BASE'],
+        'latency_ms' => $cryptoLatencyMs,
     ],
     'dns' => [
         'name' => 'DNS Records Lookup',
@@ -272,7 +277,7 @@ $servicesSummary = [
         'status' => 'UP',
         'endpoint' => '/api/v1/lei',
         'category' => 'Global (CC0)',
-        'price_usdc' => '0.0200',
+        'price_usdc' => '0.0100',
     ],
     'ofac' => [
         'name' => 'Sanções Globais (OFAC/ONU) e AML Web3',
@@ -329,9 +334,10 @@ foreach ($catalogDefs as $svcId => $def) {
             'status' => 'UP',
             'endpoint' => $def['endpoint'],
             'category' => $def['category'],
-            'price_usdc' => $def['price_usdc'] ?? GRID402_PRICE_DISPLAY,
         ];
     }
+    // Sempre sincroniza price_usdc a partir do catalogo canonico para TODOS os 25 servicos
+    $servicesSummary[$svcId]['price_usdc'] = $def['price_usdc'] ?? ($servicesSummary[$svcId]['price_usdc'] ?? GRID402_PRICE_DISPLAY);
     $servicesSummary[$svcId]['upstream_source'] = $def['upstream_source'] ?? 'Grid402 Official Public Data Feed';
     $servicesSummary[$svcId]['cache_ttl_sec'] = $def['cache_ttl_sec'] ?? 300;
     $servicesSummary[$svcId]['last_checked'] = $isoTimestamp;

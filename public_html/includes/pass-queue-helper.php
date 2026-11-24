@@ -15,7 +15,18 @@ declare(strict_types=1);
 
 if (!function_exists('grid402_get_user_idle_pass_stats')) {
     function grid402_get_user_idle_pass_stats(): array {
-        $queuePath = __DIR__ . '/../private_data/pass_reengagement_queue.json';
+        $privateDir = defined('GRID402_PRIVATE_DIR')
+            ? rtrim((string) GRID402_PRIVATE_DIR, '/\\')
+            : (function_exists('grid402_get_storage_dir')
+                ? rtrim((string) grid402_get_storage_dir(), '/\\')
+                : (__DIR__ . '/../private_data'));
+        $queuePath = $privateDir . '/pass_reengagement_queue.json';
+        if (!file_exists($queuePath)) {
+            $fallbackPath = __DIR__ . '/../private_data/pass_reengagement_queue.json';
+            if (file_exists($fallbackPath)) {
+                $queuePath = $fallbackPath;
+            }
+        }
 
         if (!file_exists($queuePath) || !is_readable($queuePath)) {
             return [

@@ -236,26 +236,46 @@ function grid402_fetch_cnpj_url(string $url, int $timeoutSeconds = 4): array {
 }
 
 /**
- * Extrai a amostra parcial (teaser data) para inclusao no desafio HTTP 402
- * Retorna array com ['success' => true, 'preview' => [...], 'locked_fields' => [...]]
- * ou ['success' => false, 'code' => 400|404, ...] em caso de erro cadastral
+ * Gera amostra estrutural estática/mascarada (teaser data) para inclusão no desafio HTTP 402.
+ * Não consulta APIs externas (BrasilAPI/MinhaReceita) antes do pagamento nem vaza dados reais do CNPJ.
+ * Retorna erro 400 apenas se o CNPJ for matematicamente inválido (Módulo 11).
  */
 function grid402_get_cnpj_preview(string $cnpj): array {
-    $full = grid402_service_cnpj($cnpj);
-    if (!($full['success'] ?? false)) {
-        return $full;
+    $clean = preg_replace('/\D/', '', trim($cnpj));
+    if (!grid402_validate_cnpj_digits($clean)) {
+        return [
+            'success' => false,
+            'error' => 'InvalidCNPJ',
+            'message' => 'O CNPJ informado é matematicamente inválido ou possui dígitos verificadores incorretos.',
+            'cnpj' => $cnpj,
+            'code' => 400,
+        ];
     }
 
     return [
         'success' => true,
         'preview' => [
-            'cnpj' => $full['cnpj'] ?? grid402_format_cnpj($cnpj),
-            'razao_social' => $full['razao_social'] ?? '',
-            'nome_fantasia' => $full['nome_fantasia'] ?? '',
-            'uf' => $full['endereco']['uf'] ?? '',
-            'situacao_cadastral' => $full['situacao_cadastral'] ?? 'ATIVA',
+            'cnpj' => grid402_format_cnpj($clean),
+            'cnpj_valid' => true,
+            'base_oficial' => 'Receita Federal do Brasil (Base Pública CNPJ - Zero PII)',
+            'preview_mode' => 'static_schema_sample',
+            'razao_social' => '[LOCKED — unlock via x402 or Session Pass]',
+            'nome_fantasia' => '[LOCKED]',
+            'uf' => '[LOCKED]',
+            'situacao_cadastral' => '[LOCKED]',
+            'sample_schema' => [
+                'cnpj' => '00.000.000/0001-91',
+                'razao_social' => 'EXEMPLO EMPRESA S.A.',
+                'situacao_cadastral' => 'ATIVA',
+                'cnae_fiscal' => 6201501,
+                'capital_social' => 100000.00,
+                'uf' => 'SP',
+            ],
         ],
         'locked_fields' => [
+            'razao_social',
+            'nome_fantasia',
+            'situacao_cadastral',
             'capital_social',
             'natureza_juridica',
             'data_abertura',

@@ -135,7 +135,15 @@ try {
         'params' => ['name' => 'grid402_domain_audit', 'arguments' => ['domain' => 'base.org']],
     ]));
     $mcpUnpaidJson = json_decode($mcpUnpaid['body'], true) ?: [];
-    rev_check('MCP domain_audit sem pagamento retorna 0.0150 USDC (15000)', ($mcpUnpaidJson['error']['data']['price_usdc'] ?? '') === '0.0150' && ($mcpUnpaidJson['error']['data']['price_raw_units'] ?? 0) === 15000);
+    $mcpUnpaidErr = $mcpUnpaidJson['result']['_meta']['x402/error'] ?? [];
+    rev_check(
+        'MCP domain_audit sem pagamento retorna formato @x402/mcp (isError + _meta[x402/error] + PAYMENT-REQUIRED) com 0.0150 USDC (15000)',
+        ($mcpUnpaidJson['result']['isError'] ?? false) === true &&
+        ($mcpUnpaidErr['price_usdc'] ?? '') === '0.0150' &&
+        ($mcpUnpaidErr['price_raw_units'] ?? 0) === 15000 &&
+        !empty($mcpUnpaid['headers']['payment-required']),
+        'body=' . substr($mcpUnpaid['body'], 0, 220)
+    );
 
     $mcpPassUnpaid = rev_http('POST', "{$baseUrl}/mcp.php", ['Content-Type: application/json'], json_encode([
         'jsonrpc' => '2.0',
@@ -144,7 +152,15 @@ try {
         'params' => ['name' => 'grid402_pass', 'arguments' => []],
     ]));
     $mcpPassJson = json_decode($mcpPassUnpaid['body'], true) ?: [];
-    rev_check('MCP grid402_pass sem pagamento retorna 2.0000 USDC (2000000)', ($mcpPassJson['error']['data']['price_usdc'] ?? '') === '2.0000' && ($mcpPassJson['error']['data']['price_raw_units'] ?? 0) === 2000000);
+    $mcpPassErr = $mcpPassJson['result']['_meta']['x402/error'] ?? [];
+    rev_check(
+        'MCP grid402_pass sem pagamento retorna formato @x402/mcp com 2.0000 USDC (2000000)',
+        ($mcpPassJson['result']['isError'] ?? false) === true &&
+        ($mcpPassErr['price_usdc'] ?? '') === '2.0000' &&
+        ($mcpPassErr['price_raw_units'] ?? 0) === 2000000 &&
+        !empty($mcpPassUnpaid['headers']['payment-required']),
+        'body=' . substr($mcpPassUnpaid['body'], 0, 220)
+    );
 
     $mcpPaid = rev_http('POST', "{$baseUrl}/mcp.php", [
         'Content-Type: application/json',

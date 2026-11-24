@@ -61,6 +61,18 @@ class Grid402Api {
         },
       },
       {
+        displayName: 'RapidAPI Host',
+        name: 'rapidApiHost',
+        type: 'string',
+        default: 'grid402-open-data-kyb-ai-utilities.p.rapidapi.com',
+        description: 'Host proxy da API assinada no RapidAPI Hub (ex.: grid402-open-data-kyb-ai-utilities.p.rapidapi.com)',
+        displayOptions: {
+          show: {
+            authMode: ['rapidApi'],
+          },
+        },
+      },
+      {
         displayName: 'Endpoint Base',
         name: 'baseUrl',
         type: 'string',

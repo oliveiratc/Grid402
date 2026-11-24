@@ -16,6 +16,9 @@ if (!defined('GRID402_EXEC')) {
 require_once dirname(__DIR__) . '/config.php';
 require_once dirname(__DIR__) . '/metrics.php';
 require_once dirname(__DIR__) . '/growth.php';
+if (is_file(dirname(__DIR__) . '/logger.php')) {
+    require_once dirname(__DIR__) . '/logger.php';
+}
 require_once __DIR__ . '/pass.php';
 
 /**
@@ -180,6 +183,63 @@ function grid402_mp_http(string $method, string $path, ?array $body = null, ?str
 }
 
 /**
+ * Extrai detalhe diagnóstico útil de erro do gateway Mercado Pago sem expor tokens ou credenciais.
+ */
+function grid402_mp_sanitize_error_detail(array $resp, string $fallback): string {
+    $parts = [];
+    $httpStatus = (int) ($resp['status'] ?? 0);
+    if ($httpStatus > 0) {
+        $parts[] = 'HTTP ' . $httpStatus;
+    }
+
+    $data = is_array($resp['data'] ?? null) ? $resp['data'] : [];
+    $msg = trim((string) ($data['message'] ?? ''));
+    $err = trim((string) ($data['error'] ?? ''));
+    if ($msg !== '') {
+        $parts[] = $msg;
+    } elseif ($err !== '') {
+        $parts[] = $err;
+    }
+
+    if (isset($data['cause']) && is_array($data['cause']) && isset($data['cause'][0]) && is_array($data['cause'][0])) {
+        $c0 = $data['cause'][0];
+        $cCode = trim((string) ($c0['code'] ?? ''));
+        $cDesc = trim((string) ($c0['description'] ?? ''));
+        if ($cCode !== '' || $cDesc !== '') {
+            $parts[] = 'cause=' . trim($cCode . ($cDesc !== '' ? (': ' . $cDesc) : ''));
+        }
+    }
+
+    $transportErr = trim((string) ($resp['error'] ?? ''));
+    if ($transportErr !== '' && empty($parts)) {
+        $parts[] = $transportErr;
+    }
+
+    $detail = !empty($parts) ? implode(' | ', $parts) : $fallback;
+    // Redação estrita de tokens/segredos antes de retornar ou gravar em log
+    $detail = preg_replace('/Bearer\s+[A-Za-z0-9._-]+/i', 'Bearer [REDACTED]', $detail) ?? $detail;
+    $detail = preg_replace('/(?:APP_USR|TEST|whsec)_[A-Za-z0-9_-]+/i', '[MP_SECRET_REDACTED]', $detail) ?? $detail;
+    $detail = preg_replace('/(?:APP_USR|TEST)-[A-Za-z0-9_-]+/i', '[MP_TOKEN_REDACTED]', $detail) ?? $detail;
+    $detail = preg_replace('/[\r\n\t]+/', ' ', trim($detail)) ?? trim($detail);
+    return substr($detail, 0, 220);
+}
+
+/**
+ * Registra erro do gateway Mercado Pago no log estruturado JSONL sem vazar credenciais.
+ */
+function grid402_mp_log_gateway_error(string $operation, string $safeDetail, int $httpCode = 502): void {
+    if (function_exists('grid402_log_request')) {
+        grid402_log_request([
+            'service' => 'pass-mp',
+            'status' => $httpCode,
+            'payment_source' => 'mercadopago',
+            'error' => 'MercadoPagoGatewayError[' . $operation . ']: ' . $safeDetail,
+            'method' => (string) ($_SERVER['REQUEST_METHOD'] ?? 'POST'),
+        ]);
+    }
+}
+
+/**
  * Gera QR Code SVG simples em base64 para o modo sandbox sem dependencias externas.
  */
 function grid402_mp_sandbox_qr_base64(string $orderId, float $amountBrl): string {
@@ -235,13 +295,14 @@ function grid402_mp_create_pix(string $tier, string $email = ''): array {
             'description' => 'Grid402 ' . $pkg['label'] . ' (' . number_format($pkg['credits'], 0, '', '.') . ' req)',
             'payment_method_id' => 'pix',
             'external_reference' => $orderId,
-            'notification_url' => $domain . '/api/v1/pass/mp-webhook',
+            'notification_url' => $domain . '/api/v1/pass/mp-webhook?source_news=webhooks',
             'payer' => ['email' => $payerEmail],
         ];
         $resp = grid402_mp_http('POST', '/v1/payments', $payload, $orderId);
         if ($resp['status'] < 200 || $resp['status'] >= 300 || empty($resp['data']['id'])) {
-            $detail = (string) ($resp['data']['message'] ?? $resp['error'] ?? 'Erro ao gerar Pix no Mercado Pago.');
-            return ['ok' => false, 'code' => 502, 'error' => 'MercadoPagoGatewayError', 'message' => $detail];
+            $detail = grid402_mp_sanitize_error_detail($resp, 'Erro ao gerar Pix no Mercado Pago.');
+            grid402_mp_log_gateway_error('create_pix', $detail, 502);
+            return ['ok' => false, 'code' => 502, 'error' => 'MercadoPagoGatewayError', 'message' => $detail, 'error_detail' => $detail];
         }
 
         $txData = $resp['data']['point_of_interaction']['transaction_data'] ?? [];
@@ -336,7 +397,7 @@ function grid402_mp_create_checkout_pro(string $tier, string $email = ''): array
                 'unit_price' => (float) $pkg['amount_brl'],
             ]],
             'external_reference' => $orderId,
-            'notification_url' => $domain . '/api/v1/pass/mp-webhook',
+            'notification_url' => $domain . '/api/v1/pass/mp-webhook?source_news=webhooks',
             'back_urls' => [
                 'success' => $backUrl,
                 'pending' => $backUrl,
@@ -351,8 +412,9 @@ function grid402_mp_create_checkout_pro(string $tier, string $email = ''): array
 
         $resp = grid402_mp_http('POST', '/checkout/preferences', $prefPayload, $orderId);
         if ($resp['status'] < 200 || $resp['status'] >= 300 || empty($resp['data']['id'])) {
-            $detail = (string) ($resp['data']['message'] ?? $resp['error'] ?? 'Erro ao criar preferencia Checkout Pro.');
-            return ['ok' => false, 'code' => 502, 'error' => 'MercadoPagoGatewayError', 'message' => $detail];
+            $detail = grid402_mp_sanitize_error_detail($resp, 'Erro ao criar preferencia Checkout Pro.');
+            grid402_mp_log_gateway_error('create_checkout_pro', $detail, 502);
+            return ['ok' => false, 'code' => 502, 'error' => 'MercadoPagoGatewayError', 'message' => $detail, 'error_detail' => $detail];
         }
         $prefId = (string) $resp['data']['id'];
         $checkoutUrl = (string) ($sandbox ? ($resp['data']['sandbox_init_point'] ?? $resp['data']['init_point'] ?? '') : ($resp['data']['init_point'] ?? $resp['data']['sandbox_init_point'] ?? ''));
@@ -397,13 +459,16 @@ function grid402_mp_create_checkout_pro(string $tier, string $email = ''): array
 }
 
 /**
- * Valida assinatura HMAC x-signature dos webhooks do Mercado Pago.
+ * Valida assinatura HMAC x-signature dos webhooks do Mercado Pago conforme spec oficial:
+ * - Normaliza data.id alfanumérico com strtolower();
+ * - Omite o campo request-id:...; do manifest quando x-request-id estiver ausente/vazio.
  */
 function grid402_mp_verify_webhook_signature(string $xSignature, string $xRequestId, string $dataId, string $secret): bool {
     if ($secret === '') {
         return true;
     }
-    if ($xSignature === '' || $dataId === '') {
+    $normDataId = strtolower(trim($dataId));
+    if ($xSignature === '' || $normDataId === '') {
         return false;
     }
 
@@ -427,7 +492,13 @@ function grid402_mp_verify_webhook_signature(string $xSignature, string $xReques
         return false;
     }
 
-    $manifest = "id:{$dataId};request-id:{$xRequestId};ts:{$ts};";
+    $cleanReqId = trim($xRequestId);
+    $manifest = "id:{$normDataId};";
+    if ($cleanReqId !== '') {
+        $manifest .= "request-id:{$cleanReqId};";
+    }
+    $manifest .= "ts:{$ts};";
+
     $expected = hash_hmac('sha256', $manifest, $secret);
     return hash_equals($expected, $v1);
 }
@@ -553,6 +624,8 @@ function grid402_mp_finalize_approved_order(string $orderId, string $mpPaymentId
     if (!empty($res['ok']) && empty($res['idempotent'])) {
         $usdcEquivalent = ((int) ($res['raw_usdc_units'] ?? 0)) / 1000000.0;
         $isOrderSandbox = !empty($res['sandbox']);
+        $priceUsdcStr = $isOrderSandbox ? '0.0000' : number_format($usdcEquivalent, 4, '.', '');
+        $res['price_usdc'] = $priceUsdcStr;
         $proofId = 'mp_pay_' . ($mpPaymentId !== '' ? $mpPaymentId : $orderId);
         if (function_exists('grid402_record_telemetry')) {
             grid402_record_telemetry(
@@ -565,6 +638,16 @@ function grid402_mp_finalize_approved_order(string $orderId, string $mpPaymentId
                 $isOrderSandbox ? 'sandbox' : 'paid',
                 ['payment_source' => $isOrderSandbox ? 'sandbox' : 'mercadopago']
             );
+        }
+        if (function_exists('grid402_log_request')) {
+            grid402_log_request([
+                'service' => 'pass',
+                'status' => 200,
+                'payment_source' => $isOrderSandbox ? 'sandbox' : 'mercadopago',
+                'price_usdc' => $priceUsdcStr,
+                'method' => (string) ($_SERVER['REQUEST_METHOD'] ?? 'POST'),
+            ]);
+            $res['logged_paid_request'] = true;
         }
         if (!$isOrderSandbox && function_exists('grid402_growth_event')) {
             grid402_growth_event('pass_purchase', [
@@ -588,7 +671,9 @@ function grid402_mp_finalize_approved_order(string $orderId, string $mpPaymentId
 function grid402_mp_sync_payment(string $mpPaymentId, ?string $expectedOrderId = null): array {
     $resp = grid402_mp_http('GET', '/v1/payments/' . rawurlencode($mpPaymentId));
     if ($resp['status'] < 200 || $resp['status'] >= 300 || empty($resp['data'])) {
-        return ['ok' => false, 'code' => 502, 'error' => 'MercadoPagoLookupFailed', 'message' => 'Nao foi possivel consultar o pagamento no Mercado Pago.'];
+        $detail = grid402_mp_sanitize_error_detail($resp, 'Nao foi possivel consultar o pagamento no Mercado Pago.');
+        grid402_mp_log_gateway_error('sync_payment', $detail, 502);
+        return ['ok' => false, 'code' => 502, 'error' => 'MercadoPagoLookupFailed', 'message' => $detail, 'error_detail' => $detail];
     }
 
     $payment = $resp['data'];
@@ -630,7 +715,59 @@ function grid402_mp_sync_payment(string $mpPaymentId, ?string $expectedOrderId =
 }
 
 /**
- * Processa notificacao de webhook do Mercado Pago.
+ * Consulta merchant_order do Checkout Pro (GET /merchant_orders/{id}) e processa pagamentos aprovados.
+ */
+function grid402_mp_sync_merchant_order(string $merchantOrderId): array {
+    $resp = grid402_mp_http('GET', '/merchant_orders/' . rawurlencode($merchantOrderId));
+    if ($resp['status'] < 200 || $resp['status'] >= 300 || empty($resp['data'])) {
+        $detail = grid402_mp_sanitize_error_detail($resp, 'Nao foi possivel consultar a merchant_order no Mercado Pago.');
+        grid402_mp_log_gateway_error('sync_merchant_order', $detail, 502);
+        return ['ok' => false, 'code' => 502, 'error' => 'MercadoPagoLookupFailed', 'message' => $detail, 'error_detail' => $detail];
+    }
+
+    $orderData = $resp['data'];
+    $extRef = trim((string) ($orderData['external_reference'] ?? ''));
+    $payments = is_array($orderData['payments'] ?? null) ? $orderData['payments'] : [];
+
+    foreach ($payments as $p) {
+        if (!is_array($p)) {
+            continue;
+        }
+        $pStatus = strtolower(trim((string) ($p['status'] ?? '')));
+        if ($pStatus !== 'approved') {
+            continue;
+        }
+        $pid = trim((string) ($p['id'] ?? ''));
+        if ($pid !== '') {
+            $syncRes = grid402_mp_sync_payment($pid, $extRef !== '' ? $extRef : null);
+            if (!empty($syncRes['ok']) || (int) ($syncRes['code'] ?? 0) !== 502) {
+                return $syncRes;
+            }
+        }
+        // Fallback resiliente quando GET /v1/payments/{id} falhar mas a merchant_order já trouxer pagamento aprovado
+        $paidAmt = (float) ($p['total_paid_amount'] ?? $p['transaction_amount'] ?? $orderData['paid_amount'] ?? 0);
+        if ($extRef !== '' && $paidAmt > 0) {
+            return grid402_mp_finalize_approved_order(
+                $extRef,
+                $pid !== '' ? $pid : ('mo_' . $merchantOrderId),
+                $paidAmt,
+                grid402_mp_is_sandbox()
+            );
+        }
+    }
+
+    return [
+        'ok' => true,
+        'code' => 200,
+        'order_id' => $extRef !== '' ? $extRef : null,
+        'merchant_order_id' => $merchantOrderId,
+        'status' => strtolower(trim((string) ($orderData['order_status'] ?? $orderData['status'] ?? 'pending'))),
+        'pass_token' => null,
+    ];
+}
+
+/**
+ * Processa notificacao de webhook do Mercado Pago (payment e merchant_order).
  */
 function grid402_mp_handle_webhook(array $headers, string $rawBody, array $query): array {
     $normHeaders = [];
@@ -641,8 +778,13 @@ function grid402_mp_handle_webhook(array $headers, string $rawBody, array $query
     $body = @json_decode($rawBody, true);
     $body = is_array($body) ? $body : [];
 
-    $dataId = (string) ($query['data_id'] ?? $query['data.id'] ?? $body['data']['id'] ?? $query['id'] ?? '');
-    $topic = strtolower((string) ($query['type'] ?? $query['topic'] ?? $body['type'] ?? $body['action'] ?? ''));
+    $dataId = trim((string) ($query['data_id'] ?? $query['data.id'] ?? $body['data']['id'] ?? $query['id'] ?? ''));
+    if ($dataId === '' && !empty($body['resource']) && is_string($body['resource'])) {
+        if (preg_match('#/([A-Za-z0-9_-]+)(?:\?.*)?$#', $body['resource'], $rm) === 1) {
+            $dataId = trim($rm[1]);
+        }
+    }
+    $topic = strtolower(trim((string) ($query['type'] ?? $query['topic'] ?? $body['type'] ?? $body['topic'] ?? $body['action'] ?? '')));
 
     $secret = grid402_mp_webhook_secret();
     if ($secret !== '') {
@@ -653,7 +795,15 @@ function grid402_mp_handle_webhook(array $headers, string $rawBody, array $query
         }
     }
 
-    if ($dataId === '' || ($topic !== '' && !str_contains($topic, 'payment'))) {
+    if ($dataId === '') {
+        return ['ok' => true, 'code' => 200, 'ignored' => true];
+    }
+
+    if (str_contains($topic, 'merchant_order')) {
+        return grid402_mp_sync_merchant_order($dataId);
+    }
+
+    if ($topic !== '' && !str_contains($topic, 'payment')) {
         return ['ok' => true, 'code' => 200, 'ignored' => true];
     }
 

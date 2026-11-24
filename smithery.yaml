@@ -8,7 +8,18 @@ startCommand:
         description: Token pre-pago Session Pass (pass_g402_...) adquirido via Pix, Cartao ou Multi-Chain USDC para execucao sub-15ms.
       privateKey:
         type: string
-        description: Chave privada EVM com saldo em USDC e gas na Base para auto-liquidacao de consultas.
+        description: Chave privada EVM (0x...) ou Solana (Base58) com saldo em USDC para auto-liquidacao x402 de consultas.
+      solanaPrivateKey:
+        type: string
+        description: Chave privada Solana Ed25519 (Base58 ou JSON byte array) opcional para liquidacao SPL USDC.
+      paymentNetwork:
+        type: string
+        description: Rede preferencial para liquidacao automatica x402 (base, polygon, arbitrum, solana, optimism ou ethereum).
+        default: base
+      gasless:
+        type: boolean
+        description: Ativa liquidacao gasless x402 EIP-3009 via facilitador PayAI (zero ETH gas em Base, Polygon e Arbitrum).
+        default: true
       sandbox:
         type: boolean
         description: Ativa o Modo Sandbox gratuito de testes (3 consultas por dia por IP) sem necessidade de carteira.
@@ -17,10 +28,22 @@ startCommand:
         type: string
         description: URL base da API do Grid402.
         default: https://grid402.online
-  commandFunction:
-    node:
-      cmd: npx
-      args:
-        - -y
-        - grid402-mcp
-
+  commandFunction: |-
+    (config) => {
+      const env = {};
+      if (config.sessionPass) env.GRID402_SESSION_PASS = String(config.sessionPass);
+      if (config.privateKey) env.GRID402_PRIVATE_KEY = String(config.privateKey);
+      if (config.solanaPrivateKey) env.GRID402_SOLANA_PRIVATE_KEY = String(config.solanaPrivateKey);
+      if (config.paymentNetwork) env.GRID402_PAYMENT_NETWORK = String(config.paymentNetwork);
+      if (config.gasless !== undefined) env.GRID402_X402_GASLESS = String(Boolean(config.gasless));
+      if (config.sandbox !== undefined) env.GRID402_SANDBOX = String(Boolean(config.sandbox));
+      if (config.apiUrl) {
+        env.GRID402_API_URL = String(config.apiUrl);
+        env.GRID402_ENDPOINT = String(config.apiUrl);
+      }
+      return {
+        command: 'npx',
+        args: ['-y', 'grid402-mcp'],
+        env,
+      };
+    }

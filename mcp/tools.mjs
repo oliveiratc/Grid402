@@ -277,6 +277,10 @@ export const MCP_TOOLS_DEFINITIONS = [
           type: 'string',
           description: '14-digit Brazilian CNPJ number to check against CEIS/CNEP sanctions.',
         },
+        payment_tx_hash: {
+          type: 'string',
+          description: 'Optional payment proof (0.0100 USDC on Base, Polygon, Arbitrum or Solana), x402 base64 payload, Session Pass token (pass_g402_...), or "demo" for Sandbox.',
+        },
       },
       required: ['cnpj'],
     },
@@ -291,6 +295,10 @@ export const MCP_TOOLS_DEFINITIONS = [
           type: 'string',
           description: '14-digit Brazilian CNPJ number for tax regime verification.',
         },
+        payment_tx_hash: {
+          type: 'string',
+          description: 'Optional payment proof (0.0100 USDC on Base, Polygon, Arbitrum or Solana), x402 base64 payload, Session Pass token (pass_g402_...), or "demo" for Sandbox.',
+        },
       },
       required: ['cnpj'],
     },
@@ -304,6 +312,10 @@ export const MCP_TOOLS_DEFINITIONS = [
         cnpj: {
           type: 'string',
           description: '14-digit Brazilian CNPJ number for 360 compliance scoring.',
+        },
+        payment_tx_hash: {
+          type: 'string',
+          description: 'Optional payment proof (0.0300 USDC on Base, Polygon, Arbitrum or Solana), x402 base64 payload, Session Pass token (pass_g402_...), or "demo" for Sandbox.',
         },
       },
       required: ['cnpj'],
@@ -664,9 +676,11 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
     headers['Idempotency-Key'] = String(params.idempotency_key);
   }
 
+  const isPassService = service === 'pass';
   const isExplicitlyNotSandbox = process.env.GRID402_SANDBOX === 'false' || process.env.GRID402_SANDBOX === '0';
   const isExplicitSandbox = process.env.GRID402_SANDBOX === 'true' || process.env.GRID402_SANDBOX === '1';
   const useAutoTrial = Boolean(
+    !isPassService &&
     options.autoTrial &&
     !params.payment_tx_hash &&
     !process.env.GRID402_SESSION_PASS &&
@@ -675,10 +689,20 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
   );
 
   if (params.payment_tx_hash) {
-    headers['X-Payment'] = params.payment_tx_hash;
-  } else if (process.env.GRID402_SESSION_PASS) {
+    const manualProof = String(params.payment_tx_hash).trim();
+    const manualLower = manualProof.toLowerCase();
+    if (isPassService && (manualLower === 'demo' || manualLower === 'sandbox' || manualLower.startsWith('pass_g402_'))) {
+      return {
+        payment_required: true,
+        error: 'PassPaymentModeForbidden',
+        message: 'grid402_pass requires real USDC payment (x402 or on-chain txHash). Sandbox/demo mode and existing Session Passes cannot be used to issue a new pass.',
+        checkout_options: CHECKOUT_OPTIONS,
+      };
+    }
+    headers['X-Payment'] = manualProof;
+  } else if (process.env.GRID402_SESSION_PASS && !isPassService) {
     headers['X-Payment'] = process.env.GRID402_SESSION_PASS.trim();
-  } else if (isExplicitSandbox || useAutoTrial) {
+  } else if (!isPassService && (isExplicitSandbox || useAutoTrial)) {
     headers['X-Payment'] = 'demo';
   }
 
@@ -728,7 +752,11 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
         });
 
         // Refaz a requisição com o comprovante Multi-Chain (Base, Polygon, Arbitrum ou Solana)
-        headers['X-Payment'] = paymentResult.paymentHeader || paymentResult.txHash;
+        const proofValue = paymentResult.paymentHeader || paymentResult.txHash;
+        if (paymentResult.mode === 'x402_gasless') {
+          headers['PAYMENT-SIGNATURE'] = proofValue;
+        }
+        headers['X-Payment'] = proofValue;
         if (paymentResult.network && paymentResult.network !== 'base') {
           headers['X-Payment-Network'] = paymentResult.network;
         }
@@ -747,6 +775,26 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
             },
           };
         }
+
+        // Nunca mascarar erro pós-pagamento com mensagem genérica de 402
+        const retryRawBody = await retryResponse.text().catch(() => '');
+        let retryParsedBody = retryRawBody;
+        try {
+          retryParsedBody = retryRawBody ? JSON.parse(retryRawBody) : null;
+        } catch {
+          // mantém texto bruto
+        }
+        return {
+          payment_required: retryResponse.status === 402,
+          payment_attempted: true,
+          error: `Post-payment request failed with HTTP ${retryResponse.status}`,
+          http_status: retryResponse.status,
+          tx_hash: paymentResult.txHash,
+          network: paymentResult.networkName || paymentResult.network || 'Base',
+          settlement_mode: paymentResult.mode,
+          amount_usdc: paymentResult.amountUsdc,
+          server_response: retryParsedBody,
+        };
       } catch (payError) {
         return {
           payment_required: true,

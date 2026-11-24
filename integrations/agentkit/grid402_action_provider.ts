@@ -1,29 +1,86 @@
 /**
- * Grid402 Action Provider para Coinbase AgentKit
- * 
+ * Grid402 Action Provider para Coinbase AgentKit (TypeScript)
+ *
  * Permite que agentes autonomos com carteiras CDP (Coinbase Developer Platform)
- * na rede Base consultem dados cadastrais e utilitarios de rede com auto-liquidacao x402.
+ * na rede Base ou Session Pass pre-pago consultem todos os 25 micro-servicos
+ * do Grid402 com auto-liquidacao x402 e confirmacao on-chain.
  */
 
 export interface Grid402Config {
   baseUrl?: string;
   sandbox?: boolean;
+  sessionPass?: string;
 }
 
 export const GRID402_ORACLE_WALLET = '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90';
 export const BASE_USDC_CONTRACT = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
+function encodeErc20TransferData(recipient: string, rawUnits: number | bigint): string {
+  const cleanRecipient = String(recipient || '').replace(/^0x/i, '').toLowerCase().padStart(64, '0');
+  const amountHex = BigInt(rawUnits).toString(16).padStart(64, '0');
+  return `0xa9059cbb${cleanRecipient}${amountHex}`;
+}
+
 export class Grid402ActionProvider {
   private baseUrl: string;
   private sandbox: boolean;
+  private sessionPass?: string;
 
   constructor(config?: Grid402Config) {
-    this.baseUrl = config?.baseUrl || 'https://grid402.online';
+    this.baseUrl = (config?.baseUrl || 'https://grid402.online').replace(/\/$/, '');
     this.sandbox = config?.sandbox || false;
+    this.sessionPass =
+      config?.sessionPass ||
+      (typeof process !== 'undefined' && process.env ? process.env.GRID402_SESSION_PASS : undefined) ||
+      undefined;
+  }
+
+  private async sendAndConfirmUsdc(
+    walletProvider: any,
+    recipient: string,
+    priceDisplay: string,
+    rawUnits: number,
+    tokenContract: string
+  ): Promise<string> {
+    let tx: any;
+    if (typeof walletProvider.sendTransaction === 'function') {
+      const data = encodeErc20TransferData(recipient, rawUnits);
+      tx = await walletProvider.sendTransaction({
+        to: tokenContract,
+        data,
+        value: BigInt(0),
+      });
+    } else if (typeof walletProvider.transfer === 'function') {
+      tx = await walletProvider.transfer({
+        to: recipient,
+        amount: priceDisplay,
+        assetId: 'usdc',
+      });
+    } else {
+      throw new Error('walletProvider must implement sendTransaction() (CDP AgentKit v0.1+) or transfer().');
+    }
+
+    const txHash: string =
+      (typeof tx === 'string' ? tx : '') ||
+      (typeof tx?.getTransactionHash === 'function' ? tx.getTransactionHash() : '') ||
+      tx?.transactionHash ||
+      tx?.hash ||
+      String(tx);
+
+    // Aguarda confirmacao do bloco antes do retry
+    if (typeof tx?.wait === 'function') {
+      await tx.wait(1);
+    } else if (typeof walletProvider.waitForTransactionReceipt === 'function') {
+      await walletProvider.waitForTransactionReceipt(txHash);
+    } else {
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+    }
+
+    return txHash;
   }
 
   /**
-   * Executa a requisicao HTTP com tratamento de auto-liquidacao via carteira CDP
+   * Executa a requisicao HTTP com suporte a Session Pass e auto-liquidacao via carteira CDP
    */
   private async executeWithAutoSettlement(
     path: string,
@@ -37,16 +94,18 @@ export class Grid402ActionProvider {
 
     const headers: Record<string, string> = {
       'Accept': 'application/json',
-      'User-Agent': 'Grid402-CoinbaseAgentKit-Provider/1.0',
+      'User-Agent': 'Grid402-CoinbaseAgentKit-Provider/2.0',
     };
 
-    if (this.sandbox) {
+    if (this.sessionPass) {
+      headers['X-Payment'] = this.sessionPass.trim();
+    } else if (this.sandbox) {
       headers['X-Payment'] = 'demo';
     }
 
     // 1. Primeira tentativa de consulta
     let res = await fetch(url.toString(), { headers });
-    let json = await res.json();
+    let json = await res.json().catch(() => ({}));
 
     if (res.status === 200) {
       return json;
@@ -54,33 +113,63 @@ export class Grid402ActionProvider {
 
     // 2. Se retornou HTTP 402 Payment Required e temos um walletProvider
     if (res.status === 402) {
-      if (walletProvider) {
-        if (!this.sandbox) {
-          const priceDisplay = json.price_usdc || '0.0050';
-          const recipient = json.recipient_wallet || GRID402_ORACLE_WALLET;
+      if (walletProvider && !this.sandbox) {
+        const priceDisplay = json.price_usdc || '0.0050';
+        const rawUnits = Number(json.price_raw_units) || Math.round(Number(priceDisplay) * 1e6) || 5000;
+        const recipient = json.recipient_wallet || GRID402_ORACLE_WALLET;
+        const tokenContract = json.token_contract || BASE_USDC_CONTRACT;
 
-          // Executa transferencia de USDC na Base usando a carteira do agente CDP
-          const tx = await walletProvider.transfer({
-            to: recipient,
-            amount: priceDisplay,
-            assetId: 'usdc',
-          });
+        try {
+          const txHash = await this.sendAndConfirmUsdc(
+            walletProvider,
+            recipient,
+            priceDisplay,
+            rawUnits,
+            tokenContract
+          );
 
-          const txHash = tx.getTransactionHash ? tx.getTransactionHash() : (tx.hash || tx);
-
-          // Reenvia a requisicao com o comprovante de pagamento
+          // Reenvia a requisicao com o comprovante de pagamento confirmado
           headers['X-Payment'] = txHash;
           res = await fetch(url.toString(), { headers });
-          json = await res.json();
+          const retryText = await res.text();
+          let retryJson: any;
+          try {
+            retryJson = JSON.parse(retryText);
+          } catch {
+            retryJson = { raw_body: retryText };
+          }
+
+          if (res.status === 200) {
+            return {
+              ...retryJson,
+              _x402_settlement: {
+                settled: true,
+                tx_hash: txHash,
+                price_usdc: priceDisplay,
+                network: 'Base',
+                token: 'USDC',
+              },
+            };
+          }
 
           return {
-            ...json,
+            payment_required: res.status === 402,
+            error: `Post-payment request failed with HTTP ${res.status}`,
+            http_status: res.status,
+            server_response: retryJson,
             _x402_settlement: {
-              settled: true,
+              settled: false,
               tx_hash: txHash,
               price_usdc: priceDisplay,
               network: 'Base',
+              token: 'USDC',
             },
+          };
+        } catch (payErr: any) {
+          return {
+            ...json,
+            payment_required: true,
+            payment_error: payErr?.message || String(payErr),
           };
         }
       }
@@ -89,123 +178,113 @@ export class Grid402ActionProvider {
     return json;
   }
 
-  // --- Ferramentas Expostas ao Agente ---
+  // --- Ferramentas Expostas ao Agente (25 Servicos + Summary + Verify) ---
 
-  /**
-   * Consulta cadastral oficial de Pessoa Juridica na Receita Federal
-   */
   async queryCnpj(cnpj: string, walletProvider?: any): Promise<any> {
     return this.executeWithAutoSettlement('/api/v1/cnpj', { cnpj }, walletProvider);
   }
 
-  /**
-   * Resolucao de endereco postal e codigo IBGE a partir do CEP
-   */
   async queryCep(code: string, walletProvider?: any): Promise<any> {
     return this.executeWithAutoSettlement('/api/v1/cep', { code }, walletProvider);
   }
 
-  /**
-   * Cotacoes cambiais oficiais de USD, EUR e GBP para BRL
-   */
   async queryForex(walletProvider?: any): Promise<any> {
     return this.executeWithAutoSettlement('/api/v1/forex', {}, walletProvider);
   }
 
-  /**
-   * Precos spot de mercado de BTC, ETH, SOL e USDC
-   */
   async queryCrypto(walletProvider?: any): Promise<any> {
     return this.executeWithAutoSettlement('/api/v1/crypto', {}, walletProvider);
   }
 
-  /**
-   * Resolucao autoritativa de registros DNS (A, AAAA, MX, TXT, NS, CNAME)
-   */
   async queryDns(domain: string, walletProvider?: any): Promise<any> {
     return this.executeWithAutoSettlement('/api/v1/dns', { domain }, walletProvider);
   }
 
-  /**
-   * Inspecao e auditoria de certificados TLS/SSL de hosts remotos
-   */
   async querySsl(host: string, walletProvider?: any): Promise<any> {
     return this.executeWithAutoSettlement('/api/v1/ssl', { host }, walletProvider);
   }
 
-  /**
-   * Identificacao de ASN e organizacao titular de roteamento BGP
-   */
   async queryAsn(ip: string, walletProvider?: any): Promise<any> {
     return this.executeWithAutoSettlement('/api/v1/asn', { ip }, walletProvider);
   }
 
-  /**
-   * Indicadores economicos oficiais (Selic, CDI e IPCA)
-   */
   async queryIndicators(walletProvider?: any): Promise<any> {
     return this.executeWithAutoSettlement('/api/v1/indicators', {}, walletProvider);
   }
 
-  /**
-   * Calendario de feriados nacionais e bancarios ANBIMA
-   */
   async queryHolidays(year?: number | string, walletProvider?: any): Promise<any> {
     const params: Record<string, string> = {};
-    if (year !== undefined) {
-      if (year !== null) {
-        params.year = String(year);
-      }
+    if (year !== undefined && year !== null) {
+      params.year = String(year);
     }
     return this.executeWithAutoSettlement('/api/v1/holidays', params, walletProvider);
   }
 
-  /**
-   * Calculadora de dias uteis bancarios ANBIMA entre duas datas
-   */
   async queryWorkdays(params: Record<string, any> = {}, walletProvider?: any): Promise<any> {
     const queryMap: Record<string, string> = {};
     if (params.start_date || params.startDate) queryMap.start_date = params.start_date || params.startDate;
     if (params.end_date || params.endDate) queryMap.end_date = params.end_date || params.endDate;
-    if (params.days !== undefined) {
-      if (params.days !== null) {
-        queryMap.days = String(params.days);
-      }
+    if (params.days !== undefined && params.days !== null) {
+      queryMap.days = String(params.days);
     }
+    if (params.date) queryMap.date = String(params.date);
     return this.executeWithAutoSettlement('/api/v1/workdays', queryMap, walletProvider);
   }
 
-  /**
-   * Consulta de sancoes administrativas CEIS e CNEP (CGU)
-   */
   async querySanctions(cnpj: string, walletProvider?: any): Promise<any> {
     return this.executeWithAutoSettlement('/api/v1/sanctions', { cnpj }, walletProvider);
   }
 
-  /**
-   * Consulta de opcao pelo Simples Nacional e enquadramento MEI
-   */
   async querySimples(cnpj: string, walletProvider?: any): Promise<any> {
     return this.executeWithAutoSettlement('/api/v1/simples', { cnpj }, walletProvider);
   }
 
-  /**
-   * Compliance Score 360 consolidado (Receita Federal, CGU e historico)
-   */
   async queryCompliance(cnpj: string, walletProvider?: any): Promise<any> {
     return this.executeWithAutoSettlement('/api/v1/compliance', { cnpj }, walletProvider);
   }
 
-  /**
-   * Dossie 360 KYB com Veredito Deterministico para IA (APPROVED, FLAGGED, REJECTED)
-   */
   async queryDossier360(cnpj: string, walletProvider?: any): Promise<any> {
     return this.executeWithAutoSettlement('/api/v1/dossier', { cnpj }, walletProvider);
   }
 
-  /**
-   * Validacao de oraculo criptografico secp256k1 (_oracle_proof)
-   */
+  async queryDomainAudit(domain: string, walletProvider?: any): Promise<any> {
+    return this.executeWithAutoSettlement('/api/v1/domain-audit', { domain }, walletProvider);
+  }
+
+  async queryKybAudit(cnpj: string, walletProvider?: any): Promise<any> {
+    return this.executeWithAutoSettlement('/api/v1/kyb-audit', { cnpj }, walletProvider);
+  }
+
+  async queryMarketSnapshot(walletProvider?: any): Promise<any> {
+    return this.executeWithAutoSettlement('/api/v1/market-snapshot', {}, walletProvider);
+  }
+
+  async queryLei(lei: string, walletProvider?: any): Promise<any> {
+    return this.executeWithAutoSettlement('/api/v1/lei', { lei }, walletProvider);
+  }
+
+  async queryOfac(target: string, walletProvider?: any): Promise<any> {
+    return this.executeWithAutoSettlement('/api/v1/ofac', { target }, walletProvider);
+  }
+
+  async queryNotarize(content: string, walletProvider?: any): Promise<any> {
+    return this.executeWithAutoSettlement('/api/v1/notarize', { content }, walletProvider);
+  }
+
+  async queryGlobalMarkets(params: Record<string, string> = {}, walletProvider?: any): Promise<any> {
+    return this.executeWithAutoSettlement('/api/v1/global-markets', params, walletProvider);
+  }
+
+  async queryExtract(url: string, maxChars?: number, walletProvider?: any): Promise<any> {
+    const params: Record<string, string> = { url };
+    if (maxChars !== undefined && maxChars !== null) params.max_chars = String(maxChars);
+    return this.executeWithAutoSettlement('/api/v1/extract', params, walletProvider);
+  }
+
+  async queryEmailVerify(email: string, walletProvider?: any): Promise<any> {
+    return this.executeWithAutoSettlement('/api/v1/email-verify', { email }, walletProvider);
+  }
+
   async verifyProof(payload: any): Promise<any> {
     const postPayload = typeof payload === 'string' ? payload : JSON.stringify(payload);
     const res = await fetch(`${this.baseUrl}/api/v1/verify`, {
@@ -213,16 +292,13 @@ export class Grid402ActionProvider {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'User-Agent': 'Grid402-CoinbaseAgentKit-Provider/1.6',
+        'User-Agent': 'Grid402-CoinbaseAgentKit-Provider/2.0',
       },
       body: postPayload,
     });
     return await res.json();
   }
 
-  /**
-   * Resumo consolidado do hub de dados e utilitarios (gratuito)
-   */
   async getSummary(): Promise<any> {
     return this.executeWithAutoSettlement('/status', {});
   }
@@ -243,6 +319,15 @@ export class Grid402ActionProvider {
   get_simples = this.querySimples.bind(this);
   get_compliance = this.queryCompliance.bind(this);
   get_dossier_360 = this.queryDossier360.bind(this);
+  get_domain_audit = this.queryDomainAudit.bind(this);
+  get_kyb_audit = this.queryKybAudit.bind(this);
+  get_market_snapshot = this.queryMarketSnapshot.bind(this);
+  get_lei = this.queryLei.bind(this);
+  get_ofac = this.queryOfac.bind(this);
+  notarize = this.queryNotarize.bind(this);
+  get_global_markets = this.queryGlobalMarkets.bind(this);
+  extract = this.queryExtract.bind(this);
+  email_verify = this.queryEmailVerify.bind(this);
   verify_proof = this.verifyProof.bind(this);
 }
 

@@ -108,16 +108,19 @@ t_assert('Admin nav possui breakpoint <= 860px e acessibilidade >= 44px',
 );
 
 $adminContent = (string) file_get_contents($rootDir . '/public_html/admin.php');
-t_assert('admin.php integra includes/admin_nav.php e ancoras #overview, #telemetry, #passes',
-    str_contains($adminContent, 'includes/admin_nav.php') &&
-    str_contains($adminContent, 'grid402_render_admin_nav(') &&
-    str_contains($adminContent, 'id="overview"') &&
-    str_contains($adminContent, 'id="telemetry"') &&
-    str_contains($adminContent, 'id="passes"')
+$adminViewContent = (string) file_get_contents($rootDir . '/public_html/includes/admin_cockpit_view.php');
+$adminCombined = $adminContent . "\n" . $adminViewContent;
+t_assert('admin.php + includes/admin_cockpit_view.php integram admin_nav.php e ancoras #overview, #telemetry, #passes',
+    str_contains($adminContent, 'admin_cockpit_view.php') &&
+    str_contains($adminCombined, 'admin_nav.php') &&
+    str_contains($adminCombined, 'grid402_render_admin_nav(') &&
+    str_contains($adminCombined, 'id="overview"') &&
+    str_contains($adminCombined, 'id="telemetry"') &&
+    str_contains($adminCombined, 'id="passes"')
 );
-t_assert('admin.php aponta para rota valida /reputation (sem /builder_reputation 404)',
-    str_contains($adminContent, 'href="/reputation"') &&
-    !str_contains($adminContent, 'href="/builder_reputation"')
+t_assert('admin.php + cockpit nao apontam para /builder_reputation 404 e apontam para rotas validas (/growth_admin)',
+    str_contains($adminCombined, 'href="/growth_admin"') &&
+    !str_contains($adminCombined, 'href="/builder_reputation"')
 );
 
 $growthAdminContent = (string) file_get_contents($rootDir . '/public_html/growth_admin.php');

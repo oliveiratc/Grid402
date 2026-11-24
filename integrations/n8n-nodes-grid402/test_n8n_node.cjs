@@ -39,7 +39,38 @@ async function runTests() {
     assert.strictEqual(res[0][0].json.verdict.decision, 'APPROVED');
     assert.strictEqual(capturedHeaders['X-Payment'], 'pass_g402_n8n_test');
     assert.ok(capturedUrl.includes('/api/v1/dossier?cnpj=00000000000191'));
-    console.log('  ✓ Credenciais, 25 operacoes e execucao do no n8n homologadas com 100% de sucesso!');
+
+    // RapidAPI proxy host routing
+    const rapidContext = {
+      getInputData: () => [{ json: {} }],
+      getCredentials: async () => ({ authMode: 'rapidApi', rapidApiKey: 'rapid_key_123', baseUrl: 'https://grid402.online' }),
+      getNodeParameter: (name) => (name === 'operation' ? 'dossier' : '00.000.000/0001-91'),
+    };
+    await node.execute.call(rapidContext);
+    assert.ok(capturedUrl.startsWith('https://grid402-open-data-kyb-ai-utilities.p.rapidapi.com/api/v1/dossier'), `URL RapidAPI esperada, obtida: ${capturedUrl}`);
+    assert.strictEqual(capturedHeaders['X-RapidAPI-Key'], 'rapid_key_123');
+    assert.strictEqual(capturedHeaders['X-RapidAPI-Host'], 'grid402-open-data-kyb-ai-utilities.p.rapidapi.com');
+    assert.strictEqual(capturedHeaders['X-Payment'], undefined);
+
+    // Sem fallback silencioso para demo quando sessionPass está vazio
+    const missingPassContext = {
+      getInputData: () => [{ json: {} }],
+      getCredentials: async () => ({ authMode: 'sessionPass', sessionPass: '' }),
+      getNodeParameter: (name) => (name === 'operation' ? 'dossier' : '00.000.000/0001-91'),
+    };
+    await assert.rejects(() => node.execute.call(missingPassContext), /Session Pass/);
+
+    // HTTP 402 lança erro acionável por padrão e respeita continueOnFail()
+    globalThis.fetch = async () => ({
+      status: 402,
+      json: async () => ({ error: 'PaymentRequired', message: 'Payment required' }),
+    });
+    await assert.rejects(() => node.execute.call(fakeContext), /402 Payment Required/);
+    const cofRes = await node.execute.call({ ...fakeContext, continueOnFail: () => true });
+    assert.strictEqual(cofRes[0][0].json.http_status, 402);
+    assert.ok(cofRes[0][0].json._n8n_upgrade_instructions);
+
+    console.log('  ✓ Credenciais, RapidAPI proxy host, bloqueio de fallback demo, erro 402/continueOnFail e 25 operacoes homologadas com 100% de sucesso!');
   } finally {
     globalThis.fetch = originalFetch;
   }

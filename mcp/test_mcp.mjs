@@ -60,6 +60,10 @@ async function runTests() {
   for (const expected of expectedTools) {
     assert.ok(toolNames.includes(expected), `Ferramenta ${expected} deve estar presente`);
   }
+  for (const paidTool of ['grid402_sanctions', 'grid402_simples', 'grid402_compliance']) {
+    const def = MCP_TOOLS_DEFINITIONS.find(t => t.name === paidTool);
+    assert.ok(def?.inputSchema?.properties?.payment_tx_hash, `Ferramenta ${paidTool} deve expor payment_tx_hash no inputSchema`);
+  }
   console.log('  ✓ Todas as 27 ferramentas MCP validadas com sucesso!');
 
   // 2. Teste de Consulta Gratuita (summary)
@@ -139,21 +143,34 @@ async function runTests() {
   assert.strictEqual(solX402.payload.accepted.payTo, GRID402_SOLANA_RECIPIENT_WALLET);
   assert.ok(Buffer.from(solX402.payload.payload.transaction, 'base64').length > 150, 'Transação Solana SPL USDC assinada deve ter > 150 bytes');
 
-  // 4.3 Teste de assinatura Gasless EIP-3009 (Base, Polygon e Arbitrum) via settleX402Payment
+  // 4.3 Teste de assinatura Gasless EIP-3009 (Base, Polygon e Arbitrum) ATIVO POR PADRÃO via settleX402Payment
   const testEvmKey = '0x' + crypto.randomBytes(32).toString('hex');
-  for (const evmNet of ['base', 'polygon', 'arbitrum']) {
-    const gaslessRes = await settleX402Payment({ price_raw_units: 5000 }, testEvmKey, null, {
-      network: evmNet,
-      gasless: true,
-    });
-    assert.strictEqual(gaslessRes.network, evmNet);
-    assert.strictEqual(gaslessRes.mode, 'x402_gasless');
-    const decodedPayload = JSON.parse(Buffer.from(gaslessRes.paymentHeader, 'base64').toString('utf8'));
-    assert.strictEqual(decodedPayload.x402Version, 2);
-    assert.strictEqual(decodedPayload.network, SUPPORTED_X402_NETWORKS[evmNet].caip2);
-    assert.strictEqual(decodedPayload.accepted.payTo, GRID402_RECIPIENT_WALLET);
+  const prevGaslessEnv = process.env.GRID402_X402_GASLESS;
+  delete process.env.GRID402_X402_GASLESS;
+  try {
+    for (const evmNet of ['base', 'polygon', 'arbitrum']) {
+      const gaslessRes = await settleX402Payment({ price_raw_units: 5000 }, testEvmKey, null, {
+        network: evmNet,
+      });
+      assert.strictEqual(gaslessRes.network, evmNet);
+      assert.strictEqual(gaslessRes.mode, 'x402_gasless', `Gasless deve ser padrão para ${evmNet}`);
+      const decodedPayload = JSON.parse(Buffer.from(gaslessRes.paymentHeader, 'base64').toString('utf8'));
+      assert.strictEqual(decodedPayload.x402Version, 2);
+      assert.strictEqual(decodedPayload.network, SUPPORTED_X402_NETWORKS[evmNet].caip2);
+      assert.strictEqual(decodedPayload.accepted.payTo, GRID402_RECIPIENT_WALLET);
+    }
+  } finally {
+    if (prevGaslessEnv !== undefined) process.env.GRID402_X402_GASLESS = prevGaslessEnv;
   }
-  console.log('  ✓ Rejeição de chave inválida e Auto-Payer Multi-Chain (Base, Polygon, Arbitrum e Solana SPL USDC) validados com sucesso!');
+
+  // 4.4 Bloqueio de demo e pass-por-pass em grid402_pass
+  const passDemoBlocked = await executeGrid402Request('pass', { payment_tx_hash: 'demo' });
+  assert.strictEqual(passDemoBlocked.error, 'PassPaymentModeForbidden', 'grid402_pass deve bloquear payment_tx_hash="demo"');
+  const passByPassBlocked = await executeGrid402Request('pass', { payment_tx_hash: 'pass_g402_fake1234' });
+  assert.strictEqual(passByPassBlocked.error, 'PassPaymentModeForbidden', 'grid402_pass deve bloquear pagamento com outro Session Pass');
+  const passAutoTrialChallenge = await executeGrid402Request('pass', {}, { autoTrial: true });
+  assert.strictEqual(passAutoTrialChallenge.payment_required, true, 'grid402_pass com autoTrial=true nunca deve injetar demo e deve retornar desafio 402');
+  console.log('  ✓ Rejeição de chave inválida, Gasless padrão EVM, bloqueio demo/pass-por-pass em grid402_pass e Auto-Payer Multi-Chain validados com sucesso!');
 
   // 5. Teste de Repasse Transparente de Prova Criptografica de Oraculo (_oracle_proof)
   console.log('\n[5/7] Testando presenca da prova de oraculo (_oracle_proof) em modo sandbox...');
@@ -258,6 +275,7 @@ async function runTests() {
 
   assert.strictEqual(rpcResult.init?.result?.serverInfo?.version, '2.0.0', 'Versao MCP initialize deve ser 2.0.0');
   assert.ok(typeof rpcResult.init?.result?.instructions === 'string' && rpcResult.init.result.instructions.includes('GRID402_SESSION_PASS'), 'Handshake initialize deve retornar instructions com orientacoes de Session Pass e sandbox');
+  assert.ok(rpcResult.init.result.instructions.includes('GRID402_X402_GASLESS'), 'Instructions deve documentar GRID402_X402_GASLESS');
   assert.ok(rpcResult.init.result.instructions.includes('demo'), 'Instructions deve mencionar modo sandbox demo');
   assert.strictEqual(rpcResult.list?.result?.tools?.length, 27, 'tools/list via stdio deve expor exatamente 27 ferramentas');
   console.log('  ✓ Handshake stdio retornou version=2.0.0, instructions nativas e 27 ferramentas!');

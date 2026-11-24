@@ -216,38 +216,50 @@ function grid402_service_dossier(string $cnpj, bool $bypassCache = false): array
 }
 
 /**
- * Gera prévia segura (Teaser) do Dossiê 360º para exibição no desafio HTTP 402 antes do pagamento.
+ * Gera prévia estrutural estática/mascarada (Teaser) do Dossiê 360º para exibição no desafio HTTP 402 antes do pagamento.
+ * Nunca consulta Receita Federal nem CGU no 402 e nunca vaza has_sanctions, razao_social ou situacao_cadastral reais.
  */
 function grid402_teaser_dossier(string $cnpj): array {
     $clean = preg_replace('/\D/', '', trim($cnpj));
+    $formattedCnpj = grid402_validate_cnpj_digits($clean) ? grid402_format_cnpj($clean) : $cnpj;
     $preview = [
-        'cnpj' => grid402_validate_cnpj_digits($clean) ? grid402_format_cnpj($clean) : $cnpj,
+        'cnpj' => $formattedCnpj,
         'modelo_analise' => 'Dossiê 360º KYB + Veredito Sintetizado para IA',
         'fontes_cruzadas' => 'Receita Federal (CNPJ), Simples Nacional/MEI e CGU (CEIS/CNEP)',
         'veredito_tipo' => 'APPROVED, FLAGGED ou REJECTED',
+        'preview_mode' => 'static_schema_sample',
+        'sample_schema' => [
+            'verdict' => [
+                'status' => 'APPROVED | FLAGGED | REJECTED',
+                'score' => '0-100',
+                'risk_level' => 'LOW | MEDIUM | HIGH',
+            ],
+            'company' => [
+                'razao_social' => '[LOCKED — unlock via x402 or Session Pass]',
+                'situacao_cadastral' => '[LOCKED]',
+                'municipio' => '[LOCKED]',
+                'uf' => '[LOCKED]',
+            ],
+            'tax_regime' => [
+                'opcao_pelo_simples' => '[LOCKED]',
+                'opcao_pelo_mei' => '[LOCKED]',
+            ],
+            'sanctions' => [
+                'has_sanctions' => '[LOCKED]',
+                'total_sanctions' => '[LOCKED]',
+            ],
+        ],
     ];
-
-    if (grid402_validate_cnpj_digits($clean)) {
-        $cnpjData = grid402_service_cnpj($clean);
-        if (!empty($cnpjData['success'])) {
-            $endereco = is_array($cnpjData['endereco'] ?? null) ? $cnpjData['endereco'] : [];
-            $preview['razao_social'] = (string) ($cnpjData['razao_social'] ?? '');
-            $preview['municipio'] = (string) ($endereco['municipio'] ?? ($cnpjData['municipio'] ?? ''));
-            $preview['uf'] = (string) ($endereco['uf'] ?? ($cnpjData['uf'] ?? ''));
-            $preview['situacao_cadastral'] = strtoupper((string) ($cnpjData['situacao_cadastral'] ?? ''));
-        }
-        $sanctionsData = grid402_service_sanctions($clean);
-        if (!empty($sanctionsData['success'])) {
-            $preview['has_sanctions'] = !empty($sanctionsData['has_sanctions']);
-        }
-    }
 
     return [
         'preview' => $preview,
         'locked_fields' => [
             'verdict',
+            'company.razao_social',
+            'company.situacao_cadastral',
             'company',
             'tax_regime',
+            'sanctions.has_sanctions',
             'sanctions.records',
             'compliance_score',
             '_oracle_proof',

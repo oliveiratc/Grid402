@@ -8,6 +8,7 @@
 import crypto from 'node:crypto';
 
 export const DEFAULT_GRID402_URL = 'https://grid402.online';
+export const DEFAULT_RAPIDAPI_HOST = 'grid402-open-data-kyb-ai-utilities.p.rapidapi.com';
 export const GRID402_ORACLE_WALLET = '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90';
 export const BASE_USDC_CONTRACT = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 export const DEFAULT_ORACLE_PUBKEY = `-----BEGIN PUBLIC KEY-----
@@ -173,6 +174,11 @@ export class Grid402Client {
     this.sandbox = Boolean(options.sandbox);
     this.sessionPass = options.sessionPass || (typeof process !== 'undefined' && process.env ? process.env.GRID402_SESSION_PASS : null) || null;
     this.rapidApiKey = options.rapidApiKey || (typeof process !== 'undefined' && process.env ? process.env.GRID402_RAPIDAPI_KEY : null) || null;
+    this.rapidApiHost = (
+      options.rapidApiHost ||
+      (typeof process !== 'undefined' && process.env ? process.env.GRID402_RAPIDAPI_HOST : null) ||
+      DEFAULT_RAPIDAPI_HOST
+    ).replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
     this.paymentTxHash = options.paymentTxHash || this.sessionPass || null;
     this.timeout = options.timeout || 10000;
     this.raiseForPayment = options.raiseForPayment !== false;
@@ -183,21 +189,34 @@ export class Grid402Client {
    * @private
    */
   async _request(endpoint, headers = {}) {
-    const url = `${this.baseUrl}${endpoint}`;
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), this.timeout);
-
     const mergedHeaders = {
       'Accept': 'application/json',
-      'User-Agent': 'Grid402-Node-SDK/2.9.0',
+      'User-Agent': 'Grid402-Node-SDK/2.10.0',
       ...headers,
     };
 
-    if (this.rapidApiKey && !mergedHeaders['X-RapidAPI-Key']) {
-      mergedHeaders['X-RapidAPI-Key'] = this.rapidApiKey;
-    }
+    const hasExplicitPayment = Boolean(mergedHeaders['X-Payment'] || mergedHeaders['PAYMENT-SIGNATURE'] || this.paymentTxHash);
+    const useRapidApiProxy = Boolean(this.rapidApiKey && !hasExplicitPayment);
 
-    if (this.paymentTxHash) {
+    let effectiveBaseUrl = this.baseUrl;
+    if (useRapidApiProxy) {
+      let hostHeader = this.rapidApiHost;
+      if (this.baseUrl.includes('.p.rapidapi.com')) {
+        try {
+          hostHeader = new URL(this.baseUrl).host;
+        } catch {
+          hostHeader = this.rapidApiHost;
+        }
+      } else {
+        effectiveBaseUrl = `https://${this.rapidApiHost}`;
+      }
+      if (!mergedHeaders['X-RapidAPI-Key']) {
+        mergedHeaders['X-RapidAPI-Key'] = this.rapidApiKey;
+      }
+      if (!mergedHeaders['X-RapidAPI-Host']) {
+        mergedHeaders['X-RapidAPI-Host'] = hostHeader;
+      }
+    } else if (this.paymentTxHash) {
       if (!mergedHeaders['X-Payment']) {
         mergedHeaders['X-Payment'] = this.paymentTxHash;
       }
@@ -206,6 +225,10 @@ export class Grid402Client {
         mergedHeaders['X-Payment'] = 'demo';
       }
     }
+
+    const url = `${effectiveBaseUrl}${endpoint}`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeout);
 
     try {
       const response = await fetch(url, {
@@ -590,6 +613,15 @@ export class Grid402Client {
 }
 
 /**
+ * Codifica calldata ABI para ERC-20 transfer(address,uint256) sem dependencias externas.
+ */
+function encodeErc20TransferData(recipient, rawUnits) {
+  const cleanRecipient = String(recipient || '').replace(/^0x/i, '').toLowerCase().padStart(64, '0');
+  const amountHex = BigInt(rawUnits).toString(16).padStart(64, '0');
+  return `0xa9059cbb${cleanRecipient}${amountHex}`;
+}
+
+/**
  * Provedor de acoes compativel com Coinbase Developer Platform (CDP) AgentKit, LangChain.js e ElizaOS
  */
 export class Grid402ActionProvider {
@@ -597,25 +629,66 @@ export class Grid402ActionProvider {
    * @param {Object} [options]
    * @param {string} [options.baseUrl] - URL base da API Grid402
    * @param {boolean} [options.sandbox] - Se true, opera em modo Sandbox sem consumir saldo real
+   * @param {string} [options.sessionPass] - Token pass_g402_... opcional para execucao sub-15ms
    */
   constructor(options = {}) {
     this.baseUrl = (options.baseUrl || DEFAULT_GRID402_URL).replace(/\/$/, '');
     this.sandbox = Boolean(options.sandbox);
+    this.sessionPass = options.sessionPass || (typeof process !== 'undefined' && process.env ? process.env.GRID402_SESSION_PASS : null) || null;
   }
 
   /**
-   * Executa a chamada com auto-liquidacao de micropagamentos on-chain via wallet_provider
+   * Envia transferencia USDC usando CDP AgentKit moderno (sendTransaction + ERC-20) ou transfer() legado
+   * e aguarda confirmacao on-chain antes do retry.
+   * @private
+   */
+  async _sendAndConfirmUsdc(walletProvider, recipient, priceUsdc, rawUnits, tokenContract) {
+    let transferResult;
+    if (typeof walletProvider.sendTransaction === 'function') {
+      const data = encodeErc20TransferData(recipient, rawUnits);
+      transferResult = await walletProvider.sendTransaction({
+        to: tokenContract,
+        data,
+        value: 0n,
+      });
+    } else if (typeof walletProvider.transfer === 'function') {
+      transferResult = await walletProvider.transfer({
+        to: recipient,
+        amount: priceUsdc,
+        assetId: 'usdc',
+      });
+    } else {
+      throw new Error('walletProvider precisa expor sendTransaction() (CDP AgentKit v0.1+) ou transfer().');
+    }
+
+    const txHash =
+      (typeof transferResult === 'string' ? transferResult : null) ||
+      (typeof transferResult?.getTransactionHash === 'function' ? transferResult.getTransactionHash() : null) ||
+      transferResult?.transactionHash ||
+      transferResult?.hash ||
+      String(transferResult);
+
+    // Aguarda confirmacao do bloco antes de enviar X-Payment para o servidor validar receipt
+    if (typeof transferResult?.wait === 'function') {
+      await transferResult.wait(1);
+    } else if (typeof walletProvider.waitForTransactionReceipt === 'function') {
+      await walletProvider.waitForTransactionReceipt(txHash);
+    } else {
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+    }
+
+    return txHash;
+  }
+
+  /**
+   * Executa a chamada com auto-liquidacao de micropagamentos on-chain via wallet_provider ou Session Pass
    * @private
    */
   async _executeWithSettlement(path, params = {}, walletProvider = null) {
     const queryParams = new URLSearchParams();
     for (const [k, v] of Object.entries(params)) {
-      if (v !== undefined) {
-        if (v !== null) {
-          if (v !== '') {
-            queryParams.set(k, String(v));
-          }
-        }
+      if (v !== undefined && v !== null && v !== '') {
+        queryParams.set(k, String(v));
       }
     }
 
@@ -624,10 +697,12 @@ export class Grid402ActionProvider {
 
     const headers = {
       'Accept': 'application/json',
-      'User-Agent': 'Grid402-CoinbaseAgentKit-Node/2.3',
+      'User-Agent': 'Grid402-CoinbaseAgentKit-Node/2.4',
     };
 
-    if (this.sandbox) {
+    if (this.sessionPass) {
+      headers['X-Payment'] = String(this.sessionPass).trim();
+    } else if (this.sandbox) {
       headers['X-Payment'] = 'demo';
     }
 
@@ -643,39 +718,53 @@ export class Grid402ActionProvider {
       const challenge = await response.json();
 
       // Se temos walletProvider e nao estamos em sandbox, auto-liquida on-chain na Base
-      if (walletProvider) {
-        if (!this.sandbox) {
-          const priceUsdc = challenge.price_usdc || '0.0050';
-          const recipient = challenge.recipient_wallet || GRID402_ORACLE_WALLET;
+      if (walletProvider && !this.sandbox) {
+        const priceUsdc = challenge.price_usdc || '0.0050';
+        const rawUnits = challenge.price_raw_units || Math.round(Number(priceUsdc) * 1e6) || 5000;
+        const recipient = challenge.recipient_wallet || GRID402_ORACLE_WALLET;
+        const tokenContract = challenge.token_contract || BASE_USDC_CONTRACT;
 
+        try {
+          const txHash = await this._sendAndConfirmUsdc(walletProvider, recipient, priceUsdc, rawUnits, tokenContract);
+
+          headers['X-Payment'] = txHash;
+          const retryResponse = await fetch(url, { method: 'GET', headers });
+          const retryRaw = await retryResponse.text();
+          let retryData;
           try {
-            const transferResult = await walletProvider.transfer({
-              to: recipient,
-              amount: priceUsdc,
-              assetId: 'usdc',
-            });
-
-            const txHash = transferResult?.transactionHash || transferResult?.hash || String(transferResult);
-
-            headers['X-Payment'] = txHash;
-            const retryResponse = await fetch(url, { method: 'GET', headers });
-
-            if (retryResponse.status === 200) {
-              const data = await retryResponse.json();
-              data._x402_settlement = {
-                settled: true,
-                tx_hash: txHash,
-                price_usdc: priceUsdc,
-                network: 'Base',
-                token: 'USDC',
-              };
-              return data;
-            }
-          } catch (payErr) {
-            challenge.payment_error = payErr.message || String(payErr);
-            challenge.payment_required = true;
-            return challenge;
+            retryData = JSON.parse(retryRaw);
+          } catch {
+            retryData = { raw_body: retryRaw };
           }
+
+          if (retryResponse.status === 200) {
+            retryData._x402_settlement = {
+              settled: true,
+              tx_hash: txHash,
+              price_usdc: priceUsdc,
+              network: 'Base',
+              token: 'USDC',
+            };
+            return retryData;
+          }
+
+          return {
+            payment_required: retryResponse.status === 402,
+            error: `Post-payment request failed with HTTP ${retryResponse.status}`,
+            http_status: retryResponse.status,
+            server_response: retryData,
+            _x402_settlement: {
+              settled: false,
+              tx_hash: txHash,
+              price_usdc: priceUsdc,
+              network: 'Base',
+              token: 'USDC',
+            },
+          };
+        } catch (payErr) {
+          challenge.payment_error = payErr.message || String(payErr);
+          challenge.payment_required = true;
+          return challenge;
         }
       }
 

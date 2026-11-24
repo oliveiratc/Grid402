@@ -18,6 +18,14 @@ $opHealth = is_array($operationalHealth ?? null) ? $operationalHealth : [];
 $alertsList = is_array($alertsBundle['alerts'] ?? null) ? $alertsBundle['alerts'] : [];
 $alertsSummary = is_array($alertsBundle['summary'] ?? null) ? $alertsBundle['summary'] : ['high' => 0, 'medium' => 0, 'low' => 0, 'total' => 0];
 $paidServicesMap = is_array($growthMetrics['paid_requests_per_service'] ?? null) ? $growthMetrics['paid_requests_per_service'] : [];
+$servicePaidCounts = is_array($metrics['service_paid_counts'] ?? null)
+    ? $metrics['service_paid_counts']
+    : (is_array($analytics['service_paid_counts'] ?? null) ? $analytics['service_paid_counts'] : []);
+$serviceRevenueUsdcMap = is_array($metrics['service_revenue_usdc'] ?? null)
+    ? $metrics['service_revenue_usdc']
+    : (is_array($analytics['service_revenue_usdc'] ?? null) ? $analytics['service_revenue_usdc'] : []);
+$totalBotViews = (int) ($metrics['total_bot_views'] ?? ($analytics['total_bot_views'] ?? 0));
+$totalChallenges402 = (int) ($metrics['status_counts']['402'] ?? ($analytics['challenge_402_count'] ?? 0));
 
 $rapidCount = (int) ($rapidStatus['count'] ?? 0);
 $rapidOk = !empty($rapidStatus['configured']);
@@ -39,10 +47,21 @@ $slaTargetPct = (float) ($opHealth['sla_target_pct'] ?? 99.5);
 $latencyP50Ms = (float) ($opHealth['latency_p50_ms'] ?? ($analytics['latency_p50_ms'] ?? 0.0));
 $error5xxCount = (int) ($opHealth['error_5xx_count'] ?? ($analytics['error_5xx_count'] ?? 0));
 
-$passTotalCredits = (int) ($passesStats['total_credits'] ?? 0);
-$passRemCredits = (int) ($passesStats['remaining_credits'] ?? 0);
+$passTotalCredits = (int) ($passesStats['paid_total_credits'] ?? ($passesStats['total_credits'] ?? 0));
+$passRemCredits = (int) ($passesStats['paid_remaining_credits'] ?? ($passesStats['remaining_credits'] ?? 0));
 $passUsedCredits = max(0, $passTotalCredits - $passRemCredits);
 $passUtilPct = $passTotalCredits > 0 ? round(($passUsedCredits / $passTotalCredits) * 100, 1) : 0.0;
+$paidActivePasses = (int) ($passesStats['active_paid_passes'] ?? ($passesStats['active_passes'] ?? 0));
+$paidIssuedPasses = (int) ($passesStats['paid_passes'] ?? ($passesStats['total_issued'] ?? 0));
+$promoPassesCount = (int) ($passesStats['promo_passes'] ?? 0);
+$sandboxPassesCount = (int) ($passesStats['sandbox_passes'] ?? 0);
+
+$walletChains = is_array($wallet['chains'] ?? null) ? $wallet['chains'] : [];
+$walletTotalUsdc = (float) ($wallet['total_usdc_balance'] ?? ($wallet['usdc_balance'] ?? 0.0));
+$walletPolyUsdc = (float) ($walletChains['polygon']['usdc_balance'] ?? 0.0);
+$walletArbUsdc = (float) ($walletChains['arbitrum']['usdc_balance'] ?? 0.0);
+$walletSolUsdc = (float) ($walletChains['solana']['usdc_balance'] ?? 0.0);
+$walletSolAtaInit = $walletChains['solana']['ata_initialized'] ?? null;
 
 $formatDeltaBadge = static function (?float $pct): array {
     if ($pct === null) {
@@ -57,11 +76,11 @@ $formatDeltaBadge = static function (?float $pct): array {
     return ['text' => '0,0%', 'class' => 'delta-neutral'];
 };
 
-$servicesCatalogOrder = ['dossier', 'extract', 'email-verify', 'lei', 'ofac', 'notarize', 'global-markets', 'pass', 'compliance', 'sanctions', 'simples', 'workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'kyb-audit', 'domain-audit', 'market-snapshot', 'summary'];
+$servicesCatalogOrder = ['dossier', 'extract', 'email-verify', 'lei', 'ofac', 'notarize', 'global-markets', 'pass', 'pass-emitir', 'compliance', 'sanctions', 'simples', 'workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'kyb-audit', 'domain-audit', 'market-snapshot', 'summary'];
 $pricingLookup = [
     'dossier' => 0.0500, 'compliance' => 0.0300, 'kyb-audit' => 0.0250, 'ofac' => 0.0200, 'lei' => 0.0100,
     'cnpj' => 0.0100, 'domain-audit' => 0.0150, 'market-snapshot' => 0.0150, 'sanctions' => 0.0100,
-    'simples' => 0.0100, 'pass' => 2.0000, 'extract' => 0.0050, 'email-verify' => 0.0050, 'notarize' => 0.0050,
+    'simples' => 0.0100, 'pass' => 2.0000, 'pass-emitir' => 2.0000, 'extract' => 0.0050, 'email-verify' => 0.0050, 'notarize' => 0.0050,
     'forex' => 0.0050, 'crypto' => 0.0050, 'indicators' => 0.0050, 'holidays' => 0.0050, 'workdays' => 0.0050,
     'global-markets' => 0.0050, 'dns' => 0.0050, 'ssl' => 0.0050, 'asn' => 0.0050, 'cep' => 0.0050, 'summary' => 0.0000,
 ];
@@ -609,11 +628,12 @@ $pricingLookup = [
                         <tbody id="tvsy-tbody">
                             <?php
                             $tvsyRows = [
-                                ['key' => 'requests', 'label' => 'Requisições Totais', 'fmt' => 'int'],
-                                ['key' => 'page_views', 'label' => 'Page Views (HTML)', 'fmt' => 'int'],
-                                ['key' => 'paid', 'label' => 'Consultas Pagas', 'fmt' => 'int'],
-                                ['key' => 'revenue_usdc', 'label' => 'Receita (USDC)', 'fmt' => 'usdc'],
-                                ['key' => 'revenue_brl', 'label' => 'Receita Estimada (BRL)', 'fmt' => 'brl'],
+                                ['key' => 'paid', 'label' => 'Consultas API Pagas', 'fmt' => 'int'],
+                                ['key' => 'requests', 'label' => 'Chamadas de API (Inclui 402/Sandbox)', 'fmt' => 'int'],
+                                ['key' => 'page_views', 'label' => 'Page Views HTML (Humanos)', 'fmt' => 'int'],
+                                ['key' => 'bot_views', 'label' => 'Page Views Bots/Crawlers (Filtrados)', 'fmt' => 'int'],
+                                ['key' => 'revenue_usdc', 'label' => 'Receita Real (USDC)', 'fmt' => 'usdc'],
+                                ['key' => 'revenue_brl', 'label' => 'Receita Real Estimada (BRL)', 'fmt' => 'brl'],
                                 ['key' => 'new_wallets', 'label' => 'Novas Wallets Conectadas', 'fmt' => 'int'],
                             ];
                             foreach ($tvsyRows as $rowSpec):
@@ -726,14 +746,19 @@ $pricingLookup = [
                 </div>
                 <div class="kpi-grid" id="growth-kpi-grid" style="margin-bottom: 0;">
                     <div class="kpi-card">
-                        <div class="kpi-title">Visitas HTML (Page Views)</div>
-                        <div class="kpi-value" id="kpi-total-visits"><?php echo number_format($totalPageViews, 0, ',', '.'); ?></div>
-                        <div class="kpi-sub" id="kpi-today-visits"><?php echo number_format($todayPageViews, 0, ',', '.'); ?> hoje • HTML público</div>
+                        <div class="kpi-title">Consultas API Pagas</div>
+                        <div class="kpi-value" id="kpi-paid-main" style="color: #34D399;"><?php echo number_format($paidReqs, 0, ',', '.'); ?></div>
+                        <div class="kpi-sub" id="kpi-paid-reqs"><?php echo number_format($totalChallenges402, 0, ',', '.'); ?> desafios 402 • <?php echo number_format($sandboxReqs, 0, ',', '.'); ?> sandbox</div>
                     </div>
                     <div class="kpi-card">
-                        <div class="kpi-title">Consultas Totais</div>
+                        <div class="kpi-title">Chamadas de API (Bruto)</div>
                         <div class="kpi-value" id="kpi-total-reqs"><?php echo number_format($totalReqs, 0, ',', '.'); ?></div>
-                        <div class="kpi-sub" id="kpi-paid-reqs"><?php echo number_format($paidReqs, 0, ',', '.'); ?> pagas • <?php echo number_format($sandboxReqs, 0, ',', '.'); ?> sandbox</div>
+                        <div class="kpi-sub">Exclui HTML/bots · inclui 402, sandbox e /status</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-title">Page Views HTML (Humanos)</div>
+                        <div class="kpi-value" id="kpi-total-visits"><?php echo number_format($totalPageViews, 0, ',', '.'); ?></div>
+                        <div class="kpi-sub" id="kpi-today-visits"><?php echo number_format($todayPageViews, 0, ',', '.'); ?> hoje · <?php echo number_format($totalBotViews, 0, ',', '.'); ?> bots filtrados</div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-title">Wallets Conectadas</div>
@@ -743,12 +768,7 @@ $pricingLookup = [
                     <div class="kpi-card">
                         <div class="kpi-title">Conversão 1ª Compra</div>
                         <div class="kpi-value" id="growth-conversion"><?php echo number_format((float) ($growthMetrics['conversion_first_payment'] ?? 0.0), 1); ?>%</div>
-                        <div class="kpi-sub">Wallets → 1ª consulta paga</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-title">Conversão 2ª Compra</div>
-                        <div class="kpi-value" id="growth-conversion-2"><?php echo number_format((float) ($growthMetrics['conversion_second_payment'] ?? 0.0), 1); ?>%</div>
-                        <div class="kpi-sub">Pagantes → recorrentes</div>
+                        <div class="kpi-sub">Wallets → 1ª consulta paga · 2ª: <span id="growth-conversion-2"><?php echo number_format((float) ($growthMetrics['conversion_second_payment'] ?? 0.0), 1); ?>%</span></div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-title">Receita / Wallet</div>
@@ -761,18 +781,18 @@ $pricingLookup = [
             <div class="analytics-row">
                 <div class="panel">
                     <div class="panel-title">
-                        <span>Serviços Pagos Reais vs. Volume Total (25 Serviços)</span>
-                        <span class="panel-subtitle">Destaque para baixa tração (&lt; 30 reqs)</span>
+                        <span>Serviços Pagos Reais vs. Volume API Bruto</span>
+                        <span class="panel-subtitle">Status comercial exige consultas pagas (402/sandbox não marcam como Ativo)</span>
                     </div>
                     <div class="table-wrap" style="max-height: 440px; overflow-y: auto;">
-                        <table style="min-width: 480px;">
+                        <table style="min-width: 520px;">
                             <thead>
                                 <tr>
                                     <th>Serviço</th>
                                     <th>Pagas (Real)</th>
-                                    <th>Volume Total</th>
-                                    <th>Preço</th>
-                                    <th>Sinal</th>
+                                    <th>Receita Real</th>
+                                    <th>API Bruto</th>
+                                    <th>Sinal Comercial</th>
                                 </tr>
                             </thead>
                             <tbody id="paid-vs-total-services-tbody">
@@ -780,23 +800,36 @@ $pricingLookup = [
                                 $serviceCounts = $metrics['service_counts'] ?? [];
                                 $serviceRowsCombined = [];
                                 foreach ($servicesCatalogOrder as $svcKey) {
+                                    $paidCnt = max((int) ($servicePaidCounts[$svcKey] ?? 0), (int) ($paidServicesMap[$svcKey] ?? 0));
+                                    $realUsdc = round((float) ($serviceRevenueUsdcMap[$svcKey] ?? 0.0), 4);
                                     $serviceRowsCombined[] = [
                                         'service' => $svcKey,
-                                        'paid' => (int) ($paidServicesMap[$svcKey] ?? 0),
+                                        'paid' => $paidCnt,
+                                        'real_usdc' => $realUsdc,
                                         'total' => (int) ($serviceCounts[$svcKey] ?? 0),
                                         'price' => (float) ($pricingLookup[$svcKey] ?? 0.0050),
                                     ];
                                 }
-                                usort($serviceRowsCombined, static fn($a, $b) => ($b['paid'] <=> $a['paid']) ?: ($b['total'] <=> $a['total']));
+                                usort($serviceRowsCombined, static fn($a, $b) => ($b['real_usdc'] <=> $a['real_usdc']) ?: ($b['paid'] <=> $a['paid']) ?: ($b['total'] <=> $a['total']));
                                 foreach ($serviceRowsCombined as $srRow):
-                                    $isLow = ($srRow['service'] !== 'summary' && $srRow['total'] < 30);
+                                    if ($srRow['service'] === 'summary') {
+                                        $signalHtml = '<span style="color: var(--text-muted); font-size: 0.72rem;">Gratuito (/status)</span>';
+                                    } elseif ($srRow['paid'] >= 30) {
+                                        $signalHtml = '<span style="color: var(--ok); font-size: 0.72rem; font-weight: 700;">Ativo (Pago)</span>';
+                                    } elseif ($srRow['paid'] > 0) {
+                                        $signalHtml = '<span style="color: #38BDF8; font-size: 0.72rem; font-weight: 600;">Com tração paga</span>';
+                                    } elseif ($srRow['total'] > 0) {
+                                        $signalHtml = '<span class="tag-low-traction">Sem pagas (só 402/sandbox)</span>';
+                                    } else {
+                                        $signalHtml = '<span class="tag-low-traction">Sem tráfego</span>';
+                                    }
                                 ?>
                                 <tr>
                                     <td><strong><?php echo htmlspecialchars($srRow['service'], ENT_QUOTES, 'UTF-8'); ?></strong></td>
                                     <td style="color: <?php echo $srRow['paid'] > 0 ? '#34D399' : 'var(--text-muted)'; ?>;"><strong><?php echo $srRow['paid']; ?></strong></td>
+                                    <td style="color: <?php echo $srRow['real_usdc'] > 0 ? '#34D399' : 'var(--text-muted)'; ?>;">$<?php echo number_format($srRow['real_usdc'], 4); ?></td>
                                     <td><?php echo number_format($srRow['total'], 0, ',', '.'); ?></td>
-                                    <td style="color: var(--text-muted);">$<?php echo number_format($srRow['price'], 4); ?></td>
-                                    <td><?php echo $isLow ? '<span class="tag-low-traction">Baixa tração (&lt;30)</span>' : '<span style="color: var(--ok); font-size: 0.72rem;">Ativo</span>'; ?></td>
+                                    <td><?php echo $signalHtml; ?></td>
                                 </tr>
                                 <?php endforeach; ?>
                             </tbody>
@@ -897,12 +930,21 @@ $pricingLookup = [
                         <span id="kpi-rpc-status" style="font-size: 0.68rem; font-family: var(--font-mono); color: <?php echo !empty($wallet['rpc_operational']) ? '#10B981' : '#F59E0B'; ?>;"><?php echo !empty($wallet['rpc_operational']) ? 'RPC ATIVO' : 'CACHE OFFLINE'; ?></span>
                     </div>
                     <div class="kpi-value" id="kpi-wallet-usdc">US$ <?php echo number_format((float)($wallet['usdc_balance'] ?? 0.0), 4); ?></div>
-                    <div class="kpi-sub" id="kpi-wallet-eth">Reserva Gas: <?php echo number_format((float)($wallet['eth_balance'] ?? 0.0), 5); ?> ETH</div>
+                    <div class="kpi-sub" id="kpi-wallet-eth">Reserva Gas: <?php echo number_format((float)($wallet['eth_balance'] ?? 0.0), 5); ?> ETH · Total Multi-Chain: <strong>US$ <?php echo number_format($walletTotalUsdc, 4); ?></strong></div>
+                    <div class="kpi-sub" id="kpi-wallet-multichain" style="font-size: 0.7rem; font-family: var(--font-mono); margin-top: 0.25rem;">
+                        Poly: $<?php echo number_format($walletPolyUsdc, 4); ?> · Arb: $<?php echo number_format($walletArbUsdc, 4); ?> · Sol: $<?php echo number_format($walletSolUsdc, 4); ?><?php
+                            if ($walletSolAtaInit === false) {
+                                echo ' <span style="color:#F59E0B;">(ATA ausente)</span>';
+                            } elseif ($walletSolAtaInit === true) {
+                                echo ' <span style="color:#10B981;">(ATA OK)</span>';
+                            }
+                        ?>
+                    </div>
                 </div>
                 <div class="kpi-card">
-                    <div class="kpi-title">Session Passes Ativos</div>
-                    <div class="kpi-value" id="kpi-passes-active"><?php echo (int)($passesStats['active_passes'] ?? 0); ?> <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">/ <?php echo (int)($passesStats['total_issued'] ?? 0); ?> emitidos</span></div>
-                    <div class="kpi-sub" id="kpi-wallet-passes"><?php echo (int)($passesStats['active_passes'] ?? 0); ?> passes ativos • <?php echo number_format($passRemCredits, 0, ',', '.'); ?> créditos (<?php echo number_format($passUtilPct, 1, ',', '.'); ?>% usados)</div>
+                    <div class="kpi-title">Session Passes Pagos Ativos</div>
+                    <div class="kpi-value" id="kpi-passes-active"><?php echo $paidActivePasses; ?> <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">/ <?php echo $paidIssuedPasses; ?> pagos</span></div>
+                    <div class="kpi-sub" id="kpi-wallet-passes"><?php echo number_format($passRemCredits, 0, ',', '.'); ?> cr pagos restantes (<?php echo number_format($passUtilPct, 1, ',', '.'); ?>% usados) · Promo: <?php echo $promoPassesCount; ?> · Sandbox: <?php echo $sandboxPassesCount; ?></div>
                 </div>
             </div>
 
@@ -935,25 +977,42 @@ $pricingLookup = [
 
                 <div class="panel">
                     <div class="panel-title">
-                        <span>Rentabilidade Estimada por Serviço (USDC)</span>
-                        <span class="panel-subtitle">Volume × Preço Oficial (Top 10)</span>
+                        <span>Receita Real por Serviço (USDC)</span>
+                        <span class="panel-subtitle">Apenas chamadas pagas reais · exclui 402, sandbox e promo</span>
                     </div>
                     <div id="service-revenue-bars-container">
                         <?php
+                        $paidServiceRevRows = array_values(array_filter($serviceRevenue, static function (array $sr): bool {
+                            return ((float) ($sr['real_usdc'] ?? 0.0) > 0.0)
+                                || ((float) ($sr['estimated_usdc'] ?? 0.0) > 0.0)
+                                || ((int) ($sr['paid_count'] ?? 0) > 0);
+                        }));
                         $maxRev = 0.0001;
-                        foreach ($serviceRevenue as $sr) {
-                            if ((float) $sr['estimated_usdc'] > $maxRev) $maxRev = (float) $sr['estimated_usdc'];
+                        foreach ($paidServiceRevRows as $sr) {
+                            $v = (float) ($sr['real_usdc'] ?? $sr['estimated_usdc'] ?? 0.0);
+                            if ($v > $maxRev) $maxRev = $v;
                         }
-                        foreach (array_slice($serviceRevenue, 0, 10) as $sr):
-                            $revVal = (float) $sr['estimated_usdc'];
-                            $revPct = round(($revVal / $maxRev) * 100);
+                        if (empty($paidServiceRevRows)):
+                        ?>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); padding: 0.65rem 0;">
+                            Nenhuma receita real por serviço registrada até o momento (desafios 402, sandbox e passes promocionais não entram neste cálculo).
+                        </div>
+                        <?php
+                        else:
+                            foreach (array_slice($paidServiceRevRows, 0, 10) as $sr):
+                                $revVal = (float) ($sr['real_usdc'] ?? $sr['estimated_usdc'] ?? 0.0);
+                                $paidCnt = (int) ($sr['paid_count'] ?? 0);
+                                $revPct = $revVal > 0.0 ? round(($revVal / $maxRev) * 100) : 0;
                         ?>
                         <div class="bar-row">
-                            <span class="bar-label wide"><?php echo htmlspecialchars((string) $sr['service'], ENT_QUOTES, 'UTF-8'); ?> <small style="color: var(--text-muted);">($<?php echo $sr['unit_price']; ?>)</small></span>
+                            <span class="bar-label wide"><?php echo htmlspecialchars((string) $sr['service'], ENT_QUOTES, 'UTF-8'); ?> <small style="color: var(--text-muted);">(<?php echo $paidCnt; ?> pagas)</small></span>
                             <div class="bar-track"><div class="bar-fill" style="width: <?php echo $revPct; ?>%; background: linear-gradient(90deg, #10B981, #00F0FF);"></div></div>
                             <span class="bar-count">$<?php echo number_format($revVal, 4); ?></span>
                         </div>
-                        <?php endforeach; ?>
+                        <?php
+                            endforeach;
+                        endif;
+                        ?>
                     </div>
                 </div>
             </div>
@@ -1578,11 +1637,12 @@ $pricingLookup = [
             const tbody = document.getElementById('tvsy-tbody');
             if (!tbody) return;
             const specs = [
-                { key: 'requests', label: 'Requisições Totais', fmt: 'int' },
-                { key: 'page_views', label: 'Page Views (HTML)', fmt: 'int' },
-                { key: 'paid', label: 'Consultas Pagas', fmt: 'int' },
-                { key: 'revenue_usdc', label: 'Receita (USDC)', fmt: 'usdc' },
-                { key: 'revenue_brl', label: 'Receita Estimada (BRL)', fmt: 'brl' },
+                { key: 'paid', label: 'Consultas API Pagas', fmt: 'int' },
+                { key: 'requests', label: 'Chamadas de API (Inclui 402/Sandbox)', fmt: 'int' },
+                { key: 'page_views', label: 'Page Views HTML (Humanos)', fmt: 'int' },
+                { key: 'bot_views', label: 'Page Views Bots/Crawlers (Filtrados)', fmt: 'int' },
+                { key: 'revenue_usdc', label: 'Receita Real (USDC)', fmt: 'usdc' },
+                { key: 'revenue_brl', label: 'Receita Real Estimada (BRL)', fmt: 'brl' },
                 { key: 'new_wallets', label: 'Novas Wallets Conectadas', fmt: 'int' },
             ];
             const fmtVal = (val, fmt) => {
@@ -1684,26 +1744,34 @@ $pricingLookup = [
             if (rpcS) rpcS.textContent = 'Base Mainnet RPC: ' + (oh.rpc_operational ? 'Operacional' : 'Indisponível');
         }
 
-        function renderPaidVsTotalServices(paidMap, serviceCounts) {
+        function renderPaidVsTotalServices(paidMap, serviceCounts, metricsPaidMap, metricsRevMap) {
             const tbody = document.getElementById('paid-vs-total-services-tbody');
             if (!tbody || !serviceCounts) return;
             const pMap = paidMap || {};
+            const mpMap = metricsPaidMap || {};
+            const revMap = metricsRevMap || {};
             const rows = SERVICES_CATALOG.map(svc => ({
                 service: svc,
-                paid: Number(pMap[svc] || 0),
+                paid: Math.max(Number(pMap[svc] || 0), Number(mpMap[svc] || 0)),
+                real_usdc: Number(revMap[svc] || 0),
                 total: Number(serviceCounts[svc] || 0),
                 price: Number(SERVICES_PRICING[svc] ?? 0.005),
-            })).sort((a, b) => (b.paid - a.paid) || (b.total - a.total));
+            })).sort((a, b) => (b.real_usdc - a.real_usdc) || (b.paid - a.paid) || (b.total - a.total));
 
             let html = '';
             rows.forEach(r => {
-                const isLow = r.service !== 'summary' && r.total < 30;
+                let sig = '<span class="tag-low-traction">Sem tráfego</span>';
+                if (r.service === 'summary') sig = '<span style="color: var(--text-muted); font-size: 0.72rem;">Gratuito (/status)</span>';
+                else if (r.paid >= 30) sig = '<span style="color: var(--ok); font-size: 0.72rem; font-weight: 700;">Ativo (Pago)</span>';
+                else if (r.paid > 0) sig = '<span style="color: #38BDF8; font-size: 0.72rem; font-weight: 600;">Com tração paga</span>';
+                else if (r.total > 0) sig = '<span class="tag-low-traction">Sem pagas (só 402/sandbox)</span>';
+
                 html += `<tr>
                     <td><strong>${safeHtmlText(r.service)}</strong></td>
                     <td style="color: ${r.paid > 0 ? '#34D399' : 'var(--text-muted)'};"><strong>${r.paid}</strong></td>
+                    <td style="color: ${r.real_usdc > 0 ? '#34D399' : 'var(--text-muted)'};">$${r.real_usdc.toFixed(4)}</td>
                     <td>${r.total.toLocaleString('pt-BR')}</td>
-                    <td style="color: var(--text-muted);">$${r.price.toFixed(4)}</td>
-                    <td>${isLow ? '<span class="tag-low-traction">Baixa tração (&lt;30)</span>' : '<span style="color: var(--ok); font-size: 0.72rem;">Ativo</span>'}</td>
+                    <td>${sig}</td>
                 </tr>`;
             });
             tbody.innerHTML = html;
@@ -1759,14 +1827,20 @@ $pricingLookup = [
         function renderServiceRevenue(services) {
             const el = document.getElementById('service-revenue-bars-container');
             if (!el || !services) return;
-            const top10 = services.slice(0, 10);
-            const maxVal = Math.max(0.0001, ...top10.map(s => Number(s.estimated_usdc || 0)));
+            const paidOnly = services.filter(s => Number(s.real_usdc || 0) > 0 || Number(s.estimated_usdc || 0) > 0 || Number(s.paid_count || 0) > 0);
+            if (paidOnly.length === 0) {
+                el.innerHTML = '<div style="font-size: 0.8rem; color: var(--text-muted); padding: 0.65rem 0;">Nenhuma receita real por serviço registrada até o momento (desafios 402, sandbox e passes promocionais não entram neste cálculo).</div>';
+                return;
+            }
+            const top10 = paidOnly.slice(0, 10);
+            const maxVal = Math.max(0.0001, ...top10.map(s => Number(s.real_usdc ?? s.estimated_usdc ?? 0)));
             let html = '';
             top10.forEach(s => {
-                const rev = Number(s.estimated_usdc || 0);
-                const p = Math.round((rev / maxVal) * 100);
+                const rev = Number(s.real_usdc ?? s.estimated_usdc ?? 0);
+                const paidCnt = Number(s.paid_count || 0);
+                const p = rev > 0 ? Math.round((rev / maxVal) * 100) : 0;
                 html += `<div class="bar-row">
-                    <span class="bar-label wide">${safeHtmlText(s.service)} <small style="color: var(--text-muted);">($${s.unit_price})</small></span>
+                    <span class="bar-label wide">${safeHtmlText(s.service)} <small style="color: var(--text-muted);">(${paidCnt} pagas)</small></span>
                     <div class="bar-track"><div class="bar-fill" style="width: ${p}%; background: linear-gradient(90deg, #10B981, #00F0FF);"></div></div>
                     <span class="bar-count">$${rev.toFixed(4)}</span>
                 </div>`;
@@ -1939,36 +2013,50 @@ $pricingLookup = [
                 setTxt('kpi-total-brl', '≈ R$ ' + Number(data.total_revenue_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + ' (Base Mainnet)');
                 setTxt('kpi-today-usdc', 'US$ ' + Number(data.today_revenue_usdc || 0).toFixed(4));
                 setTxt('kpi-today-brl', '≈ R$ ' + Number(data.today_revenue_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + ' hoje');
+                const reqs402 = Number(data.status_counts?.['402'] || 0);
+                const paid = Number(data.total_paid_requests || 0);
                 setTxt('kpi-total-reqs', Number(data.total_requests || 0).toLocaleString('pt-BR'));
+                setTxt('kpi-paid-main', paid.toLocaleString('pt-BR'));
                 setTxt('kpi-total-visits', Number(data.total_page_views || 0).toLocaleString('pt-BR'));
-                setTxt('kpi-today-visits', Number(data.today_page_views || 0).toLocaleString('pt-BR') + ' hoje • HTML público');
-                setTxt('kpi-paid-reqs', Number(data.total_paid_requests || 0).toLocaleString('pt-BR') + ' pagas • ' + Number(data.total_sandbox_requests || 0).toLocaleString('pt-BR') + ' sandbox');
+                setTxt('kpi-today-visits', Number(data.today_page_views || 0).toLocaleString('pt-BR') + ' hoje · ' + Number(data.total_bot_views || 0).toLocaleString('pt-BR') + ' bots filtrados');
+                setTxt('kpi-paid-reqs', reqs402.toLocaleString('pt-BR') + ' desafios 402 • ' + Number(data.total_sandbox_requests || 0).toLocaleString('pt-BR') + ' sandbox');
                 setTxt('kpi-arpu-usdc', 'US$ ' + Number(data.arpu_usdc || 0).toFixed(4));
                 setTxt('kpi-arpu-brl', '≈ R$ ' + Number(data.arpu_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 4 }) + ' / consulta paga');
                 setTxt('kpi-sla-tech', Number(data.technical_success_rate ?? 100).toFixed(1) + '%');
                 setTxt('kpi-latency-p95', 'Sem erros 5xx · Latência p95: ' + Number(data.latency_p95_ms || 0).toFixed(1).replace('.', ',') + ' ms');
                 setTxt('kpi-sandbox-rate', Number(data.sandbox_rate || 0).toFixed(1) + '%');
 
-                const reqs402 = Number(data.status_counts?.['402'] || 0);
-                const paid = Number(data.total_paid_requests || 0);
                 setTxt('kpi-conversion', ((reqs402 + paid) > 0 ? ((paid / (reqs402 + paid)) * 100).toFixed(1) : '0') + '%');
 
                 if (data.wallet_balances) {
                     const w = data.wallet_balances;
+                    const totMulti = Number(w.total_usdc_balance ?? w.usdc_balance ?? 0);
                     setTxt('kpi-wallet-usdc', 'US$ ' + Number(w.usdc_balance || 0).toFixed(4));
-                    setTxt('kpi-wallet-eth', 'Reserva Gas: ' + Number(w.eth_balance || 0).toFixed(5) + ' ETH');
+                    const ethEl = document.getElementById('kpi-wallet-eth');
+                    if (ethEl) ethEl.innerHTML = `Reserva Gas: ${Number(w.eth_balance || 0).toFixed(5)} ETH · Total Multi-Chain: <strong>US$ ${totMulti.toFixed(4)}</strong>`;
+                    const mcEl = document.getElementById('kpi-wallet-multichain');
+                    if (mcEl && w.chains) {
+                        const pU = Number(w.chains.polygon?.usdc_balance || 0).toFixed(4);
+                        const aU = Number(w.chains.arbitrum?.usdc_balance || 0).toFixed(4);
+                        const sU = Number(w.chains.solana?.usdc_balance || 0).toFixed(4);
+                        const sAta = w.chains.solana?.ata_initialized;
+                        const ataBadge = sAta === false ? ' <span style="color:#F59E0B;">(ATA ausente)</span>' : (sAta === true ? ' <span style="color:#10B981;">(ATA OK)</span>' : '');
+                        mcEl.innerHTML = `Poly: $${pU} · Arb: $${aU} · Sol: $${sU}${ataBadge}`;
+                    }
                     const rpcEl = document.getElementById('kpi-rpc-status');
                     if (rpcEl) { rpcEl.textContent = w.rpc_operational ? 'RPC ATIVO' : 'CACHE OFFLINE'; rpcEl.style.color = w.rpc_operational ? '#10B981' : '#F59E0B'; }
                 }
 
                 if (data.passes_stats) {
                     const ps = data.passes_stats;
-                    const totC = Number(ps.total_credits || 0);
-                    const remC = Number(ps.remaining_credits || 0);
+                    const totC = Number(ps.paid_total_credits ?? ps.total_credits ?? 0);
+                    const remC = Number(ps.paid_remaining_credits ?? ps.remaining_credits ?? 0);
                     const utilPct = totC > 0 ? (((totC - remC) / totC) * 100).toFixed(1).replace('.', ',') : '0,0';
+                    const actPaid = Number(ps.active_paid_passes ?? ps.active_passes ?? 0);
+                    const issPaid = Number(ps.paid_passes ?? ps.total_issued ?? 0);
                     const pAct = document.getElementById('kpi-passes-active');
-                    if (pAct) pAct.innerHTML = `${Number(ps.active_passes || 0)} <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">/ ${Number(ps.total_issued || 0)} emitidos</span>`;
-                    setTxt('kpi-wallet-passes', `${Number(ps.active_passes || 0)} passes ativos • ${remC.toLocaleString('pt-BR')} créditos (${utilPct}% usados)`);
+                    if (pAct) pAct.innerHTML = `${actPaid} <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">/ ${issPaid} pagos</span>`;
+                    setTxt('kpi-wallet-passes', `${remC.toLocaleString('pt-BR')} cr pagos restantes (${utilPct}% usados) · Promo: ${Number(ps.promo_passes || 0)} · Sandbox: ${Number(ps.sandbox_passes || 0)}`);
                 }
 
                 if (data.facilitator_status) {
@@ -2000,7 +2088,7 @@ $pricingLookup = [
                 if (data.service_revenue) renderServiceRevenue(data.service_revenue);
                 if (data.recent_pulse) renderRecentPulse(data.recent_pulse);
                 if (data.service_counts) {
-                    renderPaidVsTotalServices(data.paid_requests_per_service || {}, data.service_counts);
+                    renderPaidVsTotalServices(data.paid_requests_per_service || {}, data.service_counts, data.service_paid_counts || {}, data.service_revenue_usdc || {});
                     const sBars = document.getElementById('service-bars-container');
                     if (sBars) {
                         const maxS = Math.max(1, ...Object.values(data.service_counts).map(v => Number(v || 0)));

@@ -270,22 +270,32 @@ function grid402_service_lei(string $leiCode = '', string $queryName = ''): arra
 }
 
 /**
- * Gera a prévia gratuita (Teaser HTTP 402) para o endpoint LEI
+ * Gera a prévia estrutural estática/mascarada (Teaser HTTP 402) para o endpoint LEI.
+ * Não consulta api.gleif.org nem vaza LEI real, legal_name, jurisdiction ou entity_status antes do pagamento.
  */
 function grid402_preview_lei(string $leiCode = '', string $queryName = ''): array {
-    $res = grid402_service_lei($leiCode, $queryName);
-    if (!empty($res['error'])) {
-        return [
-            'standard' => 'ISO 17442 (GLEIF CC0)',
-            'query' => $leiCode !== '' ? $leiCode : $queryName,
-            'status' => 'READY_FOR_LOOKUP',
-        ];
-    }
-    $ent = $res['entity'] ?? [];
+    $cleanLei = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', trim($leiCode)));
+    $cleanQuery = trim($queryName);
+    $maskedLei = strlen($cleanLei) === 20
+        ? (substr($cleanLei, 0, 4) . str_repeat('*', 12) . substr($cleanLei, -4))
+        : '[20-char ISO 17442 LEI]';
+
     return [
-        'lei' => $ent['lei'] ?? '',
-        'legal_name_hint' => substr((string)($ent['legal_name'] ?? ''), 0, 12) . '...',
-        'jurisdiction' => $ent['jurisdiction'] ?? 'GLOBAL',
-        'entity_status' => $ent['entity_status'] ?? 'ACTIVE',
+        'standard' => 'ISO 17442 (Global Legal Entity Identifier - GLEIF CC0 1.0)',
+        'preview_mode' => 'static_schema_sample',
+        'lei' => $maskedLei,
+        'query' => $cleanQuery !== '' ? $cleanQuery : ($cleanLei !== '' ? $maskedLei : 'default_lookup'),
+        'jurisdiction' => '[LOCKED — unlock via x402 or Session Pass]',
+        'entity_status' => '[LOCKED]',
+        'status' => 'READY_FOR_LOOKUP',
+        'sample_schema' => [
+            'entity' => [
+                'lei' => '549300XXXXXXXXXXXXXX',
+                'legal_name' => 'EXAMPLE CORPORATION INC.',
+                'jurisdiction' => 'US-DE',
+                'entity_status' => 'ACTIVE',
+                'registration_status' => 'ISSUED',
+            ],
+        ],
     ];
 }

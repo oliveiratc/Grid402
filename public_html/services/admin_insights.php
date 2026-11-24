@@ -65,6 +65,10 @@ function grid402_admin_today_vs_yesterday(array $metrics, array $growthMetrics =
     $yesterdayPv = (int) ($yesterdayRow['page_views'] ?? 0);
     $totalPv = (int) ($metrics['total_page_views'] ?? 0);
 
+    $todayBots = (int) ($todayRow['bot_views'] ?? 0);
+    $yesterdayBots = (int) ($yesterdayRow['bot_views'] ?? 0);
+    $totalBots = (int) ($metrics['total_bot_views'] ?? 0);
+
     $todayPaid = (int) ($todayRow['paid'] ?? 0);
     $yesterdayPaid = (int) ($yesterdayRow['paid'] ?? 0);
     $totalPaid = (int) ($metrics['total_paid_requests'] ?? 0);
@@ -90,6 +94,7 @@ function grid402_admin_today_vs_yesterday(array $metrics, array $growthMetrics =
         'metrics' => [
             'requests' => grid402_admin_delta_entry($todayReqs, $yesterdayReqs, $totalReqs, 0),
             'page_views' => grid402_admin_delta_entry($todayPv, $yesterdayPv, $totalPv, 0),
+            'bot_views' => grid402_admin_delta_entry($todayBots, $yesterdayBots, $totalBots, 0),
             'paid' => grid402_admin_delta_entry($todayPaid, $yesterdayPaid, $totalPaid, 0),
             'revenue_usdc' => grid402_admin_delta_entry($todayUsdc, $yesterdayUsdc, $totalUsdc, 4),
             'revenue_brl' => grid402_admin_delta_entry($todayBrl, $yesterdayBrl, $totalBrl, 2),
@@ -250,18 +255,21 @@ function grid402_admin_evaluate_alerts(
         ];
     }
 
-    // 5. [MEDIUM] Session Passes ativos 100% ociosos
+    // 5. [MEDIUM] Session Passes pagos de produção ativos 100% ociosos (exclui passes gratuitos promo_* e sandbox)
     $passesStats = is_array($analytics['passes_stats'] ?? null) ? $analytics['passes_stats'] : [];
-    $activePasses = (int) ($passesStats['active_passes'] ?? 0);
-    $totalCredits = (int) ($passesStats['total_credits'] ?? 0);
-    $activeRemCredits = (int) ($passesStats['active_remaining_credits'] ?? ($passesStats['remaining_credits'] ?? 0));
+    $hasPaidBreakdown = array_key_exists('active_paid_passes', $passesStats);
+    $activePaidPasses = (int) ($hasPaidBreakdown ? $passesStats['active_paid_passes'] : ($passesStats['active_passes'] ?? 0));
+    $paidTotalCredits = (int) ($hasPaidBreakdown ? ($passesStats['paid_total_credits'] ?? 0) : ($passesStats['total_credits'] ?? 0));
+    $paidActiveRemCredits = (int) ($hasPaidBreakdown
+        ? ($passesStats['paid_active_remaining_credits'] ?? ($passesStats['paid_remaining_credits'] ?? 0))
+        : ($passesStats['active_remaining_credits'] ?? ($passesStats['remaining_credits'] ?? 0)));
     $passUses = (int) (($metrics['payment_sources']['pass'] ?? 0));
-    if ($activePasses > 0 && $activeRemCredits > 0 && ($activeRemCredits >= $totalCredits || $passUses === 0)) {
+    if ($activePaidPasses > 0 && $paidActiveRemCredits > 0 && ($paidActiveRemCredits >= $paidTotalCredits || $passUses === 0)) {
         $alerts[] = [
             'id' => 'idle_session_passes',
             'severity' => 'medium',
-            'title' => 'Session Passes ativos sem consumo',
-            'detail' => "{$activePasses} passe(s) ativo(s) com {$activeRemCredits} créditos intactos (uso via pass: {$passUses}).",
+            'title' => 'Session Passes pagos ativos sem consumo',
+            'detail' => "{$activePaidPasses} passe(s) pago(s) ativo(s) com {$paidActiveRemCredits} créditos intactos (uso via pass: {$passUses}). Passes promocionais e sandbox são excluídos deste alerta.",
             'action' => 'Acompanhe o onboarding do header X-Payment e o fluxo de reengajamento de Session Pass.',
         ];
     }
@@ -280,8 +288,10 @@ function grid402_admin_evaluate_alerts(
         ];
     }
 
-    // 7. [LOW] Serviços pagos do catálogo com baixa tração (< 30 requisições acumuladas)
-    $serviceCounts = is_array($metrics['service_counts'] ?? null) ? $metrics['service_counts'] : [];
+    // 7. [LOW] Serviços pagos do catálogo com baixa tração comercial (< 30 consultas PAGAS acumuladas; ignora 402/bots/sandbox)
+    $servicePaidCounts = is_array($metrics['service_paid_counts'] ?? null)
+        ? $metrics['service_paid_counts']
+        : (is_array($analytics['service_paid_counts'] ?? null) ? $analytics['service_paid_counts'] : []);
     $catalog = function_exists('grid402_get_utility_services') ? grid402_get_utility_services() : [];
     $lowTraction = [];
     foreach ($catalog as $svcId => $svcDef) {
@@ -289,9 +299,9 @@ function grid402_admin_evaluate_alerts(
         if (in_array($svcKey, ['summary', 'verify'], true)) {
             continue;
         }
-        $cnt = (int) ($serviceCounts[$svcKey] ?? 0);
-        if ($cnt < 30) {
-            $lowTraction[] = "{$svcKey} ({$cnt})";
+        $paidCnt = (int) ($servicePaidCounts[$svcKey] ?? 0);
+        if ($paidCnt < 30) {
+            $lowTraction[] = "{$svcKey} ({$paidCnt} pagas)";
         }
     }
     if (!empty($lowTraction)) {
@@ -301,9 +311,9 @@ function grid402_admin_evaluate_alerts(
         $alerts[] = [
             'id' => 'low_traction_services',
             'severity' => 'low',
-            'title' => count($lowTraction) . ' serviço(s) com baixa tração (< 30 reqs)',
-            'detail' => "Serviços abaixo de 30 requisições acumuladas: {$preview}{$suffix}.",
-            'action' => 'Acompanhe a indexação SEO, descoberta MCP e campanhas direcionadas na aba Audiência e Funil.',
+            'title' => count($lowTraction) . ' serviço(s) com baixa tração paga (< 30 pagas)',
+            'detail' => "Serviços abaixo de 30 consultas pagas reais (402/sandbox/bots excluídos): {$preview}{$suffix}.",
+            'action' => 'Acompanhe a indexação SEO, descoberta MCP e conversão na aba Audiência e Funil.',
         ];
     }
 

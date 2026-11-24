@@ -2,7 +2,7 @@
  * Ação ElizaOS: Consulta de Câmbio Comercial e Moedas
  */
 
-import { Grid402Client } from '../client.js';
+import { Grid402Client, resolveGrid402PassToken } from '../client.js';
 
 export const getForexRateAction = {
   name: 'GET_FOREX_RATE',
@@ -18,7 +18,7 @@ export const getForexRateAction = {
   validate: async (_runtime: any, _message: any) => true,
   handler: async (runtime: any, message: any, _state?: any, _options?: any, callback?: any) => {
     try {
-      const passToken = runtime?.getSetting?.('GRID402_PASS_TOKEN') || process.env.GRID402_PASS_TOKEN;
+      const passToken = resolveGrid402PassToken(runtime);
       const client = new Grid402Client({ passToken });
       const res = await client.request('/api/v1/forex');
 

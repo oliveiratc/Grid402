@@ -23,9 +23,26 @@ assert(is_array($freeData), "summary_free.json deve ser JSON válido");
 assert($freeData['protocol'] === 'x402', "Protocolo deve ser x402");
 assert($freeData['chain_id'] === 8453, "Chain ID deve ser 8453");
 assert($freeData['status'] === 'OPERATIONAL', "Status deve ser OPERATIONAL");
-assert(count($freeData['services']) === 25, "Deve conter 23 serviços catalogados");
+assert(count($freeData['services']) === 25, "Deve conter 25 serviços catalogados");
 assert(isset($freeData['services']['dossier']), "Deve conter serviço dossier catalogado");
-assert(isset($freeData['services']['forex']['usd_brl']), "Deve conter cotação de USD");
-assert(isset($freeData['services']['crypto']['btc_usd']), "Deve conter cotação de BTC");
+// V-14: /status gratuito não deve vazar cotações live de forex/crypto
+assert(!isset($freeData['services']['forex']['usd_brl']), "V-14: /status não deve vazar cotação live usd_brl");
+assert(!isset($freeData['services']['forex']['eur_brl']), "V-14: /status não deve vazar cotação live eur_brl");
+assert(!isset($freeData['services']['crypto']['btc_usd']), "V-14: /status não deve vazar cotação live btc_usd");
+assert(!isset($freeData['services']['crypto']['eth_usd']), "V-14: /status não deve vazar cotação live eth_usd");
+assert(!isset($freeData['services']['crypto']['sol_usd']), "V-14: /status não deve vazar cotação live sol_usd");
+assert(isset($freeData['services']['forex']['pairs_monitored']), "Forex deve manter metadado pairs_monitored");
+assert(isset($freeData['services']['crypto']['assets_monitored']), "Crypto deve manter metadado assets_monitored");
+// V-22: Todos os 25 serviços devem expor price_usdc canônico (incluindo lei=0.0100)
+$withPrice = 0;
+foreach ($freeData['services'] as $svcId => $svcMeta) {
+    assert(
+        isset($svcMeta['price_usdc']) && is_string($svcMeta['price_usdc']) && $svcMeta['price_usdc'] !== '',
+        "Serviço {$svcId} deve expor price_usdc canônico em summary_free.json"
+    );
+    $withPrice++;
+}
+assert($withPrice === 25, "Todos os 25 serviços devem ter price_usdc populado (encontrado: {$withPrice})");
+assert(($freeData['services']['lei']['price_usdc'] ?? '') === '0.0100', "V-22: lei deve ter price_usdc igual a 0.0100");
 
 echo "✓ Testes do coletor concluídos com 100% de sucesso!\n";

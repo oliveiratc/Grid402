@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'referral_reward_credits' => $_POST['referral_reward_credits'] ?? 25,
             'builder_reward_credits' => $_POST['builder_reward_credits'] ?? 100,
             'promo_auto_issue' => isset($_POST['promo_auto_issue']),
-            'rewards_pending_validation' => !isset($_POST['rewards_pending_validation']) || $_POST['rewards_pending_validation'],
+            'rewards_pending_validation' => !empty($_POST['rewards_pending_validation']),
             'max_rewards_per_day' => $_POST['max_rewards_per_day'] ?? 25,
         ];
         $result = grid402_growth_update_config($payload);

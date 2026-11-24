@@ -15,6 +15,7 @@ from grid402.models import OracleVerificationResult, WorkdaysResponse
 
 
 DEFAULT_ENDPOINT = "https://grid402.online"
+DEFAULT_RAPIDAPI_HOST = "grid402-open-data-kyb-ai-utilities.p.rapidapi.com"
 GRID402_ORACLE_WALLET = "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90"
 DEFAULT_ORACLE_PUBKEY = """-----BEGIN PUBLIC KEY-----
 MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEq8MF77hj4TAO3ktuRu5GPRdXQP9m9JhO
@@ -138,6 +139,7 @@ class Grid402Client:
         payment_tx_hash: Optional[str] = None,
         session_pass: Optional[str] = None,
         rapidapi_key: Optional[str] = None,
+        rapidapi_host: Optional[str] = None,
         timeout: int = 10,
         raise_for_payment: bool = False,
     ):
@@ -150,6 +152,7 @@ class Grid402Client:
             payment_tx_hash: Hash de transacao USDC opcional padrao para as requisicoes.
             session_pass: Token pass_g402_... opcional para chamadas pre-pagas em <15ms.
             rapidapi_key: Chave X-RapidAPI-Key opcional para assinaturas RapidAPI Hub.
+            rapidapi_host: Host proxy RapidAPI (default: grid402-open-data-kyb-ai-utilities.p.rapidapi.com).
             timeout: Tempo limite em segundos para cada requisicao HTTP.
             raise_for_payment: Se True, lanca Grid402PaymentRequiredError ao receber HTTP 402.
                               Se False, retorna o dicionario com o desafio e dados parciais.
@@ -159,6 +162,8 @@ class Grid402Client:
         self.sandbox = sandbox
         self.session_pass = session_pass or os.environ.get("GRID402_SESSION_PASS") or None
         self.rapidapi_key = rapidapi_key or os.environ.get("GRID402_RAPIDAPI_KEY") or None
+        raw_rapid_host = rapidapi_host or os.environ.get("GRID402_RAPIDAPI_HOST") or DEFAULT_RAPIDAPI_HOST
+        self.rapidapi_host = raw_rapid_host.replace("https://", "").replace("http://", "").split("/")[0].strip()
         self.payment_tx_hash = payment_tx_hash or self.session_pass
         self.timeout = timeout
         self.raise_for_payment = raise_for_payment
@@ -180,23 +185,32 @@ class Grid402Client:
         filtered_params = {k: v for k, v in (params or {}).items() if v is not None}
         query_string = urllib.parse.urlencode(filtered_params)
 
-        url = f"{self.base_url}{path}"
-        if query_string:
-            url += f"?{query_string}"
-
         headers = {
             "Accept": "application/json",
-            "User-Agent": "Grid402-Python-SDK/2.6.0",
+            "User-Agent": "Grid402-Python-SDK/2.7.0",
         }
 
-        if self.rapidapi_key:
-            headers["X-RapidAPI-Key"] = self.rapidapi_key
-
         active_tx_hash = payment_tx_hash or self.payment_tx_hash
-        if active_tx_hash:
+        use_rapidapi_proxy = bool(self.rapidapi_key and not active_tx_hash)
+
+        effective_base_url = self.base_url
+        if use_rapidapi_proxy:
+            if ".p.rapidapi.com" in self.base_url:
+                parsed = urllib.parse.urlparse(self.base_url)
+                rapid_host_header = parsed.netloc or self.rapidapi_host
+            else:
+                effective_base_url = f"https://{self.rapidapi_host}"
+                rapid_host_header = self.rapidapi_host
+            headers["X-RapidAPI-Key"] = str(self.rapidapi_key).strip()
+            headers["X-RapidAPI-Host"] = rapid_host_header
+        elif active_tx_hash:
             headers["X-Payment"] = active_tx_hash
         elif self.sandbox:
             headers["X-Payment"] = "demo"
+
+        url = f"{effective_base_url}{path}"
+        if query_string:
+            url += f"?{query_string}"
 
         req = urllib.request.Request(url, headers=headers)
         ctx = self._get_ssl_context()

@@ -14,92 +14,112 @@ Todas as consultas tecnicas e cadastrais sao monetizadas por chamada (pay-per-ca
 
 ---
 
-## 2. Fluxo do Protocolo x402 (HTTP 402 Payment Required)
+## 2. Fluxo do Protocolo x402 v2 (HTTP 402 Payment Required)
 
-Quando um agente de IA efetua uma requisicao a um endpoint tarifado sem um comprovante de pagamento valido, o servidor responde com HTTP 402:
+Quando um agente de IA efetua uma requisicao a um endpoint tarifado sem um comprovante de pagamento valido, o servidor responde com HTTP 402 no formato oficial **x402 v2** (incluindo o cabecalho `PAYMENT-REQUIRED` em base64 e o array `accepts[]`):
 
 ```http
 HTTP/1.1 402 Payment Required
 Content-Type: application/json; charset=utf-8
+Cache-Control: no-store, no-cache, must-revalidate
 Access-Control-Allow-Origin: *
-X-Accept-Payment: usdc-base
+Access-Control-Expose-Headers: PAYMENT-REQUIRED, PAYMENT-RESPONSE, X-PAYMENT-RESPONSE
+PAYMENT-REQUIRED: <base64_json_x402_v2_challenge>
 X-Payment-Amount: 0.0050
-X-Payment-Receiver: 0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90
-X-Payment-Network: base-mainnet
+X-Payment-Network: eip155:8453
 
 {
-  "status": "error",
-  "code": 402,
-  "message": "Payment Required. Please settle payment on Base network.",
-  "payment_details": {
-    "network": "base-mainnet",
-    "chain_id": 8453,
-    "token": "USDC",
-    "amount": "0.0050",
-    "recipient": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90"
-  }
+  "x402Version": 2,
+  "error": "PaymentRequired",
+  "payment_required": true,
+  "price_usdc": "0.0050",
+  "price_raw_units": 5000,
+  "recipient_wallet": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+  "resource": {
+    "url": "https://grid402.online/api/v1/forex",
+    "description": "Grid402 x402 API resource",
+    "mimeType": "application/json"
+  },
+  "accepts": [
+    {
+      "scheme": "exact",
+      "network": "eip155:8453",
+      "amount": "5000",
+      "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+      "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+      "maxTimeoutSeconds": 300,
+      "extra": {
+        "name": "USD Coin",
+        "version": "2"
+      }
+    }
+  ]
 }
 ```
 
 ### Como o Agente Autonomo Deve Proceder:
-Existem 3 formas de liquidacao suportadas pelo Grid402:
+Existem 4 formas de liquidacao suportadas pelo Grid402:
 
 1. **Protocolo x402 v2 Oficial Multi-Chain Gasless via PayAI (Recomendado para Agentes M2M):**
-   - Aceita nativamente 4 redes em `accepts[]` (`exact`): Base (`eip155:8453`), Polygon (`eip155:137`), Arbitrum (`eip155:42161`) via EIP-3009 e Solana (`solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp`) via transacao SVM.
-   - Reenvie a requisicao com o cabecalho `PAYMENT-SIGNATURE: <payload_base64>` ou `X-Payment: <payload_base64>`.
-   - O Grid402 liquida via PayAI Facilitator e devolve HTTP 200 com o recibo de liquidacao no cabecalho `PAYMENT-RESPONSE`.
-   - Modo Sandbox gratuito para desenvolvimento: `X-Payment: demo` (limite de 3 requisicoes por dia por IP).
+   - Aceita `exact` em `accepts[]`: Base (`eip155:8453`), Polygon (`eip155:137`), Arbitrum (`eip155:42161`) via EIP-3009 e Solana (`solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp`) quando habilitada.
+   - Reenvie a requisicao com o cabecalho `PAYMENT-SIGNATURE: <payload_base64>` (ou `X-Payment: <payload_base64>`).
+   - O Grid402 valida e liquida via PayAI Facilitator e devolve HTTP 200 com o recibo de liquidacao no cabecalho `PAYMENT-RESPONSE`.
+   - Modo Sandbox gratuito para desenvolvimento em rotas de dados: `X-Payment: demo` (limite de 3 requisicoes por dia por IP; nao permitido em `/api/v1/pass`).
 
 2. **Session Pass de Alta Frequencia (<15ms, sem espera de bloco, `1 credito = 0.0050 USDC`):**
-   - Compre creditos pre-pagos no portal `/pass` (Pix/Cartao ou USDC) ou via `POST /api/v1/pass`:
+   - Compre creditos pre-pagos no portal `https://grid402.online/pass` (Pix/Cartao ou USDC) ou via `GET /api/v1/pass` com pagamento real USDC (`PAYMENT-SIGNATURE` ou txHash):
      - **Starter Pass (2 USDC / R$ 12):** `400 creditos` (validade 180 dias)
      - **Pro / Agent Pass (5 USDC / R$ 29):** `1.000 base + 200 bonus (+20%) = 1.200 creditos` (validade 180 dias)
      - **Fleet / Enterprise Pass (20 USDC / R$ 115):** `4.000 base + 2.000 bonus (+50%) = 6.000 creditos` (validade 365 dias)
    - Reenvie as consultas incluindo `X-Payment: pass_g402_...`.
    - Consulte saldo gratuitamente em `GET /api/v1/pass/balance?token=pass_g402_...` e configure Spend Controls (`daily_credit_limit` e `allowed_endpoints`) em `POST /api/v1/pass/limits`.
 
-3. **Transferencia Direta On-Chain (Base Mainnet):**
-   - Execute a transferencia ERC-20 de USDC para `recipient_wallet` (`0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`).
-   - Reenvie a requisicao com `X-Payment: 0x<tx_hash>`.
+3. **RapidAPI Hub (Cartao de Credito em USD):**
+   - Assine em `https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities` e envie requisicoes para o proxy `https://grid402-open-data-kyb-ai-utilities.p.rapidapi.com` com os cabecalhos `X-RapidAPI-Key` e `X-RapidAPI-Host`.
 
-4. **Idempotencia M2M (`Idempotency-Key`):**
-   - Envie o cabecalho `Idempotency-Key: <uuid>` em chamadas pagas. Retentativas dentro de 300 segundos retornam o payload assinado em cache com `X-Idempotent-Replay: true` sem debitar novos creditos.
+4. **Transferencia Direta On-Chain (Base / Polygon / Arbitrum / Optimism / Ethereum):**
+   - Execute a transferencia ERC-20 de USDC para `recipient_wallet` (`0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`).
+   - Reenvie a requisicao com `X-Payment: 0x<tx_hash>` (ou `X-Payment: polygon:0x<tx_hash>`, `arbitrum:0x<tx_hash>`).
+
+5. **Idempotencia M2M (`Idempotency-Key`):**
+   - Envie o cabecalho `Idempotency-Key: <uuid>` em chamadas pagas autenticadas (vinculado ao pagador; exclui sandbox e `/api/v1/pass`). Retentativas dentro de 300 segundos retornam o payload assinado em cache com `X-Idempotent-Replay: true` sem debitar novos creditos.
 
 ---
 
 ## 3. Prova Criptografica de Oraculo (`_oracle_proof`)
 
-Cada resposta tarifada ou validada inclui um objeto `_oracle_proof`:
+Cada resposta tarifada ou validada inclui um objeto `_oracle_proof` assinado sobre o JSON canonico (incluindo `_meta`):
 
 ```json
 {
   "_oracle_proof": {
-    "version": "1.0",
     "oracle_address": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
-    "timestamp_epoch": 1794140000,
+    "timestamp": 1794140000,
+    "data_hash": "0x4a5e3f...",
+    "signature": "0x3045022100...0220...",
     "algorithm": "secp256k1-sha256",
-    "digest_sha256": "4a5e3f...",
-    "signature_hex": "3045022100...0220..."
+    "sandbox": false
   }
 }
 ```
 
 ### Validacao sem Estado (`/api/v1/verify`):
-Para verificar se os dados nao foram adulterados em transito, o agente pode submeter a resposta ao endpoint de verificacao via POST:
+Para verificar se os dados nao foram adulterados em transito, envie diretamente no corpo JSON do `POST /api/v1/verify` a resposta completa retornada pelo oraculo (contendo `_oracle_proof` na raiz):
 
 ```bash
 curl -X POST https://grid402.online/api/v1/verify \
   -H "Content-Type: application/json" \
-  -d '{"full_response_with_proof": {...}}'
+  -d '{"status":"success","data":{"USD_BRL":5.72},"_meta":{"service_id":"forex","oracle_wallet":"0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90"},"_oracle_proof":{"oracle_address":"0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90","timestamp":1794140000,"data_hash":"0x...","signature":"0x3045...","algorithm":"secp256k1-sha256","sandbox":false}}'
 ```
 
 Resposta de verificacao:
 ```json
 {
-  "status": "success",
+  "status": "AUTHENTIC_ORACLE_DATA",
   "valid": true,
   "oracle_address": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
-  "digest_sha256": "4a5e3f...",
+  "data_hash": "0x4a5e3f...",
+  "timestamp": 1794140000,
   "verification_time_ms": 0.42
 }
 ```
@@ -151,7 +171,7 @@ Resposta de verificacao:
 - Rota: `GET /api/v1/cnpj?cnpj={cnpj}`
 - Tarifa: 0.0100 USDC (2 creditos)
 - Exemplo: `/api/v1/cnpj?cnpj=00000000000191`
-- Descricao: Razao social, nome fantasia, situacao cadastral, CNAE principal, socios e capital social na Receita Federal.
+- Descricao: Razao social, nome fantasia, situacao cadastral, CNAE principal, capital social e endereco na Receita Federal (estritamente Zero-PII, sem QSA ou CPF).
 
 ### 9. Indicadores Economicos Brasileiros
 - Rota: `GET /api/v1/indicators`
@@ -165,9 +185,10 @@ Resposta de verificacao:
 - Descricao: Feriados nacionais e bancarios oficiais (ANBIMA e Febraban) com algoritmo de calculo pascoal Meeus.
 
 ### 11. Calculadora de Dias Uteis ANBIMA
-- Rota: `GET /api/v1/workdays?start_date={data1}` (com parametro adicional `end_date={data2}`)
+- Rota: `GET /api/v1/workdays` (parametros query: `start_date`, `end_date`, `days`, `date`)
 - Tarifa: 0.0050 USDC
-- Exemplo: `/api/v1/workdays?start_date=2026-01-01 e end_date=2026-12-31`
+- Exemplo (contagem de intervalo): `curl -G "https://grid402.online/api/v1/workdays" --data-urlencode "start_date=2026-01-01" --data-urlencode "end_date=2026-12-31" -H "X-Payment: pass_g402_SEU_TOKEN"`
+- Exemplo (projecao D+5): `curl -G "https://grid402.online/api/v1/workdays" --data-urlencode "start_date=2026-11-06" --data-urlencode "days=5" -H "X-Payment: pass_g402_SEU_TOKEN"`
 - Descricao: Contagem de dias uteis financeiros e projecao de liquidacao financeira segundo padrao ANBIMA.
 
 ### 12. Verificador de Oraculo Criptografico
@@ -261,28 +282,32 @@ Resposta de verificacao:
 ## 5. Exemplo de Codigo em Python para Agentes
 
 ```python
+import os
 import requests
 
 BASE_URL = "https://grid402.online"
 
-def consultar_cnpj(cnpj, payment_tx_hash=None):
-    headers = {}
-    if payment_tx_hash:
-        headers["X-Payment"] = payment_tx_hash
+def consultar_cnpj(cnpj, payment_proof=None):
+    headers = {"Accept": "application/json"}
+    proof = payment_proof or os.getenv("GRID402_SESSION_PASS")
+    if proof:
+        headers["X-Payment"] = proof
     
     url = f"{BASE_URL}/api/v1/cnpj?cnpj={cnpj}"
-    res = requests.get(url, headers=headers)
+    res = requests.get(url, headers=headers, timeout=10)
     
     if res.status_code == 402:
-        payment_info = res.json()["payment_details"]
-        print(f"[402] Pagamento necessario de {payment_info['amount']} USDC para {payment_info['recipient']}")
-        return res.json()
+        body = res.json()
+        accept0 = (body.get("accepts") or [{}])[0]
+        print(f"[402 x402 v2] Preco: {body.get('price_usdc')} USDC | Rede: {accept0.get('network')} | Destino: {accept0.get('payTo')}")
+        print("[Checkout] Session Pass via Pix/Cartao: https://grid402.online/pass")
+        return body
     
     data = res.json()
     print("[200] Dados obtidos com sucesso! Assinatura de Oraculo presente:", "_oracle_proof" in data)
     return data
 
-# Modo teste / visualizacao de desafio:
+# Exemplo usando GRID402_SESSION_PASS do ambiente ou inspecionando desafio x402 v2:
 consultar_cnpj("00000000000191")
 ```
 
@@ -290,7 +315,7 @@ consultar_cnpj("00000000000191")
 
 ## 6. Integracao via Model Context Protocol (MCP)
 
-Para conectar o Grid402 ao Claude Desktop ou Cursor:
+Para conectar o Grid402 ao Claude Desktop, Cursor ou Windsurf via transporte `stdio`:
 Arquivo `claude_desktop_config.json`:
 
 ```json
@@ -300,15 +325,20 @@ Arquivo `claude_desktop_config.json`:
       "command": "npx",
       "args": ["-y", "grid402-mcp@latest"],
       "env": {
-        "GRID402_BASE_URL": "https://grid402.online"
+        "GRID402_API_URL": "https://grid402.online",
+        "GRID402_SESSION_PASS": "pass_g402_SEU_TOKEN",
+        "GRID402_PRIVATE_KEY": "0xSUA_CHAVE_EVM_OPCIONAL",
+        "GRID402_X402_GASLESS": "true"
       }
     }
   }
 }
 ```
 
-Manifesto remoto de ferramentas disponivel em:
-`https://grid402.online/.well-known/mcp.json`
+Ou conecte diretamente via transporte **Streamable HTTP** (`@x402/mcp` nativo):
+- Endpoint Hosted MCP: `https://grid402.online/mcp`
+- Server Card SEP-1649: `https://grid402.online/.well-known/mcp/server-card.json`
+- Manifesto remoto de ferramentas: `https://grid402.online/.well-known/mcp.json`
 
 ---
 

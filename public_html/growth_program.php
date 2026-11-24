@@ -16,45 +16,80 @@ $msg = '';
 $err = '';
 $action = (string)($_POST['action'] ?? ($_GET['action'] ?? ''));
 
-// Token determinístico para formulários públicos + rate limit por IP
-// (mesma família do controle usado em /pass e /admin).
-$csrf = hash_hmac('sha256', 'grid402-growth-v1:' . GRID402_CRON_SECRET, GRID402_CRON_SECRET);
+// Token anti-CSRF vinculado ao IP confiável + dia UTC (aceita dia anterior na virada de meia-noite)
+$csrfToday = gmdate('Y-m-d');
+$csrfYesterday = gmdate('Y-m-d', time() - 86400);
+$csrf = hash_hmac('sha256', 'grid402-growth-v2:' . $ipHash . ':' . $csrfToday, GRID402_CRON_SECRET);
+$csrfPrev = hash_hmac('sha256', 'grid402-growth-v2:' . $ipHash . ':' . $csrfYesterday, GRID402_CRON_SECRET);
 
 $rateFile = (defined('GRID402_PRIVATE_DIR') ? GRID402_PRIVATE_DIR : __DIR__ . '/private_data') . '/growth_rate_limit.json';
 function growth_rate_limit(string $file, string $key, int $max = 10): bool {
     $dir = dirname($file);
-    if (!is_dir($dir)) @mkdir($dir, 0755, true);
-    $records = [];
-    if (file_exists($file)) {
-        $raw = @file_get_contents($file);
-        $records = $raw ? (@json_decode($raw, true) ?: []) : [];
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0755, true);
     }
-    $now = time();
-    foreach ($records as $k => $v) {
-        if (($v['until'] ?? 0) < $now) unset($records[$k]);
-    }
-    $slot = $records[$key] ?? null;
-    if ($slot) {
-        $slot['count'] = (int)($slot['count'] ?? 0) + 1;
-        if ($slot['count'] > $max) {
-            return false;
-        }
-    } else {
-        $slot = ['count' => 1, 'until' => $now + 3600];
-    }
-    $records[$key] = $slot;
+
     $fp = @fopen($file, 'c+');
-    if ($fp && flock($fp, LOCK_EX)) {
-        ftruncate($fp, 0); rewind($fp); fwrite($fp, json_encode($records)); fflush($fp); flock($fp, LOCK_UN); fclose($fp);
+    if (!$fp) {
+        return false; // fail-closed
     }
-    return true;
+
+    $allowed = false;
+    try {
+        if (!flock($fp, LOCK_EX)) {
+            return false; // fail-closed
+        }
+        try {
+            $records = grid402_read_locked_json($fp, []);
+            if (!is_array($records)) {
+                $records = [];
+            }
+
+            $now = time();
+            foreach ($records as $k => $v) {
+                if (!is_array($v) || ((int) ($v['until'] ?? 0)) < $now) {
+                    unset($records[$k]);
+                }
+            }
+
+            $slot = $records[$key] ?? null;
+            if (is_array($slot)) {
+                $nextCount = (int) ($slot['count'] ?? 0) + 1;
+                if ($nextCount > $max) {
+                    return false;
+                }
+                $slot['count'] = $nextCount;
+            } else {
+                $slot = ['count' => 1, 'until' => $now + 3600];
+            }
+            $records[$key] = $slot;
+
+            // Cap seguro de chaves para impedir crescimento ilimitado do arquivo
+            if (count($records) > 2000) {
+                $records = array_slice($records, -2000, null, true);
+            }
+
+            ftruncate($fp, 0);
+            rewind($fp);
+            $written = fwrite($fp, (string) json_encode($records, JSON_UNESCAPED_SLASHES));
+            fflush($fp);
+            $allowed = ($written !== false);
+        } finally {
+            flock($fp, LOCK_UN);
+        }
+    } finally {
+        fclose($fp);
+    }
+
+    return $allowed;
 }
 
 // Processamento de formulários (único ponto de entrada)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $submittedCsrf = (string)($_POST['csrf_token'] ?? '');
+    $csrfValid = ($submittedCsrf !== '') && (hash_equals($csrf, $submittedCsrf) || hash_equals($csrfPrev, $submittedCsrf));
 
-    if ($submittedCsrf === '' || !hash_equals($csrf, $submittedCsrf)) {
+    if (!$csrfValid) {
         $err = 'Token inválido. Recarregue e tente novamente.';
     } elseif (!growth_rate_limit($rateFile, $ipHash, 10)) {
         $err = 'Limite de envios atingido. Tente novamente em 1 hora.';
@@ -75,8 +110,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = grid402_growth_create_referral(['wallet' => (string)($_POST['wallet'] ?? '')]);
             $code = null;
             if (!empty($result['referrals']) && is_array($result['referrals'])) {
-                foreach ($result['referrals'] as $r) {
-                    if (($r['wallet_last4'] ?? '') === substr(strtolower((string)($_POST['wallet'] ?? '')), -4) && ($r['status'] ?? '') === 'active') {
+                $targetLast4 = substr(strtolower(trim((string)($_POST['wallet'] ?? ''))), -4);
+                foreach (array_reverse($result['referrals']) as $r) {
+                    if (($r['wallet_last4'] ?? '') === $targetLast4 && ($r['status'] ?? '') === 'active') {
                         $code = $r['code'] ?? null;
                         break;
                     }

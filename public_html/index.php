@@ -45,6 +45,20 @@ require_once __DIR__ . '/metrics.php';
 require_once __DIR__ . '/growth.php';
 
 /**
+ * Emite cabecalhos padrao de CORS para todas as rotas /api/v1/* e encerra preflight OPTIONS com HTTP 204.
+ */
+function grid402_emit_api_cors_headers(): void {
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment, x-payment, X-Payment-Network, x-payment-network, X-Session-Pass, x-session-pass, PAYMENT-SIGNATURE, payment-signature, Idempotency-Key, X-Request-Id, X-Signature, X-RapidAPI-Proxy-Secret, X-RapidAPI-Key, X-RapidAPI-Host');
+    header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, PAYMENT-REQUIRED, Payment-Required, payment-required, PAYMENT-RESPONSE, X-PAYMENT-RESPONSE, X-Idempotent-Replay, X-Request-Id');
+    if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'OPTIONS') {
+        http_response_code(204);
+        exit;
+    }
+}
+
+/**
  * Registra visita à página pública HTML (contador de acessos exibido no /admin).
  * Só conta GET/HEAD — APIs JSON continuam aferidas pela telemetria técnica.
  */
@@ -88,10 +102,21 @@ if (is_array($rawHeaderSource)) {
 }
 
 // Extração do cabeçalho opcional Idempotency-Key (TTL 300s)
-$idempotencyKey = trim((string) ($_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? $normalizedReqHeaders['idempotency-key'] ?? ''));
+$idempotencyKey = '';
+foreach ([
+    $_SERVER['HTTP_IDEMPOTENCY_KEY'] ?? null,
+    $normalizedReqHeaders['idempotency-key'] ?? null,
+] as $idemCandidate) {
+    $trimmedIdem = trim((string) ($idemCandidate ?? ''));
+    if ($trimmedIdem !== '') {
+        $idempotencyKey = $trimmedIdem;
+        break;
+    }
+}
 
-// 0. Resposta em Markdown quando solicitado por agentes de IA (Accept: text/markdown)
-if (str_contains($acceptHeader, 'text/markdown') || str_contains($acceptHeader, 'text/x-markdown') || (isset($_GET['format']) && $_GET['format'] === 'markdown')) {
+// 0. Resposta em Markdown quando solicitado por agentes de IA (Accept: text/markdown) EXCLUSIVAMENTE na rota raiz /
+$isRootOnlyRequest = ($requestPath === '/' || $requestPath === '/index.php') && $apiParam === '' && $pageParam === '' && !$isJsonExplicit;
+if ($isRootOnlyRequest && (str_contains($acceptHeader, 'text/markdown') || str_contains($acceptHeader, 'text/x-markdown') || (isset($_GET['format']) && $_GET['format'] === 'markdown'))) {
     header('Content-Type: text/markdown; charset=utf-8');
     header('Vary: Accept, User-Agent');
     grid402_log_public_visit('/llms.txt');
@@ -100,24 +125,46 @@ if (str_contains($acceptHeader, 'text/markdown') || str_contains($acceptHeader, 
 }
 
 // Extração do comprovante de pagamento X-Payment (ou alias X-Session-Pass) e PAYMENT-SIGNATURE
-$paymentProof = trim((string) (
-    $_SERVER['HTTP_X_PAYMENT']
-    ?? $_SERVER['HTTP_X_SESSION_PASS']
-    ?? $normalizedReqHeaders['x-payment']
-    ?? $normalizedReqHeaders['x-session-pass']
-    ?? ''
-));
-if ($paymentProof === '') {
-    // Clientes x402 v2 padrao enviam a prova no cabecalho PAYMENT-SIGNATURE
-    $paymentProof = trim((string) ($_SERVER['HTTP_PAYMENT_SIGNATURE'] ?? $normalizedReqHeaders['payment-signature'] ?? ''));
+// Ignora valores vazios/whitespace para que HTTP_X_PAYMENT="" nao curto-circuite HTTP_X_SESSION_PASS
+$paymentProof = '';
+foreach ([
+    $_SERVER['HTTP_X_PAYMENT'] ?? null,
+    $_SERVER['HTTP_X_SESSION_PASS'] ?? null,
+    $normalizedReqHeaders['x-payment'] ?? null,
+    $normalizedReqHeaders['x-session-pass'] ?? null,
+] as $proofCandidate) {
+    $trimmedCandidate = trim((string) ($proofCandidate ?? ''));
+    if ($trimmedCandidate !== '') {
+        $paymentProof = $trimmedCandidate;
+        break;
+    }
 }
 if ($paymentProof === '') {
-    $authHeader = trim((string) (
-        $_SERVER['HTTP_AUTHORIZATION']
-        ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
-        ?? $normalizedReqHeaders['authorization']
-        ?? ''
-    ));
+    // Clientes x402 v2 padrao enviam a prova no cabecalho PAYMENT-SIGNATURE
+    foreach ([
+        $_SERVER['HTTP_PAYMENT_SIGNATURE'] ?? null,
+        $normalizedReqHeaders['payment-signature'] ?? null,
+    ] as $sigCandidate) {
+        $trimmedSig = trim((string) ($sigCandidate ?? ''));
+        if ($trimmedSig !== '') {
+            $paymentProof = $trimmedSig;
+            break;
+        }
+    }
+}
+if ($paymentProof === '') {
+    $authHeader = '';
+    foreach ([
+        $_SERVER['HTTP_AUTHORIZATION'] ?? null,
+        $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null,
+        $normalizedReqHeaders['authorization'] ?? null,
+    ] as $authCandidate) {
+        $trimmedAuth = trim((string) ($authCandidate ?? ''));
+        if ($trimmedAuth !== '') {
+            $authHeader = $trimmedAuth;
+            break;
+        }
+    }
     if (preg_match('/^(?:x402|payment)\s+(.+)$/is', $authHeader, $am)) {
         $paymentProof = trim($am[1]);
     } elseif (preg_match('/^bearer\s+((?:pass_g402_|0x[a-f0-9]{40,}|eyJ|\{).+)$/is', $authHeader, $bm)) {
@@ -127,7 +174,20 @@ if ($paymentProof === '') {
 if ($paymentProof !== '' && function_exists('grid402_normalize_payment_proof_header')) {
     $paymentProof = grid402_normalize_payment_proof_header($paymentProof);
 }
-$paymentNetworkHeader = trim((string) ($_SERVER['HTTP_X_PAYMENT_NETWORK'] ?? $normalizedReqHeaders['x-payment-network'] ?? ''));
+$paymentNetworkHeader = '';
+foreach ([
+    $_SERVER['HTTP_X_PAYMENT_NETWORK'] ?? null,
+    $normalizedReqHeaders['x-payment-network'] ?? null,
+] as $netCandidate) {
+    $trimmedNet = trim((string) ($netCandidate ?? ''));
+    if ($trimmedNet !== '') {
+        $paymentNetworkHeader = $trimmedNet;
+        break;
+    }
+}
+$rawRequestBody = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'POST'
+    ? (string) @file_get_contents('php://input')
+    : '';
 if ($paymentProof === '') {
     if (!empty($_GET['tx'])) {
         $paymentProof = trim((string) $_GET['tx']);
@@ -135,13 +195,10 @@ if ($paymentProof === '') {
         $paymentProof = trim((string) $_GET['txHash']);
     } elseif (!empty($_GET['tx_hash'])) {
         $paymentProof = trim((string) $_GET['tx_hash']);
-    } elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $rawPost = (string) @file_get_contents('php://input');
-        if ($rawPost !== '') {
-            $parsedPost = @json_decode($rawPost, true);
-            if (is_array($parsedPost)) {
-                $paymentProof = trim((string) ($parsedPost['tx'] ?? $parsedPost['txHash'] ?? $parsedPost['tx_hash'] ?? ''));
-            }
+    } elseif ($rawRequestBody !== '') {
+        $parsedPost = @json_decode($rawRequestBody, true);
+        if (is_array($parsedPost)) {
+            $paymentProof = trim((string) ($parsedPost['tx'] ?? $parsedPost['txHash'] ?? $parsedPost['tx_hash'] ?? ''));
         }
     }
 }
@@ -494,9 +551,10 @@ if ($requestPath === '/agents' || $pageParam === 'agents') {
 
 // 1.3. Checkout Mercado Pago (Pix + Checkout Pro) para Session Pass
 if (str_starts_with($requestPath, '/api/v1/pass/mp-')) {
+    grid402_emit_api_cors_headers();
     require_once __DIR__ . '/services/mercadopago.php';
     $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
-    $rawBody = (string) @file_get_contents('php://input');
+    $rawBody = $rawRequestBody !== '' ? $rawRequestBody : (string) @file_get_contents('php://input');
     $jsonBody = @json_decode($rawBody, true);
     $input = is_array($jsonBody) ? $jsonBody : $_POST;
 
@@ -526,21 +584,65 @@ if (str_starts_with($requestPath, '/api/v1/pass/mp-')) {
     http_response_code((int) ($res['code'] ?? 200));
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
-    grid402_log_request([
-        'service' => 'pass-mp',
-        'status' => (int) ($res['code'] ?? 200),
-        'payment_source' => 'free',
-        'error' => !empty($res['ok']) ? null : (string) ($res['error'] ?? null),
-    ]);
+
+    $mpStatusVal = strtolower((string) ($res['status'] ?? ''));
+    $isMpApprovalRoute = ($requestPath === '/api/v1/pass/mp-webhook' || $requestPath === '/api/v1/pass/mp-status');
+    $alreadyLoggedByMp = !empty($res['logged_paid_request']);
+    $isMpFreshApproval = $isMpApprovalRoute
+        && !empty($res['ok'])
+        && in_array($mpStatusVal, ['paid', 'approved'], true)
+        && !empty($res['pass_token'])
+        && array_key_exists('idempotent', $res)
+        && $res['idempotent'] === false;
+    $isMpAlreadyApprovedPollingOrReplay = $isMpApprovalRoute
+        && !empty($res['ok'])
+        && in_array($mpStatusVal, ['paid', 'approved'], true)
+        && !empty($res['pass_token'])
+        && !$isMpFreshApproval;
+
+    // Evita duplicar linha paga 'mercadopago' no requests.jsonl/CSV quando mercadopago.php ja registrou a venda
+    if (!$alreadyLoggedByMp) {
+        $mpLogSource = 'free';
+        $mpPriceUsdc = null;
+        if ($isMpFreshApproval && empty($res['sandbox'])) {
+            $mpLogSource = 'mercadopago';
+            if (!empty($res['price_usdc'])) {
+                $mpPriceUsdc = (string) $res['price_usdc'];
+            } elseif (!empty($res['raw_usdc_units']) && (int) $res['raw_usdc_units'] > 0) {
+                $mpPriceUsdc = number_format(((int) $res['raw_usdc_units']) / 1000000.0, 4, '.', '');
+            } elseif (!empty($res['tier']) && function_exists('grid402_mp_packages')) {
+                $mpPkgs = grid402_mp_packages();
+                $tierKey = strtolower((string) $res['tier']);
+                if (isset($mpPkgs[$tierKey]['raw_usdc_units'])) {
+                    $mpPriceUsdc = number_format(((int) $mpPkgs[$tierKey]['raw_usdc_units']) / 1000000.0, 4, '.', '');
+                }
+            }
+        } elseif ($isMpFreshApproval && !empty($res['sandbox'])) {
+            $mpLogSource = 'sandbox';
+        }
+
+        $mpLogEvent = [
+            'service' => 'pass-mp',
+            'status' => (int) ($res['code'] ?? 200),
+            'payment_source' => $mpLogSource,
+            'idempotent_replay' => $isMpAlreadyApprovedPollingOrReplay,
+            'error' => !empty($res['ok']) ? null : (string) ($res['error'] ?? null),
+        ];
+        if ($mpPriceUsdc !== null) {
+            $mpLogEvent['price_usdc'] = $mpPriceUsdc;
+        }
+        grid402_log_request($mpLogEvent);
+    }
     echo json_encode($res, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
 }
 
 // 1.3b. Cupons Promocionais de Session Pass (/api/v1/pass/promo-status e /api/v1/pass/promo-claim)
 if ($requestPath === '/api/v1/pass/promo-status' || $requestPath === '/api/v1/pass/promo-claim') {
+    grid402_emit_api_cors_headers();
     require_once __DIR__ . '/services/promo_pass.php';
     $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
-    $rawBody = (string) @file_get_contents('php://input');
+    $rawBody = $rawRequestBody !== '' ? $rawRequestBody : (string) @file_get_contents('php://input');
     $jsonBody = @json_decode($rawBody, true);
     $input = is_array($jsonBody) ? $jsonBody : $_POST;
 
@@ -681,6 +783,8 @@ if ($isStatusRoute || ($isHomeRoute && isset($_GET['format']) && $_GET['format']
                 if (empty($decodedSummary['services'][$svcId]['status']) || $decodedSummary['services'][$svcId]['status'] === '—') {
                     $decodedSummary['services'][$svcId]['status'] = 'UP';
                 }
+                // Sincroniza price_usdc canonico (ex.: lei = 0.0100) sobre o snapshot de summary_free.json
+                $decodedSummary['services'][$svcId]['price_usdc'] = $def['price_usdc'] ?? GRID402_PRICE_DISPLAY;
                 $decodedSummary['services'][$svcId]['upstream_source'] = $def['upstream_source'] ?? 'Grid402 Official Public Data Feed';
                 $decodedSummary['services'][$svcId]['cache_ttl_sec'] = $def['cache_ttl_sec'] ?? 300;
                 $decodedSummary['services'][$svcId]['latency_ms'] = $decodedSummary['services'][$svcId]['latency_ms'] ?? 38;
@@ -806,14 +910,7 @@ if ($isVerifyRoute) {
 
 // 5. Se for requisição para as APIs de dados técnicos
 if ($isValidApiAction) {
-    header('Access-Control-Allow-Origin: *');
-    header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment, x-payment, X-Payment-Network, x-payment-network, X-Session-Pass, x-session-pass, PAYMENT-SIGNATURE, payment-signature, Idempotency-Key, X-Request-Id, X-RapidAPI-Proxy-Secret, X-RapidAPI-Key, X-RapidAPI-Host');
-    header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, PAYMENT-REQUIRED, Payment-Required, payment-required, PAYMENT-RESPONSE, X-PAYMENT-RESPONSE, X-Idempotent-Replay, X-Request-Id');
-    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-        http_response_code(204);
-        exit;
-    }
+    grid402_emit_api_cors_headers();
 
     // 2.0. Consulta gratuita de extrato Zero-PII do Session Pass (/api/v1/pass/statement -> JSON ou CSV)
     if ($apiParam === 'pass-statement') {
@@ -926,9 +1023,22 @@ if ($isValidApiAction) {
     $isCompositeMedium = in_array($apiParam, ['domain-audit', 'market-snapshot'], true);
     $isTwoCreditTier = in_array($apiParam, ['cnpj', 'lei', 'sanctions', 'simples'], true);
 
+    $passTierSelected = 'starter';
     if ($isPass) {
-        $servicePriceDisplay = '2.0000';
-        $servicePriceRaw = 2000000; // 2.000000 USDC (Starter Pass = 400 creditos)
+        $tierParam = strtolower(trim((string) ($_GET['tier'] ?? 'starter')));
+        if ($tierParam === 'fleet') {
+            $passTierSelected = 'fleet';
+            $servicePriceDisplay = '20.0000';
+            $servicePriceRaw = 20000000; // 20.000000 USDC (Fleet Pass = 6.000 creditos)
+        } elseif ($tierParam === 'pro') {
+            $passTierSelected = 'pro';
+            $servicePriceDisplay = '5.0000';
+            $servicePriceRaw = 5000000; // 5.000000 USDC (Pro Pass = 1.200 creditos)
+        } else {
+            $passTierSelected = 'starter';
+            $servicePriceDisplay = '2.0000';
+            $servicePriceRaw = 2000000; // 2.000000 USDC (Starter Pass = 400 creditos)
+        }
     } elseif ($isDossier) {
         $servicePriceDisplay = GRID402_PRICE_DOSSIER;
         $servicePriceRaw = GRID402_USDC_DOSSIER_RAW; // 0.050000 USDC (10 creditos)
@@ -1119,7 +1229,8 @@ if ($isValidApiAction) {
             $previewData = [
                 'cnpj' => $kybCnpj,
                 'bundle' => 'Receita Federal CNPJ + OFAC/UN Sanctions + GLEIF LEI',
-                'credits' => 4,
+                'credits' => 5,
+                'price_usdc' => GRID402_PRICE_KYB_AUDIT,
             ];
             $lockedFields = ['audit.cnpj', 'audit.ofac_sanctions', 'audit.lei', 'checked_at', '_oracle_proof'];
         } elseif ($apiParam === 'dossier') {
@@ -1139,20 +1250,17 @@ if ($isValidApiAction) {
             $cnpjInput = $hasExplicitCnpj ? (string) ($_GET['cnpj'] ?? $_GET['code']) : '00000000000191';
             $cnpjResult = grid402_get_cnpj_preview($cnpjInput);
             if (!($cnpjResult['success'] ?? false)) {
-                if ($hasExplicitCnpj) {
-                    http_response_code($cnpjResult['code'] ?? 400);
-                    header('Content-Type: application/json; charset=utf-8');
-                    echo json_encode($cnpjResult, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-                    exit;
-                }
                 $previewData = [
                     'cnpj' => '00.000.000/0001-91',
-                    'razao_social' => 'BANCO DO BRASIL SA',
-                    'nome_fantasia' => 'DIRECAO GERAL',
-                    'uf' => 'DF',
-                    'situacao_cadastral' => 'ATIVA',
+                    'cnpj_valid' => true,
+                    'base_oficial' => 'Receita Federal do Brasil (Base Pública CNPJ - Zero PII)',
+                    'preview_mode' => 'static_schema_sample',
+                    'razao_social' => '[LOCKED — unlock via x402 or Session Pass]',
+                    'nome_fantasia' => '[LOCKED]',
+                    'uf' => '[LOCKED]',
+                    'situacao_cadastral' => '[LOCKED]',
                 ];
-                $lockedFields = ['capital_social', 'natureza_juridica', 'data_abertura', 'cnae_fiscal', 'cnaes_secundarios', 'endereco', '_oracle_proof'];
+                $lockedFields = ['razao_social', 'nome_fantasia', 'situacao_cadastral', 'capital_social', 'natureza_juridica', 'data_abertura', 'cnae_fiscal', 'cnaes_secundarios', 'endereco', '_oracle_proof'];
             } else {
                 $previewData = $cnpjResult['preview'];
                 $lockedFields = $cnpjResult['locked_fields'];
@@ -1161,13 +1269,19 @@ if ($isValidApiAction) {
             $cepInput = (string) ($_GET['code'] ?? $_GET['cep'] ?? '01310100');
             $cepResult = grid402_get_cep_preview($cepInput);
             if (!($cepResult['success'] ?? false)) {
-                http_response_code($cepResult['code'] ?? 400);
-                header('Content-Type: application/json; charset=utf-8');
-                echo json_encode($cepResult, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-                exit;
+                $previewData = [
+                    'cep' => '01310-100',
+                    'cep_format_valid' => true,
+                    'base_oficial' => 'Base Pública Aberta Nacional e Diretório Municipal IBGE',
+                    'preview_mode' => 'static_schema_sample',
+                    'cidade' => '[LOCKED — unlock via x402 or Session Pass]',
+                    'uf' => '[LOCKED]',
+                ];
+                $lockedFields = ['logradouro', 'bairro', 'cidade', 'uf', 'complemento', 'ddd', 'ibge', '_oracle_proof'];
+            } else {
+                $previewData = $cepResult['preview'];
+                $lockedFields = $cepResult['locked_fields'];
             }
-            $previewData = $cepResult['preview'];
-            $lockedFields = $cepResult['locked_fields'];
         } elseif ($apiParam === 'indicators') {
             $teaser = grid402_teaser_indicators();
             $lockedFields = $teaser['locked_fields'] ?? [];
@@ -1203,7 +1317,7 @@ if ($isValidApiAction) {
             $leiInput = (string) ($_GET['lei'] ?? '');
             $qInput = (string) ($_GET['q'] ?? '');
             $previewData = grid402_preview_lei($leiInput, $qInput);
-            $lockedFields = ['entity.legal_name', 'entity.legal_address', 'entity.registration_authority', 'entity.local_registration_id', '_oracle_proof'];
+            $lockedFields = ['entity.lei', 'entity.legal_name', 'entity.jurisdiction', 'entity.entity_status', 'entity.legal_address', 'entity.registration_authority', 'entity.local_registration_id', '_oracle_proof'];
         } elseif ($apiParam === 'ofac') {
             $addrInput = (string) ($_GET['address'] ?? $_GET['target'] ?? '');
             $nameInput = (string) ($_GET['name'] ?? '');
@@ -1223,7 +1337,7 @@ if ($isValidApiAction) {
             $dtInput = (string) ($_GET['date'] ?? '');
             $baseInput = (string) ($_GET['base'] ?? 'USD');
             $previewData = grid402_preview_global_markets($mktInput, $dtInput, $baseInput);
-            $lockedFields = ['holiday_name', 'next_business_day', 'fx_reference.rates', 'market_holidays_calendar', '_oracle_proof'];
+            $lockedFields = ['is_business_day', 'is_holiday', 'holiday_name', 'next_business_day', 'fx_reference.rates', 'market_holidays_calendar', '_oracle_proof'];
         } elseif ($apiParam === 'extract') {
             $extractUrlInput = (string) ($_GET['url'] ?? 'https://example.com');
             $teaser = grid402_teaser_extract($extractUrlInput);
@@ -1237,6 +1351,8 @@ if ($isValidApiAction) {
         } elseif ($apiParam === 'pass') {
             $previewData = [
                 'product' => 'x402 Prepaid Session Pass (High-Frequency M2M & Web3 Top-Up)',
+                'selected_tier' => $passTierSelected,
+                'selected_price_usdc' => $servicePriceDisplay,
                 'credit_unit' => '1 credit = 0.0050 USDC (5,000 raw units) = 1 standard API call',
                 'tier_starter' => '2.0000 USDC (or R$ 12 Pix) = 400 credits (<15ms latency, 180 days validity)',
                 'tier_pro' => '5.0000 USDC (or R$ 29 Pix) = 1,000 base + 200 bonus (+20%) = 1,200 credits (<15ms latency, 180 days validity)',
@@ -1250,42 +1366,6 @@ if ($isValidApiAction) {
         }
 
         grid402_respond_402($serviceLabel, null, $servicePriceDisplay, $servicePriceRaw, $previewData, $lockedFields);
-    }
-
-    // 2.3.1. Verificação de Idempotência M2M (Idempotency-Key com TTL de 300s) antes de debitar créditos ou liquidar
-    if ($idempotencyKey !== '' && !$isPassEmitir) {
-        $cachedIdempotent = grid402_idempotency_check($idempotencyKey, $apiParam, $_GET);
-        if (is_array($cachedIdempotent)) {
-            if (str_starts_with(strtolower($paymentProof), 'pass_g402_')) {
-                $replayPassStatus = grid402_get_session_pass_status($paymentProof);
-                if (!empty($replayPassStatus['ok'])) {
-                    grid402_record_pass_statement_event($paymentProof, [
-                        'request_id' => grid402_get_request_id(),
-                        'endpoint' => $apiParam,
-                        'credits_debited' => 0,
-                        'credits_after' => (int) ($replayPassStatus['credits_remaining'] ?? 0),
-                        'http_status' => 200,
-                        'outcome' => 'idempotent_replay',
-                    ]);
-                }
-            }
-            $idemLatency = grid402_request_elapsed_ms();
-            grid402_record_latency_sample($idemLatency);
-            grid402_log_request([
-                'service' => $apiParam,
-                'status' => 200,
-                'latency_ms' => $idemLatency,
-                'payment_source' => 'pass',
-                'idempotent_replay' => true,
-            ]);
-            http_response_code(200);
-            header('Content-Type: application/json; charset=utf-8');
-            header('X-Payment-Status: Accepted');
-            header('X-Idempotent-Replay: true');
-            header('Cache-Control: private, no-cache');
-            echo json_encode($cachedIdempotent, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            exit;
-        }
     }
 
     // Auditoria on-chain com trava atômica anti-replay e suporte a Modo Sandbox
@@ -1331,8 +1411,9 @@ if ($isValidApiAction) {
         ]);
 
         $errCategory = (string) ($valResult['category'] ?? '');
-        if (($valResult['error'] ?? '') === 'UnsupportedNetwork') {
-            $errCodeLabel = 'UnsupportedNetwork';
+        $explicitErr = (string) ($valResult['error'] ?? '');
+        if (in_array($explicitErr, ['UnsupportedNetwork', 'SandboxNotAllowedForPass', 'PassCannotPurchasePass'], true)) {
+            $errCodeLabel = $explicitErr;
         } elseif ($errCategory === 'daily_limit_exceeded') {
             $errCodeLabel = 'PassDailyLimitExceeded';
         } elseif ($errCategory === 'endpoint_restricted') {
@@ -1372,21 +1453,21 @@ if ($isValidApiAction) {
         }
         if (isset($valResult['sandbox'])) {
             $errPayload['sandbox'] = true;
-            if (!empty($valResult['upgrade_url'])) {
-                $errPayload['upgrade_to_production'] = [
-                    'session_pass_url' => $valResult['upgrade_url'],
-                    'pix_instant_starter_url' => 'https://grid402.online/pass?tier=starter&autopix=1',
-                    'pix_instant_pro_url' => 'https://grid402.online/pass?tier=pro&autopix=1',
-                    'starter_tier' => 'R$ 12,00 (Pix/Cartao) ou 2.0000 USDC = 400 creditos',
-                    'rapidapi_credit_card_usd' => [
-                        'plans' => 'BASIC Free (25/mo) | PRO $9.90/mo (1,500 std calls) | ULTRA $29.00/mo (6,000 std calls) | MEGA $79.00/mo (25,000 std calls; dedicated KYB quotas for /dossier and /compliance)',
-                        'all_25_apis_url' => 'https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities',
-                        'web_markdown_email_network_url' => 'https://rapidapi.com/oliveiratc/api/grid402-web-to-markdown-email-verify-network-utilities',
-                        'brazil_kyb_cnpj_anbima_url' => 'https://rapidapi.com/oliveiratc/api/brazil-kyb-cnpj-cgu-sanctions-anbima-workdays-api',
-                    ],
-                    'supported_chains' => ['base', 'arbitrum', 'polygon', 'optimism', 'ethereum', 'solana'],
-                ];
-            }
+        }
+        if (!empty($valResult['upgrade_url'])) {
+            $errPayload['upgrade_to_production'] = [
+                'session_pass_url' => $valResult['upgrade_url'],
+                'pix_instant_starter_url' => 'https://grid402.online/pass?tier=starter&autopix=1',
+                'pix_instant_pro_url' => 'https://grid402.online/pass?tier=pro&autopix=1',
+                'starter_tier' => 'R$ 12,00 (Pix/Cartao) ou 2.0000 USDC = 400 creditos',
+                'rapidapi_credit_card_usd' => [
+                    'plans' => 'BASIC Free (25/mo) | PRO $9.90/mo (1,500 std calls) | ULTRA $29.00/mo (6,000 std calls) | MEGA $79.00/mo (25,000 std calls; dedicated KYB quotas for /dossier and /compliance)',
+                    'all_25_apis_url' => 'https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities',
+                    'web_markdown_email_network_url' => 'https://rapidapi.com/oliveiratc/api/grid402-web-to-markdown-email-verify-network-utilities',
+                    'brazil_kyb_cnpj_anbima_url' => 'https://rapidapi.com/oliveiratc/api/brazil-kyb-cnpj-cgu-sanctions-anbima-workdays-api',
+                ],
+                'supported_chains' => ['base', 'arbitrum', 'polygon', 'optimism', 'ethereum', 'solana'],
+            ];
         }
         $logPaySource = $proofIsPayload
             ? 'facilitator'
@@ -1400,6 +1481,127 @@ if ($isValidApiAction) {
         echo json_encode($errPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         exit;
     };
+
+    // 2.3.0. Bloqueio estrito V-01 em /api/v1/pass: proibe demo/sandbox e compra pass-por-pass
+    $lowerProof = strtolower(trim($paymentProof));
+    if ($isPass) {
+        if ($lowerProof === 'demo' || $lowerProof === 'sandbox') {
+            $emitPaymentFailure([
+                'valid' => false,
+                'code' => 403,
+                'sandbox' => true,
+                'error' => 'SandboxNotAllowedForPass',
+                'category' => 'sandbox_not_allowed_for_pass',
+                'reason' => 'Modo sandbox/demo nao pode emitir Session Pass. Realize pagamento real em USDC (x402 via Base, Polygon, Arbitrum ou Solana) ou compre instantaneamente via Pix/Cartao em https://grid402.online/pass',
+                'upgrade_url' => 'https://grid402.online/pass',
+            ]);
+        }
+        if (str_starts_with($lowerProof, 'pass_g402_')) {
+            $emitPaymentFailure([
+                'valid' => false,
+                'code' => 403,
+                'error' => 'PassCannotPurchasePass',
+                'category' => 'pass_for_pass_blocked',
+                'reason' => 'Um Session Pass existente nao pode ser utilizado para comprar outro Session Pass. Realize pagamento real em USDC (x402/on-chain) ou via Pix/Cartao em https://grid402.online/pass',
+                'upgrade_url' => 'https://grid402.online/pass',
+            ]);
+        }
+    }
+
+    // 2.3.1. Verificação de Idempotência M2M Segura (V-03):
+    // - Exclui /api/v1/pass, /api/v1/pass-emitir e modo sandbox (demo/sandbox)
+    // - Autentica/valida formato minimo da credencial ANTES de qualquer cache hit (sem debitar)
+    // - Vincula chave composta ao pagador/credencial, modo prod e hash do metodo + corpo POST
+    $idempotencyEligible = false;
+    $idempotencyScope = '';
+    $idempotencyPaymentSource = 'unknown';
+
+    if ($idempotencyKey !== '' && !$isPass && !$isPassEmitir) {
+        $reqMethodUpper = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+        $bodyDigest = hash('sha256', $reqMethodUpper . '|' . $rawRequestBody);
+        $credScope = '';
+
+        if ($isRapidApiProxy && $paymentProof === '') {
+            $credScope = 'rapidapi:' . grid402_rapidapi_subscriber_bucket();
+            $idempotencyPaymentSource = 'rapidapi';
+            $idempotencyEligible = true;
+        } elseif ($lowerProof === 'demo' || $lowerProof === 'sandbox') {
+            // Sandbox nunca le nem grava cache de idempotencia
+            $idempotencyEligible = false;
+        } elseif (str_starts_with($lowerProof, 'pass_g402_')) {
+            $verifiedPassId = grid402_pass_verify_token_format($paymentProof);
+            if ($verifiedPassId !== null) {
+                $passPreStatus = grid402_get_session_pass_status($paymentProof);
+                $isPassActiveForReplay = !empty($passPreStatus['valid'])
+                    && (($passPreStatus['status'] ?? '') !== 'EXPIRED')
+                    && (($passPreStatus['mode'] ?? 'production') !== 'sandbox');
+                $allowedList = is_array($passPreStatus['allowed_endpoints'] ?? null) ? $passPreStatus['allowed_endpoints'] : [];
+                $endpointAllowedForReplay = empty($allowedList) || in_array($apiParam, $allowedList, true);
+                if ($isPassActiveForReplay && $endpointAllowedForReplay) {
+                    $credScope = 'pass:' . $verifiedPassId;
+                    $idempotencyPaymentSource = 'pass';
+                    $idempotencyEligible = true;
+                }
+            }
+        } elseif (grid402_classify_payment_proof($paymentProof) === 'x402_payload') {
+            $decPre = function_exists('grid402_decode_x402_payload') ? grid402_decode_x402_payload($paymentProof) : ['ok' => false];
+            if (!empty($decPre['ok'])) {
+                $credScope = 'x402:' . hash('sha256', $paymentProof);
+                $idempotencyPaymentSource = 'facilitator';
+                $idempotencyEligible = true;
+            }
+        } elseif ($paymentProof !== '' && function_exists('grid402_parse_network_proof')) {
+            $parsedPreNet = grid402_parse_network_proof($paymentProof, $paymentNetworkHeader !== '' ? $paymentNetworkHeader : null);
+            if (($parsedPreNet['invalid_network'] ?? null) === null) {
+                $preNet = (string) ($parsedPreNet['network'] ?? 'base');
+                $preTx = (string) ($parsedPreNet['tx_hash'] ?? '');
+                $isValidTxShape = ($preNet === 'solana')
+                    ? (function_exists('grid402_is_valid_solana_signature') && grid402_is_valid_solana_signature($preTx))
+                    : (preg_match('/^0x[a-f0-9]{64}$/i', $preTx) === 1);
+                if ($isValidTxShape) {
+                    $credScope = 'tx:' . hash('sha256', $preNet . ':' . ($preNet === 'solana' ? $preTx : strtolower($preTx)));
+                    $idempotencyPaymentSource = ($preNet === 'base') ? 'tx_hash' : ($preNet === 'solana' ? 'solana_spl' : ('evm_' . $preNet));
+                    $idempotencyEligible = true;
+                }
+            }
+        }
+
+        if ($idempotencyEligible && $credScope !== '') {
+            $idempotencyScope = $credScope . '|prod|' . $bodyDigest;
+            $cachedIdempotent = grid402_idempotency_check($idempotencyKey, $apiParam, $_GET, $idempotencyScope);
+            if (is_array($cachedIdempotent)) {
+                if ($idempotencyPaymentSource === 'pass') {
+                    $replayPassStatus = grid402_get_session_pass_status($paymentProof);
+                    if (!empty($replayPassStatus['ok'])) {
+                        grid402_record_pass_statement_event($paymentProof, [
+                            'request_id' => grid402_get_request_id(),
+                            'endpoint' => $apiParam,
+                            'credits_debited' => 0,
+                            'credits_after' => (int) ($replayPassStatus['credits_remaining'] ?? 0),
+                            'http_status' => 200,
+                            'outcome' => 'idempotent_replay',
+                        ]);
+                    }
+                }
+                $idemLatency = grid402_request_elapsed_ms();
+                grid402_record_latency_sample($idemLatency);
+                grid402_log_request([
+                    'service' => $apiParam,
+                    'status' => 200,
+                    'latency_ms' => $idemLatency,
+                    'payment_source' => $idempotencyPaymentSource,
+                    'idempotent_replay' => true,
+                ]);
+                http_response_code(200);
+                header('Content-Type: application/json; charset=utf-8');
+                header('X-Payment-Status: Accepted');
+                header('X-Idempotent-Replay: true');
+                header('Cache-Control: private, no-cache');
+                echo json_encode($cachedIdempotent, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+        }
+    }
 
     if ($isPassEmitir) {
         // Checkout Web3 One-Click Top-Up: nao exige X-Payment previo.
@@ -1422,7 +1624,7 @@ if ($isValidApiAction) {
             $guardCode = (int) ($rapidGuard['http_status'] ?? 429);
             http_response_code($guardCode);
             header('Content-Type: application/json; charset=utf-8');
-            if ($guardCode === 429 && !empty($rapidGuard['retry_after'])) {
+            if (($guardCode === 429 || $guardCode === 503) && !empty($rapidGuard['retry_after'])) {
                 header('Retry-After: ' . (int) $rapidGuard['retry_after']);
             }
             $guardErr = (string) ($rapidGuard['error'] ?? 'RapidApiEndpointCapExceeded');
@@ -1472,6 +1674,27 @@ if ($isValidApiAction) {
         $proofForLog = $proofIsPayload ? null : $paymentProof;
         if (empty($validation['valid'])) {
             $emitPaymentFailure($validation);
+        }
+        // Defesa em profundidade V-01: bloqueia qualquer fallback sandbox (ex.: Base Sepolia) ou Session Pass em /api/v1/pass
+        if ($isPass && (!empty($validation['sandbox']) || !empty($validation['session_pass']) || in_array((string) ($validation['source'] ?? ''), ['sandbox', 'pass'], true))) {
+            if (!empty($validation['needs_settle'])) {
+                grid402_abort_verified_exact_payment($validation);
+            }
+            if (!empty($validation['lock_key']) && function_exists('grid402_release_transaction_lock')) {
+                grid402_release_transaction_lock((string) $validation['lock_key']);
+            }
+            $isPassSource = !empty($validation['session_pass']) || (($validation['source'] ?? '') === 'pass');
+            $emitPaymentFailure([
+                'valid' => false,
+                'code' => 403,
+                'sandbox' => !$isPassSource,
+                'error' => $isPassSource ? 'PassCannotPurchasePass' : 'SandboxNotAllowedForPass',
+                'category' => $isPassSource ? 'pass_for_pass_blocked' : 'sandbox_not_allowed_for_pass',
+                'reason' => $isPassSource
+                    ? 'Um Session Pass existente nao pode comprar outro Session Pass. Pague com USDC real ou Pix em https://grid402.online/pass'
+                    : 'Pagamentos sandbox/testnet nao podem emitir Session Pass de producao. Pague com USDC mainnet ou Pix em https://grid402.online/pass',
+                'upgrade_url' => 'https://grid402.online/pass',
+            ]);
         }
     }
 
@@ -1563,7 +1786,7 @@ if ($isValidApiAction) {
             $dataVal = (string) ($_GET['data'] ?? $_GET['content'] ?? '');
             $hashVal = (string) ($_GET['hash'] ?? '');
             if ($_SERVER['REQUEST_METHOD'] === 'POST' && $dataVal === '' && $hashVal === '') {
-                $bodyRaw = (string) file_get_contents('php://input');
+                $bodyRaw = $rawRequestBody !== '' ? $rawRequestBody : (string) @file_get_contents('php://input');
                 $dataVal = substr($bodyRaw, 0, 8192);
             }
             $result = grid402_service_notarize($dataVal, $hashVal);
@@ -1590,9 +1813,9 @@ if ($isValidApiAction) {
                     $emitPaymentFailure($validation);
                 }
             }
-            $rawUnitsPaid = (int) ($validation['raw_amount'] ?? 2000000);
+            $rawUnitsPaid = (int) ($validation['raw_amount'] ?? $servicePriceRaw);
             $passTxRef = (string) ($validation['lock_key'] ?? $validation['settlement_tx'] ?? ($proofIsPayload ? ('x402_' . bin2hex(random_bytes(8))) : $paymentProof));
-            $result = grid402_issue_session_pass($passTxRef, $rawUnitsPaid, $isSandbox);
+            $result = grid402_issue_session_pass($passTxRef, $rawUnitsPaid, false);
             break;
 
         // Web3 One-Click Top-Up Multi-Chain: emite um Session Pass a partir de uma txHash/assinatura USDC
@@ -1601,7 +1824,7 @@ if ($isValidApiAction) {
             $txParam = (string) ($_GET['tx'] ?? $_GET['txHash'] ?? $_GET['tx_hash'] ?? $_GET['signature'] ?? '');
             $chainParam = (string) ($_GET['chain'] ?? $_GET['network'] ?? $_SERVER['HTTP_X_PAYMENT_NETWORK'] ?? '');
             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-                $rawPost = (string) @file_get_contents('php://input');
+                $rawPost = $rawRequestBody !== '' ? $rawRequestBody : (string) @file_get_contents('php://input');
                 $parsedPost = @json_decode($rawPost, true);
                 if (is_array($parsedPost)) {
                     if ($txParam === '') {
@@ -1613,7 +1836,7 @@ if ($isValidApiAction) {
                 }
             }
             $result = grid402_emitir_passe_por_tx($txParam, $chainParam !== '' ? $chainParam : null);
-            if (!empty($result['ok'])) {
+            if (!empty($result['ok']) && empty($result['idempotent'])) {
                 $deposited = ((int)($result['raw_usdc_units'] ?? 0)) / 1000000;
                 $passNetSlug = (string) ($result['network_slug'] ?? 'base');
                 grid402_growth_event('pass_purchase', [
@@ -1706,19 +1929,22 @@ if ($isValidApiAction) {
     $settlementTx = $validation['settlement_tx'] ?? null;
     $paymentSourceVal = (string) ($validation['source'] ?? '');
     if ($isPassEmitir) {
-        $deposited = ((int) ($result['raw_usdc_units'] ?? 0)) / 1000000.0;
+        $isIdempotentTopup = !empty($result['idempotent']);
+        $deposited = $isIdempotentTopup ? 0.0 : (((int) ($result['raw_usdc_units'] ?? 0)) / 1000000.0);
         $settlementTx = (string) ($result['tx_hash'] ?? '');
         $revenueUsdcToRecord = $deposited;
-        grid402_record_telemetry(
-            $apiParam,
-            200,
-            true,
-            $settlementTx,
-            null,
-            $revenueUsdcToRecord,
-            null,
-            ['payment_source' => 'web3_topup', 'settlement_tx' => $settlementTx, 'defer_latency_sample' => true]
-        );
+        if (!$isIdempotentTopup) {
+            grid402_record_telemetry(
+                $apiParam,
+                200,
+                true,
+                $settlementTx,
+                null,
+                $revenueUsdcToRecord,
+                null,
+                ['payment_source' => 'web3_topup', 'settlement_tx' => $settlementTx, 'defer_latency_sample' => true]
+            );
+        }
     } else {
         $actualPaidUsdc = ($apiParam === 'pass' && !empty($validation['raw_amount']) && (int) $validation['raw_amount'] > 0)
             ? (((int) $validation['raw_amount']) / 1000000.0)
@@ -1862,9 +2088,9 @@ if ($isValidApiAction) {
         }
         $result = grid402_attach_provenance_meta($result, $apiParam);
         grid402_sign_data($result, $isSandbox);
-        if ($idempotencyKey !== '' && !$isPassEmitir) {
+        if ($idempotencyKey !== '' && $idempotencyEligible && $idempotencyScope !== '' && !$isPass && !$isPassEmitir && !$isSandbox && !$isVerifyOnly) {
             header('X-Idempotent-Replay: false');
-            grid402_idempotency_store($idempotencyKey, $apiParam, $_GET, $result);
+            grid402_idempotency_store($idempotencyKey, $apiParam, $_GET, $result, $idempotencyScope);
         }
     }
 
@@ -1875,7 +2101,7 @@ if ($isValidApiAction) {
         'status' => 200,
         'latency_ms' => $finalLatencyMs,
         'payment_source' => (string) ($validation['source'] ?? 'unknown'),
-        'idempotent_replay' => false,
+        'idempotent_replay' => ($isPassEmitir && !empty($result['idempotent'])),
     ]);
 
     echo json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);

@@ -20,6 +20,14 @@ if (!defined('GRID402_EXEC')) {
 
 require_once __DIR__ . '/../config.php';
 
+if (!defined('GRID402_MAX_TX_AGE_SECONDS')) {
+    $grid402MaxTxAgeEnv = function_exists('grid402_env') ? (int) grid402_env('GRID402_MAX_TX_AGE_SECONDS', 259200) : 259200;
+    // Invariante anti-replay (V-04): janela maxima de idade do bloco (padrao 72h = 259200s)
+    // estritamente menor que o TTL de 7 dias (604800s) de used_txs.json.
+    define('GRID402_MAX_TX_AGE_SECONDS', min(518400, max(300, $grid402MaxTxAgeEnv)));
+    unset($grid402MaxTxAgeEnv);
+}
+
 /**
  * Registro canônico das 6 redes suportadas para pagamentos USDC no Grid402.
  *
@@ -38,7 +46,21 @@ function grid402_supported_networks(): array {
         return $defaults;
     };
 
-    $baseRpc = defined('GRID402_BASE_RPC_URL') ? (string) GRID402_BASE_RPC_URL : 'https://mainnet.base.org';
+    $baseRpc = defined('GRID402_BASE_RPC_URL') ? trim((string) GRID402_BASE_RPC_URL) : 'https://mainnet.base.org';
+    $baseDefaultRpcs = [
+        'https://base-rpc.publicnode.com',
+        'https://1rpc.io/base',
+        'https://base.drpc.org',
+        'https://mainnet.base.org',
+    ];
+    // Se o operador configurou um RPC privado/customizado (diferente do default 429 e de nos mortos), prioriza-o.
+    if (
+        $baseRpc !== ''
+        && str_starts_with($baseRpc, 'https://')
+        && !in_array(rtrim(strtolower($baseRpc), '/'), ['https://mainnet.base.org', 'https://base.llamarpc.com'], true)
+    ) {
+        $baseDefaultRpcs = array_values(array_unique(array_merge([$baseRpc], $baseDefaultRpcs)));
+    }
     $baseUsdc = strtolower(defined('GRID402_USDC_CONTRACT') ? (string) GRID402_USDC_CONTRACT : '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913');
 
     return [
@@ -54,7 +76,7 @@ function grid402_supported_networks(): array {
             'usdc_contracts' => [$baseUsdc],
             'decimals' => 6,
             'recipient' => $evmWallet,
-            'rpcs' => $envRpc('GRID402_RPC_BASE', [$baseRpc, 'https://base.llamarpc.com', 'https://1rpc.io/base']),
+            'rpcs' => $envRpc('GRID402_RPC_BASE', $baseDefaultRpcs),
             'explorer_tx_url' => 'https://basescan.org/tx/',
             'native_currency' => ['name' => 'Ether', 'symbol' => 'ETH', 'decimals' => 18],
         ],
@@ -73,7 +95,7 @@ function grid402_supported_networks(): array {
             ],
             'decimals' => 6,
             'recipient' => $evmWallet,
-            'rpcs' => $envRpc('GRID402_RPC_ARBITRUM', ['https://arb1.arbitrum.io/rpc', 'https://1rpc.io/arb', 'https://arbitrum-one-rpc.publicnode.com']),
+            'rpcs' => $envRpc('GRID402_RPC_ARBITRUM', ['https://arbitrum-one-rpc.publicnode.com', 'https://arb1.arbitrum.io/rpc', 'https://1rpc.io/arb', 'https://arbitrum.drpc.org']),
             'explorer_tx_url' => 'https://arbiscan.io/tx/',
             'native_currency' => ['name' => 'Ether', 'symbol' => 'ETH', 'decimals' => 18],
         ],
@@ -92,7 +114,7 @@ function grid402_supported_networks(): array {
             ],
             'decimals' => 6,
             'recipient' => $evmWallet,
-            'rpcs' => $envRpc('GRID402_RPC_POLYGON', ['https://polygon-rpc.com', 'https://1rpc.io/matic', 'https://polygon-bor-rpc.publicnode.com']),
+            'rpcs' => $envRpc('GRID402_RPC_POLYGON', ['https://polygon-bor-rpc.publicnode.com', 'https://1rpc.io/matic', 'https://polygon.drpc.org']),
             'explorer_tx_url' => 'https://polygonscan.com/tx/',
             'native_currency' => ['name' => 'POL', 'symbol' => 'POL', 'decimals' => 18],
         ],
@@ -111,7 +133,7 @@ function grid402_supported_networks(): array {
             ],
             'decimals' => 6,
             'recipient' => $evmWallet,
-            'rpcs' => $envRpc('GRID402_RPC_OPTIMISM', ['https://mainnet.optimism.io', 'https://1rpc.io/op', 'https://optimism-rpc.publicnode.com']),
+            'rpcs' => $envRpc('GRID402_RPC_OPTIMISM', ['https://optimism-rpc.publicnode.com', 'https://mainnet.optimism.io', 'https://1rpc.io/op']),
             'explorer_tx_url' => 'https://optimistic.etherscan.io/tx/',
             'native_currency' => ['name' => 'Ether', 'symbol' => 'ETH', 'decimals' => 18],
         ],
@@ -127,7 +149,7 @@ function grid402_supported_networks(): array {
             'usdc_contracts' => ['0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48'],
             'decimals' => 6,
             'recipient' => $evmWallet,
-            'rpcs' => $envRpc('GRID402_RPC_ETHEREUM', ['https://ethereum-rpc.publicnode.com', 'https://1rpc.io/eth', 'https://eth.llamarpc.com']),
+            'rpcs' => $envRpc('GRID402_RPC_ETHEREUM', ['https://ethereum-rpc.publicnode.com', 'https://1rpc.io/eth', 'https://eth.drpc.org']),
             'explorer_tx_url' => 'https://etherscan.io/tx/',
             'native_currency' => ['name' => 'Ether', 'symbol' => 'ETH', 'decimals' => 18],
         ],
@@ -143,7 +165,7 @@ function grid402_supported_networks(): array {
             'usdc_contracts' => [$solMint],
             'decimals' => 6,
             'recipient' => $solWallet,
-            'rpcs' => $envRpc('GRID402_RPC_SOLANA', ['https://api.mainnet-beta.solana.com', 'https://solana-rpc.publicnode.com']),
+            'rpcs' => $envRpc('GRID402_RPC_SOLANA', ['https://solana-rpc.publicnode.com', 'https://api.mainnet-beta.solana.com']),
             'explorer_tx_url' => 'https://solscan.io/tx/',
             'native_currency' => ['name' => 'Solana', 'symbol' => 'SOL', 'decimals' => 9],
         ],
@@ -193,8 +215,34 @@ function grid402_parse_network_proof(string $rawProof, ?string $headerNetwork = 
     $resolvedNetwork = null;
     $invalidNetwork = null;
 
-    // 1. Prefixo explícito "chain:tx" (ex: arbitrum:0x..., solana:5x...)
-    if (preg_match('/^([a-zA-Z0-9_-]{2,20}):(.+)$/', $proof, $m) === 1) {
+    // 1. Prefixo explícito CAIP-2 ("eip155:137:0x...", "solana:5eykt...:sig") ou "chain:tx" (ex: arbitrum:0x..., solana:5x...)
+    if (preg_match('/^(eip155:[0-9]{1,10}):(.+)$/i', $proof, $cm) === 1) {
+        $caipPrefix = strtolower(trim($cm[1]));
+        $rest = trim($cm[2]);
+        $norm = grid402_normalize_network_slug($caipPrefix);
+        if ($norm !== null) {
+            $resolvedNetwork = $norm;
+            $proof = $rest;
+            $explicitNetwork = true;
+        } else {
+            $invalidNetwork = $caipPrefix;
+            $proof = $rest;
+            $explicitNetwork = true;
+        }
+    } elseif (preg_match('/^(solana:[1-9A-HJ-NP-Za-km-z]{16,44}):(.+)$/i', $proof, $sm) === 1) {
+        $caipPrefix = strtolower(trim($sm[1]));
+        $rest = trim($sm[2]);
+        $norm = grid402_normalize_network_slug($caipPrefix);
+        if ($norm !== null) {
+            $resolvedNetwork = $norm;
+            $proof = $rest;
+            $explicitNetwork = true;
+        } else {
+            $invalidNetwork = $caipPrefix;
+            $proof = $rest;
+            $explicitNetwork = true;
+        }
+    } elseif (preg_match('/^([a-zA-Z0-9_-]{2,20}):(.+)$/', $proof, $m) === 1) {
         $prefix = strtolower(trim($m[1]));
         $rest = trim($m[2]);
         // Evita confundir tokens ou esquemas conhecidos
@@ -328,9 +376,153 @@ function grid402_rpc_get_evm_receipt(string $network, string $txHash): ?array {
 }
 
 /**
- * Valida puramente um recibo EVM (logs ERC-20 Transfer) contra a allowlist de contratos USDC da rede.
+ * Consulta o timestamp Unix (segundos) de um bloco EVM via eth_getBlockByNumber com failover RPC.
+ * Pode ser sobrescrito em testes offline via $GLOBALS['grid402_evm_block_timestamp_resolver'].
  */
-function grid402_verify_evm_receipt_usdc(array $receipt, string $network, int $requiredRawUnits, ?string $expectedRecipient = null): array {
+function grid402_rpc_get_evm_block_timestamp(string $network, string $blockNumberHex): ?int {
+    $networks = grid402_supported_networks();
+    $slug = grid402_normalize_network_slug($network);
+    if ($slug === null || !isset($networks[$slug]) || ($networks[$slug]['type'] ?? '') !== 'evm') {
+        return null;
+    }
+
+    $cleanBlock = strtolower(trim($blockNumberHex));
+    if (preg_match('/^0x[0-9a-f]+$/', $cleanBlock) !== 1) {
+        return null;
+    }
+
+    $override = $GLOBALS['grid402_evm_block_timestamp_resolver'] ?? null;
+    if (is_callable($override)) {
+        $resolved = $override($slug, $cleanBlock);
+        return (is_int($resolved) && $resolved > 0) ? $resolved : null;
+    }
+
+    $rpcs = $networks[$slug]['rpcs'] ?? [];
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'eth_getBlockByNumber',
+        'params' => [$cleanBlock, false],
+    ]);
+
+    foreach ($rpcs as $rpcUrl) {
+        $ch = curl_init((string) $rpcUrl);
+        if (!$ch) {
+            continue;
+        }
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => $payload,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_TIMEOUT => 5,
+            CURLOPT_CONNECTTIMEOUT => 3,
+            CURLOPT_USERAGENT => 'Grid402-MultiChain-Verifier/1.0',
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+        ]);
+
+        $response = curl_exec($ch);
+        $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode === 200 && is_string($response) && $response !== '') {
+            $decoded = @json_decode($response, true);
+            $tsRaw = is_array($decoded['result'] ?? null) ? ($decoded['result']['timestamp'] ?? null) : null;
+            if (is_string($tsRaw) && preg_match('/^0x[0-9a-fA-F]+$/', $tsRaw) === 1) {
+                $ts = (int) hexdec(substr($tsRaw, 2));
+                if ($ts > 0) {
+                    return $ts;
+                }
+            } elseif (is_int($tsRaw) && $tsRaw > 0) {
+                return $tsRaw;
+            }
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Valida a idade máxima do bloco da transação (V-04) contra GRID402_MAX_TX_AGE_SECONDS (padrão 72h).
+ * Rejeita transações sem timestamp válido ou mais antigas que a janela segura (estritamente < TTL de 7 dias de used_txs.json).
+ */
+function grid402_validate_tx_block_timestamp(?int $blockTimestamp, string $networkDisplayName, ?int $now = null): array {
+    $now = $now ?? time();
+    $maxAge = defined('GRID402_MAX_TX_AGE_SECONDS') ? (int) GRID402_MAX_TX_AGE_SECONDS : 259200;
+
+    if ($blockTimestamp === null || $blockTimestamp <= 0) {
+        return [
+            'valid' => false,
+            'error' => 'TransactionExpired',
+            'category' => 'tx_expired',
+            'message' => "Não foi possível validar o timestamp do bloco na rede {$networkDisplayName}. Por segurança anti-replay, apenas transações recentes com timestamp confirmado são aceitas.",
+            'code' => 403,
+        ];
+    }
+
+    if (($now - $blockTimestamp) > $maxAge) {
+        $maxHours = max(1, (int) round($maxAge / 3600));
+        return [
+            'valid' => false,
+            'error' => 'TransactionExpired',
+            'category' => 'tx_expired',
+            'message' => "Transação expirada na rede {$networkDisplayName}: apenas transações confirmadas nas últimas {$maxHours} horas são aceitas (proteção anti-replay).",
+            'code' => 403,
+        ];
+    }
+
+    // Rejeita timestamps forjados muito no futuro (> 1h)
+    if (($blockTimestamp - $now) > 3600) {
+        return [
+            'valid' => false,
+            'error' => 'TransactionExpired',
+            'category' => 'tx_expired',
+            'message' => "Timestamp de bloco inválido na rede {$networkDisplayName} (muito à frente do relógio UTC).",
+            'code' => 403,
+        ];
+    }
+
+    return [
+        'valid' => true,
+        'block_timestamp' => $blockTimestamp,
+    ];
+}
+
+/**
+ * Extrai um timestamp inteiro (segundos Unix) de um campo opcional do recibo EVM (blockTimestamp/_block_timestamp).
+ */
+function grid402_extract_receipt_timestamp(array $receipt): ?int {
+    foreach (['blockTimestamp', '_block_timestamp'] as $key) {
+        if (!isset($receipt[$key])) {
+            continue;
+        }
+        $val = $receipt[$key];
+        if (is_int($val) && $val > 0) {
+            return $val;
+        }
+        if (is_string($val)) {
+            $trimmed = trim($val);
+            if (preg_match('/^0x[0-9a-fA-F]+$/', $trimmed) === 1) {
+                $parsed = (int) hexdec(substr($trimmed, 2));
+                if ($parsed > 0) {
+                    return $parsed;
+                }
+            } elseif (preg_match('/^\d{9,12}$/', $trimmed) === 1) {
+                $parsed = (int) $trimmed;
+                if ($parsed > 0) {
+                    return $parsed;
+                }
+            }
+        }
+    }
+    return null;
+}
+
+/**
+ * Valida um recibo EVM (logs ERC-20 Transfer + idade máxima do bloco) contra a allowlist de contratos USDC da rede.
+ */
+function grid402_verify_evm_receipt_usdc(array $receipt, string $network, int $requiredRawUnits, ?string $expectedRecipient = null, ?int $now = null): array {
     $networks = grid402_supported_networks();
     $slug = grid402_normalize_network_slug($network);
     if ($slug === null || !isset($networks[$slug]) || ($networks[$slug]['type'] ?? '') !== 'evm') {
@@ -404,14 +596,27 @@ function grid402_verify_evm_receipt_usdc(array $receipt, string $network, int $r
         ];
     }
 
+    // Validação obrigatória de idade do bloco (V-04): fecha replay ilimitado após expurgo de 7 dias em used_txs.json
+    $blockTimestamp = grid402_extract_receipt_timestamp($receipt);
+    if ($blockTimestamp === null && isset($receipt['blockNumber']) && is_string($receipt['blockNumber'])) {
+        $blockTimestamp = grid402_rpc_get_evm_block_timestamp($slug, $receipt['blockNumber']);
+    }
+    $ageCheck = grid402_validate_tx_block_timestamp($blockTimestamp, (string) $networks[$slug]['display_name'], $now);
+    if (empty($ageCheck['valid'])) {
+        $ageCheck['network'] = $slug;
+        return $ageCheck;
+    }
+
     return [
         'valid' => true,
         'network' => $slug,
         'chain_id' => $networks[$slug]['chain_id'],
         'contract' => $matchedContract,
+        'payer' => strtolower((string) ($receipt['from'] ?? '')),
         'raw_amount' => $totalUsdcRaw,
         'usdc_amount' => round($totalUsdcRaw / 1000000, 6),
         'block_number' => isset($receipt['blockNumber']) ? hexdec((string) $receipt['blockNumber']) : null,
+        'block_timestamp' => $blockTimestamp,
         'source' => ($slug === 'base') ? 'tx_hash' : ('evm_' . $slug),
     ];
 }
@@ -492,10 +697,10 @@ function grid402_rpc_get_solana_transaction(string $signature): ?array {
 }
 
 /**
- * Valida puramente o retorno JSON-RPC getTransaction da Solana computando o delta líquido
- * de SPL USDC creditado na conta pertencente à carteira oficial do Grid402.
+ * Valida o retorno JSON-RPC getTransaction da Solana computando o delta líquido
+ * de SPL USDC creditado na conta pertencente à carteira oficial do Grid402 + idade máxima do bloco (V-04).
  */
-function grid402_verify_solana_tx_usdc(array $txResult, int $requiredRawUnits, ?string $expectedRecipient = null, ?string $expectedMint = null): array {
+function grid402_verify_solana_tx_usdc(array $txResult, int $requiredRawUnits, ?string $expectedRecipient = null, ?string $expectedMint = null, ?int $now = null): array {
     $networks = grid402_supported_networks();
     $solCfg = $networks['solana'];
     $recipient = $expectedRecipient ?? (string) $solCfg['recipient'];
@@ -521,6 +726,7 @@ function grid402_verify_solana_tx_usdc(array $txResult, int $requiredRawUnits, ?
     }
 
     $preMap = [];
+    $allPreByIdx = [];
     foreach ((array) ($meta['preTokenBalances'] ?? []) as $entry) {
         if (!is_array($entry)) {
             continue;
@@ -528,17 +734,22 @@ function grid402_verify_solana_tx_usdc(array $txResult, int $requiredRawUnits, ?
         if ((string) ($entry['mint'] ?? '') !== $mint) {
             continue;
         }
-        if ((string) ($entry['owner'] ?? '') !== $recipient) {
-            continue;
-        }
         $idx = (int) ($entry['accountIndex'] ?? -1);
         $rawAmt = (int) ($entry['uiTokenAmount']['amount'] ?? 0);
+        $owner = (string) ($entry['owner'] ?? '');
+        if ($idx >= 0) {
+            $allPreByIdx[$idx] = ['owner' => $owner, 'amount' => $rawAmt];
+        }
+        if ($owner !== $recipient) {
+            continue;
+        }
         if ($idx >= 0) {
             $preMap[$idx] = $rawAmt;
         }
     }
 
     $netCreditedRaw = 0;
+    $allPostByIdx = [];
     foreach ((array) ($meta['postTokenBalances'] ?? []) as $entry) {
         if (!is_array($entry)) {
             continue;
@@ -546,11 +757,15 @@ function grid402_verify_solana_tx_usdc(array $txResult, int $requiredRawUnits, ?
         if ((string) ($entry['mint'] ?? '') !== $mint) {
             continue;
         }
-        if ((string) ($entry['owner'] ?? '') !== $recipient) {
-            continue;
-        }
         $idx = (int) ($entry['accountIndex'] ?? -1);
         $postAmt = (int) ($entry['uiTokenAmount']['amount'] ?? 0);
+        $owner = (string) ($entry['owner'] ?? '');
+        if ($idx >= 0) {
+            $allPostByIdx[$idx] = ['owner' => $owner, 'amount' => $postAmt];
+        }
+        if ($owner !== $recipient) {
+            continue;
+        }
         $preAmt = $preMap[$idx] ?? 0;
         if ($postAmt > $preAmt) {
             $netCreditedRaw += ($postAmt - $preAmt);
@@ -570,14 +785,48 @@ function grid402_verify_solana_tx_usdc(array $txResult, int $requiredRawUnits, ?
         ];
     }
 
+    // Validação obrigatória de idade do bloco (V-04): bloqueia replay ilimitado após expurgo de 7 dias em used_txs.json
+    $blockTime = (isset($txResult['blockTime']) && is_numeric($txResult['blockTime'])) ? (int) $txResult['blockTime'] : null;
+    $ageCheck = grid402_validate_tx_block_timestamp($blockTime, 'Solana Mainnet', $now);
+    if (empty($ageCheck['valid'])) {
+        $ageCheck['network'] = 'solana';
+        return $ageCheck;
+    }
+
+    // Identifica pagador (sender real de SPL USDC com saldo reduzido, fallback para feePayer/accountKeys[0])
+    $solanaPayer = '';
+    foreach ($allPreByIdx as $idx => $preInfo) {
+        $preOwner = (string) ($preInfo['owner'] ?? '');
+        if ($preOwner === '' || $preOwner === $recipient) {
+            continue;
+        }
+        $postAmt = (int) ($allPostByIdx[$idx]['amount'] ?? 0);
+        if ($postAmt < (int) $preInfo['amount']) {
+            $solanaPayer = $preOwner;
+            break;
+        }
+    }
+    if ($solanaPayer === '') {
+        $acctKeys = $txResult['transaction']['message']['accountKeys'] ?? [];
+        if (is_array($acctKeys) && isset($acctKeys[0])) {
+            if (is_string($acctKeys[0])) {
+                $solanaPayer = trim($acctKeys[0]);
+            } elseif (is_array($acctKeys[0]) && !empty($acctKeys[0]['pubkey']) && is_string($acctKeys[0]['pubkey'])) {
+                $solanaPayer = trim($acctKeys[0]['pubkey']);
+            }
+        }
+    }
+
     return [
         'valid' => true,
         'network' => 'solana',
         'chain_id' => null,
         'contract' => $mint,
+        'payer' => $solanaPayer,
         'raw_amount' => $netCreditedRaw,
         'usdc_amount' => round($netCreditedRaw / 1000000, 6),
         'slot' => isset($txResult['slot']) ? (int) $txResult['slot'] : null,
+        'block_timestamp' => $blockTime,
         'source' => 'solana_spl',
     ];
 }

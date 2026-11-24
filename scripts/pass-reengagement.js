@@ -19,8 +19,31 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, '..');
-const SESSION_PASSES_PATH = path.join(ROOT, 'public_html', 'private_data', 'session_passes.json');
-const QUEUE_PATH = path.join(ROOT, 'public_html', 'private_data', 'pass_reengagement_queue.json');
+
+function resolvePrivateDir() {
+  const envDir = (process.env.GRID402_PRIVATE_DIR || process.env.GRID402_STORAGE_DIR || '').trim();
+  if (envDir && fs.existsSync(envDir)) {
+    return envDir;
+  }
+
+  // Produção Hostinger: storage persistente fora do DocumentRoot (../grid402_storage)
+  const prodCandidates = [
+    path.join(ROOT, 'grid402_storage'),
+    path.join(ROOT, '..', 'grid402_storage'),
+  ];
+  for (const candidate of prodCandidates) {
+    if (fs.existsSync(path.join(candidate, 'session_passes.json'))) {
+      return candidate;
+    }
+  }
+
+  // Fallback local: public_html/private_data
+  return path.join(ROOT, 'public_html', 'private_data');
+}
+
+const PRIVATE_DIR = resolvePrivateDir();
+const SESSION_PASSES_PATH = path.join(PRIVATE_DIR, 'session_passes.json');
+const QUEUE_PATH = path.join(PRIVATE_DIR, 'pass_reengagement_queue.json');
 
 // Limiares (dias)
 const INACTIVE_DAYS = 7;      // sem uso há mais de N dias = inativo
@@ -86,13 +109,28 @@ function main() {
   let totalCredits = 0;
 
   for (const [passId, p] of Object.entries(passes)) {
+    if (!p || typeof p !== 'object') continue;
+    const modeLower = String(p.mode ?? 'production').toLowerCase();
+    const tierLower = String(p.tier ?? 'standard').toLowerCase();
+    if (modeLower === 'sandbox' || tierLower === 'sandbox' || tierLower.startsWith('promo_')) {
+      continue;
+    }
+
     const usageCount = p.usage_count ?? 0;
     const creditsRemaining = p.credits_remaining ?? p.credits_total ?? 0;
     const creditsTotal = p.credits_total ?? 0;
+    if (creditsRemaining <= 0) continue;
+
     const usdc = parseFloat(p.usdc_deposited ?? 0);
     const issuedAt = p.issued_at ?? null;
     const expiresAt = p.expires_at ?? null;
     const lastUsedAt = p.last_used_at ?? null;
+
+    // Pula passes já expirados
+    const expiresCheck = parseDate(expiresAt);
+    if (expiresCheck && daysBetween(now, expiresCheck) <= 0) {
+      continue;
+    }
 
     // Pula passes que já foram usados e ainda têm créditos (ativos)
     if (usageCount > 0 && lastUsedAt) {
@@ -202,13 +240,15 @@ function main() {
     return;
   }
 
-  // Garante diretório
+  // Garante diretório e grava atomicamente via .tmp + rename
   const dir = path.dirname(QUEUE_PATH);
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
 
-  fs.writeFileSync(QUEUE_PATH, JSON.stringify(output, null, 2) + '\n', 'utf8');
+  const tmpPath = `${QUEUE_PATH}.${process.pid}.${Date.now()}.tmp`;
+  fs.writeFileSync(tmpPath, JSON.stringify(output, null, 2) + '\n', 'utf8');
+  fs.renameSync(tmpPath, QUEUE_PATH);
 
   console.log(`[OK] Fila gerada: ${QUEUE_PATH}`);
   console.log(`[OK] Total de passes ociosos: ${output.summary.total_pass_ativos_ociosos}`);

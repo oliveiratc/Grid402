@@ -16,6 +16,12 @@ require_once __DIR__ . '/../config.php';
 if (!defined('GRID402_PASS_STATEMENT_MAX_ENTRIES')) {
     define('GRID402_PASS_STATEMENT_MAX_ENTRIES', 200);
 }
+if (!defined('GRID402_CREDIT_UNIT_RAW')) {
+    define('GRID402_CREDIT_UNIT_RAW', 5000); // 0.0050 USDC = 1 crédito
+}
+if (!defined('GRID402_SANDBOX_PASS_CREDITS')) {
+    define('GRID402_SANDBOX_PASS_CREDITS', 3); // Alinhado ao teto sandbox de 3/dia (nunca multiplicador 100x)
+}
 
 /**
  * Contrato de persistência para emissão, consumo, limites e extrato de Session Passes.
@@ -223,31 +229,43 @@ final class JsonFlockPassRepository implements PassStorageInterface {
         $file = $this->passesFile();
         $this->ensureDir($file);
 
+        $creditUnitRaw = defined('GRID402_CREDIT_UNIT_RAW') ? max(1, (int) GRID402_CREDIT_UNIT_RAW) : 5000;
         $validityDays = 180;
         $tier = 'standard';
         if ($isSandbox) {
-            $credits = 100;
+            $sandboxCap = defined('GRID402_SANDBOX_PASS_CREDITS') ? (int) GRID402_SANDBOX_PASS_CREDITS : 3;
+            $credits = max(1, min(3, $sandboxCap));
             $tier = 'sandbox';
             $validityDays = 1 / 24;
         } else {
+            if ($rawUsdcUnits < $creditUnitRaw) {
+                throw new InvalidArgumentException(
+                    sprintf(
+                        'Valor mínimo para emissão de Session Pass é %d raw units (%.4f USDC = 1 crédito). Recebido: %d raw units.',
+                        $creditUnitRaw,
+                        $creditUnitRaw / 1e6,
+                        $rawUsdcUnits
+                    )
+                );
+            }
             if ($rawUsdcUnits >= 20000000) {
-                $baseCredits = intdiv($rawUsdcUnits, 5000);
+                $baseCredits = intdiv($rawUsdcUnits, $creditUnitRaw);
                 $bonusCredits = intdiv($baseCredits, 2); // +50% bonus (20 USDC -> 4.000 base + 2.000 bonus = 6.000)
                 $credits = max(6000, $baseCredits + max(2000, $bonusCredits));
                 $tier = 'fleet';
                 $validityDays = 365;
             } elseif ($rawUsdcUnits >= 5000000) {
-                $baseCredits = intdiv($rawUsdcUnits, 5000);
+                $baseCredits = intdiv($rawUsdcUnits, $creditUnitRaw);
                 $bonusCredits = intdiv($baseCredits, 5); // +20% bonus (5 USDC -> 1.000 base + 200 bonus = 1.200)
                 $credits = max(1200, $baseCredits + max(200, $bonusCredits));
                 $tier = 'pro';
                 $validityDays = 180;
             } elseif ($rawUsdcUnits >= 2000000) {
-                $credits = intdiv($rawUsdcUnits, 5000);
+                $credits = intdiv($rawUsdcUnits, $creditUnitRaw);
                 $tier = 'starter';
                 $validityDays = 180;
             } else {
-                $credits = max(1, intdiv($rawUsdcUnits, 5000));
+                $credits = intdiv($rawUsdcUnits, $creditUnitRaw);
                 $tier = 'standard';
                 $validityDays = 180;
             }
@@ -278,11 +296,24 @@ final class JsonFlockPassRepository implements PassStorageInterface {
                     } else {
                         $cleanTx = strtolower($rawTxTrimmed);
                     }
-                    if (!$isSandbox && $cleanTx !== '') {
+
+                    // Defesa em profundidade (V-01): deduplicação por IP/dia para chamadas sandbox genéricas ('demo'/'sandbox'/vazio)
+                    if ($isSandbox && ($cleanTx === '' || $cleanTx === 'demo' || $cleanTx === 'sandbox')) {
+                        $sbxIp = function_exists('grid402_get_trusted_client_ip')
+                            ? grid402_get_trusted_client_ip()
+                            : (string) ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+                        $sbxIpHmac = substr(hash_hmac('sha256', strtolower(trim($sbxIp)), grid402_pass_secret()), 0, 16);
+                        $cleanTx = 'sandbox_day:' . gmdate('Y-m-d', $now) . ':' . $sbxIpHmac;
+                    }
+
+                    if ($cleanTx !== '') {
                         foreach ($store as $entry) {
+                            if (!is_array($entry)) {
+                                continue;
+                            }
                             $storedTx = (string) ($entry['tx_hash'] ?? '');
                             if ($storedTx === $cleanTx || (!$isSolanaTxInput && strtolower($storedTx) === $cleanTx)) {
-                                $record = $entry;
+                                $record = grid402_normalize_pass_entry($entry);
                                 break;
                             }
                         }
@@ -335,7 +366,8 @@ final class JsonFlockPassRepository implements PassStorageInterface {
                             'credits_remaining' => $credits,
                             'credits_used_today' => 0,
                             'usage_day_utc' => gmdate('Y-m-d', $now),
-                            'daily_credit_limit' => null,
+                            'daily_credit_limit' => $isSandbox ? $credits : null,
+                            'locked_limits' => $isSandbox,
                             'allowed_endpoints' => [],
                             'issued_at' => gmdate('Y-m-d\TH:i:s\Z', $now),
                             'expires_at' => gmdate('Y-m-d\TH:i:s\Z', $expiresAt),
@@ -399,6 +431,63 @@ final class JsonFlockPassRepository implements PassStorageInterface {
         ];
     }
 
+    /**
+     * Busca um Session Pass existente pelo tx_hash/lock_key (somente leitura LOCK_SH) para idempotência.
+     */
+    public function findPassByTxHash(string $txHash): ?array {
+        $rawTxTrimmed = trim($txHash);
+        if ($rawTxTrimmed === '') {
+            return null;
+        }
+        $file = $this->passesFile();
+        if (!file_exists($file)) {
+            return null;
+        }
+
+        $isSolanaTxInput = (bool) preg_match('/^(?:solana:)?[1-9A-HJ-NP-Za-km-z]{64,90}$/', $rawTxTrimmed);
+        if ($isSolanaTxInput) {
+            $cleanTx = str_starts_with(strtolower($rawTxTrimmed), 'solana:')
+                ? ('solana:' . substr($rawTxTrimmed, 7))
+                : $rawTxTrimmed;
+            $altSolTx = str_starts_with($cleanTx, 'solana:')
+                ? substr($cleanTx, 7)
+                : ('solana:' . $cleanTx);
+        } else {
+            $cleanTx = strtolower($rawTxTrimmed);
+            $altSolTx = null;
+        }
+
+        $fp = @fopen($file, 'r');
+        $store = [];
+        if ($fp && flock($fp, LOCK_SH)) {
+            $store = grid402_read_locked_json($fp, []);
+            flock($fp, LOCK_UN);
+        }
+        if ($fp) {
+            fclose($fp);
+        }
+
+        foreach ($store as $entry) {
+            if (!is_array($entry)) {
+                continue;
+            }
+            $storedTx = (string) ($entry['tx_hash'] ?? '');
+            if ($storedTx === '') {
+                continue;
+            }
+            if ($isSolanaTxInput) {
+                if ($storedTx === $cleanTx || ($altSolTx !== null && $storedTx === $altSolTx)) {
+                    return grid402_normalize_pass_entry($entry);
+                }
+            } else {
+                if (strtolower($storedTx) === $cleanTx) {
+                    return grid402_normalize_pass_entry($entry);
+                }
+            }
+        }
+        return null;
+    }
+
     public function getPassStatus(string $token): array {
         $passId = grid402_pass_verify_token_format($token);
         if ($passId === null) {
@@ -446,6 +535,10 @@ final class JsonFlockPassRepository implements PassStorageInterface {
         $now = time();
         $isExpired = $now > (int) ($entry['expires_epoch'] ?? 0);
         $remaining = (int) ($entry['credits_remaining'] ?? 0);
+        $tierLower = strtolower(trim((string) ($entry['tier'] ?? 'standard')));
+        $lockedLimits = !empty($entry['locked_limits'])
+            || str_starts_with($tierLower, 'promo_')
+            || (($entry['mode'] ?? '') === 'sandbox');
 
         return [
             'ok' => true,
@@ -461,6 +554,7 @@ final class JsonFlockPassRepository implements PassStorageInterface {
             'credits_remaining' => $remaining,
             'credits_used_today' => (int) ($entry['credits_used_today'] ?? 0),
             'daily_credit_limit' => isset($entry['daily_credit_limit']) && $entry['daily_credit_limit'] !== null ? (int) $entry['daily_credit_limit'] : null,
+            'locked_limits' => $lockedLimits,
             'allowed_endpoints' => is_array($entry['allowed_endpoints'] ?? null) ? array_values($entry['allowed_endpoints']) : [],
             'usage_count' => (int) ($entry['usage_count'] ?? 0),
             'issued_at' => $entry['issued_at'] ?? null,
@@ -499,35 +593,60 @@ final class JsonFlockPassRepository implements PassStorageInterface {
         }
 
         $updated = null;
-        if (flock($fp, LOCK_EX)) {
-            $store = grid402_read_locked_json($fp, []);
+        $lockedRejected = false;
+        try {
+            if (flock($fp, LOCK_EX)) {
+                try {
+                    $store = grid402_read_locked_json($fp, []);
 
-            if (isset($store[$passId])) {
-                $entry = grid402_normalize_pass_entry($store[$passId]);
-                if ($dailyCreditLimit !== null) {
-                    $entry['daily_credit_limit'] = $dailyCreditLimit > 0 ? $dailyCreditLimit : null;
-                }
-                if ($allowedEndpoints !== null) {
-                    $cleanList = [];
-                    foreach ($allowedEndpoints as $ep) {
-                        $epClean = strtolower(trim((string) $ep));
-                        if ($epClean !== '') {
-                            $cleanList[] = $epClean;
+                    if (isset($store[$passId])) {
+                        $entry = grid402_normalize_pass_entry($store[$passId]);
+                        $tierLower = strtolower(trim((string) ($entry['tier'] ?? '')));
+                        $isLocked = !empty($entry['locked_limits'])
+                            || str_starts_with($tierLower, 'promo_')
+                            || (($entry['mode'] ?? '') === 'sandbox');
+                        if ($isLocked) {
+                            $lockedRejected = true;
+                        } else {
+                            if ($dailyCreditLimit !== null) {
+                                $entry['daily_credit_limit'] = $dailyCreditLimit > 0 ? $dailyCreditLimit : null;
+                            }
+                            if ($allowedEndpoints !== null) {
+                                $cleanList = [];
+                                foreach ($allowedEndpoints as $ep) {
+                                    $epClean = strtolower(trim((string) $ep));
+                                    if ($epClean !== '') {
+                                        $cleanList[] = $epClean;
+                                    }
+                                }
+                                $entry['allowed_endpoints'] = array_values(array_unique($cleanList));
+                            }
+                            $store[$passId] = $entry;
+
+                            ftruncate($fp, 0);
+                            rewind($fp);
+                            fwrite($fp, (string) json_encode($store, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+                            fflush($fp);
+                            $updated = $entry;
                         }
                     }
-                    $entry['allowed_endpoints'] = array_values(array_unique($cleanList));
+                } finally {
+                    flock($fp, LOCK_UN);
                 }
-                $store[$passId] = $entry;
-
-                ftruncate($fp, 0);
-                rewind($fp);
-                fwrite($fp, (string) json_encode($store, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-                fflush($fp);
-                $updated = $entry;
             }
-            flock($fp, LOCK_UN);
+        } finally {
+            fclose($fp);
         }
-        fclose($fp);
+
+        if ($lockedRejected) {
+            return [
+                'ok' => false,
+                'valid' => false,
+                'code' => 403,
+                'error' => 'PassLimitsLocked',
+                'message' => 'Spend Controls de passes promocionais ou sandbox são bloqueados pelo emissor e não podem ser removidos ou alterados.',
+            ];
+        }
 
         if ($updated === null) {
             return ['ok' => false, 'valid' => false, 'code' => 404, 'error' => 'PassNotFound', 'message' => 'Passe não encontrado.'];
@@ -785,7 +904,7 @@ final class JsonFlockPassRepository implements PassStorageInterface {
         $filterEndpoint = isset($filters['endpoint']) && trim((string) $filters['endpoint']) !== ''
             ? $this->sanitizeEndpoint((string) $filters['endpoint'])
             : null;
-        $allowedOutcomes = ['consumed', 'endpoint_restricted', 'daily_limit_exceeded', 'idempotent_replay'];
+        $allowedOutcomes = ['consumed', 'refunded', 'endpoint_restricted', 'daily_limit_exceeded', 'idempotent_replay'];
         $rawOutcome = isset($filters['outcome']) ? strtolower(trim((string) $filters['outcome'])) : '';
         $filterOutcome = ($rawOutcome !== '' && in_array($rawOutcome, $allowedOutcomes, true)) ? $rawOutcome : null;
 
@@ -794,6 +913,7 @@ final class JsonFlockPassRepository implements PassStorageInterface {
         $totalDebited = 0;
         $blockedCount = 0;
         $replayCount = 0;
+        $refundedCount = 0;
 
         foreach ($ordered as $item) {
             if (!is_array($item)) {
@@ -812,6 +932,8 @@ final class JsonFlockPassRepository implements PassStorageInterface {
                 $blockedCount++;
             } elseif ($out === 'idempotent_replay') {
                 $replayCount++;
+            } elseif ($out === 'refunded') {
+                $refundedCount++;
             }
         }
 
@@ -851,6 +973,7 @@ final class JsonFlockPassRepository implements PassStorageInterface {
                 'total_usdc_equivalent' => number_format($totalDebited * 0.005, 4, '.', ''),
                 'blocked_count' => $blockedCount,
                 'replay_count' => $replayCount,
+                'refunded_count' => $refundedCount,
             ],
             'entries' => $filtered,
         ];

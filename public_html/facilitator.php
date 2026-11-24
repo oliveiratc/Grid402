@@ -16,11 +16,34 @@ if (!defined('GRID402_EXEC')) {
     define('GRID402_EXEC', true);
 }
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/services/multichain.php';
 
-const GRID402_FACILITATOR_VERIFY_TIMEOUT = 5;
-const GRID402_FACILITATOR_SETTLE_TIMEOUT = 10;
+const GRID402_FACILITATOR_VERIFY_TIMEOUT = 10;
+const GRID402_FACILITATOR_SETTLE_TIMEOUT = 25;
 const GRID402_NONCE_TTL_SECONDS = 604800; // 7 dias
 const GRID402_CLOCK_SKEW_SECONDS = 30;
+
+/**
+ * Indica se pagamentos gasless Solana x402 via facilitador PayAI estao habilitados (V-05).
+ * Padrao: false em producao ate a carteira Solana recebedora ser inicializada on-chain com SOL + ATA SPL USDC.
+ * Habilite via env GRID402_SOLANA_X402_ENABLED=true (ou GRID402_SOLANA_ATA_READY=true).
+ */
+if (!function_exists('grid402_is_solana_x402_enabled')) {
+    function grid402_is_solana_x402_enabled(): bool {
+        if (defined('GRID402_SOLANA_X402_ENABLED')) {
+            $v = GRID402_SOLANA_X402_ENABLED;
+            if (is_bool($v)) {
+                return $v;
+            }
+            return in_array(strtolower(trim((string) $v)), ['1', 'true', 'yes', 'on'], true);
+        }
+        $envVal = function_exists('grid402_env') ? (string) grid402_env('GRID402_SOLANA_X402_ENABLED', '') : '';
+        if (trim($envVal) === '' && function_exists('grid402_env')) {
+            $envVal = (string) grid402_env('GRID402_SOLANA_ATA_READY', '');
+        }
+        return in_array(strtolower(trim($envVal)), ['1', 'true', 'yes', 'on'], true);
+    }
+}
 
 /**
  * Remove prefixos de esquema comuns em headers de pagamento ("x402 ", "Payment ", "Bearer ").
@@ -146,32 +169,205 @@ function grid402_exact_supported_networks(): array {
         'payTo' => GRID402_WALLET_ADDRESS,
         'extra' => ['name' => 'USD Coin', 'version' => '2'],
     ];
-    $solWallet = defined('GRID402_SOLANA_WALLET_ADDRESS') ? (string) GRID402_SOLANA_WALLET_ADDRESS : 'CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C';
-    $solMint = defined('GRID402_SOLANA_USDC_MINT') ? (string) GRID402_SOLANA_USDC_MINT : 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
-    $solFeePayer = defined('GRID402_PAYAI_SOLANA_FEE_PAYER') ? (string) GRID402_PAYAI_SOLANA_FEE_PAYER : 'CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww';
-    $solanaSpec = [
-        'kind' => 'svm',
-        'v1' => 'solana',
-        'v2' => 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
-        'asset' => $solMint,
-        'payTo' => $solWallet,
-        'extra' => ['feePayer' => $solFeePayer],
-    ];
-
-    return [
+    $networks = [
         'eip155:8453' => $baseSpec,
         'base' => $baseSpec,
         'eip155:137' => $polygonSpec,
         'polygon' => $polygonSpec,
         'eip155:42161' => $arbitrumSpec,
         'arbitrum' => $arbitrumSpec,
-        'solana:5eykt4usfv8p8njdtrepy1vzqkqzkvdp' => $solanaSpec,
-        'solana' => $solanaSpec,
     ];
+
+    // V-05: so anuncia/aceita Solana x402 gasless quando habilitado via GRID402_SOLANA_X402_ENABLED=true
+    if (grid402_is_solana_x402_enabled()) {
+        $solWallet = defined('GRID402_SOLANA_WALLET_ADDRESS') ? (string) GRID402_SOLANA_WALLET_ADDRESS : 'CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C';
+        $solMint = defined('GRID402_SOLANA_USDC_MINT') ? (string) GRID402_SOLANA_USDC_MINT : 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+        $solFeePayer = defined('GRID402_PAYAI_SOLANA_FEE_PAYER') ? (string) GRID402_PAYAI_SOLANA_FEE_PAYER : 'CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww';
+        $solanaSpec = [
+            'kind' => 'svm',
+            'v1' => 'solana',
+            'v2' => 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
+            'asset' => $solMint,
+            'payTo' => $solWallet,
+            'extra' => ['feePayer' => $solFeePayer],
+        ];
+        $networks['solana:5eykt4usfv8p8njdtrepy1vzqkqzkvdp'] = $solanaSpec;
+        $networks['solana'] = $solanaSpec;
+    }
+
+    return $networks;
 }
 
 /**
- * Decodifica e normaliza o payload x402 padrao (v1 ou v2, EVM EIP-3009 ou Solana SVM).
+ * Converte string hexadecimal arbitraria (sem 0x, ate 64 hex chars / uint256) para string decimal exata sem depender de bcmath/gmp.
+ */
+function grid402_hex_to_dec_string(string $hex): string {
+    $clean = ltrim(strtolower(trim($hex)), '0');
+    if ($clean === '') {
+        return '0';
+    }
+    if (strlen($clean) <= 14) {
+        return (string) hexdec($clean);
+    }
+    $dec = [0];
+    $len = strlen($clean);
+    for ($i = 0; $i < $len; $i++) {
+        $carry = hexdec($clean[$i]);
+        for ($j = count($dec) - 1; $j >= 0; $j--) {
+            $val = $dec[$j] * 16 + $carry;
+            $dec[$j] = $val % 10;
+            $carry = intdiv($val, 10);
+        }
+        while ($carry > 0) {
+            array_unshift($dec, $carry % 10);
+            $carry = intdiv($carry, 10);
+        }
+    }
+    return implode('', $dec);
+}
+
+/**
+ * Normaliza inteiro decimal ou hex (0x...) para string decimal canonica exigida pelo PayAI (V-11).
+ */
+function grid402_normalize_uint_string(mixed $val): ?string {
+    if (!is_string($val) && !is_int($val)) {
+        return null;
+    }
+    $raw = trim((string) $val);
+    if (preg_match('/^0x([a-fA-F0-9]{1,64})$/', $raw, $m) === 1) {
+        return grid402_hex_to_dec_string($m[1]);
+    }
+    if (preg_match('/^\d{1,78}$/', $raw) === 1) {
+        return $raw;
+    }
+    return null;
+}
+
+/**
+ * Le um inteiro compact-u16 da serializacao de transacao binaria Solana.
+ */
+function grid402_solana_read_compact_u16(string $bytes, int &$offset): ?int {
+    $len = strlen($bytes);
+    $val = 0;
+    $shift = 0;
+    for ($i = 0; $i < 3; $i++) {
+        if ($offset >= $len) {
+            return null;
+        }
+        $b = ord($bytes[$offset++]);
+        $val |= ($b & 0x7f) << $shift;
+        if (($b & 0x80) === 0) {
+            return $val;
+        }
+        $shift += 7;
+    }
+    return null;
+}
+
+/**
+ * Extrai a quantidade de SPL Token Transfer/TransferChecked (u64 LE) de uma transacao Solana binaria (Legacy ou v0).
+ * Usado como fallback em payloads Solana x402 v1 (sem campo accepted.amount) para nao subcreditar Pro/Fleet em /api/v1/pass.
+ */
+function grid402_solana_extract_spl_transfer_amount(string $txBytes): ?int {
+    $len = strlen($txBytes);
+    if ($len < 68) {
+        return null;
+    }
+    $offset = 0;
+    $sigCount = grid402_solana_read_compact_u16($txBytes, $offset);
+    if ($sigCount === null || $sigCount < 1 || $sigCount > 16) {
+        return null;
+    }
+    $offset += $sigCount * 64;
+    if ($offset + 4 > $len) {
+        return null;
+    }
+
+    // Versioned transaction prefix (bit 7 = 1 -> v0)
+    $firstMsgByte = ord($txBytes[$offset]);
+    if (($firstMsgByte & 0x80) !== 0) {
+        $version = $firstMsgByte & 0x7f;
+        if ($version !== 0) {
+            return null;
+        }
+        $offset++;
+        if ($offset + 3 > $len) {
+            return null;
+        }
+    }
+
+    // Message header: numRequiredSignatures, numReadonlySigned, numReadonlyUnsigned
+    $offset += 3;
+    $numAccounts = grid402_solana_read_compact_u16($txBytes, $offset);
+    if ($numAccounts === null || $numAccounts < 2 || $numAccounts > 128) {
+        return null;
+    }
+    if ($offset + ($numAccounts * 32) + 32 > $len) {
+        return null;
+    }
+
+    $splTokenBin = hex2bin('06ddf6e1d765a193d9cbe146ceeb79ac1cb485ed5f5b37913a8cf5857eff00a9');
+    $splToken22Bin = hex2bin('06ddf6e1ee758fde18425dbce46ccddab61afc4d83b90d27febdf928d8a18bfc');
+    $tokenProgIndices = [];
+    for ($i = 0; $i < $numAccounts; $i++) {
+        $key = substr($txBytes, $offset, 32);
+        $offset += 32;
+        if ($key === $splTokenBin || $key === $splToken22Bin) {
+            $tokenProgIndices[$i] = true;
+        }
+    }
+    if (empty($tokenProgIndices)) {
+        return null;
+    }
+
+    // Recent blockhash (32 bytes)
+    $offset += 32;
+    $numIx = grid402_solana_read_compact_u16($txBytes, $offset);
+    if ($numIx === null || $numIx < 1 || $numIx > 64) {
+        return null;
+    }
+
+    $maxFound = null;
+    for ($i = 0; $i < $numIx; $i++) {
+        if ($offset >= $len) {
+            break;
+        }
+        $progIdx = ord($txBytes[$offset++]);
+        $acctCount = grid402_solana_read_compact_u16($txBytes, $offset);
+        if ($acctCount === null || $offset + $acctCount > $len) {
+            break;
+        }
+        $offset += $acctCount;
+        $dataLen = grid402_solana_read_compact_u16($txBytes, $offset);
+        if ($dataLen === null || $offset + $dataLen > $len) {
+            break;
+        }
+        $ixData = substr($txBytes, $offset, $dataLen);
+        $offset += $dataLen;
+
+        if (!isset($tokenProgIndices[$progIdx])) {
+            continue;
+        }
+        $opcode = $dataLen >= 1 ? ord($ixData[0]) : -1;
+        // SPL Token Transfer (opcode 3, 9 bytes) ou TransferChecked (opcode 12, 10 bytes, decimals === 6)
+        $isTransfer = ($opcode === 3 && $dataLen === 9);
+        $isTransferChecked = ($opcode === 12 && $dataLen === 10 && ord($ixData[9]) === 6);
+        if ($isTransfer || $isTransferChecked) {
+            $unpacked = @unpack('Pamt', substr($ixData, 1, 8));
+            if (is_array($unpacked) && isset($unpacked['amt']) && (int) $unpacked['amt'] > 0) {
+                $amt = (int) $unpacked['amt'];
+                if ($maxFound === null || $amt > $maxFound) {
+                    $maxFound = $amt;
+                }
+            }
+        }
+    }
+
+    return $maxFound;
+}
+
+/**
+ * Decodifica e normaliza o payload x402 padrao (v1 ou v2, EVM EIP-3009, EVM Permit2 ou Solana SVM).
  * Retorna ['ok' => true, ...campos normalizados] ou ['ok' => false, 'error' => string].
  */
 function grid402_decode_x402_payload(string $proof): array {
@@ -197,7 +393,7 @@ function grid402_decode_x402_payload(string $proof): array {
 
     // Caminho Solana SVM (`payload.transaction` em base64)
     $isSolanaNetwork = ($networkLower === 'solana' || str_starts_with($networkLower, 'solana:'));
-    if ($isSolanaNetwork || (isset($inner['transaction']) && !isset($inner['authorization']))) {
+    if ($isSolanaNetwork || (isset($inner['transaction']) && !isset($inner['authorization']) && !isset($inner['permit2Authorization']))) {
         if (!is_string($networkRaw) || trim($networkRaw) === '') {
             return ['ok' => false, 'error' => 'Payload x402 sem o campo "network" (aceito ou raiz).'];
         }
@@ -211,15 +407,28 @@ function grid402_decode_x402_payload(string $proof): array {
         }
         $assetSvm = isset($accepted['asset']) && is_string($accepted['asset']) ? trim($accepted['asset']) : null;
         $payToSvm = isset($accepted['payTo']) && is_string($accepted['payTo']) ? trim($accepted['payTo']) : null;
-        $amountSvm = isset($accepted['amount']) && (is_string($accepted['amount']) || is_int($accepted['amount']))
-            ? (string) $accepted['amount']
-            : (isset($accepted['maxAmountRequired']) && (is_string($accepted['maxAmountRequired']) || is_int($accepted['maxAmountRequired']))
-                ? (string) $accepted['maxAmountRequired']
-                : null);
+
+        $amountCandidate = $accepted['amount']
+            ?? $accepted['maxAmountRequired']
+            ?? $raw['amount']
+            ?? $raw['maxAmountRequired']
+            ?? $inner['amount']
+            ?? null;
+        $amountSvm = null;
+        if (is_string($amountCandidate) || is_int($amountCandidate)) {
+            $amountSvm = trim((string) $amountCandidate);
+        }
+        if ($amountSvm === null || $amountSvm === '') {
+            $extractedSpl = grid402_solana_extract_spl_transfer_amount($txBytes);
+            if ($extractedSpl !== null && $extractedSpl > 0) {
+                $amountSvm = (string) $extractedSpl;
+            }
+        }
 
         return [
             'ok' => true,
             'kind' => 'svm',
+            'auth_type' => 'svm',
             'version' => $version,
             'raw' => $raw,
             'scheme' => strtolower($scheme),
@@ -233,7 +442,7 @@ function grid402_decode_x402_payload(string $proof): array {
         ];
     }
 
-    // Caminho EVM (EIP-3009 TransferWithAuthorization)
+    // Caminho EVM (EIP-3009 TransferWithAuthorization OU Permit2 permit2Authorization)
     $signature = $inner['signature'] ?? null;
     if (!is_string($signature)) {
         return ['ok' => false, 'error' => 'Payload x402 sem "payload.signature" valido (hex).'];
@@ -245,9 +454,91 @@ function grid402_decode_x402_payload(string $proof): array {
     } elseif (!preg_match('/^0x[a-fA-F0-9]+$/', $signature)) {
         return ['ok' => false, 'error' => 'Payload x402 sem "payload.signature" valido (hex).'];
     }
+
+    if (!is_string($networkRaw) || $networkLower === '') {
+        return ['ok' => false, 'error' => 'Payload x402 sem o campo "network" (aceito ou raiz).'];
+    }
+    $asset = isset($accepted['asset']) && is_string($accepted['asset']) ? strtolower($accepted['asset']) : null;
+
+    // Subcaminho EVM Permit2 (@x402/evm v2 payload.permit2Authorization)
+    if (isset($inner['permit2Authorization']) && is_array($inner['permit2Authorization']) && !isset($inner['authorization'])) {
+        $p2 = $inner['permit2Authorization'];
+        $p2From = $p2['from'] ?? null;
+        $p2Spender = $p2['spender'] ?? null;
+        $p2Permitted = is_array($p2['permitted'] ?? null) ? $p2['permitted'] : null;
+        $p2Witness = is_array($p2['witness'] ?? null) ? $p2['witness'] : null;
+
+        if (!is_string($p2From) || !preg_match('/^0x[a-fA-F0-9]{40}$/', trim($p2From))) {
+            return ['ok' => false, 'error' => 'permit2Authorization.from deve ser um endereco EVM valido.'];
+        }
+        if (!is_string($p2Spender) || !preg_match('/^0x[a-fA-F0-9]{40}$/', trim($p2Spender))) {
+            return ['ok' => false, 'error' => 'permit2Authorization.spender deve ser um endereco EVM valido.'];
+        }
+        if ($p2Permitted === null || !isset($p2Permitted['token'], $p2Permitted['amount'])) {
+            return ['ok' => false, 'error' => 'Payload x402 Permit2 sem permit2Authorization.permitted (token e amount).'];
+        }
+        if (!is_string($p2Permitted['token']) || !preg_match('/^0x[a-fA-F0-9]{40}$/', trim($p2Permitted['token']))) {
+            return ['ok' => false, 'error' => 'permit2Authorization.permitted.token deve ser um endereco EVM valido.'];
+        }
+        if ($p2Witness === null || !isset($p2Witness['to'], $p2Witness['validAfter'])) {
+            return ['ok' => false, 'error' => 'Payload x402 Permit2 sem permit2Authorization.witness (to e validAfter).'];
+        }
+        if (!is_string($p2Witness['to']) || !preg_match('/^0x[a-fA-F0-9]{40}$/', trim($p2Witness['to']))) {
+            return ['ok' => false, 'error' => 'permit2Authorization.witness.to deve ser um endereco EVM valido.'];
+        }
+
+        $p2AmountStr = grid402_normalize_uint_string($p2Permitted['amount']);
+        $p2NonceStr = grid402_normalize_uint_string($p2['nonce'] ?? null);
+        $p2DeadlineStr = grid402_normalize_uint_string($p2['deadline'] ?? null);
+        $p2ValidAfterStr = grid402_normalize_uint_string($p2Witness['validAfter']);
+
+        if ($p2AmountStr === null) {
+            return ['ok' => false, 'error' => 'permit2Authorization.permitted.amount deve ser um inteiro decimal valido.'];
+        }
+        if ($p2NonceStr === null) {
+            return ['ok' => false, 'error' => 'permit2Authorization.nonce deve ser um inteiro decimal ou hex valido.'];
+        }
+        if ($p2DeadlineStr === null) {
+            return ['ok' => false, 'error' => 'permit2Authorization.deadline deve ser um inteiro decimal valido.'];
+        }
+        if ($p2ValidAfterStr === null) {
+            return ['ok' => false, 'error' => 'permit2Authorization.witness.validAfter deve ser um inteiro decimal valido.'];
+        }
+
+        // V-11: garante que todos os campos numericos sejam serializados como string JSON para o PayAI
+        $raw['payload']['permit2Authorization']['permitted']['amount'] = $p2AmountStr;
+        $raw['payload']['permit2Authorization']['nonce'] = $p2NonceStr;
+        $raw['payload']['permit2Authorization']['deadline'] = $p2DeadlineStr;
+        $raw['payload']['permit2Authorization']['witness']['validAfter'] = $p2ValidAfterStr;
+
+        return [
+            'ok' => true,
+            'kind' => 'evm',
+            'auth_type' => 'permit2',
+            'version' => $version,
+            'raw' => $raw,
+            'scheme' => strtolower($scheme),
+            'network' => $networkLower,
+            'network_raw' => trim($networkRaw),
+            'asset' => $asset ?? strtolower(trim($p2Permitted['token'])),
+            'permit2_token' => strtolower(trim($p2Permitted['token'])),
+            'permit2_spender' => strtolower(trim($p2Spender)),
+            'signature' => $signature,
+            'authorization' => [
+                'from' => strtolower(trim($p2From)),
+                'to' => strtolower(trim($p2Witness['to'])),
+                'value' => $p2AmountStr,
+                'validAfter' => $p2ValidAfterStr,
+                'validBefore' => $p2DeadlineStr,
+                'nonce' => $p2NonceStr,
+            ],
+        ];
+    }
+
+    // Subcaminho EVM EIP-3009 (payload.authorization)
     $auth = $inner['authorization'] ?? null;
     if (!is_array($auth)) {
-        return ['ok' => false, 'error' => 'Payload x402 sem "payload.authorization" (EIP-3009).'];
+        return ['ok' => false, 'error' => 'Payload x402 sem "payload.authorization" (EIP-3009) ou "payload.permit2Authorization" (Permit2).'];
     }
     foreach (['from', 'to', 'value', 'validAfter', 'validBefore', 'nonce'] as $field) {
         if (!isset($auth[$field]) || (!is_string($auth[$field]) && !is_int($auth[$field]))) {
@@ -268,26 +559,19 @@ function grid402_decode_x402_payload(string $proof): array {
     }
     $authNormNums = [];
     foreach (['value', 'validAfter', 'validBefore'] as $numField) {
-        $rawNum = trim((string) $auth[$numField]);
-        if (preg_match('/^0x[a-fA-F0-9]{1,16}$/', $rawNum)) {
-            $decStr = (string) hexdec(substr($rawNum, 2));
-            $authNormNums[$numField] = $decStr;
-            $raw['payload']['authorization'][$numField] = $decStr;
-        } elseif (preg_match('/^\d{1,78}$/', $rawNum)) {
-            $authNormNums[$numField] = $rawNum;
-        } else {
+        $strVal = grid402_normalize_uint_string($auth[$numField]);
+        if ($strVal === null) {
             return ['ok' => false, 'error' => "authorization.{$numField} deve ser um inteiro decimal valido."];
         }
+        $authNormNums[$numField] = $strVal;
+        // V-11: forca string JSON explicitamente mesmo quando o cliente enviou int (evita HTTP 400 invalid_payload no PayAI)
+        $raw['payload']['authorization'][$numField] = $strVal;
     }
-
-    if (!is_string($networkRaw) || $networkLower === '') {
-        return ['ok' => false, 'error' => 'Payload x402 sem o campo "network" (aceito ou raiz).'];
-    }
-    $asset = isset($accepted['asset']) && is_string($accepted['asset']) ? strtolower($accepted['asset']) : null;
 
     return [
         'ok' => true,
         'kind' => 'evm',
+        'auth_type' => 'eip3009',
         'version' => $version,
         'raw' => $raw,
         'scheme' => strtolower($scheme),
@@ -326,9 +610,14 @@ function grid402_validate_exact_requirements(array $decoded, int $requiredRawUni
     $supported = grid402_exact_supported_networks();
     $netKey = strtolower((string) ($decoded['network'] ?? ''));
     if (!isset($supported[$netKey])) {
+        if (($netKey === 'solana' || str_starts_with($netKey, 'solana:')) && !grid402_is_solana_x402_enabled()) {
+            return $fail('Pagamentos x402 gasless na Solana estao temporariamente desabilitados (aguardando inicializacao da ATA SPL USDC). Use Base (eip155:8453), Polygon (eip155:137) ou Arbitrum (eip155:42161).');
+        }
         $allowedDesc = (GRID402_X402_NETWORK === 'base-sepolia')
             ? 'Base Sepolia (eip155:84532)'
-            : 'Base (eip155:8453), Polygon (eip155:137), Arbitrum (eip155:42161) ou Solana (solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp)';
+            : (grid402_is_solana_x402_enabled()
+                ? 'Base (eip155:8453), Polygon (eip155:137), Arbitrum (eip155:42161) ou Solana (solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp)'
+                : 'Base (eip155:8453), Polygon (eip155:137) ou Arbitrum (eip155:42161)');
         return $fail('Rede de pagamento incorreta. Use ' . $allowedDesc . '.');
     }
 
@@ -354,6 +643,12 @@ function grid402_validate_exact_requirements(array $decoded, int $requiredRawUni
     $auth = $decoded['authorization'];
     if ($decoded['asset'] !== null && strtolower((string) $decoded['asset']) !== strtolower((string) $netSpec['asset'])) {
         return $fail('Ativo de pagamento incorreto. Use o USDC oficial da rede: ' . $netSpec['asset'] . '.');
+    }
+    if (($decoded['auth_type'] ?? 'eip3009') === 'permit2') {
+        $p2Token = strtolower((string) ($decoded['permit2_token'] ?? ''));
+        if ($p2Token !== strtolower((string) $netSpec['asset'])) {
+            return $fail('Token Permit2 incorreto. Use o USDC oficial da rede: ' . $netSpec['asset'] . '.');
+        }
     }
     if ($auth['to'] !== strtolower((string) $netSpec['payTo'])) {
         return $fail('Destinatario incorreto. A autorizacao deve transferir para ' . $netSpec['payTo'] . '.');
@@ -566,7 +861,7 @@ function grid402_facilitator_http(string $url, array $headers, string $body, int
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HTTPHEADER => $headers,
         CURLOPT_TIMEOUT => $timeout,
-        CURLOPT_CONNECTTIMEOUT => 3,
+        CURLOPT_CONNECTTIMEOUT => 5,
         CURLOPT_USERAGENT => 'Grid402-x402-Resource/1.0',
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
@@ -577,6 +872,22 @@ function grid402_facilitator_http(string $url, array $headers, string $body, int
     curl_close($ch);
 
     return ['status' => $status, 'body' => is_string($response) ? $response : null, 'error' => $error];
+}
+
+/**
+ * Registra erro estruturado de infraestrutura ou rejeicao do facilitador sem expor segredos ou assinaturas.
+ */
+function grid402_facilitator_log_error(string $endpoint, int $httpStatus, string $errorCode = '', string $errorMessage = ''): void {
+    $safeEp = preg_replace('/[^a-zA-Z0-9_\/-]/', '', $endpoint) ?: '/facilitator';
+    $safeCode = substr(preg_replace('/[\r\n\t]+/', ' ', trim($errorCode)) ?? '', 0, 80);
+    $safeMsg = substr(preg_replace('/[\r\n\t]+/', ' ', trim($errorMessage)) ?? '', 0, 220);
+    @error_log(sprintf(
+        '[Grid402][facilitator] endpoint=%s http_status=%d error=%s message=%s',
+        $safeEp,
+        $httpStatus,
+        $safeCode !== '' ? $safeCode : 'none',
+        $safeMsg !== '' ? $safeMsg : 'none'
+    ));
 }
 
 /**
@@ -596,8 +907,8 @@ function grid402_facilitator_auth_mode(): string {
 
 /**
  * Chama um endpoint do facilitador. Retorna:
- * ['ok' => bool, 'unavailable' => bool, 'data' => array, 'error' => string]
- * `unavailable` = timeout, falha de rede, erro 5xx ou credenciais ausentes (nunca vaza segredos).
+ * ['ok' => bool, 'unavailable' => bool, 'http_status' => int, 'data' => array, 'error' => string, 'infra_error' => string]
+ * `unavailable` = timeout, falha de rede, HTTP 5xx, HTTP 401/403/408/429 ou erro de infra/quota do PayAI (ex.: free_tier_exhausted).
  */
 function grid402_facilitator_call(string $endpoint, array $body, int $timeout): array {
     $baseUrl = GRID402_FACILITATOR_URL;
@@ -612,7 +923,8 @@ function grid402_facilitator_call(string $endpoint, array $body, int $timeout): 
     if ($authMode === 'cdp') {
         $jwt = grid402_cdp_build_jwt(GRID402_CDP_API_KEY_ID, GRID402_CDP_API_KEY_SECRET, 'POST', $host, $path);
         if (!$jwt['ok']) {
-            return ['ok' => false, 'unavailable' => true, 'data' => [], 'error' => $jwt['error']];
+            grid402_facilitator_log_error($endpoint, 0, 'cdp_jwt_error', (string) $jwt['error']);
+            return ['ok' => false, 'unavailable' => true, 'http_status' => 0, 'data' => [], 'error' => $jwt['error'], 'infra_error' => 'cdp_jwt_error'];
         }
         $headers[] = 'Authorization: Bearer ' . $jwt['token'];
     }
@@ -621,21 +933,82 @@ function grid402_facilitator_call(string $endpoint, array $body, int $timeout): 
 
     $http = grid402_facilitator_http($url, $headers, (string) json_encode($body, JSON_UNESCAPED_SLASHES), $timeout);
     $status = (int) ($http['status'] ?? 0);
+    $rawBody = is_string($http['body'] ?? null) ? $http['body'] : '';
+    $data = $rawBody !== '' ? @json_decode($rawBody, true) : null;
+    $dataArr = is_array($data) ? $data : [];
+
+    $errCode = (string) ($dataArr['error'] ?? $dataArr['code'] ?? '');
+    $errMsg = (string) ($dataArr['message'] ?? $dataArr['invalidMessage'] ?? $dataArr['errorMessage'] ?? '');
+
     if ($status === 0 || $status >= 500 || !empty($http['error'])) {
-        return ['ok' => false, 'unavailable' => true, 'data' => [], 'error' => 'Facilitador indisponivel.'];
+        $detail = !empty($http['error']) ? (string) $http['error'] : ($errMsg !== '' ? $errMsg : 'HTTP ' . $status);
+        grid402_facilitator_log_error($endpoint, $status, $errCode !== '' ? $errCode : 'transport_or_5xx', $detail);
+        return [
+            'ok' => false,
+            'unavailable' => true,
+            'http_status' => $status,
+            'data' => $dataArr,
+            'error' => 'Facilitador indisponivel.',
+            'infra_error' => $errCode !== '' ? $errCode : ('http_' . $status),
+        ];
     }
 
-    $data = @json_decode((string) ($http['body'] ?? ''), true);
-    if (!is_array($data)) {
-        return ['ok' => false, 'unavailable' => true, 'data' => [], 'error' => 'Resposta invalida do facilitador.'];
+    // Erros de quota/infraestrutura do facilitador (ex.: PayAI 403 free_tier_exhausted, 429 rate limit, 401 auth, 408 timeout)
+    // nunca devem ser mascarados como payment_rejected do cliente.
+    $infraErrorCodes = [
+        'free_tier_exhausted',
+        'insufficient_credits',
+        'credits_exhausted',
+        'rate_limited',
+        'rate_limit_exceeded',
+        'too_many_requests',
+        'service_unavailable',
+        'facilitator_unavailable',
+        'upstream_error',
+    ];
+    if (in_array($status, [401, 403, 408, 429], true) || in_array(strtolower($errCode), $infraErrorCodes, true)) {
+        grid402_facilitator_log_error($endpoint, $status, $errCode !== '' ? $errCode : ('http_' . $status), $errMsg);
+        return [
+            'ok' => false,
+            'unavailable' => true,
+            'http_status' => $status,
+            'data' => $dataArr,
+            'error' => trim('Facilitador indisponivel (HTTP ' . $status . ($errCode !== '' ? ' ' . $errCode : '') . ').'),
+            'infra_error' => $errCode !== '' ? $errCode : ('http_' . $status),
+        ];
     }
-    return ['ok' => $status >= 200 && $status < 300, 'unavailable' => false, 'data' => $data, 'error' => ''];
+
+    if (!is_array($data)) {
+        grid402_facilitator_log_error($endpoint, $status, 'malformed_json', substr($rawBody, 0, 180));
+        return [
+            'ok' => false,
+            'unavailable' => true,
+            'http_status' => $status,
+            'data' => [],
+            'error' => 'Resposta invalida do facilitador.',
+            'infra_error' => 'malformed_json',
+        ];
+    }
+
+    $isOk = ($status >= 200 && $status < 300);
+    if (!$isOk) {
+        grid402_facilitator_log_error($endpoint, $status, $errCode !== '' ? $errCode : (string) ($dataArr['invalidReason'] ?? $dataArr['errorReason'] ?? 'http_4xx'), $errMsg);
+    }
+
+    return [
+        'ok' => $isOk,
+        'unavailable' => false,
+        'http_status' => $status,
+        'data' => $dataArr,
+        'error' => $errMsg !== '' ? $errMsg : $errCode,
+        'infra_error' => '',
+    ];
 }
 
 /**
- * Monta os requisitos de pagamento do servico (fonte da verdade do servidor) conforme a versao e a rede do payload.
+ * Monta os requisitos de pagamento do servico (fonte da verdade do servidor) conforme a versao, rede e metodo (EIP-3009 ou Permit2).
  */
-function grid402_build_payment_requirements(int $version, int $requiredRawUnits, string $resourceUrl = '', ?string $networkKey = null): array {
+function grid402_build_payment_requirements(int $version, int $requiredRawUnits, string $resourceUrl = '', ?string $networkKey = null, string $authType = 'eip3009', ?array $acceptedExtra = null): array {
     $supported = grid402_exact_supported_networks();
     $resolvedKey = ($networkKey !== null && $networkKey !== '') ? strtolower(trim($networkKey)) : GRID402_X402_NETWORK_V2;
     $netSpec = $supported[$resolvedKey] ?? [
@@ -647,12 +1020,20 @@ function grid402_build_payment_requirements(int $version, int $requiredRawUnits,
         'extra' => ['name' => GRID402_X402_TOKEN_NAME, 'version' => GRID402_X402_TOKEN_VERSION],
     ];
 
+    $extra = is_array($netSpec['extra'] ?? null) ? $netSpec['extra'] : [];
+    if ($authType === 'permit2' && ($netSpec['kind'] ?? 'evm') === 'evm') {
+        $extra['assetTransferMethod'] = 'permit2';
+        if (is_array($acceptedExtra) && !empty($acceptedExtra['spenderAddress']) && is_string($acceptedExtra['spenderAddress']) && preg_match('/^0x[a-fA-F0-9]{40}$/', trim($acceptedExtra['spenderAddress']))) {
+            $extra['spenderAddress'] = trim($acceptedExtra['spenderAddress']);
+        }
+    }
+
     $base = [
         'scheme' => 'exact',
         'payTo' => $netSpec['payTo'],
         'maxTimeoutSeconds' => 300,
         'asset' => $netSpec['asset'],
-        'extra' => $netSpec['extra'],
+        'extra' => $extra,
     ];
     if ($version === 1) {
         return $base + [
@@ -701,13 +1082,17 @@ function grid402_normalize_v2_discovery_payload(array &$paymentPayload, ?string 
 
     $bazaar = is_array($paymentPayload['extensions']['bazaar'] ?? null) ? $paymentPayload['extensions']['bazaar'] : [];
     $sameSlugBazaar = (!$hasRealSlug || $clientSlug === null || $clientSlug === $serviceSlug);
+    $reqMethod = strtoupper(trim((string) ($bazaar['info']['input']['method'] ?? ($_SERVER['REQUEST_METHOD'] ?? 'GET'))));
+    if (!in_array($reqMethod, ['GET', 'POST', 'HEAD', 'DELETE'], true)) {
+        $reqMethod = 'GET';
+    }
     if ((empty($bazaar['schema']) || !$sameSlugBazaar) && function_exists('grid402_build_bazaar_extension')) {
         $existingExample = null;
         if ($sameSlugBazaar && !empty($bazaar['info']['output']['example']) && is_array($bazaar['info']['output']['example'])) {
             $existingExample = $bazaar['info']['output']['example'];
         }
         $paymentPayload['extensions'] = is_array($paymentPayload['extensions'] ?? null) ? $paymentPayload['extensions'] : [];
-        $paymentPayload['extensions']['bazaar'] = grid402_build_bazaar_extension($existingExample, $serviceSlug);
+        $paymentPayload['extensions']['bazaar'] = grid402_build_bazaar_extension($existingExample, $serviceSlug, $reqMethod);
     } elseif (!empty($bazaar)) {
         unset(
             $paymentPayload['extensions']['bazaar']['info']['input']['discoverable'],
@@ -716,7 +1101,15 @@ function grid402_normalize_v2_discovery_payload(array &$paymentPayload, ?string 
         if (isset($paymentPayload['extensions']['bazaar']['schema']['properties']['input'])) {
             $paymentPayload['extensions']['bazaar']['schema']['properties']['input']['additionalProperties'] = false;
             if (isset($paymentPayload['extensions']['bazaar']['schema']['properties']['input']['properties']['method']['enum'])) {
-                $paymentPayload['extensions']['bazaar']['schema']['properties']['input']['properties']['method']['enum'] = ['GET', 'HEAD', 'DELETE'];
+                $paymentPayload['extensions']['bazaar']['schema']['properties']['input']['properties']['method']['enum'] = ['GET', 'POST', 'HEAD', 'DELETE'];
+            }
+            if ($reqMethod === 'POST') {
+                if (isset($paymentPayload['extensions']['bazaar']['info']['input']['bodyType']) && !isset($paymentPayload['extensions']['bazaar']['schema']['properties']['input']['properties']['bodyType'])) {
+                    $paymentPayload['extensions']['bazaar']['schema']['properties']['input']['properties']['bodyType'] = ['type' => 'string'];
+                }
+                if (isset($paymentPayload['extensions']['bazaar']['info']['input']['body']) && !isset($paymentPayload['extensions']['bazaar']['schema']['properties']['input']['properties']['body'])) {
+                    $paymentPayload['extensions']['bazaar']['schema']['properties']['input']['properties']['body'] = ['type' => 'object'];
+                }
             }
         }
     }
@@ -795,13 +1188,16 @@ function grid402_verify_exact_payment(string $rawProof, int $requiredRawUnits, ?
 
     $netSpec = $local['network_spec'];
     $isSvm = (($decoded['kind'] ?? 'evm') === 'svm');
+    $authType = (string) ($decoded['auth_type'] ?? ($isSvm ? 'svm' : 'eip3009'));
     if ($isSvm) {
         $nonceKey = 'solana:' . hash('sha256', (string) ($decoded['transaction'] ?? ''));
         $payerAddress = '';
-        $rawPaidUnits = (int) ($decoded['amount'] ?? $requiredRawUnits);
+        $decodedSvmAmt = (isset($decoded['amount']) && is_numeric($decoded['amount'])) ? (int) $decoded['amount'] : 0;
+        $rawPaidUnits = ($decodedSvmAmt >= $requiredRawUnits) ? $decodedSvmAmt : $requiredRawUnits;
     } else {
         $auth = $decoded['authorization'];
-        $baseKey = grid402_nonce_key($auth['from'], $auth['nonce']);
+        $nonceToken = ($authType === 'permit2') ? ('permit2:' . $auth['nonce']) : $auth['nonce'];
+        $baseKey = grid402_nonce_key($auth['from'], $nonceToken);
         $nonceKey = ($netSpec['v2'] === 'eip155:8453' || $netSpec['v2'] === 'eip155:84532')
             ? $baseKey
             : ($netSpec['v2'] . ':' . $baseKey);
@@ -821,17 +1217,28 @@ function grid402_verify_exact_payment(string $rawProof, int $requiredRawUnits, ?
     $paymentPayload = $decoded['raw'];
     if ($decoded['version'] === 2) {
         $serviceSlug = null;
-        if (is_string($resourceUrl) && preg_match('#/api/v1/([a-z0-9-]+)#i', $resourceUrl, $m)) {
-            $serviceSlug = strtolower($m[1]);
+        if (is_string($resourceUrl) && $resourceUrl !== '') {
+            if (preg_match('#/api/v1/([a-z0-9-]+)#i', $resourceUrl, $m)) {
+                $serviceSlug = strtolower($m[1]);
+            } else {
+                $qStr = (string) parse_url($resourceUrl, PHP_URL_QUERY);
+                if ($qStr !== '') {
+                    parse_str($qStr, $qParams);
+                    if (!empty($qParams['api']) && is_string($qParams['api']) && preg_match('/^[a-z0-9-]+$/i', trim($qParams['api']))) {
+                        $serviceSlug = strtolower(trim($qParams['api']));
+                    }
+                }
+            }
         }
         $priceDisplay = number_format($requiredRawUnits / 1e6, 4, '.', '');
         grid402_normalize_v2_discovery_payload($paymentPayload, $serviceSlug, $priceDisplay, (string) $resourceUrl);
     }
 
+    $acceptedExtra = is_array($paymentPayload['accepted']['extra'] ?? null) ? $paymentPayload['accepted']['extra'] : null;
     $requestBody = [
         'x402Version' => $decoded['version'],
         'paymentPayload' => $paymentPayload,
-        'paymentRequirements' => grid402_build_payment_requirements($decoded['version'], $requiredRawUnits, (string) $resourceUrl, $decoded['network']),
+        'paymentRequirements' => grid402_build_payment_requirements($decoded['version'], $requiredRawUnits, (string) $resourceUrl, $decoded['network'], $authType, $acceptedExtra),
     ];
     $unavailable = static fn(string $reason = 'Servico de liquidacao temporariamente indisponivel. Tente novamente em instantes.'): array => [
         'valid' => false,
@@ -849,7 +1256,7 @@ function grid402_verify_exact_payment(string $rawProof, int $requiredRawUnits, ?
     }
     if (!$verify['ok'] || empty($verify['data']['isValid'])) {
         grid402_release_nonce($nonceKey);
-        $why = (string) ($verify['data']['invalidReason'] ?? $verify['data']['invalidMessage'] ?? 'assinatura ou autorizacao invalida');
+        $why = (string) ($verify['data']['invalidReason'] ?? $verify['data']['invalidMessage'] ?? $verify['data']['error'] ?? $verify['data']['message'] ?? 'assinatura ou autorizacao invalida');
         return [
             'valid' => false,
             'code' => 402,
@@ -860,6 +1267,15 @@ function grid402_verify_exact_payment(string $rawProof, int $requiredRawUnits, ?
 
     if ($payerAddress === '' && !empty($verify['data']['payer']) && is_string($verify['data']['payer'])) {
         $payerAddress = trim($verify['data']['payer']);
+    }
+    if ($isSvm) {
+        $verifyAmt = $verify['data']['amount'] ?? $verify['data']['value'] ?? null;
+        if ((is_string($verifyAmt) || is_int($verifyAmt)) && preg_match('/^\d{1,18}$/', trim((string) $verifyAmt)) === 1) {
+            $parsedVerifyAmt = (int) trim((string) $verifyAmt);
+            if ($parsedVerifyAmt > $rawPaidUnits) {
+                $rawPaidUnits = $parsedVerifyAmt;
+            }
+        }
     }
 
     if ($mode === 'verify_only') {
@@ -931,7 +1347,7 @@ function grid402_settle_exact_payment(array $verified): array {
         if ($nonceKey !== '') {
             grid402_release_nonce($nonceKey);
         }
-        $why = (string) ($settle['data']['errorReason'] ?? $settle['data']['errorMessage'] ?? 'liquidacao nao concluida');
+        $why = (string) ($settle['data']['errorReason'] ?? $settle['data']['errorMessage'] ?? $settle['data']['error'] ?? $settle['data']['message'] ?? 'liquidacao nao concluida');
         return [
             'valid' => false,
             'code' => 402,
@@ -940,26 +1356,45 @@ function grid402_settle_exact_payment(array $verified): array {
         ];
     }
 
+    $rawSettleTx = trim((string) ($settle['data']['transaction'] ?? ''));
+    if ($rawSettleTx === '') {
+        if ($nonceKey !== '') {
+            grid402_set_nonce_state($nonceKey, 'pending');
+        }
+        grid402_facilitator_log_error(
+            GRID402_FACILITATOR_SETTLE_PATH,
+            (int) ($settle['http_status'] ?? 200),
+            'empty_settlement_transaction',
+            'Facilitator returned success=true with empty transaction hash'
+        );
+        return [
+            'valid' => false,
+            'code' => 503,
+            'category' => 'facilitator_unavailable',
+            'reason' => 'O facilitador retornou sucesso sem hash de transacao (transaction vazio). Aguarde antes de tentar novamente.',
+            'retry_after' => 30,
+        ];
+    }
+
     if ($nonceKey !== '') {
         grid402_set_nonce_state($nonceKey, 'settled');
     }
-    $rawSettleTx = trim((string) ($settle['data']['transaction'] ?? ''));
     $settlementTx = $isSvm ? $rawSettleTx : strtolower($rawSettleTx);
     if ($payerAddress === '' && !empty($settle['data']['payer']) && is_string($settle['data']['payer'])) {
         $payerAddress = trim($settle['data']['payer']);
     }
     $settledNet = (string) ($settle['data']['network'] ?? $netV2);
-    $txLockKey = '';
-    if ($settlementTx !== '') {
-        $txLockKey = match (true) {
-            $settledNet === 'eip155:137' => 'polygon:' . strtolower($settlementTx),
-            $settledNet === 'eip155:42161' => 'arbitrum:' . strtolower($settlementTx),
-            str_starts_with(strtolower($settledNet), 'solana:') => 'solana:' . $settlementTx,
-            default => strtolower($settlementTx),
-        };
-        if (function_exists('grid402_claim_transaction_lock')) {
-            grid402_claim_transaction_lock($txLockKey);
-        }
+    // V-10: normaliza rede (v1 legado como 'polygon'/'arbitrum'/'solana' e v2 CAIP-2) antes de gravar em used_txs.json
+    $settledSlug = grid402_normalize_network_slug($settledNet)
+        ?? grid402_normalize_network_slug($netV2)
+        ?? 'base';
+    $txLockKey = match ($settledSlug) {
+        'base' => strtolower($settlementTx),
+        'solana' => 'solana:' . $settlementTx,
+        default => $settledSlug . ':' . strtolower($settlementTx),
+    };
+    if (function_exists('grid402_claim_transaction_lock')) {
+        grid402_claim_transaction_lock($txLockKey);
     }
 
     return [
@@ -967,8 +1402,8 @@ function grid402_settle_exact_payment(array $verified): array {
         'sandbox' => false,
         'source' => 'facilitator',
         'payer' => $payerAddress,
-        'settlement_tx' => $settlementTx !== '' ? $settlementTx : null,
-        'lock_key' => $txLockKey !== '' ? $txLockKey : null,
+        'settlement_tx' => $settlementTx,
+        'lock_key' => $txLockKey,
         'raw_amount' => $rawPaidUnits,
         'network' => $settledNet,
         'reason' => 'Pagamento x402 liquidado pelo facilitador.',

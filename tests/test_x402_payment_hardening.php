@@ -40,7 +40,7 @@ try {
     $allHaveTimeout = true;
     foreach ($resources as $resItem) {
         $accepts = is_array($resItem['accepts'] ?? null) ? $resItem['accepts'] : [];
-        if (count($accepts) !== 4) {
+        if (count($accepts) !== 3) {
             $allHaveTimeout = false;
         }
         foreach ($accepts as $acc) {
@@ -50,7 +50,17 @@ try {
             }
         }
     }
-    t_assert('Todos os 96 accepts[] em x402.json possuem maxTimeoutSeconds === 300', $acceptCount === 96 && $allHaveTimeout, "Accepts={$acceptCount}");
+    t_assert('Todos os 72 accepts[] EVM (24 recursos x 3 redes default V-05) em x402.json possuem maxTimeoutSeconds === 300', $acceptCount === 72 && $allHaveTimeout, "Accepts={$acceptCount}");
+
+    // Verifica que com GRID402_SOLANA_X402_ENABLED=true, grid402_build_accepts emite 4 redes (incluindo Solana) com maxTimeoutSeconds === 300
+    $solFlagCmd = sprintf(
+        '%s -r %s',
+        escapeshellarg(PHP_BINARY),
+        escapeshellarg("putenv('GRID402_SOLANA_X402_ENABLED=true'); define('GRID402_EXEC', true); require '" . str_replace('\\', '/', __DIR__ . '/../public_html/config.php') . "'; require '" . str_replace('\\', '/', __DIR__ . '/../public_html/x402.php') . "'; echo json_encode(grid402_build_accepts(5000));")
+    );
+    $solFlagAccepts = json_decode((string) shell_exec($solFlagCmd), true);
+    $solFlagOk = is_array($solFlagAccepts) && count($solFlagAccepts) === 4 && ($solFlagAccepts[3]['maxTimeoutSeconds'] ?? 0) === 300 && str_starts_with((string) ($solFlagAccepts[3]['network'] ?? ''), 'solana:');
+    t_assert('Com GRID402_SOLANA_X402_ENABLED=true, grid402_build_accepts emite 4 redes com maxTimeoutSeconds === 300', $solFlagOk, json_encode($solFlagAccepts));
 
     // -------------------------------------------------------------------------
     // 2. facilitator.php: backfill maxTimeoutSeconds, clock skew, verify/abort/settle + anti-replay

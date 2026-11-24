@@ -83,34 +83,74 @@ function grid402_is_default_secret(): bool {
 }
 
 /**
- * Obtenção confiável do IP do cliente protegida contra spoofing de headers
+ * Verifica se um endereco IP e privado, loopback ou reservado (RFC 1918 / RFC 4193 / loopback / link-local).
+ * Cobre explicitamente 10.0.0.0/8, 172.16.0.0/12 (172.16.* a 172.31.*), 192.168.0.0/16, 127.0.0.0/8, ::1, fc00::/7, fe80::/10.
+ */
+function grid402_is_private_or_reserved_ip(string $ip): bool {
+    $ip = trim($ip);
+    if (filter_var($ip, FILTER_VALIDATE_IP) === false) {
+        return true;
+    }
+    return filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) === false;
+}
+
+/**
+ * Obtenção confiável do IP do cliente protegida contra spoofing de headers.
+ *
+ * - Por padrao (Hostinger hcdn / origem direta), NAO confia em CF-Connecting-IP.
+ *   So aceita CF-Connecting-IP se GRID402_TRUST_CF_HEADER=true (default: false)
+ *   e, quando GRID402_TRUSTED_PROXIES estiver definido, se REMOTE_ADDR for proxy confiavel.
+ * - Quando REMOTE_ADDR e proxy confiavel (privado/local RFC 1918 incluindo 172.16.0.0/12
+ *   ou listado em GRID402_TRUSTED_PROXIES), extrai o ultimo IP nao-privado a direita
+ *   em X-Forwarded-For; caso contrario, usa REMOTE_ADDR como padrao seguro.
  */
 function grid402_get_trusted_client_ip(): string {
-    $remote = (string)($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1');
+    $remote = trim((string) ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'));
+    if (filter_var($remote, FILTER_VALIDATE_IP) === false) {
+        $remote = '127.0.0.1';
+    }
 
-    $isLocalOrPrivate = in_array($remote, ['127.0.0.1', '::1'], true)
-        or str_starts_with($remote, '10.')
-        or str_starts_with($remote, '172.16.')
-        or str_starts_with($remote, '192.168.');
+    $isLocalOrPrivate = grid402_is_private_or_reserved_ip($remote);
 
-    if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
-        $cf = trim((string)$_SERVER['HTTP_CF_CONNECTING_IP']);
-        if (filter_var($cf, FILTER_VALIDATE_IP)) {
-            return $cf;
+    $trustedProxiesRaw = trim((string) grid402_env('GRID402_TRUSTED_PROXIES', ''));
+    $trustedProxies = [];
+    if ($trustedProxiesRaw !== '') {
+        $parsedProxies = preg_split('/[\s,;]+/', $trustedProxiesRaw, -1, PREG_SPLIT_NO_EMPTY);
+        if (is_array($parsedProxies)) {
+            foreach ($parsedProxies as $p) {
+                $pClean = trim($p);
+                if (filter_var($pClean, FILTER_VALIDATE_IP) !== false) {
+                    $trustedProxies[] = $pClean;
+                }
+            }
         }
     }
 
-    if ($isLocalOrPrivate) {
-        if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-            $parts = explode(',', (string)$_SERVER['HTTP_X_FORWARDED_FOR']);
-            $candidate = trim($parts[0]);
-            if (filter_var($candidate, FILTER_VALIDATE_IP)) {
+    $isTrustedProxy = $isLocalOrPrivate || in_array($remote, $trustedProxies, true);
+
+    $trustCfRaw = strtolower(trim((string) grid402_env('GRID402_TRUST_CF_HEADER', 'false')));
+    $trustCfHeader = in_array($trustCfRaw, ['1', 'true', 'yes', 'on'], true);
+    if ($trustCfHeader && !empty($_SERVER['HTTP_CF_CONNECTING_IP'])) {
+        $cfAllowedByProxy = empty($trustedProxies) || $isTrustedProxy;
+        if ($cfAllowedByProxy) {
+            $cf = trim((string) $_SERVER['HTTP_CF_CONNECTING_IP']);
+            if (filter_var($cf, FILTER_VALIDATE_IP) !== false) {
+                return $cf;
+            }
+        }
+    }
+
+    if ($isTrustedProxy && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $parts = explode(',', (string) $_SERVER['HTTP_X_FORWARDED_FOR']);
+        for ($i = count($parts) - 1; $i >= 0; $i--) {
+            $candidate = trim($parts[$i]);
+            if (filter_var($candidate, FILTER_VALIDATE_IP) !== false && !grid402_is_private_or_reserved_ip($candidate)) {
                 return $candidate;
             }
         }
     }
 
-    return filter_var($remote, FILTER_VALIDATE_IP) ? $remote : '127.0.0.1';
+    return $remote;
 }
 
 /**
@@ -429,10 +469,28 @@ function grid402_check_rapidapi_endpoint_guard(string $endpointId): array {
 
     $fp = @fopen($limitsFile, 'c+');
     if (!$fp) {
-        return ['allowed' => true, 'consumed' => false, 'daily_cap' => $dossierCap];
+        return [
+            'allowed' => false,
+            'consumed' => false,
+            'http_status' => 503,
+            'error' => 'RapidApiGuardUnavailable',
+            'reason' => 'RapidAPI endpoint guard storage is temporarily unavailable (fail-closed).',
+            'daily_cap' => $dossierCap,
+            'retry_after' => 60,
+            'upgrade_url' => $upgradeUrl,
+        ];
     }
 
-    $result = ['allowed' => true, 'consumed' => false, 'daily_cap' => $dossierCap];
+    $result = [
+        'allowed' => false,
+        'consumed' => false,
+        'http_status' => 503,
+        'error' => 'RapidApiGuardUnavailable',
+        'reason' => 'Unable to acquire lock for RapidAPI endpoint guard (fail-closed).',
+        'daily_cap' => $dossierCap,
+        'retry_after' => 60,
+        'upgrade_url' => $upgradeUrl,
+    ];
     if (flock($fp, LOCK_EX)) {
         $store = grid402_read_locked_json($fp, []);
         $cleaned = [];
@@ -456,17 +514,20 @@ function grid402_check_rapidapi_endpoint_guard(string $endpointId): array {
             ];
         } else {
             $cleaned[$key] = $usedToday + 1;
-            ftruncate($fp, 0);
-            rewind($fp);
-            fwrite($fp, (string) json_encode($cleaned, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            $encoded = (string) json_encode($cleaned, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+            $truncated = ftruncate($fp, 0);
+            $rewound = rewind($fp);
+            $written = fwrite($fp, $encoded);
             fflush($fp);
-            $result = [
-                'allowed' => true,
-                'consumed' => true,
-                'daily_cap' => $dossierCap,
-                'used_today' => $usedToday + 1,
-                'remaining_today' => max(0, $dossierCap - ($usedToday + 1)),
-            ];
+            if ($truncated && $rewound && $written !== false) {
+                $result = [
+                    'allowed' => true,
+                    'consumed' => true,
+                    'daily_cap' => $dossierCap,
+                    'used_today' => $usedToday + 1,
+                    'remaining_today' => max(0, $dossierCap - ($usedToday + 1)),
+                ];
+            }
         }
         flock($fp, LOCK_UN);
     }
@@ -617,7 +678,7 @@ $grid402MpSandboxRaw = strtolower(trim((string) grid402_env('GRID402_MP_SANDBOX'
 define('GRID402_MP_SANDBOX', in_array($grid402MpSandboxRaw, ['1', 'true', 'yes', 'on'], true));
 unset($grid402MpSandboxRaw);
 
-// Facilitador x402 (pagamentos `exact` / EIP-3009). Modos: disabled (padrao), verify_only, settle
+// Facilitador x402 (pagamentos `exact` / EIP-3009). Modos: settle (padrao), verify_only, disabled
 // Decisão do mantenedor (2026-11-13): produção usa PayAI como facilitador padrão (via créditos
 // pré-pagos do merchant payTo; 1.000 créditos grátis para começar). CDP segue suportável via env.
 $grid402FacilitatorMode = strtolower(trim((string) grid402_env('GRID402_FACILITATOR_MODE', 'settle')));
@@ -1204,20 +1265,30 @@ function grid402_get_uptime_history_30d(): array {
 
 /**
  * Gera chave composta determinística para cache de idempotência M2M.
+ * O parametro opcional $scope vincula a chave ao pagador/credencial autenticada,
+ * modo (prod) e hash do corpo POST (ex.: notarize), preservando retrocompatibilidade.
  */
-function grid402_idempotency_composite_key(string $idempotencyKey, string $endpoint, array $queryParams): string {
+function grid402_idempotency_composite_key(string $idempotencyKey, string $endpoint, array $queryParams, string $scope = ''): string {
     unset($queryParams['api']);
     ksort($queryParams);
     $canonicalQuery = http_build_query($queryParams);
-    return hash('sha256', trim($idempotencyKey) . '|' . strtolower(trim($endpoint)) . '|' . $canonicalQuery);
+    $base = trim($idempotencyKey) . '|' . strtolower(trim($endpoint)) . '|' . $canonicalQuery;
+    if ($scope !== '') {
+        $base .= '|' . $scope;
+    }
+    return hash('sha256', $base);
 }
 
 /**
  * Verifica se existe resposta assinada em cache para a Idempotency-Key dentro da janela de 300s.
  */
-function grid402_idempotency_check(string $idempotencyKey, string $endpoint, array $queryParams): ?array {
+function grid402_idempotency_check(string $idempotencyKey, string $endpoint, array $queryParams, string $scope = ''): ?array {
     $cleanKey = trim($idempotencyKey);
+    $cleanEndpoint = strtolower(trim($endpoint));
     if ($cleanKey === '' || strlen($cleanKey) > 128) {
+        return null;
+    }
+    if ($cleanEndpoint === 'pass' || $cleanEndpoint === 'pass-emitir') {
         return null;
     }
 
@@ -1233,22 +1304,18 @@ function grid402_idempotency_check(string $idempotencyKey, string $endpoint, arr
 
     $hit = null;
     if (flock($fp, LOCK_EX)) {
-        clearstatcache(true, $file);
-        $size = (int) @filesize($file);
-        $raw = $size > 0 ? (string) fread($fp, $size) : '';
-        $cache = $raw !== '' ? (@json_decode($raw, true) ?: []) : [];
-        if (!is_array($cache)) {
-            $cache = [];
-        }
+        $cache = grid402_read_locked_json($fp, []);
 
         $now = time();
         $ttl = defined('GRID402_IDEMPOTENCY_TTL_SEC') ? GRID402_IDEMPOTENCY_TTL_SEC : 300;
-        $composite = grid402_idempotency_composite_key($cleanKey, $endpoint, $queryParams);
+        $composite = grid402_idempotency_composite_key($cleanKey, $cleanEndpoint, $queryParams, $scope);
 
         if (isset($cache[$composite]) && is_array($cache[$composite])) {
             $createdAt = (int) ($cache[$composite]['created_at'] ?? 0);
             if (($now - $createdAt) <= $ttl && isset($cache[$composite]['response']) && is_array($cache[$composite]['response'])) {
-                $hit = $cache[$composite]['response'];
+                if (empty($cache[$composite]['response']['sandbox'])) {
+                    $hit = $cache[$composite]['response'];
+                }
             }
         }
 
@@ -1261,10 +1328,15 @@ function grid402_idempotency_check(string $idempotencyKey, string $endpoint, arr
 
 /**
  * Armazena resposta HTTP 200 assinada no cache de idempotência com TTL de 300s e expurgo automático.
+ * Nunca armazena respostas sandbox nem emissao de Session Pass (/pass ou /pass-emitir).
  */
-function grid402_idempotency_store(string $idempotencyKey, string $endpoint, array $queryParams, array $signedResponse): void {
+function grid402_idempotency_store(string $idempotencyKey, string $endpoint, array $queryParams, array $signedResponse, string $scope = ''): void {
     $cleanKey = trim($idempotencyKey);
+    $cleanEndpoint = strtolower(trim($endpoint));
     if ($cleanKey === '' || strlen($cleanKey) > 128) {
+        return;
+    }
+    if ($cleanEndpoint === 'pass' || $cleanEndpoint === 'pass-emitir' || !empty($signedResponse['sandbox'])) {
         return;
     }
 
@@ -1280,13 +1352,7 @@ function grid402_idempotency_store(string $idempotencyKey, string $endpoint, arr
     }
 
     if (flock($fp, LOCK_EX)) {
-        clearstatcache(true, $file);
-        $size = (int) @filesize($file);
-        $raw = $size > 0 ? (string) fread($fp, $size) : '';
-        $cache = $raw !== '' ? (@json_decode($raw, true) ?: []) : [];
-        if (!is_array($cache)) {
-            $cache = [];
-        }
+        $cache = grid402_read_locked_json($fp, []);
 
         $now = time();
         $ttl = defined('GRID402_IDEMPOTENCY_TTL_SEC') ? GRID402_IDEMPOTENCY_TTL_SEC : 300;
@@ -1297,10 +1363,10 @@ function grid402_idempotency_store(string $idempotencyKey, string $endpoint, arr
             }
         }
 
-        $composite = grid402_idempotency_composite_key($cleanKey, $endpoint, $queryParams);
+        $composite = grid402_idempotency_composite_key($cleanKey, $cleanEndpoint, $queryParams, $scope);
         $cleaned[$composite] = [
             'idempotency_key' => $cleanKey,
-            'endpoint' => $endpoint,
+            'endpoint' => $cleanEndpoint,
             'created_at' => $now,
             'expires_at' => $now + $ttl,
             'response' => $signedResponse,

@@ -414,7 +414,15 @@ try {
     assert(isset($statsJson['passes_stats']), 'API deve conter passes_stats');
     assert(isset($statsJson['facilitator_status']['mode'], $statsJson['facilitator_status']['auth_mode'], $statsJson['facilitator_status']['host']), 'API deve conter facilitator_status sem segredos');
     if (defined('GRID402_X402_NETWORK') && GRID402_X402_NETWORK === 'base') {
-        assert((int) ($statsJson['facilitator_status']['multichain_accepts'] ?? 0) === 4, 'multichain_accepts em mainnet deve ser 4 (Recebeu: ' . ($statsJson['facilitator_status']['multichain_accepts'] ?? 'null') . ')');
+        $expectedChains = (function_exists('grid402_is_solana_x402_enabled') && grid402_is_solana_x402_enabled()) ? 4 : 3;
+        assert((int) ($statsJson['facilitator_status']['multichain_accepts'] ?? 0) === $expectedChains, "multichain_accepts em mainnet deve ser {$expectedChains} (Recebeu: " . ($statsJson['facilitator_status']['multichain_accepts'] ?? 'null') . ')');
+        // Valida também em subprocesso isolado que com GRID402_SOLANA_X402_ENABLED=true o facilitador anuncia 4 chains
+        $sol4Cmd = sprintf(
+            '%s -r %s',
+            escapeshellarg(PHP_BINARY),
+            escapeshellarg("putenv('GRID402_SOLANA_X402_ENABLED=true'); define('GRID402_EXEC', true); require '" . str_replace('\\', '/', __DIR__ . '/../public_html/config.php') . "'; require '" . str_replace('\\', '/', __DIR__ . '/../public_html/x402.php') . "'; echo count(grid402_build_accepts(5000));")
+        );
+        assert(trim((string) shell_exec($sol4Cmd)) === '4', 'Com GRID402_SOLANA_X402_ENABLED=true, multichain_accepts em mainnet deve ser 4');
     }
     assert(isset($statsJson['rapidapi_status']['configured'], $statsJson['rapidapi_status']['source']), 'API deve conter rapidapi_status sem segredos');
     assert(defined('GRID402_RAPIDAPI_PROXY_SECRET') && (GRID402_RAPIDAPI_PROXY_SECRET === '' || !str_contains($authStats['body'], GRID402_RAPIDAPI_PROXY_SECRET)), 'API stats nunca deve vazar GRID402_RAPIDAPI_PROXY_SECRET');
@@ -459,7 +467,8 @@ try {
     assert(str_contains($dashResp['body'], 'Facilitador x402'), 'Dashboard deve exibir status seguro do Facilitador x402');
     assert(str_contains($dashResp['body'], 'runtime-rapidapi-badge') && str_contains($dashResp['body'], 'btn-config-rapidapi') && str_contains($dashResp['body'], 'rapidapi-modal-overlay'), 'Dashboard deve exibir badge, botao e modal de configuracao do RapidAPI Bridge');
     if (defined('GRID402_X402_NETWORK') && GRID402_X402_NETWORK === 'base') {
-        assert(str_contains($dashResp['body'], '4 chains'), 'Dashboard em mainnet deve exibir 4 chains no badge do facilitador');
+        $expectedChainsLabel = (function_exists('grid402_is_solana_x402_enabled') && grid402_is_solana_x402_enabled()) ? '4 chains' : '3 chains';
+        assert(str_contains($dashResp['body'], $expectedChainsLabel), "Dashboard em mainnet deve exibir {$expectedChainsLabel} no badge do facilitador");
     }
     assert(str_contains($dashResp['body'], 'runtime-telegram-badge') && str_contains($dashResp['body'], 'btn-test-telegram'), 'Dashboard deve exibir badge e botao de diagnostico do Telegram');
     assert(str_contains($dashResp['body'], 'payment-failures-panel') && str_contains($dashResp['body'], 'payment-failures-tbody'), 'Dashboard deve exibir painel de diagnostico real de falhas em requests.jsonl');

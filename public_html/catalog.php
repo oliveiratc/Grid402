@@ -76,7 +76,7 @@ ksort($services);
     <div class="grid">
         <div class="card"><h3 data-i18n="catalog.limits.c1.title">x402 micropayment</h3><p data-i18n-html="catalog.limits.c1.desc">Send <code>PAYMENT-SIGNATURE</code> (gasless PayAI x402 v2 across Base, Polygon, Arbitrum, and Solana) or tx hash to the official wallet <code><?php echo htmlspecialchars(GRID402_WALLET_ADDRESS); ?></code>; the service responds in milliseconds.</p></div>
         <div class="card"><h3 data-i18n="catalog.limits.c2.title">Session Pass (1 credit = 0.0050 USDC)</h3><p data-i18n-html="catalog.limits.c2.desc">Buy credits at <a href="/pass" style="color:var(--primary)">/pass</a> (Pix from R$ 12 or USDC); send <code>X-Payment: pass_g402_...</code>. Starter (2 USDC = 400 credits, 180d), Pro (5 USDC = 1,000 base + 200 bonus = 1,200 credits, 180d), Fleet (20 USDC = 4,000 base + 2,000 bonus = 6,000 credits, 365d).</p></div>
-        <div class="card"><h3 data-i18n="catalog.limits.c3.title">Sandbox &amp; Idempotency</h3><p data-i18n-html="catalog.limits.c3.desc">For testing: <code>X-Payment: demo</code> (3 req/day per IP). In production, send <code>Idempotency-Key</code> for retries without duplicate billing (300s TTL).</p></div>
+        <div class="card"><h3 data-i18n="catalog.limits.c3.title">Sandbox &amp; Idempotency</h3><p data-i18n-html="catalog.limits.c3.desc">For quick testing on data routes: <code>X-Payment: demo</code> (3 req/day per IP; not accepted on <code>/api/v1/pass</code>). In production, send <code>Idempotency-Key</code> for retries without duplicate billing (300s TTL).</p></div>
         <div class="card"><h3 data-i18n="catalog.limits.c4.title">Rate limit and Spend Controls</h3><p data-i18n-html="catalog.limits.c4.desc">Timeout: <?php echo GRID402_TIMEOUT_MS; ?> ms. Check balance for free at <code>GET /api/v1/pass/balance</code> and configure daily cap (<code>daily_credit_limit</code>) and route whitelist.</p></div>
     </div>
 
@@ -118,13 +118,20 @@ ksort($services);
                 elseif ($id === 'extract') $example .= '?url=https://example.com';
                 elseif ($id === 'email-verify') $example .= '?email=contato@grid402.online';
                 $priceDisplay = ($price === 'Gratuito') ? 'Free' : (string)$price;
+                if ($id === 'verify') {
+                    $curlCmd = 'curl -X POST https://grid402.online/api/v1/verify -H "Content-Type: application/json" -d @oracle_response.json';
+                } elseif ($id === 'pass') {
+                    $curlCmd = 'curl -H "PAYMENT-SIGNATURE: $X402_SIGNED_PAYLOAD" https://grid402.online/api/v1/pass';
+                } else {
+                    $curlCmd = 'curl -H "X-Payment: $GRID402_SESSION_PASS" "https://grid402.online' . $example . '"';
+                }
             ?>
                 <tr>
                     <td><code><?php echo htmlspecialchars((string)($svc['endpoint'] ?? $example)); ?></code><br><strong data-i18n="svc.<?php echo htmlspecialchars((string)$id); ?>.name"><?php echo htmlspecialchars((string)($svc['name'] ?? $id)); ?></strong><br><span class="muted" data-i18n="svc.<?php echo htmlspecialchars((string)$id); ?>.desc"><?php echo htmlspecialchars((string)($svc['description'] ?? '')); ?></span><br><small class="muted"><span data-i18n="catalog.source_label">Source:</span> <?php echo htmlspecialchars($upstreamSource); ?> · TTL: <?php echo $cacheTtl; ?>s</small></td>
                     <td data-i18n="svc.<?php echo htmlspecialchars((string)$id); ?>.category"><?php echo htmlspecialchars((string)($svc['category'] ?? 'M2M')); ?></td>
                     <td class="price"<?php echo $price === 'Gratuito' ? ' data-i18n="agents.free"' : ''; ?>><?php echo htmlspecialchars($priceDisplay); ?></td>
                     <td class="ok"><strong><?php echo htmlspecialchars((string)$status); ?></strong></td>
-                    <td><code>curl -H "X-Payment: demo" https://grid402.online<?php echo htmlspecialchars($example); ?></code></td>
+                    <td><code><?php echo htmlspecialchars($curlCmd); ?></code></td>
                 </tr>
             <?php endforeach; ?>
             </tbody>

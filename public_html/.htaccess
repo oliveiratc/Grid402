@@ -2,8 +2,8 @@
 Options -Indexes
 ServerSignature Off
 
-# Proteção de arquivos sensíveis
-<FilesMatch "^\.(env|git)|config\.php$|\.(json|log|sh|sql|bak|tmp)$">
+# Proteção de arquivos sensíveis e módulos internos PHP
+<FilesMatch "^\.(env|git)|(config|x402|facilitator|metrics|logger)\.php$|\.(json|log|sh|sql|bak|tmp)$">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>
@@ -49,6 +49,14 @@ ServerSignature Off
     RewriteEngine On
     RewriteBase /
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Bloqueio de acesso HTTP direto a diretorios e modulos internos (HTTP 403)
+    # Permite services/onchain_stats.php apenas para cron autenticado por CRON_SECRET
+    RewriteRule ^includes(/.*)?$ - [F,L]
+    RewriteRule ^private_data(/.*)?$ - [F,L]
+    RewriteRule ^services/(?!onchain_stats\.php$).*$ - [F,L]
+    RewriteRule ^services/?$ - [F,L]
+    RewriteRule ^(config|x402|facilitator|metrics|logger)\.php$ - [F,L]
 
     # 0. Redirecionamento Canonico de Dominio (301)
     # Preserva execucao direta de rotas M2M (/api/*, /mcp, /status, manifestos) em www.grid402.online

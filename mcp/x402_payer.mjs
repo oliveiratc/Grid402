@@ -14,14 +14,14 @@ import crypto from 'node:crypto';
 import { ethers } from 'ethers';
 
 export const BASE_RPC_URLS = [
-  'https://mainnet.base.org',
+  'https://base-rpc.publicnode.com',
   'https://1rpc.io/base',
-  'https://base.llamarpc.com',
+  'https://mainnet.base.org',
 ];
 
 export const SOLANA_RPC_URLS = [
-  'https://api.mainnet-beta.solana.com',
   'https://solana-rpc.publicnode.com',
+  'https://api.mainnet-beta.solana.com',
 ];
 
 export const USDC_CONTRACT_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'.toLowerCase();
@@ -53,9 +53,8 @@ export const SUPPORTED_X402_NETWORKS = {
     usdcContract: '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359',
     recipient: GRID402_RECIPIENT_WALLET,
     rpcs: [
-      'https://polygon-rpc.com',
-      'https://1rpc.io/matic',
       'https://polygon-bor-rpc.publicnode.com',
+      'https://1rpc.io/matic',
     ],
     eip3009: { name: 'USD Coin', version: '2' },
   },
@@ -68,9 +67,9 @@ export const SUPPORTED_X402_NETWORKS = {
     usdcContract: '0xaf88d065e77c8cc2239327c5edb3a432268e5831',
     recipient: GRID402_RECIPIENT_WALLET,
     rpcs: [
+      'https://arbitrum-one-rpc.publicnode.com',
       'https://arb1.arbitrum.io/rpc',
       'https://1rpc.io/arb',
-      'https://arbitrum-one-rpc.publicnode.com',
     ],
     eip3009: { name: 'USD Coin', version: '2' },
   },
@@ -83,9 +82,9 @@ export const SUPPORTED_X402_NETWORKS = {
     usdcContract: '0x0b2c639c533813f4aa9d7837caf62653d097ff85',
     recipient: GRID402_RECIPIENT_WALLET,
     rpcs: [
+      'https://optimism-rpc.publicnode.com',
       'https://mainnet.optimism.io',
       'https://1rpc.io/op',
-      'https://optimism-rpc.publicnode.com',
     ],
     eip3009: null,
   },
@@ -100,7 +99,6 @@ export const SUPPORTED_X402_NETWORKS = {
     rpcs: [
       'https://ethereum-rpc.publicnode.com',
       'https://1rpc.io/eth',
-      'https://eth.llamarpc.com',
     ],
     eip3009: null,
   },
@@ -463,15 +461,62 @@ export async function callSolanaRpc(method, params = [], preferredRpc = null) {
 }
 
 /**
+ * Aguarda confirmação de assinatura Solana via polling de `getSignatureStatuses`.
+ */
+export async function waitForSolanaConfirmation(signature, preferredRpc = null, maxAttempts = 20, intervalMs = 1500) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    const statusRes = await callSolanaRpc(
+      'getSignatureStatuses',
+      [[signature], { searchTransactionHistory: true }],
+      preferredRpc
+    );
+    const info = statusRes?.value?.[0];
+    if (info) {
+      if (info.err) {
+        throw new Error(`Transação Solana falhou on-chain (${signature}): ${JSON.stringify(info.err)}`);
+      }
+      if (info.confirmationStatus === 'confirmed' || info.confirmationStatus === 'finalized') {
+        return info;
+      }
+    }
+    if (attempt < maxAttempts - 1) {
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+  }
+  throw new Error(`Timeout aguardando confirmação da transação Solana ${signature} após ${Math.round((maxAttempts * intervalMs) / 1000)}s.`);
+}
+
+/**
+ * Resolve o item `accepts[]` compatível com a rede desejada no desafio HTTP 402.
+ */
+function findChallengeAcceptForNetwork(challenge, networkSlug) {
+  if (!Array.isArray(challenge?.accepts)) return null;
+  for (const item of challenge.accepts) {
+    if (!item || typeof item !== 'object') continue;
+    try {
+      if (normalizePaymentNetwork(item.network) === networkSlug) {
+        return item;
+      }
+    } catch {
+      // ignora rede desconhecida no challenge
+    }
+  }
+  return null;
+}
+
+/**
  * Liquida um desafio x402 na Solana Mainnet (SPL USDC).
- * Suporta modo gasless x402 v2 (`options.gasless = true`) ou envio direto on-chain (`solana:<signature>`).
+ * Suporta modo gasless x402 v2 (ativo por padrão quando o challenge inclui Solana `exact` e `GRID402_X402_GASLESS !== 'false'`)
+ * ou envio direto on-chain (`solana:<signature>`) com espera de confirmação.
  */
 export async function settleSolanaUsdcPayment(challenge, privateKey, preferredRpc = null, options = {}) {
   const keypair = parseSolanaKeypair(privateKey);
-  const rawUnits = BigInt(challenge?.price_raw_units || REQUIRED_RAW_UNITS);
+  const solAccept = findChallengeAcceptForNetwork(challenge, 'solana');
+  const rawUnits = BigInt(solAccept?.amount || solAccept?.maxAmountRequired || challenge?.price_raw_units || REQUIRED_RAW_UNITS);
   const formattedUsdc = (Number(rawUnits) / 1e6).toFixed(4);
-  const recipientOwner = challenge?.solana_recipient_wallet || GRID402_SOLANA_RECIPIENT_WALLET;
-  const mint = USDC_MINT_SOLANA;
+  const recipientOwner = solAccept?.payTo || challenge?.solana_recipient_wallet || GRID402_SOLANA_RECIPIENT_WALLET;
+  const mint = solAccept?.asset || USDC_MINT_SOLANA;
+  const dynamicFeePayer = solAccept?.extra?.feePayer || challenge?.solana_fee_payer || PAYAI_SOLANA_FEE_PAYER;
 
   // 1. Consulta conta SPL USDC do pagador e valida saldo
   const senderAccounts = await callSolanaRpc(
@@ -489,15 +534,26 @@ export async function settleSolanaUsdcPayment(challenge, privateKey, preferredRp
     throw new Error(`Saldo insuficiente de SPL USDC na carteira Solana ${keypair.publicKeyBase58}. Requerido: ${formattedUsdc} USDC, Atual: ${currentFormatted} USDC.`);
   }
 
-  // 2. Consulta conta SPL USDC oficial do recebedor Grid402
-  const recipientAccounts = await callSolanaRpc(
-    'getTokenAccountsByOwner',
-    [recipientOwner, { mint }, { encoding: 'jsonParsed' }],
-    preferredRpc
-  );
-  const recipientTokenAccount = recipientAccounts?.value?.[0]?.pubkey;
+  // 2. Consulta conta SPL USDC oficial do recebedor Grid402 (tratamento gracioso caso ATA ainda não exista)
+  let recipientTokenAccount = null;
+  try {
+    const recipientAccounts = await callSolanaRpc(
+      'getTokenAccountsByOwner',
+      [recipientOwner, { mint }, { encoding: 'jsonParsed' }],
+      preferredRpc
+    );
+    recipientTokenAccount = recipientAccounts?.value?.[0]?.pubkey || null;
+  } catch (ataErr) {
+    throw new Error(
+      `Falha ao consultar a conta SPL USDC (ATA) de destino ${recipientOwner} na Solana: ${ataErr.message}. ` +
+      'Como alternativa imediata, use Base/Polygon/Arbitrum (GRID402_PAYMENT_NETWORK=base) ou um Session Pass em https://grid402.online/pass.'
+    );
+  }
   if (!recipientTokenAccount) {
-    throw new Error(`Conta SPL USDC de destino não encontrada para ${recipientOwner}.`);
+    throw new Error(
+      `A carteira recebedora Solana (${recipientOwner}) ainda não possui ATA SPL USDC inicializada on-chain. ` +
+      'Use GRID402_PAYMENT_NETWORK=base (ou polygon/arbitrum) com USDC EVM, ou adquira um Session Pass em https://grid402.online/pass.'
+    );
   }
 
   // 3. Obtém blockhash recente
@@ -511,8 +567,15 @@ export async function settleSolanaUsdcPayment(challenge, privateKey, preferredRp
     throw new Error('Não foi possível obter recentBlockhash da Solana Mainnet.');
   }
 
-  // 4. Modo Gasless via Facilitador PayAI x402 v2
-  const useGasless = options.gasless === true || process.env.GRID402_X402_GASLESS === 'true';
+  // 4. Modo Gasless via Facilitador PayAI x402 v2 (feePayer dinâmico de challenge.accepts[].extra.feePayer)
+  const envGaslessDisabled = process.env.GRID402_X402_GASLESS === 'false' || process.env.GRID402_X402_GASLESS === '0';
+  const challengeSupportsSolGasless = !Array.isArray(challenge?.accepts) || challenge.accepts.length === 0
+    ? true
+    : Boolean(solAccept && solAccept.scheme === 'exact');
+  const useGasless = options.gasless !== undefined
+    ? Boolean(options.gasless)
+    : (!envGaslessDisabled && challengeSupportsSolGasless);
+
   if (useGasless) {
     const x402Built = buildSolanaX402PaymentPayload({
       privateKey,
@@ -522,6 +585,7 @@ export async function settleSolanaUsdcPayment(challenge, privateKey, preferredRp
       rawUnits,
       recipient: recipientOwner,
       mint,
+      feePayer: dynamicFeePayer,
     });
     return {
       txHash: x402Built.signatureBase58,
@@ -530,13 +594,14 @@ export async function settleSolanaUsdcPayment(challenge, privateKey, preferredRp
       network: 'solana',
       networkName: 'Solana',
       mode: 'x402_gasless',
+      feePayer: dynamicFeePayer,
       from: keypair.publicKeyBase58,
       to: recipientOwner,
       amountUsdc: formattedUsdc,
     };
   }
 
-  // 5. Modo On-Chain Direto (envia transação SPL USDC e retorna solana:<signature>)
+  // 5. Modo On-Chain Direto (envia transação SPL USDC, aguarda confirmação e retorna solana:<signature>)
   const signedTx = buildSolanaSplTransferTransaction({
     privateKey,
     sourceTokenAccount: senderEntry.pubkey,
@@ -553,10 +618,12 @@ export async function settleSolanaUsdcPayment(challenge, privateKey, preferredRp
     preferredRpc
   );
 
+  const confirmedStatus = await waitForSolanaConfirmation(txSignature, preferredRpc);
+
   return {
     txHash: txSignature,
     paymentHeader: `solana:${txSignature}`,
-    blockNumber: latestBlockhashRes?.context?.slot || null,
+    blockNumber: confirmedStatus?.slot || latestBlockhashRes?.context?.slot || null,
     network: 'solana',
     networkName: 'Solana',
     mode: 'onchain_transfer',
@@ -605,17 +672,20 @@ export async function buildEip3009PaymentPayload(challenge, privateKey, networkS
   }
 
   const wallet = new ethers.Wallet(privateKey.trim());
-  const rawUnits = BigInt(challenge?.price_raw_units || REQUIRED_RAW_UNITS);
-  const recipient = ethers.getAddress(challenge?.recipient_wallet || net.recipient);
-  const verifyingContract = ethers.getAddress(net.usdcContract);
+  const netAccept = findChallengeAcceptForNetwork(challenge, slug);
+  const rawUnits = BigInt(netAccept?.amount || netAccept?.maxAmountRequired || challenge?.price_raw_units || REQUIRED_RAW_UNITS);
+  const recipient = ethers.getAddress(netAccept?.payTo || challenge?.recipient_wallet || net.recipient);
+  const verifyingContract = ethers.getAddress(netAccept?.asset || net.usdcContract);
+  const eip3009Name = netAccept?.extra?.name || net.eip3009.name;
+  const eip3009Version = netAccept?.extra?.version || net.eip3009.version;
   const nowSec = Math.floor(Date.now() / 1000);
   const validAfter = 0;
   const validBefore = nowSec + 300;
   const nonce = '0x' + crypto.randomBytes(32).toString('hex');
 
   const domain = {
-    name: net.eip3009.name,
-    version: net.eip3009.version,
+    name: eip3009Name,
+    version: eip3009Version,
     chainId: net.chainId,
     verifyingContract,
   };
@@ -650,10 +720,10 @@ export async function buildEip3009PaymentPayload(challenge, privateKey, networkS
       scheme: 'exact',
       network: net.caip2,
       amount: rawUnits.toString(),
-      asset: net.usdcContract,
+      asset: verifyingContract.toLowerCase(),
       payTo: recipient.toLowerCase(),
       maxTimeoutSeconds: 300,
-      extra: net.eip3009,
+      extra: { name: eip3009Name, version: eip3009Version },
     },
     payload: {
       signature,
@@ -712,7 +782,14 @@ export async function settleX402Payment(challenge, privateKey, preferredRpc = nu
 
   const rawUnits = BigInt(challenge?.price_raw_units || REQUIRED_RAW_UNITS);
   const formattedUsdc = (Number(rawUnits) / 1e6).toFixed(4);
-  const useGasless = options.gasless === true || process.env.GRID402_X402_GASLESS === 'true';
+  const envGaslessDisabled = process.env.GRID402_X402_GASLESS === 'false' || process.env.GRID402_X402_GASLESS === '0';
+  const netAccept = findChallengeAcceptForNetwork(challenge, networkSlug);
+  const challengeSupportsGasless = !Array.isArray(challenge?.accepts) || challenge.accepts.length === 0
+    ? true
+    : Boolean(netAccept && netAccept.scheme === 'exact');
+  const useGasless = options.gasless !== undefined
+    ? Boolean(options.gasless)
+    : (!envGaslessDisabled && challengeSupportsGasless);
 
   if (useGasless && net.eip3009) {
     const eip3009 = await buildEip3009PaymentPayload(challenge, trimmedKey, networkSlug);

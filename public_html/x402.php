@@ -16,14 +16,55 @@ require_once __DIR__ . '/facilitator.php';
 require_once __DIR__ . '/services/multichain.php';
 
 /**
- * Consulta recibo de transação via JSON-RPC com fallback de nós públicos da Base
+ * Lista ordenada e saudavel de RPCs da Base Mainnet (V-21).
+ * Prioriza RPC customizado (se diferente do default rate-limited e de nos mortos),
+ * depois base-rpc.publicnode.com e fallbacks vivos, deixando mainnet.base.org por ultimo.
+ *
+ * @return string[]
+ */
+function grid402_base_rpc_urls(): array {
+    $urls = [
+        'https://base-rpc.publicnode.com',
+        'https://1rpc.io/base',
+        'https://base.drpc.org',
+        'https://mainnet.base.org',
+    ];
+    $configured = defined('GRID402_BASE_RPC_URL') ? trim((string) GRID402_BASE_RPC_URL) : '';
+    if (
+        $configured !== ''
+        && str_starts_with($configured, 'https://')
+        && !in_array(rtrim(strtolower($configured), '/'), ['https://mainnet.base.org', 'https://base.llamarpc.com'], true)
+    ) {
+        array_unshift($urls, $configured);
+    }
+    $envCustom = function_exists('grid402_env') ? trim((string) grid402_env('GRID402_RPC_BASE', '')) : '';
+    if ($envCustom !== '' && str_starts_with($envCustom, 'https://') && rtrim(strtolower($envCustom), '/') !== 'https://base.llamarpc.com') {
+        array_unshift($urls, $envCustom);
+    }
+    return array_values(array_unique($urls));
+}
+
+/**
+ * Indica se o fallback de sandbox na testnet Base Sepolia esta explicitamente habilitado.
+ * Padrao: false em producao (opt-in via GRID402_ALLOW_SEPOLIA_SANDBOX=true).
+ */
+function grid402_allow_sepolia_sandbox(): bool {
+    if (defined('GRID402_ALLOW_SEPOLIA_SANDBOX')) {
+        $v = GRID402_ALLOW_SEPOLIA_SANDBOX;
+        if (is_bool($v)) {
+            return $v;
+        }
+        return in_array(strtolower(trim((string) $v)), ['1', 'true', 'yes', 'on'], true);
+    }
+    $raw = function_exists('grid402_env') ? (string) grid402_env('GRID402_ALLOW_SEPOLIA_SANDBOX', 'false') : 'false';
+    return in_array(strtolower(trim($raw)), ['1', 'true', 'yes', 'on'], true);
+}
+
+/**
+ * Consulta recibo de transação via JSON-RPC com fallback de nós públicos saudáveis da Base
  */
 function grid402_rpc_get_receipt(string $txHash): ?array {
-    $rpcUrls = [
-        GRID402_BASE_RPC_URL,
-        'https://base.llamarpc.com',
-        'https://1rpc.io/base',
-    ];
+    $rpcUrls = grid402_base_rpc_urls();
 
     $payload = json_encode([
         'jsonrpc' => '2.0',
@@ -39,8 +80,8 @@ function grid402_rpc_get_receipt(string $txHash): ?array {
             CURLOPT_POSTFIELDS => $payload,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-            CURLOPT_TIMEOUT => 3,
-            CURLOPT_CONNECTTIMEOUT => 2,
+            CURLOPT_TIMEOUT => 5,
+            CURLOPT_CONNECTTIMEOUT => 3,
             CURLOPT_USERAGENT => 'Grid402-x402-Auditor/2.0',
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_SSL_VERIFYHOST => 2,
@@ -85,8 +126,8 @@ function grid402_rpc_get_sepolia_receipt(string $txHash): ?array {
         CURLOPT_POSTFIELDS => $payload,
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-        CURLOPT_TIMEOUT => 3,
-        CURLOPT_CONNECTTIMEOUT => 2,
+        CURLOPT_TIMEOUT => 5,
+        CURLOPT_CONNECTTIMEOUT => 3,
         CURLOPT_USERAGENT => 'Grid402-x402-Sepolia-Auditor/2.0',
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
@@ -98,7 +139,7 @@ function grid402_rpc_get_sepolia_receipt(string $txHash): ?array {
 
     if ($httpCode === 200 && is_string($response)) {
         $json = @json_decode($response, true);
-        if (isset($json['result'])) {
+        if (is_array($json) && is_array($json['result'] ?? null) && !empty($json['result'])) {
             return $json['result'];
         }
     }
@@ -107,8 +148,55 @@ function grid402_rpc_get_sepolia_receipt(string $txHash): ?array {
 }
 
 /**
- * Controle defensivo de taxa (Rate Limit) para requisicoes em Modo Sandbox
- * Permite ate 3 requisicoes por dia (janela 24h) por IP por padrao
+ * Consulta timestamp Unix de um bloco na testnet Base Sepolia via eth_getBlockByNumber.
+ */
+function grid402_rpc_get_sepolia_block_timestamp(string $blockNumberHex): ?int {
+    $cleanBlock = strtolower(trim($blockNumberHex));
+    if (preg_match('/^0x[0-9a-f]+$/', $cleanBlock) !== 1) {
+        return null;
+    }
+    $rpcUrl = defined('GRID402_SEPOLIA_RPC_URL') ? GRID402_SEPOLIA_RPC_URL : 'https://sepolia.base.org';
+    $payload = json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 1,
+        'method' => 'eth_getBlockByNumber',
+        'params' => [$cleanBlock, false],
+    ]);
+
+    $ch = curl_init($rpcUrl);
+    curl_setopt_array($ch, [
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => $payload,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+        CURLOPT_TIMEOUT => 5,
+        CURLOPT_CONNECTTIMEOUT => 3,
+        CURLOPT_USERAGENT => 'Grid402-x402-Sepolia-Auditor/2.0',
+        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_SSL_VERIFYHOST => 2,
+    ]);
+    $response = curl_exec($ch);
+    $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode === 200 && is_string($response)) {
+        $json = @json_decode($response, true);
+        $tsRaw = is_array($json['result'] ?? null) ? ($json['result']['timestamp'] ?? null) : null;
+        if (is_string($tsRaw) && preg_match('/^0x[0-9a-fA-F]+$/', $tsRaw) === 1) {
+            $ts = (int) hexdec(substr($tsRaw, 2));
+            return $ts > 0 ? $ts : null;
+        }
+        if (is_int($tsRaw) && $tsRaw > 0) {
+            return $tsRaw;
+        }
+    }
+    return null;
+}
+
+/**
+ * Controle defensivo de taxa (Rate Limit) para requisicoes em Modo Sandbox (V-02).
+ * Usa trava exclusiva atomica (fopen c+ + flock LOCK_EX) e comportamento estritamente fail-closed.
+ * Permite ate 3 requisicoes por dia (janela 24h) por IP por padrao.
  */
 function grid402_check_sandbox_rate_limit(string $clientIp): array {
     $file = defined('GRID402_FILE_SANDBOX_RATES') ? GRID402_FILE_SANDBOX_RATES : (dirname(__DIR__) . '/private_data/sandbox_rates.json');
@@ -116,67 +204,105 @@ function grid402_check_sandbox_rate_limit(string $clientIp): array {
     $windowSeconds = defined('GRID402_SANDBOX_WINDOW_SECONDS') ? max(1, (int) GRID402_SANDBOX_WINDOW_SECONDS) : 86400;
     $now = time();
 
-    $dir = dirname($file);
-    if (!is_dir($dir)) {
-        @mkdir($dir, 0755, true);
-    }
-
-    $rates = [];
-    if (file_exists($file)) {
-        $raw = @file_get_contents($file);
-        if ($raw) {
-            $rates = @json_decode($raw, true) ?: [];
-        }
-    }
-
-    // Limpeza de IPs expirados fora da janela configurada
-    $cleanRates = [];
-    foreach ($rates as $ipKey => $data) {
-        if (isset($data['first_request']) && ($now - $data['first_request']) < $windowSeconds) {
-            $cleanRates[$ipKey] = $data;
-        }
-    }
-
-    // Pseudonimizacao criptografica do IP via HMAC-SHA256 (LGPD Art. 6º, III e GDPR Art. 5(1)(c))
-    $ipSecret = defined('GRID402_CRON_SECRET') ? GRID402_CRON_SECRET : 'grid402_ip_salt';
-    $ipHashKey = 'ip_' . substr(hash_hmac('sha256', trim($clientIp), $ipSecret), 0, 24);
-
-    $ipData = $cleanRates[$ipHashKey] ?? [
-        'count' => 0,
-        'first_request' => $now,
-        'last_request' => $now,
+    $failClosed = static fn(string $errCode = 'RateLimitStorageUnavailable'): array => [
+        'allowed' => false,
+        'count' => $maxRequests,
+        'remaining' => 0,
+        'retry_after' => 60,
+        'limit' => $maxRequests,
+        'window_seconds' => $windowSeconds,
+        'error' => $errCode,
     ];
 
-    if ($ipData['count'] >= $maxRequests) {
-        $retryAfter = max(1, $windowSeconds - ($now - $ipData['first_request']));
+    $dir = dirname($file);
+    if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
+        return $failClosed('RateLimitDirUnavailable');
+    }
+
+    $fp = @fopen($file, 'c+');
+    if (!$fp) {
+        return $failClosed('RateLimitFileOpenFailed');
+    }
+
+    if (!flock($fp, LOCK_EX)) {
+        fclose($fp);
+        return $failClosed('RateLimitLockFailed');
+    }
+
+    try {
+        if (function_exists('grid402_read_locked_json')) {
+            $rates = grid402_read_locked_json($fp, []);
+        } else {
+            rewind($fp);
+            $raw = stream_get_contents($fp);
+            $decoded = ($raw !== false && trim($raw) !== '') ? @json_decode($raw, true) : [];
+            $rates = is_array($decoded) ? $decoded : [];
+        }
+        if (!is_array($rates)) {
+            $rates = [];
+        }
+
+        // Limpeza de IPs expirados fora da janela configurada
+        $cleanRates = [];
+        foreach ($rates as $ipKey => $data) {
+            if (is_array($data) && isset($data['first_request']) && ($now - (int) $data['first_request']) < $windowSeconds) {
+                $cleanRates[$ipKey] = $data;
+            }
+        }
+
+        // Pseudonimizacao criptografica do IP via HMAC-SHA256 (LGPD Art. 6º, III e GDPR Art. 5(1)(c))
+        $ipSecret = defined('GRID402_CRON_SECRET') ? GRID402_CRON_SECRET : 'grid402_ip_salt';
+        $ipHashKey = 'ip_' . substr(hash_hmac('sha256', trim($clientIp), $ipSecret), 0, 24);
+
+        $ipData = $cleanRates[$ipHashKey] ?? [
+            'count' => 0,
+            'first_request' => $now,
+            'last_request' => $now,
+        ];
+        $currentCount = (int) ($ipData['count'] ?? 0);
+        $firstReq = (int) ($ipData['first_request'] ?? $now);
+
+        if ($currentCount >= $maxRequests) {
+            $retryAfter = max(1, $windowSeconds - ($now - $firstReq));
+            return [
+                'allowed' => false,
+                'count' => $currentCount,
+                'remaining' => 0,
+                'retry_after' => $retryAfter,
+                'limit' => $maxRequests,
+                'window_seconds' => $windowSeconds,
+            ];
+        }
+
+        $ipData['count'] = $currentCount + 1;
+        $ipData['first_request'] = $firstReq;
+        $ipData['last_request'] = $now;
+        $cleanRates[$ipHashKey] = $ipData;
+
+        $encoded = json_encode($cleanRates, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        if (!is_string($encoded)) {
+            return $failClosed('RateLimitEncodeFailed');
+        }
+        if (!ftruncate($fp, 0) || !rewind($fp)) {
+            return $failClosed('RateLimitTruncateFailed');
+        }
+        $written = fwrite($fp, $encoded);
+        if ($written === false || $written !== strlen($encoded) || !fflush($fp)) {
+            return $failClosed('RateLimitWriteFailed');
+        }
+
         return [
-            'allowed' => false,
+            'allowed' => true,
             'count' => $ipData['count'],
-            'remaining' => 0,
-            'retry_after' => $retryAfter,
+            'remaining' => max(0, $maxRequests - $ipData['count']),
+            'retry_after' => 0,
             'limit' => $maxRequests,
             'window_seconds' => $windowSeconds,
         ];
+    } finally {
+        flock($fp, LOCK_UN);
+        fclose($fp);
     }
-
-    $ipData['count']++;
-    $ipData['last_request'] = $now;
-    $cleanRates[$ipHashKey] = $ipData;
-
-    if (function_exists('grid402_atomic_write')) {
-        grid402_atomic_write($file, $cleanRates);
-    } else {
-        @file_put_contents($file, json_encode($cleanRates, JSON_PRETTY_PRINT), LOCK_EX);
-    }
-
-    return [
-        'allowed' => true,
-        'count' => $ipData['count'],
-        'remaining' => max(0, $maxRequests - $ipData['count']),
-        'retry_after' => 0,
-        'limit' => $maxRequests,
-        'window_seconds' => $windowSeconds,
-    ];
 }
 
 /**
@@ -307,13 +433,34 @@ function grid402_mark_transaction_used(string $txHash): bool {
  * 
  * Retorna array ['valid' => bool, 'reason' => string, 'code' => int]
  */
-function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null, ?string $clientIp = null, ?string $endpointId = null, ?string $paymentNetwork = null, bool $deferSettle = false): array {
+function grid402_validate_payment(
+    string $txHash,
+    ?int $requiredRawUnits = null,
+    ?string $clientIp = null,
+    ?string $endpointId = null,
+    ?string $paymentNetwork = null,
+    bool $deferSettle = false,
+    ?string $resourceUrlOverride = null
+): array {
     if (function_exists('grid402_normalize_payment_proof_header')) {
         $txHash = grid402_normalize_payment_proof_header($txHash);
     }
     // Payload x402 padrao (base64) e sensivel a maiusculas: classifica antes de normalizar
     if (grid402_classify_payment_proof($txHash) === 'x402_payload') {
-        $resourceUrl = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '';
+        $overrideTrim = ($resourceUrlOverride !== null) ? trim($resourceUrlOverride) : '';
+        if ($overrideTrim !== '') {
+            $resourceUrl = $overrideTrim;
+        } else {
+            $resourceUrl = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '';
+            $epClean = ($endpointId !== null) ? strtolower(trim($endpointId)) : '';
+            if (
+                $epClean !== ''
+                && ($resourceUrl === '' || str_starts_with($resourceUrl, '/mcp') || !preg_match('#/api/v1/[a-z0-9-]+#i', $resourceUrl))
+            ) {
+                $canonicalBase = defined('GRID402_CANONICAL_DOMAIN') ? rtrim((string) GRID402_CANONICAL_DOMAIN, '/') : 'https://grid402.online';
+                $resourceUrl = $canonicalBase . '/api/v1/' . $epClean;
+            }
+        }
         return $deferSettle
             ? grid402_verify_exact_payment(trim($txHash), $requiredRawUnits ?? GRID402_USDC_REQUIRED_RAW, $resourceUrl)
             : grid402_validate_exact_payment(trim($txHash), $requiredRawUnits ?? GRID402_USDC_REQUIRED_RAW, $resourceUrl);
@@ -379,11 +526,17 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
             $requiredRawUnits ?? GRID402_USDC_REQUIRED_RAW
         );
         if (empty($mcResult['valid'])) {
+            $mcErr = (string) ($mcResult['error'] ?? 'MultiChainVerificationFailed');
+            $mcCat = match ($mcErr) {
+                'TransactionAlreadyUsed' => 'replay',
+                'TransactionExpired' => 'tx_expired',
+                default => 'payment_rejected',
+            };
             return [
                 'valid' => false,
-                'error' => (string) ($mcResult['error'] ?? 'MultiChainVerificationFailed'),
+                'error' => $mcErr,
                 'reason' => (string) ($mcResult['message'] ?? 'Falha na validacao multi-chain do pagamento.'),
-                'category' => (($mcResult['error'] ?? '') === 'TransactionAlreadyUsed') ? 'replay' : 'payment_rejected',
+                'category' => $mcCat,
                 'code' => (int) ($mcResult['code'] ?? 403),
                 'network' => $parsedNet['network'],
             ];
@@ -392,12 +545,14 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
             'valid' => true,
             'sandbox' => false,
             'source' => (string) ($mcResult['source'] ?? ('multichain_' . $parsedNet['network'])),
+            'payer' => (string) ($mcResult['payer'] ?? ''),
             'network' => $parsedNet['network'],
             'chain_id' => $mcResult['chain_id'] ?? null,
             'raw_amount' => (int) ($mcResult['raw_amount'] ?? 0),
             'settlement_tx' => (string) ($mcResult['tx_hash'] ?? $parsedNet['tx_hash']),
             'lock_key' => (string) ($mcResult['lock_key'] ?? $parsedNet['lock_key']),
             'explorer_url' => (string) ($mcResult['explorer_url'] ?? ''),
+            'block_timestamp' => $mcResult['block_timestamp'] ?? null,
             'reason' => "Pagamento USDC verificado com sucesso na rede {$parsedNet['network']}.",
             'code' => 200,
         ];
@@ -425,49 +580,101 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
         ];
     }
 
+    $transferTopic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+    $targetWallet = substr(GRID402_WALLET_ADDRESS, 2); // sem 0x
+    $requiredAmount = $requiredRawUnits ?? GRID402_USDC_REQUIRED_RAW;
+    $displayAmount = ($requiredRawUnits !== null) ? number_format($requiredRawUnits / 1e6, 4) : GRID402_PRICE_DISPLAY;
+
     // 4. Auditoria on-chain no RPC da Base Mainnet
     $receipt = grid402_rpc_get_receipt($txHash);
     if ($receipt === null) {
-        // Fallback: tenta auditoria na testnet Base Sepolia
-        $sepoliaReceipt = grid402_rpc_get_sepolia_receipt($txHash);
-        if ($sepoliaReceipt !== null && ($sepoliaReceipt['status'] ?? '') === '0x1') {
-            $rate = grid402_check_sandbox_rate_limit($clientIp);
-            if (!$rate['allowed']) {
-                grid402_release_transaction_lock($txHash);
-                return [
-                    'valid' => false,
-                    'sandbox' => true,
-                    'category' => 'sandbox_rate_limited',
-                    'reason' => "Limite de {$rate['limit']} consultas gratuitas de sandbox por hora atingido para este IP.",
-                    'code' => 429,
-                    'retry_after' => $rate['retry_after'],
-                    'remaining' => 0,
-                ];
-            }
+        // Fallback endurecido na testnet Base Sepolia (somente se opt-in GRID402_ALLOW_SEPOLIA_SANDBOX=true)
+        if (grid402_allow_sepolia_sandbox()) {
+            $sepoliaReceipt = grid402_rpc_get_sepolia_receipt($txHash);
+            if ($sepoliaReceipt !== null && strtolower((string) ($sepoliaReceipt['status'] ?? '')) === '0x1') {
+                $sepoliaUsdcContract = strtolower(defined('GRID402_SEPOLIA_USDC_CONTRACT') ? (string) GRID402_SEPOLIA_USDC_CONTRACT : '0x036cbd53842c5426634e7929541ec2318f3dcf7e');
+                $sepoliaValidTransfer = false;
+                foreach ((array) ($sepoliaReceipt['logs'] ?? []) as $sLog) {
+                    if (!is_array($sLog)) {
+                        continue;
+                    }
+                    if (strtolower((string) ($sLog['address'] ?? '')) !== $sepoliaUsdcContract) {
+                        continue;
+                    }
+                    $sTopics = is_array($sLog['topics'] ?? null) ? $sLog['topics'] : [];
+                    if (count($sTopics) < 3 || strtolower((string) $sTopics[0]) !== $transferTopic) {
+                        continue;
+                    }
+                    $sRecipient = substr(strtolower((string) $sTopics[2]), -40);
+                    if ($sRecipient !== $targetWallet) {
+                        continue;
+                    }
+                    $sDataHex = strtolower((string) ($sLog['data'] ?? '0x0'));
+                    $sCleanHex = ltrim(str_starts_with($sDataHex, '0x') ? substr($sDataHex, 2) : $sDataHex, '0');
+                    $sRawAmt = ($sCleanHex === '') ? 0 : (int) hexdec($sCleanHex);
+                    if ($sRawAmt >= $requiredAmount) {
+                        $sepoliaValidTransfer = true;
+                        break;
+                    }
+                }
 
-            return [
-                'valid' => true,
-                'sandbox' => true,
-                'source' => 'sandbox',
-                'network' => 'Base Sepolia',
-                'chain_id' => 84532,
-                'reason' => 'Transacao validada com sucesso na testnet Base Sepolia (Modo Sandbox).',
-                'code' => 200,
-                'remaining' => $rate['remaining'],
-                'limit' => $rate['limit'],
-            ];
+                if ($sepoliaValidTransfer) {
+                    $sepBlockTs = grid402_extract_receipt_timestamp($sepoliaReceipt);
+                    if ($sepBlockTs === null && isset($sepoliaReceipt['blockNumber']) && is_string($sepoliaReceipt['blockNumber'])) {
+                        $sepBlockTs = grid402_rpc_get_sepolia_block_timestamp($sepoliaReceipt['blockNumber']);
+                    }
+                    $sepAge = grid402_validate_tx_block_timestamp($sepBlockTs, 'Base Sepolia');
+                    if (empty($sepAge['valid'])) {
+                        grid402_release_transaction_lock($txHash);
+                        return [
+                            'valid' => false,
+                            'error' => 'TransactionExpired',
+                            'category' => 'tx_expired',
+                            'reason' => (string) ($sepAge['message'] ?? 'Transacao expirada na Base Sepolia.'),
+                            'code' => 403,
+                        ];
+                    }
+
+                    $rate = grid402_check_sandbox_rate_limit($clientIp);
+                    if (!$rate['allowed']) {
+                        grid402_release_transaction_lock($txHash);
+                        return [
+                            'valid' => false,
+                            'sandbox' => true,
+                            'category' => 'sandbox_rate_limited',
+                            'reason' => "Limite de {$rate['limit']} consultas gratuitas de sandbox atingido para este IP.",
+                            'code' => 429,
+                            'retry_after' => $rate['retry_after'],
+                            'remaining' => 0,
+                        ];
+                    }
+
+                    return [
+                        'valid' => true,
+                        'sandbox' => true,
+                        'source' => 'sandbox',
+                        'payer' => strtolower((string) ($sepoliaReceipt['from'] ?? '')),
+                        'network' => 'Base Sepolia',
+                        'chain_id' => 84532,
+                        'reason' => 'Transacao USDC validada com sucesso na testnet Base Sepolia (Modo Sandbox).',
+                        'code' => 200,
+                        'remaining' => $rate['remaining'],
+                        'limit' => $rate['limit'],
+                    ];
+                }
+            }
         }
 
         grid402_release_transaction_lock($txHash);
         return [
             'valid' => false,
-            'reason' => 'Transacao nao encontrada ou ainda nao confirmada na rede Base (Mainnet ou Sepolia). Tente novamente em alguns segundos.',
+            'reason' => 'Transacao nao encontrada ou ainda nao confirmada na rede Base Mainnet. Tente novamente em alguns segundos.',
             'code' => 402,
         ];
     }
 
     // 5. Verificacao de status na Mainnet (0x1 = Sucesso)
-    if (($receipt['status'] ?? '') !== '0x1') {
+    if (strtolower((string) ($receipt['status'] ?? '')) !== '0x1') {
         grid402_release_transaction_lock($txHash);
         return [
             'valid' => false,
@@ -477,13 +684,10 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
     }
 
     // 6. Auditoria do evento ERC-20 Transfer (USDC)
-    $transferTopic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
     $usdcContract = GRID402_USDC_CONTRACT;
-    $targetWallet = substr(GRID402_WALLET_ADDRESS, 2); // sem 0x
-    $requiredAmount = $requiredRawUnits ?? GRID402_USDC_REQUIRED_RAW;
-    $displayAmount = ($requiredRawUnits !== null) ? number_format($requiredRawUnits / 1e6, 4) : GRID402_PRICE_DISPLAY;
 
     $validTransferFound = false;
+    $matchedRawAmount = 0;
     $logs = $receipt['logs'] ?? [];
 
     foreach ($logs as $log) {
@@ -500,15 +704,16 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
 
         // Topico 2 = Destinatario (padded 32 bytes)
         $recipientTopic = strtolower((string)$topics[2]);
-        $recipientAddress = substr($recipientTopic, 26);
+        $recipientAddress = substr($recipientTopic, -40);
 
         if ($recipientAddress !== $targetWallet) {
             continue;
         }
 
         // Dados = Quantidade em hexadecimal
-        $dataHex = (string)($log['data'] ?? '0x0');
-        $rawAmount = (int) hexdec(substr($dataHex, 2));
+        $dataHex = strtolower((string)($log['data'] ?? '0x0'));
+        $cleanHex = ltrim(str_starts_with($dataHex, '0x') ? substr($dataHex, 2) : $dataHex, '0');
+        $rawAmount = ($cleanHex === '') ? 0 : (int) hexdec($cleanHex);
 
         if ($rawAmount >= $requiredAmount) {
             $validTransferFound = true;
@@ -526,6 +731,23 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
         ];
     }
 
+    // 7. Validacao obrigatoria de idade maxima do bloco (V-04): fecha replay ilimitado apos 7 dias em used_txs.json
+    $blockTimestamp = grid402_extract_receipt_timestamp($receipt);
+    if ($blockTimestamp === null && isset($receipt['blockNumber']) && is_string($receipt['blockNumber'])) {
+        $blockTimestamp = grid402_rpc_get_evm_block_timestamp('base', $receipt['blockNumber']);
+    }
+    $ageCheck = grid402_validate_tx_block_timestamp($blockTimestamp, 'Base Mainnet');
+    if (empty($ageCheck['valid'])) {
+        grid402_release_transaction_lock($txHash);
+        return [
+            'valid' => false,
+            'error' => 'TransactionExpired',
+            'category' => 'tx_expired',
+            'reason' => (string) ($ageCheck['message'] ?? 'Transacao expirada na Base Mainnet.'),
+            'code' => 403,
+        ];
+    }
+
     // Pagamento confirmado e trava retida com sucesso!
     return [
         'payer' => strtolower((string)($receipt['from'] ?? '')),
@@ -534,7 +756,8 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
         'source' => 'tx_hash',
         'settlement_tx' => $txHash,
         'lock_key' => $txHash,
-        'raw_amount' => $matchedRawAmount ?? $requiredAmount,
+        'raw_amount' => $matchedRawAmount ?: $requiredAmount,
+        'block_timestamp' => $blockTimestamp,
         'reason' => 'Pagamento x402 validado com sucesso na Base Mainnet.',
         'code' => 200,
     ];
@@ -542,8 +765,9 @@ function grid402_validate_payment(string $txHash, ?int $requiredRawUnits = null,
 
 /**
  * Monta a lista `accepts` padrão do fluxo x402 exact (usada no desafio 402 e na rejeição).
- * Em produção (Base Mainnet), expõe as 4 redes gasless suportadas pelo PayAI Facilitator:
- * Base (eip155:8453), Polygon (eip155:137), Arbitrum (eip155:42161) e Solana (solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp).
+ * Em produção (Base Mainnet), expõe as redes gasless saudáveis do PayAI Facilitator:
+ * Base (eip155:8453), Polygon (eip155:137), Arbitrum (eip155:42161) e, quando habilitada via
+ * GRID402_SOLANA_X402_ENABLED=true, Solana (solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp).
  */
 function grid402_build_accepts(int $priceRawUnits): array {
     $amountStr = (string) $priceRawUnits;
@@ -562,11 +786,7 @@ function grid402_build_accepts(int $priceRawUnits): array {
         ]];
     }
 
-    $solWallet = defined('GRID402_SOLANA_WALLET_ADDRESS') ? (string) GRID402_SOLANA_WALLET_ADDRESS : 'CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C';
-    $solMint = defined('GRID402_SOLANA_USDC_MINT') ? (string) GRID402_SOLANA_USDC_MINT : 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
-    $solFeePayer = defined('GRID402_PAYAI_SOLANA_FEE_PAYER') ? (string) GRID402_PAYAI_SOLANA_FEE_PAYER : 'CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww';
-
-    return [
+    $accepts = [
         [
             'scheme' => 'exact',
             'network' => 'eip155:8453',
@@ -603,7 +823,13 @@ function grid402_build_accepts(int $priceRawUnits): array {
                 'version' => '2',
             ],
         ],
-        [
+    ];
+
+    if (function_exists('grid402_is_solana_x402_enabled') && grid402_is_solana_x402_enabled()) {
+        $solWallet = defined('GRID402_SOLANA_WALLET_ADDRESS') ? (string) GRID402_SOLANA_WALLET_ADDRESS : 'CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C';
+        $solMint = defined('GRID402_SOLANA_USDC_MINT') ? (string) GRID402_SOLANA_USDC_MINT : 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+        $solFeePayer = defined('GRID402_PAYAI_SOLANA_FEE_PAYER') ? (string) GRID402_PAYAI_SOLANA_FEE_PAYER : 'CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww';
+        $accepts[] = [
             'scheme' => 'exact',
             'network' => 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
             'asset' => $solMint,
@@ -613,8 +839,10 @@ function grid402_build_accepts(int $priceRawUnits): array {
             'extra' => [
                 'feePayer' => $solFeePayer,
             ],
-        ],
-    ];
+        ];
+    }
+
+    return $accepts;
 }
 
 /**
@@ -817,19 +1045,24 @@ function grid402_bazaar_default_query_params(?string $serviceName): array {
 }
 
 /**
- * Constroi a extensao `extensions.bazaar` conforme @x402/extensions/bazaar (v2 createQueryDiscoveryExtension)
+ * Constroi a extensao `extensions.bazaar` conforme @x402/extensions/bazaar (v2 createQueryDiscoveryExtension / POST)
  * com `info` + `schema` JSON Schema 2020-12 estrito (`additionalProperties: false` em `input`).
  */
-function grid402_build_bazaar_extension(?array $exampleOutput = null, ?string $serviceName = null): array {
+function grid402_build_bazaar_extension(?array $exampleOutput = null, ?string $serviceName = null, ?string $httpMethod = null): array {
     $meta = grid402_bazaar_service_metadata($serviceName);
     $canonicalExample = is_array($meta['output_example'] ?? null) ? $meta['output_example'] : null;
     $example = $canonicalExample
         ?? (($exampleOutput !== null && !empty($exampleOutput)) ? $exampleOutput : ['status' => 'success']);
     $queryDefaults = grid402_bazaar_default_query_params($serviceName);
 
+    $method = strtoupper(trim((string) ($httpMethod ?? ($_SERVER['REQUEST_METHOD'] ?? 'GET'))));
+    if (!in_array($method, ['GET', 'POST', 'HEAD', 'DELETE'], true)) {
+        $method = 'GET';
+    }
+
     $inputInfo = [
         'type' => 'http',
-        'method' => 'GET',
+        'method' => $method,
     ];
     $querySchemaProps = [];
     if (!empty($queryDefaults)) {
@@ -841,8 +1074,13 @@ function grid402_build_bazaar_extension(?array $exampleOutput = null, ?string $s
 
     $inputSchemaProps = [
         'type' => ['type' => 'string', 'const' => 'http'],
-        'method' => ['type' => 'string', 'enum' => ['GET', 'HEAD', 'DELETE']],
+        'method' => ['type' => 'string', 'enum' => ['GET', 'POST', 'HEAD', 'DELETE']],
     ];
+    if ($method === 'POST') {
+        $inputInfo['bodyType'] = 'json';
+        $inputSchemaProps['bodyType'] = ['type' => 'string', 'enum' => ['json', 'form-data', 'text']];
+        $inputSchemaProps['body'] = ['type' => 'object'];
+    }
     // So declara queryParams no schema quando ha parametros; evita `{}` virar `[]` em round-trips PHP assoc
     if (!empty($querySchemaProps)) {
         $inputSchemaProps['queryParams'] = [
@@ -925,6 +1163,8 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
     http_response_code(402);
     header('HTTP/1.1 402 Payment Required', true, 402);
     header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, no-cache, must-revalidate');
+    header('Pragma: no-cache');
     if (function_exists('grid402_emit_request_id_header')) {
         grid402_emit_request_id_header();
     }
@@ -1005,7 +1245,7 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
             'rate_limit' => GRID402_SANDBOX_RATE_LIMIT . ' req/day per IP',
             'description' => 'Test the full response schema for free by sending header X-Payment: demo.',
         ],
-        'action_required' => "1) Sign x402 v2 PAYMENT-SIGNATURE (gasless via PayAI on Base/Polygon/Arbitrum/Solana) or send {$priceDisplay} USDC and retry with X-Payment: <tx_hash>. 2) Sub-15ms Session Pass (USDC or Pix R$12 = 400 credits): {$canonicalBase}/pass?tier=starter&autopix=1 -> X-Payment: pass_g402_<token>. 3) Free Sandbox (" . GRID402_SANDBOX_RATE_LIMIT . " req/day): X-Payment: demo.",
+        'action_required' => "1) Sign x402 v2 PAYMENT-SIGNATURE (gasless via PayAI on " . ((function_exists('grid402_is_solana_x402_enabled') && grid402_is_solana_x402_enabled()) ? 'Base/Polygon/Arbitrum/Solana' : 'Base/Polygon/Arbitrum') . ") or send {$priceDisplay} USDC and retry with X-Payment: <tx_hash>. 2) Sub-15ms Session Pass (USDC or Pix R$12 = 400 credits): {$canonicalBase}/pass?tier=starter&autopix=1 -> X-Payment: pass_g402_<token>. 3) Free Sandbox (" . GRID402_SANDBOX_RATE_LIMIT . " req/day): X-Payment: demo.",
         'fiat_and_card_checkout' => $fiatAndCardCheckout,
         'conversion' => $conversionInfo,
         'docs' => $canonicalBase . '/llms.txt',

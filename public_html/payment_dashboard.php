@@ -82,7 +82,7 @@ $jsonUrl = '/api/v1/pass/statement?' . http_build_query(array_merge($baseQuery, 
         'idle_passes' => $userIdleStats['idle_passes'],
         'idle_usdc'   => $userIdleStats['idle_usdc'],
         'expires_in'  => $userIdleStats['expires_min_days'],
-        'lang'        => 'pt-BR',
+        'lang'        => 'en',
     ]); ?>
 
     <h1 data-i18n="paydash.title">Payment Dashboard</h1>
@@ -163,6 +163,7 @@ $jsonUrl = '/api/v1/pass/statement?' . http_build_query(array_merge($baseQuery, 
                         <select id="stmt-outcome" name="outcome">
                             <option value="" data-i18n="paydash.stmt.filter_all">All</option>
                             <option value="consumed" <?php echo $filterOutcome === 'consumed' ? 'selected' : ''; ?>>consumed (200)</option>
+                            <option value="refunded" <?php echo $filterOutcome === 'refunded' ? 'selected' : ''; ?>>refunded (auto-refund)</option>
                             <option value="endpoint_restricted" <?php echo $filterOutcome === 'endpoint_restricted' ? 'selected' : ''; ?>>endpoint_restricted (403)</option>
                             <option value="daily_limit_exceeded" <?php echo $filterOutcome === 'daily_limit_exceeded' ? 'selected' : ''; ?>>daily_limit_exceeded (429)</option>
                             <option value="idempotent_replay" <?php echo $filterOutcome === 'idempotent_replay' ? 'selected' : ''; ?>>idempotent_replay (200)</option>
@@ -204,7 +205,7 @@ $jsonUrl = '/api/v1/pass/statement?' . http_build_query(array_merge($baseQuery, 
                                         $outcomeVal = (string) ($row['outcome'] ?? 'consumed');
                                         $badgeClass = $outcomeVal === 'consumed'
                                             ? 'badge-ok'
-                                            : ($outcomeVal === 'idempotent_replay' ? 'badge-info' : 'badge-warn');
+                                            : (($outcomeVal === 'idempotent_replay' || $outcomeVal === 'refunded') ? 'badge-info' : 'badge-warn');
                                     ?>
                                     <tr>
                                         <td><?php echo htmlspecialchars((string) ($row['ts'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -227,10 +228,26 @@ $jsonUrl = '/api/v1/pass/statement?' . http_build_query(array_merge($baseQuery, 
         <p style="color:#F59E0B;margin-top:1rem;" data-i18n="paydash.invalid">Invalid token or pass not found.</p>
     <?php endif; ?>
 
+    <?php
+        $paidApiCalls = (int) ($metrics['total_paid_requests'] ?? 0);
+        $sandboxApiCalls = (int) ($metrics['total_sandbox_requests'] ?? 0);
+        $totalPageViews = (int) ($metrics['total_page_views'] ?? 0);
+        $serviceCountsSum = is_array($metrics['service_counts'] ?? null)
+            ? array_sum(array_map('intval', $metrics['service_counts']))
+            : 0;
+        $apiCallsRecorded = $serviceCountsSum > 0 ? $serviceCountsSum : (int) ($metrics['total_requests'] ?? 0);
+        $paidPassesCount = isset($passesStats['paid_passes'])
+            ? (int) $passesStats['paid_passes']
+            : (int) ($passesStats['total_issued'] ?? 0);
+        $activePaidPasses = isset($passesStats['active_paid_passes'])
+            ? (int) $passesStats['active_paid_passes']
+            : (int) ($passesStats['active_passes'] ?? 0);
+    ?>
     <h2 style="margin-top:2.25rem;" data-i18n="paydash.summary.title">Hub summary</h2>
-    <p><strong data-i18n="paydash.summary.calls">Recorded calls:</strong> <?php echo (int) ($metrics['total_requests'] ?? 0); ?></p>
+    <p><strong data-i18n="paydash.summary.calls">API calls recorded (excl. HTML page views):</strong> <?php echo $apiCallsRecorded; ?> (<strong><?php echo $paidApiCalls; ?></strong> paid • <?php echo $sandboxApiCalls; ?> sandbox)</p>
+    <p><strong data-i18n="paydash.summary.page_views">HTML page views:</strong> <?php echo $totalPageViews; ?></p>
     <p><strong>Revenue:</strong> <?php echo number_format((float) ($metrics['total_revenue_usdc'] ?? 0), 4); ?> USDC</p>
-    <p><strong data-i18n="paydash.summary.passes">Issued passes:</strong> <?php echo (int) ($passesStats['total_issued'] ?? 0); ?></p>
+    <p><strong data-i18n="paydash.summary.passes">Paid Session Passes issued:</strong> <?php echo $paidPassesCount; ?> (<?php echo $activePaidPasses; ?> active)</p>
 </main>
 <script src="/assets/js/i18n.js?v=3.4.0"></script>
 </body>

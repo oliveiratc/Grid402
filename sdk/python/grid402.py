@@ -1,17 +1,117 @@
 """
 Grid402 Client SDK (Python)
 Zero-dependency SDK for autonomous AI agents and M2M applications.
-Access public open data and network utilities with x402 micropayments on Base.
+Access all 25 public open data and network utilities with Session Pass, RapidAPI Hub or x402 USDC.
 """
 
-from typing import Any, Callable, Dict, Optional, Union
-import urllib.request
-import urllib.parse
-import urllib.error
+from typing import Any, Callable, Dict, Optional
+import hashlib
 import json
+import os
 import ssl
+import urllib.error
+import urllib.parse
+import urllib.request
 
 DEFAULT_GRID402_URL = "https://grid402.online"
+DEFAULT_RAPIDAPI_HOST = "grid402-open-data-kyb-ai-utilities.p.rapidapi.com"
+GRID402_ORACLE_WALLET = "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90"
+DEFAULT_ORACLE_PUBKEY = """-----BEGIN PUBLIC KEY-----
+MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEq8MF77hj4TAO3ktuRu5GPRdXQP9m9JhO
+c89Y7XGoNGECnG/UiuoqDB/Y7/2s9ww3J7zJ8mC83Zc/Kd0FeDutaQ==
+-----END PUBLIC KEY-----"""
+
+
+def canonicalize_payload(data: Any) -> Any:
+    """Normaliza recursivamente o objeto ordenando chaves e excluindo metadados transientes."""
+    if data is None or not isinstance(data, (dict, list)):
+        return data
+    exclude = {"_oracle_proof", "sandbox_info", "_x402_settlement"}
+    if isinstance(data, list):
+        return [canonicalize_payload(item) for item in data]
+    return {k: canonicalize_payload(data[k]) for k in sorted(data.keys()) if k not in exclude}
+
+
+def compute_data_hash(data: Any) -> str:
+    """Calcula o hash SHA-256 em hexadecimal prefixado com 0x do payload normalizado."""
+    clean = canonicalize_payload(data)
+    serialized = json.dumps(clean, separators=(",", ":"), sort_keys=True, ensure_ascii=False)
+    digest = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+    return f"0x{digest}"
+
+
+def verify_oracle_proof(
+    response: Dict[str, Any],
+    expected_oracle_address: Optional[str] = None,
+    oracle_public_key: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Valida a prova criptografica de oraculo (_oracle_proof) localmente ou via biblioteca cryptography."""
+    if not isinstance(response, dict) or not isinstance(response.get("_oracle_proof"), dict):
+        return {"valid": False, "error": "MissingProofBlock"}
+
+    proof = response["_oracle_proof"]
+    computed_hash = compute_data_hash(response)
+    received_hash = proof.get("data_hash")
+    if computed_hash != received_hash:
+        return {
+            "valid": False,
+            "error": "DataHashMismatch",
+            "expected_hash": computed_hash,
+            "received_hash": received_hash,
+        }
+
+    expected_addr = (expected_oracle_address or GRID402_ORACLE_WALLET).lower()
+    proof_addr = str(proof.get("oracle_address") or "").lower()
+    if expected_addr and proof_addr != expected_addr:
+        return {
+            "valid": False,
+            "error": "OracleAddressMismatch",
+            "expected_address": expected_addr,
+            "received_address": proof_addr,
+        }
+
+    timestamp = int(proof.get("timestamp") or 0)
+    is_sandbox = bool(proof.get("sandbox"))
+    mode_str = "sandbox" if is_sandbox else "mainnet"
+    message_to_sign = f"{computed_hash}:{timestamp}:{mode_str}".encode("utf-8")
+
+    sig_hex = str(proof.get("signature") or "").replace("0x", "")
+    if not sig_hex:
+        return {"valid": False, "error": "MissingSignature"}
+
+    try:
+        sig_bytes = bytes.fromhex(sig_hex)
+    except ValueError:
+        return {"valid": False, "error": "MalformedSignatureHex"}
+
+    try:
+        from cryptography.hazmat.primitives.serialization import load_pem_public_key
+        from cryptography.hazmat.primitives.asymmetric import ec
+        from cryptography.hazmat.primitives import hashes
+
+        pub_pem = (oracle_public_key or DEFAULT_ORACLE_PUBKEY).encode("utf-8")
+        pubkey = load_pem_public_key(pub_pem)
+        pubkey.verify(sig_bytes, message_to_sign, ec.ECDSA(hashes.SHA256()))
+        return {
+            "valid": True,
+            "oracle_address": proof_addr,
+            "timestamp": timestamp,
+            "sandbox": is_sandbox,
+        }
+    except ImportError:
+        return {
+            "valid": False,
+            "error": "CryptographyNotInstalled",
+            "hint": "Instale 'cryptography' para validacao ECDSA offline ou chame client.verify_proof_remote(response).",
+        }
+    except Exception as exc:
+        return {
+            "valid": False,
+            "error": f"InvalidSignature: {exc}",
+            "oracle_address": proof_addr,
+            "timestamp": timestamp,
+            "sandbox": is_sandbox,
+        }
 
 
 class Grid402Error(Exception):
@@ -40,35 +140,62 @@ class ReplayAttackError(Grid402Error):
 class Grid402Client:
     """
     Cliente oficial para integração com o Hub de Utilitários e Dados Públicos Grid402.
-    
-    AVISO LEGAL (AS-IS):
-    Este software e os dados fornecidos são disponibilizados 'NO ESTADO EM QUE SE ENCONTRAM' (AS-IS),
-    sem qualquer garantia de adequação a um propósito comercial específico.
+    Suporta Session Pass (`GRID402_SESSION_PASS`), RapidAPI Hub (`GRID402_RAPIDAPI_KEY`),
+    x402 USDC on-chain/gasless e Sandbox.
     """
 
-    def __init__(self, base_url: str = DEFAULT_GRID402_URL, timeout: float = 5.0, verify_ssl: Optional[bool] = None, sandbox: bool = False):
+    def __init__(
+        self,
+        base_url: str = DEFAULT_GRID402_URL,
+        timeout: float = 10.0,
+        verify_ssl: Optional[bool] = None,
+        sandbox: bool = False,
+        session_pass: Optional[str] = None,
+        rapidapi_key: Optional[str] = None,
+        rapidapi_host: Optional[str] = None,
+        payment_tx_hash: Optional[str] = None,
+    ):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.sandbox = sandbox
+        self.session_pass = session_pass or os.environ.get("GRID402_SESSION_PASS") or None
+        self.rapidapi_key = rapidapi_key or os.environ.get("GRID402_RAPIDAPI_KEY") or None
+        raw_rapid_host = rapidapi_host or os.environ.get("GRID402_RAPIDAPI_HOST") or DEFAULT_RAPIDAPI_HOST
+        self.rapidapi_host = raw_rapid_host.replace("https://", "").replace("http://", "").split("/")[0].strip()
+        self.payment_tx_hash = payment_tx_hash or self.session_pass
         if verify_ssl is None:
-            # Auto-fallback para preview domains em ambientes sem certificados raiz intermediários
             self.verify_ssl = False if "hostingersite.com" in self.base_url else True
         else:
             self.verify_ssl = verify_ssl
         self._ssl_context = ssl.create_default_context() if self.verify_ssl else ssl._create_unverified_context()
 
     def _request(self, endpoint: str, headers: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
-        url = f"{self.base_url}{endpoint}"
         req_headers = {
             "Accept": "application/json",
-            "User-Agent": "Grid402-Python-SDK/2.2",
+            "User-Agent": "Grid402-Python-SDK/2.7",
         }
         if headers:
             req_headers.update(headers)
-        if self.sandbox:
-            if "X-Payment" not in req_headers:
-                req_headers["X-Payment"] = "demo"
 
+        explicit_payment = req_headers.get("X-Payment") or req_headers.get("PAYMENT-SIGNATURE") or self.payment_tx_hash
+        use_rapidapi_proxy = bool(self.rapidapi_key and not explicit_payment)
+
+        effective_base_url = self.base_url
+        if use_rapidapi_proxy:
+            if ".p.rapidapi.com" in self.base_url:
+                parsed = urllib.parse.urlparse(self.base_url)
+                rapid_host_header = parsed.netloc or self.rapidapi_host
+            else:
+                effective_base_url = f"https://{self.rapidapi_host}"
+                rapid_host_header = self.rapidapi_host
+            req_headers.setdefault("X-RapidAPI-Key", str(self.rapidapi_key).strip())
+            req_headers.setdefault("X-RapidAPI-Host", rapid_host_header)
+        elif self.payment_tx_hash and "X-Payment" not in req_headers:
+            req_headers["X-Payment"] = self.payment_tx_hash
+        elif self.sandbox and "X-Payment" not in req_headers:
+            req_headers["X-Payment"] = "demo"
+
+        url = f"{effective_base_url}{endpoint}"
         req = urllib.request.Request(url, headers=req_headers, method="GET")
 
         try:
@@ -92,11 +219,9 @@ class Grid402Client:
             raise Grid402Error(f"Erro de conexão com o Grid402: {str(ex)}")
 
     def get_summary(self) -> Dict[str, Any]:
-        """Obtém o resumo gratuito de status do hub e cotações agregadas."""
         return self._request("/status?format=json")
 
     def get_challenge(self, endpoint: str = "/api/v1/forex") -> Dict[str, Any]:
-        """Dispara uma consulta técnica sem pagamento para obter o desafio x402 e parâmetros da Base."""
         try:
             self._request(endpoint)
             raise Grid402Error("Esperado desafio HTTP 402, mas a rota respondeu sem restrição.")
@@ -104,52 +229,43 @@ class Grid402Client:
             return p_err.challenge
 
     def get_forex(self, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Consulta cotações fiduciárias em tempo real (USD, EUR, GBP para BRL)."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         return self._request("/api/v1/forex", headers=headers)
 
     def get_crypto(self, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Consulta preços de mercado de criptoativos (BTC, ETH, SOL, USDC)."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         return self._request("/api/v1/crypto", headers=headers)
 
     def get_dns(self, domain: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Resolve registros DNS (A, AAAA, MX, TXT, NS, CNAME) de um domínio."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         q = urllib.parse.urlencode({"domain": domain})
         return self._request(f"/api/v1/dns?{q}", headers=headers)
 
     def get_ssl(self, host: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Inspeciona o certificado TLS/SSL de um host (emissor, validade e dias restantes)."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         q = urllib.parse.urlencode({"host": host})
         return self._request(f"/api/v1/ssl?{q}", headers=headers)
 
     def get_asn(self, ip: Optional[str] = None, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Resolve metadados BGP, ASN e país de um endereço IP."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         q = f"?ip={urllib.parse.quote(ip)}" if ip else ""
         return self._request(f"/api/v1/asn{q}", headers=headers)
 
     def get_cep(self, code: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Resolve endereço público e código IBGE do município a partir de um CEP de 8 dígitos."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         q = urllib.parse.urlencode({"code": code})
         return self._request(f"/api/v1/cep?{q}", headers=headers)
 
     def get_cnpj(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Consulta dados cadastrais públicos de Pessoa Jurídica da Receita Federal (razão social, CNAE, situação, endereço)."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         q = urllib.parse.urlencode({"cnpj": cnpj})
         return self._request(f"/api/v1/cnpj?{q}", headers=headers)
 
     def get_indicators(self, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Consulta indicadores macroeconomicos oficiais (Selic meta e diaria, CDI e IPCA acumulado)."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         return self._request("/api/v1/indicators", headers=headers)
 
     def get_holidays(self, year: Optional[int] = None, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Consulta calendario oficial de feriados nacionais e bancarios ANBIMA."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         q = f"?year={year}" if year else ""
         return self._request(f"/api/v1/holidays{q}", headers=headers)
@@ -162,7 +278,6 @@ class Grid402Client:
         date: Optional[str] = None,
         payment_tx_hash: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Calcula dias uteis financeiros, projecao de liquidacao ou checagem de dia util ANBIMA."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         params = {}
         if start_date:
@@ -178,69 +293,58 @@ class Grid402Client:
         return self._request(f"/api/v1/workdays{q}", headers=headers)
 
     def get_sanctions(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Consulta sancoes administrativas e inidoneidade cadastral nos sistemas CEIS e CNEP (CGU)."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         clean = "".join(ch for ch in str(cnpj or "") if ch.isdigit())
         q = urllib.parse.urlencode({"cnpj": clean})
         return self._request(f"/api/v1/sanctions?{q}", headers=headers)
 
     def get_simples(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Consulta enquadramento tributario no Simples Nacional e MEI (SIMEI) na Receita Federal."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         clean = "".join(ch for ch in str(cnpj or "") if ch.isdigit())
         q = urllib.parse.urlencode({"cnpj": clean})
         return self._request(f"/api/v1/simples?{q}", headers=headers)
 
     def get_compliance(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Dossiê consolidado de Compliance 360 com score de risco cadastral e integridade (0 a 100)."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         clean = "".join(ch for ch in str(cnpj or "") if ch.isdigit())
         q = urllib.parse.urlencode({"cnpj": clean})
         return self._request(f"/api/v1/compliance?{q}", headers=headers)
 
     def get_dossier_360(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Dossiê 360 KYB + Veredito Determinístico para IA (APPROVED, FLAGGED, REJECTED)."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         clean = "".join(ch for ch in str(cnpj or "") if ch.isdigit())
         q = urllib.parse.urlencode({"cnpj": clean})
         return self._request(f"/api/v1/dossier?{q}", headers=headers)
 
     def get_dossier(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Alias para get_dossier_360."""
         return self.get_dossier_360(cnpj, payment_tx_hash=payment_tx_hash)
 
     def get_domain_audit(self, domain: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Auditoria completa de infraestrutura de dominio (DNS + TLS/SSL + BGP/ASN)."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         q = urllib.parse.urlencode({"domain": domain})
         return self._request(f"/api/v1/domain-audit?{q}", headers=headers)
 
     def get_kyb_audit(self, cnpj: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Auditoria corporativa global KYB em chamada unica (CNPJ + OFAC/ONU + GLEIF LEI)."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         clean = "".join(ch for ch in str(cnpj or "") if ch.isdigit())
         q = urllib.parse.urlencode({"cnpj": clean})
         return self._request(f"/api/v1/kyb-audit?{q}", headers=headers)
 
     def get_market_snapshot(self, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Panorama financeiro e macroeconomico consolidado em chamada unica."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         return self._request("/api/v1/market-snapshot", headers=headers)
 
     def get_lei(self, lei: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Consulta identidade corporativa internacional oficial (ISO 17442) via GLEIF."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         q = urllib.parse.urlencode({"lei": lei.strip()})
         return self._request(f"/api/v1/lei?{q}", headers=headers)
 
     def get_ofac(self, target: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Triagem de sancoes globais (OFAC SDN / ONU) e risco AML Web3."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         q = urllib.parse.urlencode({"target": target.strip()})
         return self._request(f"/api/v1/ofac?{q}", headers=headers)
 
     def notarize(self, content: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Carimbo do tempo criptografico M2M e prova de existencia SHA-256 assinada com ECDSA."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         q = urllib.parse.urlencode({"content": content})
         return self._request(f"/api/v1/notarize?{q}", headers=headers)
@@ -252,7 +356,6 @@ class Grid402Client:
         date: Optional[str] = None,
         payment_tx_hash: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Calendario de liquidacao de bolsas globais (US, EU, UK, BR) e taxas de cambio BCE."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         params = {k: v for k, v in {"market": market, "base": base, "date": date}.items() if v is not None}
         qs = urllib.parse.urlencode(params)
@@ -265,7 +368,6 @@ class Grid402Client:
         max_chars: Optional[int] = None,
         payment_tx_hash: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Extrai paginas web publicas HTTP/HTTPS para Markdown limpo pronto para LLMs e RAG."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         params: Dict[str, Any] = {"url": url}
         if max_chars is not None:
@@ -274,13 +376,47 @@ class Grid402Client:
         return self._request(f"/api/v1/extract?{q}", headers=headers)
 
     def email_verify(self, email: str, payment_tx_hash: Optional[str] = None) -> Dict[str, Any]:
-        """Audita entregabilidade de e-mail B2B estritamente Zero-PII."""
         headers = {"X-Payment": payment_tx_hash} if payment_tx_hash else None
         q = urllib.parse.urlencode({"email": email.strip()})
         return self._request(f"/api/v1/email-verify?{q}", headers=headers)
 
+    def get_pass_balance(self, token: Optional[str] = None) -> Dict[str, Any]:
+        t = token or self.session_pass or self.payment_tx_hash or ""
+        q = urllib.parse.urlencode({"token": t})
+        return self._request(f"/api/v1/pass/balance?{q}")
+
+    def get_pass_statement(
+        self,
+        token: Optional[str] = None,
+        endpoint: Optional[str] = None,
+        outcome: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        t = token or self.session_pass or self.payment_tx_hash or ""
+        params = {k: v for k, v in {"token": t, "endpoint": endpoint, "outcome": outcome}.items() if v is not None}
+        q = urllib.parse.urlencode(params)
+        return self._request(f"/api/v1/pass/statement?{q}")
+
+    def verify_proof(
+        self,
+        response: Dict[str, Any],
+        expected_oracle_address: Optional[str] = None,
+        oracle_public_key: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        return verify_oracle_proof(response, expected_oracle_address=expected_oracle_address, oracle_public_key=oracle_public_key)
+
+    def verify_proof_remote(self, payload: Any) -> Dict[str, Any]:
+        url = f"{self.base_url}/api/v1/verify"
+        body = payload if isinstance(payload, str) else json.dumps(payload)
+        req = urllib.request.Request(
+            url,
+            data=body.encode("utf-8"),
+            headers={"Content-Type": "application/json", "Accept": "application/json", "User-Agent": "Grid402-Python-SDK/2.7"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=self.timeout, context=self._ssl_context) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+
     def is_healthy(self, service_name: str = "forex") -> bool:
-        """Verifica se um serviço específico ou o hub está operacional."""
         summary = self.get_summary()
         services = summary.get("services", {})
         if service_name in services:
@@ -288,9 +424,6 @@ class Grid402Client:
         return summary.get("status") == "OPERATIONAL"
 
     def guard(self, service_name: str, action: Callable[..., Any], fallback: Optional[Callable[..., Any]] = None) -> Any:
-        """
-        Circuit Breaker defensivo: Executa a ação se o micro-serviço estiver UP.
-        """
         if self.is_healthy(service_name):
             return action()
         if fallback:

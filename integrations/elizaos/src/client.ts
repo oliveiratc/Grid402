@@ -8,14 +8,24 @@ export const DEFAULT_GRID402_BASE_URL = 'https://grid402.online';
 export const GRID402_ORACLE_WALLET = '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90';
 export const BASE_USDC_CONTRACT = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
 
+export function resolveGrid402PassToken(runtime?: any): string | undefined {
+  return (
+    runtime?.getSetting?.('GRID402_SESSION_PASS') ||
+    runtime?.getSetting?.('GRID402_PASS_TOKEN') ||
+    process.env.GRID402_SESSION_PASS ||
+    process.env.GRID402_PASS_TOKEN ||
+    undefined
+  );
+}
+
 export class Grid402Client {
   private baseUrl: string;
   private passToken?: string;
   private sandbox: boolean;
 
   constructor(config?: Grid402PluginConfig) {
-    this.baseUrl = (config?.baseUrl || process.env.GRID402_BASE_URL || DEFAULT_GRID402_BASE_URL).replace(/\/$/, '');
-    this.passToken = config?.passToken || process.env.GRID402_PASS_TOKEN;
+    this.baseUrl = (config?.baseUrl || process.env.GRID402_API_URL || process.env.GRID402_BASE_URL || DEFAULT_GRID402_BASE_URL).replace(/\/$/, '');
+    this.passToken = config?.passToken || process.env.GRID402_SESSION_PASS || process.env.GRID402_PASS_TOKEN;
     this.sandbox = config?.sandbox ?? (process.env.GRID402_SANDBOX === 'true');
   }
 
@@ -50,7 +60,7 @@ export class Grid402Client {
     const data = await resp.json() as Grid402Response<T>;
 
     if (resp.status === 402) {
-      throw new Error(`[Grid402 402 Payment Required] Saldo insuficiente ou transação necessária na Base Mainnet. Recarregue seu Session Pass em https://grid402.online/#topup ou configure GRID402_PASS_TOKEN.`);
+      throw new Error(`[Grid402 402 Payment Required] Saldo insuficiente ou transação necessária na Base Mainnet. Adquira ou recarregue seu Session Pass em https://grid402.online/pass e configure GRID402_SESSION_PASS.`);
     }
 
     if (!resp.ok && resp.status !== 200) {

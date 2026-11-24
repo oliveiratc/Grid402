@@ -8,6 +8,11 @@
 
 declare(strict_types=1);
 
+if (PHP_SAPI !== 'cli' && realpath((string) ($_SERVER['SCRIPT_FILENAME'] ?? '')) === __FILE__) {
+    http_response_code(403);
+    exit('Acesso direto proibido.');
+}
+
 if (!defined('GRID402_EXEC')) {
     define('GRID402_EXEC', true);
 }
@@ -80,6 +85,7 @@ function grid402_default_metrics(): array {
         'total_paid_requests' => 0,
         'total_sandbox_requests' => 0,
         'total_page_views' => 0,
+        'total_bot_views' => 0,
         'total_revenue_usdc' => 0.0,
         'status_counts' => [
             '200' => 0,
@@ -113,13 +119,19 @@ function grid402_default_metrics(): array {
             'email-verify' => 0,
             'summary' => 0,
         ],
+        'service_paid_counts' => [],
+        'service_revenue_usdc' => [],
         'payment_sources' => [
             'tx_hash' => 0,
             'pass' => 0,
             'facilitator' => 0,
             'facilitator_verify_only' => 0,
             'mercadopago' => 0,
+            'web3_topup' => 0,
+            'solana_spl' => 0,
             'rapidapi' => 0,
+            'mcp' => 0,
+            'promo_pass' => 0,
             'sandbox' => 0,
             'unknown' => 0,
         ],
@@ -149,6 +161,7 @@ function grid402_normalize_metrics(array $metrics): array {
     $metrics['total_paid_requests'] = (int)($metrics['total_paid_requests'] ?? 0);
     $metrics['total_sandbox_requests'] = (int)($metrics['total_sandbox_requests'] ?? 0);
     $metrics['total_page_views'] = (int)($metrics['total_page_views'] ?? 0);
+    $metrics['total_bot_views'] = (int)($metrics['total_bot_views'] ?? 0);
     $metrics['total_revenue_usdc'] = (float)($metrics['total_revenue_usdc'] ?? 0.0);
 
     if (!isset($metrics['status_counts']) || !is_array($metrics['status_counts'])) {
@@ -156,6 +169,12 @@ function grid402_normalize_metrics(array $metrics): array {
     }
     if (!isset($metrics['service_counts']) || !is_array($metrics['service_counts'])) {
         $metrics['service_counts'] = [];
+    }
+    if (!isset($metrics['service_paid_counts']) || !is_array($metrics['service_paid_counts'])) {
+        $metrics['service_paid_counts'] = [];
+    }
+    if (!isset($metrics['service_revenue_usdc']) || !is_array($metrics['service_revenue_usdc'])) {
+        $metrics['service_revenue_usdc'] = [];
     }
     if (!isset($metrics['payment_sources']) || !is_array($metrics['payment_sources'])) {
         $metrics['payment_sources'] = [];
@@ -180,11 +199,13 @@ function grid402_normalize_metrics(array $metrics): array {
         $stats = array_merge([
             'requests' => 0,
             'page_views' => 0,
+            'bot_views' => 0,
             'paid' => 0,
             'usdc' => 0.0,
         ], $stats);
         $stats['requests'] = (int)$stats['requests'];
         $stats['page_views'] = (int)$stats['page_views'];
+        $stats['bot_views'] = (int)$stats['bot_views'];
         $stats['paid'] = (int)$stats['paid'];
         $stats['usdc'] = (float)$stats['usdc'];
         $metrics['daily'][$day] = $stats;
@@ -311,7 +332,11 @@ function grid402_record_telemetry(
             'facilitator' => 0,
             'facilitator_verify_only' => 0,
             'mercadopago' => 0,
+            'web3_topup' => 0,
+            'solana_spl' => 0,
             'rapidapi' => 0,
+            'mcp' => 0,
+            'promo_pass' => 0,
             'sandbox' => 0,
             'unknown' => 0,
         ];
@@ -342,11 +367,16 @@ function grid402_record_telemetry(
             }
         }
 
-        // Somente pagamentos liquidados faturam: sandbox e verify_only nao contam
-        $nonBillableSources = ['sandbox', 'facilitator_verify_only'];
-        $isBillablePaid = $isPaid && !in_array($paymentSource, $nonBillableSources, true);
+        // Somente pagamentos liquidados faturam: sandbox, promo_* e verify_only nao contam como pagos
+        $isPromoPayment = ($paymentSource === 'promo_pass')
+            || ($paymentSource !== null && str_starts_with($paymentSource, 'promo_'))
+            || !empty($meta['is_promo'])
+            || str_starts_with($cleanTx, 'promo:')
+            || (isset($meta['tier']) && is_string($meta['tier']) && str_starts_with(strtolower(trim($meta['tier'])), 'promo_'));
+        $nonBillableSources = ['sandbox', 'facilitator_verify_only', 'promo_pass'];
+        $isBillablePaid = $isPaid && !$isPromoPayment && !in_array($paymentSource, $nonBillableSources, true);
 
-        // 1. Contadores gerais
+        // 1. Contadores gerais (exclusivamente chamadas de API)
         $metrics['version'] = '1.0.0';
         $metrics['updated_at'] = $now;
         $metrics['total_requests'] = ((int)($metrics['total_requests'] ?? 0)) + 1;
@@ -361,16 +391,30 @@ function grid402_record_telemetry(
         }
         $metrics['service_counts'][$svc] = ((int)($metrics['service_counts'][$svc] ?? 0)) + 1;
 
+        if (!isset($metrics['service_paid_counts']) || !is_array($metrics['service_paid_counts'])) {
+            $metrics['service_paid_counts'] = [];
+        }
+        if (!isset($metrics['service_revenue_usdc']) || !is_array($metrics['service_revenue_usdc'])) {
+            $metrics['service_revenue_usdc'] = [];
+        }
+
         // 1.1 Contador separado de consultas sandbox/demo (nao geram receita)
         if ($eventTrafficType === 'sandbox') {
             $metrics['total_sandbox_requests'] = ((int)($metrics['total_sandbox_requests'] ?? 0)) + 1;
         }
 
-        // 2. Faturamento apenas de pagamentos liquidados
-        $effectivePrice = $priceUsdc ?? (float)GRID402_PRICE_DISPLAY;
+        // 2. Faturamento e consultas pagas reais por servico (exclui 402, sandbox, promo_* e verify_only)
+        $effectivePrice = $priceUsdc !== null ? (float) $priceUsdc : (float) GRID402_PRICE_DISPLAY;
         if ($isBillablePaid) {
             $metrics['total_paid_requests'] = ((int)($metrics['total_paid_requests'] ?? 0)) + 1;
             $metrics['total_revenue_usdc'] = round(((float)($metrics['total_revenue_usdc'] ?? 0)) + $effectivePrice, 4);
+            // Registra service_paid_counts apenas para faturamento positivo ou consumo de pass pago/rapidapi (nunca promo_*/sandbox)
+            if ($effectivePrice > 0.0 || $paymentSource === 'pass' || $paymentSource === 'rapidapi') {
+                $metrics['service_paid_counts'][$svc] = ((int)($metrics['service_paid_counts'][$svc] ?? 0)) + 1;
+            }
+            if ($effectivePrice > 0.0) {
+                $metrics['service_revenue_usdc'][$svc] = round(((float)($metrics['service_revenue_usdc'][$svc] ?? 0.0)) + $effectivePrice, 4);
+            }
         }
 
         // 2.1 Contadores de origem do pagamento e de falhas por categoria
@@ -543,11 +587,13 @@ function grid402_metrics_adjust_revenue(float $deltaUsdc): void {
             $metrics = null;
         }
         if (is_array($metrics)) {
+            $metrics = grid402_normalize_metrics($metrics);
             $metrics['total_revenue_usdc'] = round((float)($metrics['total_revenue_usdc'] ?? 0.0) + $deltaUsdc, 4);
             $today = grid402_metrics_today();
-            if (isset($metrics['daily'][$today]) && is_array($metrics['daily'][$today])) {
-                $metrics['daily'][$today]['usdc'] = round((float)($metrics['daily'][$today]['usdc'] ?? 0.0) + $deltaUsdc, 4);
+            if (!isset($metrics['daily'][$today]) || !is_array($metrics['daily'][$today])) {
+                $metrics['daily'][$today] = ['requests' => 0, 'page_views' => 0, 'bot_views' => 0, 'paid' => 0, 'usdc' => 0.0];
             }
+            $metrics['daily'][$today]['usdc'] = round((float)($metrics['daily'][$today]['usdc'] ?? 0.0) + $deltaUsdc, 4);
             ftruncate($fp, 0);
             rewind($fp);
             fwrite($fp, (string) json_encode($metrics, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
@@ -558,7 +604,30 @@ function grid402_metrics_adjust_revenue(float $deltaUsdc): void {
     fclose($fp);
 }
 
+/**
+ * Identifica se o User-Agent corresponde a bots, crawlers ou probes automatizados.
+ */
+function grid402_is_bot_user_agent(?string $ua): bool {
+    $clean = trim((string) $ua);
+    if ($clean === '') {
+        return PHP_SAPI !== 'cli';
+    }
+    return preg_match(
+        '/bot|crawler|spider|slurp|curl|wget|python|lighthouse|uptimerobot|pingdom|headless|googlebot|bingbot|gptbot|claudebot|bytespider|ahrefs|semrush|mj12bot|yandex/i',
+        $clean
+    ) === 1;
+}
+
 function grid402_record_page_visit(?string $path = null, ?string $ip = null, ?string $ua = null): void {
+    // Ignora requisicoes HEAD (healthchecks, crawlers e probes HTTP)
+    $reqMethod = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    if ($reqMethod === 'HEAD') {
+        return;
+    }
+
+    $effectiveUa = $ua !== null ? trim($ua) : trim((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''));
+    $isBot = grid402_is_bot_user_agent($effectiveUa);
+
     $file = GRID402_FILE_METRICS;
     $dir = dirname($file);
     if (!is_dir($dir)) {
@@ -581,14 +650,18 @@ function grid402_record_page_visit(?string $path = null, ?string $ip = null, ?st
         $today = grid402_metrics_today();
 
         $metrics['updated_at'] = $now;
-        $metrics['total_page_views'] = (int)($metrics['total_page_views'] ?? 0) + 1;
-        $metrics['total_requests'] = (int)($metrics['total_requests'] ?? 0) + 1;
-
         if (!isset($metrics['daily'][$today])) {
-            $metrics['daily'][$today] = ['requests' => 0, 'page_views' => 0, 'paid' => 0, 'usdc' => 0.0];
+            $metrics['daily'][$today] = ['requests' => 0, 'page_views' => 0, 'bot_views' => 0, 'paid' => 0, 'usdc' => 0.0];
         }
-        $metrics['daily'][$today]['requests'] = (int)($metrics['daily'][$today]['requests'] ?? 0) + 1;
-        $metrics['daily'][$today]['page_views'] = (int)($metrics['daily'][$today]['page_views'] ?? 0) + 1;
+
+        // Page views HTML e bots NUNCA incrementam total_requests nem daily[$today]['requests'] (exclusivos de chamadas de API)
+        if ($isBot) {
+            $metrics['total_bot_views'] = (int)($metrics['total_bot_views'] ?? 0) + 1;
+            $metrics['daily'][$today]['bot_views'] = (int)($metrics['daily'][$today]['bot_views'] ?? 0) + 1;
+        } else {
+            $metrics['total_page_views'] = (int)($metrics['total_page_views'] ?? 0) + 1;
+            $metrics['daily'][$today]['page_views'] = (int)($metrics['daily'][$today]['page_views'] ?? 0) + 1;
+        }
 
         // Rotação determinística: manter apenas os 14 dias mais recentes
         ksort($metrics['daily']);
@@ -596,23 +669,25 @@ function grid402_record_page_visit(?string $path = null, ?string $ip = null, ?st
             $metrics['daily'] = array_slice($metrics['daily'], -14, 14, true);
         }
 
-        // Buffer leve de visitas (anonimizado, sem UA bruto em claro)
-        if (!isset($metrics['recent_visits']) || !is_array($metrics['recent_visits'])) {
-            $metrics['recent_visits'] = [];
-        }
-        $maxUa = $ua !== null ? trim($ua) : '';
-        if ($maxUa !== '') {
-            $maxUa = substr(preg_replace('/[\r\n\t]+/', ' ', $maxUa), 0, 180);
-        }
+        // Buffer leve de visitas humanas (anonimizado, sem UA bruto em claro)
+        if (!$isBot) {
+            if (!isset($metrics['recent_visits']) || !is_array($metrics['recent_visits'])) {
+                $metrics['recent_visits'] = [];
+            }
+            $maxUa = $effectiveUa;
+            if ($maxUa !== '') {
+                $maxUa = substr(preg_replace('/[\r\n\t]+/', ' ', $maxUa), 0, 180);
+            }
 
-        array_unshift($metrics['recent_visits'], [
-            'timestamp' => $now,
-            'path' => $path !== null ? substr(trim($path), 0, 180) : '/',
-            'ip_masked' => grid402_mask_ip($ip ?? (string)($_SERVER['REMOTE_ADDR'] ?? '')),
-            'ua_masked' => $maxUa !== '' ? substr($maxUa, 0, 80) . '…' : '',
-        ]);
-        if (count($metrics['recent_visits']) > 50) {
-            $metrics['recent_visits'] = array_slice($metrics['recent_visits'], 0, 50);
+            array_unshift($metrics['recent_visits'], [
+                'timestamp' => $now,
+                'path' => $path !== null ? substr(trim($path), 0, 180) : '/',
+                'ip_masked' => grid402_mask_ip($ip ?? (string)($_SERVER['REMOTE_ADDR'] ?? '')),
+                'ua_masked' => $maxUa !== '' ? substr($maxUa, 0, 80) . '…' : '',
+            ]);
+            if (count($metrics['recent_visits']) > 50) {
+                $metrics['recent_visits'] = array_slice($metrics['recent_visits'], 0, 50);
+            }
         }
 
         ftruncate($fp, 0);
@@ -626,18 +701,30 @@ function grid402_record_page_visit(?string $path = null, ?string $ip = null, ?st
 }
 
 /**
- * Obtém estatísticas de Passes de Sessão Web3 (ativos, créditos emitidos e restantes)
+ * Obtém estatísticas de Passes de Sessão Web3 separando passes pagos de produção,
+ * passes promocionais gratuitos (`promo_*`) e passes sandbox.
  */
 function grid402_get_passes_stats(): array {
+    $empty = [
+        'total_issued' => 0,
+        'active_passes' => 0,
+        'total_credits' => 0,
+        'remaining_credits' => 0,
+        'active_remaining_credits' => 0,
+        'paid_passes' => 0,
+        'active_paid_passes' => 0,
+        'paid_total_credits' => 0,
+        'paid_remaining_credits' => 0,
+        'paid_active_remaining_credits' => 0,
+        'sandbox_passes' => 0,
+        'active_sandbox_passes' => 0,
+        'promo_passes' => 0,
+        'active_promo_passes' => 0,
+        'promo_remaining_credits' => 0,
+    ];
     $file = defined('GRID402_FILE_PASSES') ? GRID402_FILE_PASSES : (defined('GRID402_PRIVATE_DIR') ? GRID402_PRIVATE_DIR . '/session_passes.json' : __DIR__ . '/private_data/session_passes.json');
     if (!file_exists($file)) {
-        return [
-            'total_issued' => 0,
-            'active_passes' => 0,
-            'total_credits' => 0,
-            'remaining_credits' => 0,
-            'active_remaining_credits' => 0,
-        ];
+        return $empty;
     }
     $raw = @file_get_contents($file);
     $passes = $raw ? (@json_decode($raw, true) ?: []) : [];
@@ -646,8 +733,22 @@ function grid402_get_passes_stats(): array {
     $totalCredits = 0;
     $remainingCredits = 0;
     $activeRemainingCredits = 0;
+
+    $paidPasses = 0;
+    $activePaidPasses = 0;
+    $paidTotalCredits = 0;
+    $paidRemainingCredits = 0;
+    $paidActiveRemainingCredits = 0;
+
+    $sandboxPasses = 0;
+    $activeSandboxPasses = 0;
+
+    $promoPasses = 0;
+    $activePromoPasses = 0;
+    $promoRemainingCredits = 0;
+
     $now = time();
-    foreach ($passes as $p) {
+    foreach ($passes as $passKey => $p) {
         if (!is_array($p)) {
             continue;
         }
@@ -672,11 +773,51 @@ function grid402_get_passes_stats(): array {
 
         $rem = max(0, (int) ($p['credits_remaining'] ?? 0));
         $init = max(0, (int) ($p['credits_total'] ?? $p['initial_credits'] ?? 0));
+        $isActive = ($exp > $now && $rem > 0);
+
+        $tierLower = strtolower(trim((string) ($p['tier'] ?? '')));
+        $modeLower = strtolower(trim((string) ($p['mode'] ?? '')));
+        $txLower = strtolower(trim((string) ($p['tx_hash'] ?? '')));
+        $usdcDepLower = strtolower(trim((string) ($p['usdc_deposited'] ?? '')));
+        $passIdLower = strtolower(trim((string) ($p['pass_id'] ?? (is_string($passKey) ? $passKey : ''))));
+
+        $isSandbox = ($modeLower === 'sandbox')
+            || ($tierLower === 'sandbox')
+            || str_starts_with($passIdLower, 'demo')
+            || str_contains($usdcDepLower, 'sandbox');
+        $isPromo = !$isSandbox && (
+            !empty($p['promo_code'])
+            || str_starts_with($tierLower, 'promo_')
+            || str_starts_with($txLower, 'promo:')
+            || str_contains($usdcDepLower, 'promo')
+        );
+
         $totalCredits += $init;
         $remainingCredits += $rem;
-        if ($exp > $now && $rem > 0) {
+        if ($isActive) {
             $active++;
             $activeRemainingCredits += $rem;
+        }
+
+        if ($isSandbox) {
+            $sandboxPasses++;
+            if ($isActive) {
+                $activeSandboxPasses++;
+            }
+        } elseif ($isPromo) {
+            $promoPasses++;
+            $promoRemainingCredits += $rem;
+            if ($isActive) {
+                $activePromoPasses++;
+            }
+        } else {
+            $paidPasses++;
+            $paidTotalCredits += $init;
+            $paidRemainingCredits += $rem;
+            if ($isActive) {
+                $activePaidPasses++;
+                $paidActiveRemainingCredits += $rem;
+            }
         }
     }
     return [
@@ -685,6 +826,16 @@ function grid402_get_passes_stats(): array {
         'total_credits' => $totalCredits,
         'remaining_credits' => $remainingCredits,
         'active_remaining_credits' => $activeRemainingCredits,
+        'paid_passes' => $paidPasses,
+        'active_paid_passes' => $activePaidPasses,
+        'paid_total_credits' => $paidTotalCredits,
+        'paid_remaining_credits' => $paidRemainingCredits,
+        'paid_active_remaining_credits' => $paidActiveRemainingCredits,
+        'sandbox_passes' => $sandboxPasses,
+        'active_sandbox_passes' => $activeSandboxPasses,
+        'promo_passes' => $promoPasses,
+        'active_promo_passes' => $activePromoPasses,
+        'promo_remaining_credits' => $promoRemainingCredits,
     ];
 }
 
@@ -705,6 +856,8 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
     $totalRevenueUsdc = (float)($metrics['total_revenue_usdc'] ?? 0.0);
     $statusCounts = is_array($metrics['status_counts'] ?? null) ? $metrics['status_counts'] : [];
     $serviceCounts = is_array($metrics['service_counts'] ?? null) ? $metrics['service_counts'] : [];
+    $servicePaidCounts = is_array($metrics['service_paid_counts'] ?? null) ? $metrics['service_paid_counts'] : [];
+    $serviceRevenueUsdc = is_array($metrics['service_revenue_usdc'] ?? null) ? $metrics['service_revenue_usdc'] : [];
     $recentEvents = is_array($metrics['recent_events'] ?? null) ? $metrics['recent_events'] : [];
     $rawDaily = is_array($metrics['daily'] ?? null) ? $metrics['daily'] : [];
 
@@ -810,7 +963,7 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
         }
     }
 
-    // 6. Rentabilidade Estimada por Micro-Serviço
+    // 6. Receita Real por Micro-Serviço (apenas consultas pagas reais; NUNCA multiplica service_counts bruto com 402/sandbox/erros)
     $pricingTable = [
         'dossier' => 0.0500,
         'compliance' => 0.0300,
@@ -823,6 +976,7 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
         'sanctions' => 0.0100,
         'simples' => 0.0100,
         'pass' => 2.0000,
+        'pass-emitir' => 2.0000,
         'extract' => 0.0050,
         'email-verify' => 0.0050,
         'notarize' => 0.0050,
@@ -839,18 +993,39 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
         'summary' => 0.0000,
     ];
 
+    $allSvcKeys = array_values(array_unique(array_merge(
+        array_keys($serviceCounts),
+        array_keys($servicePaidCounts),
+        array_keys($serviceRevenueUsdc)
+    )));
+
     $serviceRevenue = [];
-    foreach ($serviceCounts as $svcName => $count) {
+    foreach ($allSvcKeys as $svcName) {
+        $svcName = (string) $svcName;
+        $rawCount = (int) ($serviceCounts[$svcName] ?? 0);
+        $paidCount = (int) ($servicePaidCounts[$svcName] ?? 0);
+        $realUsdc = round((float) ($serviceRevenueUsdc[$svcName] ?? 0.0), 4);
         $price = $pricingTable[$svcName] ?? 0.0050;
+        // Prioriza receita real acumulada; fallback estritamente sobre service_paid_counts (nunca sobre 402/sandbox/erros)
+        $computedUsdc = $realUsdc > 0.0
+            ? $realUsdc
+            : ($paidCount > 0 ? round($paidCount * $price, 4) : 0.0);
         $serviceRevenue[$svcName] = [
             'service' => $svcName,
-            'count' => (int)$count,
+            'count' => $rawCount,
+            'paid_count' => $paidCount,
             'unit_price' => $price,
-            'estimated_usdc' => round(((int)$count) * $price, 4),
+            'real_usdc' => $realUsdc,
+            'estimated_usdc' => $computedUsdc,
         ];
     }
-    // Ordena da maior receita estimada para a menor
-    uasort($serviceRevenue, fn($a, $b) => $b['estimated_usdc'] <=> $a['estimated_usdc']);
+    // Ordena da maior receita real/paga para a menor
+    uasort($serviceRevenue, static function (array $a, array $b): int {
+        return ($b['real_usdc'] <=> $a['real_usdc'])
+            ?: ($b['estimated_usdc'] <=> $a['estimated_usdc'])
+            ?: ($b['paid_count'] <=> $a['paid_count'])
+            ?: ($b['count'] <=> $a['count']);
+    });
 
     $latencySamples = is_array($metrics['latency_samples_ms'] ?? null) ? $metrics['latency_samples_ms'] : [];
     $latencyP50 = grid402_calculate_percentile($latencySamples, 50.0);
@@ -863,12 +1038,16 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
         'http_200_rate' => $http200Rate,
         'http_200_count' => $ok200,
         'error_5xx_count' => $error5xx,
+        'challenge_402_count' => (int)($statusCounts['402'] ?? 0),
+        'total_bot_views' => (int)($metrics['total_bot_views'] ?? 0),
         'sandbox_rate' => $sandboxRate,
         'latency_p50_ms' => $latencyP50,
         'latency_p95_ms' => $latencyP95,
         'latency_samples_count' => count($latencySamples),
         'daily_history_14d' => $dailyHistory14d,
         'top_consumers' => $topConsumers,
+        'service_paid_counts' => $servicePaidCounts,
+        'service_revenue_usdc' => $serviceRevenueUsdc,
         'service_revenue' => array_values($serviceRevenue),
         'passes_stats' => grid402_get_passes_stats(),
     ];

@@ -139,7 +139,7 @@ t_assert('Aprovacao sandbox emite pass_g402_... marcado como sandbox', $sbxAppro
 $prodPassStatus = grid402_get_session_pass_status($okWh['pass_token']);
 t_assert('Token Pro de producao possui 1200 creditos em grid402_get_session_pass_status', !empty($prodPassStatus['valid']) && (int) $prodPassStatus['credits_remaining'] === 1200);
 $passStatus = grid402_get_session_pass_status($sbxApprove['pass_token']);
-t_assert('Token emitido em sandbox funciona em grid402_get_session_pass_status (100 creditos Sandbox)', !empty($passStatus['valid']) && (int) $passStatus['credits_remaining'] === 100);
+t_assert('Token emitido em sandbox funciona em grid402_get_session_pass_status (teto 3 creditos Sandbox V-01)', !empty($passStatus['valid']) && (int) $passStatus['credits_remaining'] === 3 && !empty($passStatus['locked_limits']));
 
 $mpMetrics = grid402_get_metrics();
 t_assert('Compra aprovada no Mercado Pago registra receita equivalente em USDC (5.0000 USDC Pro) sem duplicar no replay', abs(((float)($mpMetrics['total_revenue_usdc'] ?? 0)) - 5.0) < 0.0001 && (($mpMetrics['payment_sources']['mercadopago'] ?? 0) === 1));

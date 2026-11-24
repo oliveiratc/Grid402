@@ -10,6 +10,11 @@
 
 declare(strict_types=1);
 
+if (PHP_SAPI !== 'cli' && realpath((string) ($_SERVER['SCRIPT_FILENAME'] ?? '')) === __FILE__) {
+    http_response_code(403);
+    exit('Acesso direto proibido.');
+}
+
 if (!defined('GRID402_EXEC')) {
     define('GRID402_EXEC', true);
 }
@@ -119,9 +124,25 @@ function grid402_log_request(array $event): bool {
     $ipSecret = defined('GRID402_CRON_SECRET') ? GRID402_CRON_SECRET : 'grid402_ip_salt';
     $ipHmac = substr(hash_hmac('sha256', trim($rawIp), $ipSecret), 0, 12);
 
-    $allowedSources = ['none', 'free', 'sandbox', 'pass', 'tx_hash', 'facilitator', 'facilitator_verify_only', 'rapidapi', 'mercadopago', 'web3_topup', 'unknown'];
+    $allowedSources = [
+        'none',
+        'free',
+        'sandbox',
+        'pass',
+        'promo_pass',
+        'tx_hash',
+        'facilitator',
+        'facilitator_verify_only',
+        'rapidapi',
+        'mercadopago',
+        'web3_topup',
+        'solana_spl',
+        'mcp',
+        'unknown',
+    ];
     $rawSource = strtolower(trim((string) ($event['payment_source'] ?? 'none')));
-    $paymentSource = in_array($rawSource, $allowedSources, true) ? $rawSource : 'unknown';
+    $isDynamicChainSource = preg_match('/^(?:evm|multichain)_[a-z0-9_-]{1,32}$/', $rawSource) === 1;
+    $paymentSource = (in_array($rawSource, $allowedSources, true) || $isDynamicChainSource) ? $rawSource : 'unknown';
 
     $entry = [
         'ts' => gmdate('Y-m-d\TH:i:s\Z'),
@@ -135,6 +156,9 @@ function grid402_log_request(array $event): bool {
         'idempotent_replay' => !empty($event['idempotent_replay']),
         'error' => grid402_sanitize_log_text(isset($event['error']) ? (string) $event['error'] : null),
     ];
+    if (isset($event['price_usdc']) && is_numeric($event['price_usdc'])) {
+        $entry['price_usdc'] = round((float) $event['price_usdc'], 6);
+    }
 
     $line = json_encode($entry, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
     if (!is_string($line)) {
@@ -171,89 +195,99 @@ function grid402_log_request(array $event): bool {
 }
 
 /**
- * Le os registros recentes de falhas reais de pagamento no requests.jsonl (sem desafios 402 vazios nem PII).
+ * Le os registros recentes de falhas reais de pagamento no requests.jsonl (e rotacionado .1 se necessario),
+ * sem desafios 402 vazios nem PII.
  *
  * @return array<int, array<string, mixed>>
  */
 function grid402_read_recent_payment_failures(int $limit = 25): array {
     $limit = max(1, min(100, $limit));
     $logFile = grid402_get_request_log_path();
-    if (!is_file($logFile) || !is_readable($logFile)) {
-        return [];
-    }
+    $candidateFiles = [$logFile, $logFile . '.1'];
+    $allowedFailureStatuses = [400, 402, 403, 429, 500, 502, 503, 504];
 
-    $fp = @fopen($logFile, 'rb');
-    if (!$fp) {
-        return [];
-    }
-
-    $rawTail = '';
-    $truncatedHead = false;
-    if (flock($fp, LOCK_SH)) {
-        $stat = fstat($fp);
-        $size = is_array($stat) ? (int) ($stat['size'] ?? 0) : 0;
-        $tailBytes = 262144; // 256 KB
-        if ($size > $tailBytes) {
-            fseek($fp, -$tailBytes, SEEK_END);
-            $truncatedHead = true;
+    $readTailLines = static function (string $filePath): array {
+        if (!is_file($filePath) || !is_readable($filePath)) {
+            return [];
         }
-        $rawTail = (string) stream_get_contents($fp);
-        flock($fp, LOCK_UN);
-    }
-    fclose($fp);
+        $fp = @fopen($filePath, 'rb');
+        if (!$fp) {
+            return [];
+        }
+        $rawTail = '';
+        $truncatedHead = false;
+        if (flock($fp, LOCK_SH)) {
+            $stat = fstat($fp);
+            $size = is_array($stat) ? (int) ($stat['size'] ?? 0) : 0;
+            $tailBytes = 262144; // 256 KB
+            if ($size > $tailBytes) {
+                fseek($fp, -$tailBytes, SEEK_END);
+                $truncatedHead = true;
+            }
+            $rawTail = (string) stream_get_contents($fp);
+            flock($fp, LOCK_UN);
+        }
+        fclose($fp);
 
-    if ($rawTail === '') {
-        return [];
-    }
-    if ($truncatedHead) {
-        $nlPos = strpos($rawTail, "\n");
-        $rawTail = ($nlPos !== false) ? substr($rawTail, $nlPos + 1) : '';
-    }
+        if ($rawTail === '') {
+            return [];
+        }
+        if ($truncatedHead) {
+            $nlPos = strpos($rawTail, "\n");
+            $rawTail = ($nlPos !== false) ? substr($rawTail, $nlPos + 1) : '';
+        }
+        return preg_split('/\r?\n/', trim($rawTail)) ?: [];
+    };
 
-    $lines = preg_split('/\r?\n/', trim($rawTail)) ?: [];
     $failures = [];
-    for ($i = count($lines) - 1; $i >= 0; $i--) {
-        $ln = trim((string) $lines[$i]);
-        if ($ln === '') {
-            continue;
-        }
-        $entry = @json_decode($ln, true);
-        if (!is_array($entry)) {
-            continue;
-        }
-        $status = (int) ($entry['status'] ?? 0);
-        if (!in_array($status, [400, 402, 403, 429, 503], true)) {
-            continue;
-        }
-        $err = trim((string) ($entry['error'] ?? ''));
-        if ($err === '' || $err === 'PaymentRequired') {
-            continue;
-        }
-        $svc = strtolower(trim((string) ($entry['service'] ?? '')));
-        $src = strtolower(trim((string) ($entry['payment_source'] ?? 'unknown')));
-        // Ignora probes de scanners em rotas gratuitas de consulta (pass-balance, pass-statement, pass-limits, verify) sem token válido
-        if ($src === 'free' && in_array($svc, ['pass-balance', 'pass-statement', 'pass-limits', 'verify', 'summary'], true)) {
-            continue;
-        }
-        // Ignora probes GET vazios de scanners em pass-emitir sem hash de transação real
-        if ($svc === 'pass-emitir' && $status === 400 && $err === 'InvalidTxHash') {
-            continue;
-        }
-        // Ignora bloqueios esperados de cota gratuita de sandbox (429) para nao ofuscar falhas reais de pagamento
-        if ($status === 429 && $src === 'sandbox' && str_starts_with($err, 'SandboxRateLimitExceeded')) {
-            continue;
-        }
-        $failures[] = [
-            'ts' => (string) ($entry['ts'] ?? ''),
-            'request_id' => (string) ($entry['request_id'] ?? ''),
-            'service' => (string) ($entry['service'] ?? ''),
-            'status' => $status,
-            'payment_source' => (string) ($entry['payment_source'] ?? 'unknown'),
-            'error' => grid402_sanitize_log_text($err, 180) ?? '',
-            'ip_hmac' => (string) ($entry['ip_hmac'] ?? ''),
-        ];
+    foreach ($candidateFiles as $filePath) {
         if (count($failures) >= $limit) {
             break;
+        }
+        $lines = $readTailLines($filePath);
+        for ($i = count($lines) - 1; $i >= 0; $i--) {
+            $ln = trim((string) $lines[$i]);
+            if ($ln === '') {
+                continue;
+            }
+            $entry = @json_decode($ln, true);
+            if (!is_array($entry)) {
+                continue;
+            }
+            $status = (int) ($entry['status'] ?? 0);
+            if (!in_array($status, $allowedFailureStatuses, true)) {
+                continue;
+            }
+            $err = trim((string) ($entry['error'] ?? ''));
+            if ($err === '' || $err === 'PaymentRequired') {
+                continue;
+            }
+            $svc = strtolower(trim((string) ($entry['service'] ?? '')));
+            $src = strtolower(trim((string) ($entry['payment_source'] ?? 'unknown')));
+            // Ignora probes de scanners em rotas gratuitas de consulta (pass-balance, pass-statement, pass-limits, verify) sem token válido
+            if ($src === 'free' && in_array($svc, ['pass-balance', 'pass-statement', 'pass-limits', 'verify', 'summary'], true)) {
+                continue;
+            }
+            // Ignora probes GET vazios de scanners em pass-emitir sem hash de transação real
+            if ($svc === 'pass-emitir' && $status === 400 && $err === 'InvalidTxHash') {
+                continue;
+            }
+            // Ignora bloqueios esperados de cota gratuita de sandbox (429) para nao ofuscar falhas reais de pagamento
+            if ($status === 429 && $src === 'sandbox' && str_starts_with($err, 'SandboxRateLimitExceeded')) {
+                continue;
+            }
+            $failures[] = [
+                'ts' => (string) ($entry['ts'] ?? ''),
+                'request_id' => (string) ($entry['request_id'] ?? ''),
+                'service' => (string) ($entry['service'] ?? ''),
+                'status' => $status,
+                'payment_source' => (string) ($entry['payment_source'] ?? 'unknown'),
+                'error' => grid402_sanitize_log_text($err, 180) ?? '',
+                'ip_hmac' => (string) ($entry['ip_hmac'] ?? ''),
+            ];
+            if (count($failures) >= $limit) {
+                break;
+            }
         }
     }
 

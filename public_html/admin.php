@@ -100,10 +100,12 @@ function grid402_admin_format_brt_utc(string $isoUtc, bool $timeOnly = false): a
 }
 
 /**
- * Consulta os saldos on-chain em USDC e ETH da carteira oficial na Base Mainnet com cache de 60s
+ * Consulta os saldos on-chain em USDC (Base, Polygon, Arbitrum e Solana + status ATA USDC)
+ * e ETH (Base) da carteira oficial com cache de 60s em GRID402_PRIVATE_DIR.
  */
 function grid402_get_oracle_wallet_balances(): array {
-    $cacheFile = __DIR__ . '/private_data/wallet_balance_cache.json';
+    $privateDir = defined('GRID402_PRIVATE_DIR') ? rtrim((string) GRID402_PRIVATE_DIR, '/\\') : (__DIR__ . '/private_data');
+    $cacheFile = $privateDir . '/wallet_balance_cache.json';
     $now = time();
     $cacheTtl = 60; // 60 segundos de cache
 
@@ -115,22 +117,42 @@ function grid402_get_oracle_wallet_balances(): array {
         }
     }
 
-    $oracleAddress = defined('GRID402_WALLET_ADDRESS') ? GRID402_WALLET_ADDRESS : '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90';
-    $usdcContract = defined('GRID402_USDC_CONTRACT') ? GRID402_USDC_CONTRACT : '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
-    $baseRpcUrl = defined('GRID402_BASE_RPC_URL') ? GRID402_BASE_RPC_URL : 'https://mainnet.base.org';
+    $oracleAddress = defined('GRID402_WALLET_ADDRESS') ? (string) GRID402_WALLET_ADDRESS : '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90';
+    $usdcContract = defined('GRID402_USDC_CONTRACT') ? (string) GRID402_USDC_CONTRACT : '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+    $solAddress = defined('GRID402_SOLANA_WALLET_ADDRESS') ? trim((string) GRID402_SOLANA_WALLET_ADDRESS) : 'CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C';
+    $solUsdcMint = defined('GRID402_SOLANA_USDC_MINT') ? trim((string) GRID402_SOLANA_USDC_MINT) : 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 
-    $rpcUrls = [
-        $baseRpcUrl,
-        'https://base.llamarpc.com',
+    // Base Mainnet: publicnode como primario (evita base.llamarpc.com 525 e mainnet.base.org 429)
+    $baseRpcUrls = [
+        'https://base-rpc.publicnode.com',
         'https://1rpc.io/base',
     ];
+    $customBaseRpc = defined('GRID402_BASE_RPC_URL') ? trim((string) GRID402_BASE_RPC_URL) : '';
+    if ($customBaseRpc !== '' && str_starts_with($customBaseRpc, 'https://') && !str_contains($customBaseRpc, 'llamarpc.com')) {
+        if ($customBaseRpc !== 'https://mainnet.base.org') {
+            array_unshift($baseRpcUrls, $customBaseRpc);
+        } else {
+            $baseRpcUrls[] = $customBaseRpc;
+        }
+        $baseRpcUrls = array_values(array_unique($baseRpcUrls));
+    }
 
-    $usdcBalance = 0.0;
-    $ethBalance = 0.0;
-    $rpcOk = false;
+    $polygonRpcUrls = [
+        'https://polygon-bor-rpc.publicnode.com',
+        'https://1rpc.io/matic',
+    ];
+    $arbitrumRpcUrls = [
+        'https://arbitrum-one-rpc.publicnode.com',
+        'https://arb1.arbitrum.io/rpc',
+        'https://1rpc.io/arb',
+    ];
+    $solanaRpcUrls = [
+        'https://solana-rpc.publicnode.com',
+        'https://api.mainnet-beta.solana.com',
+    ];
 
-    // Helper interno para executar chamadas JSON-RPC
-    $execRpc = function (string $method, array $params) use ($rpcUrls): mixed {
+    // Helper interno para executar chamadas JSON-RPC em qualquer lista de endpoints com fallback
+    $execRpc = static function (array $urls, string $method, array $params, int $timeoutSec = 3): mixed {
         $payload = json_encode([
             'jsonrpc' => '2.0',
             'id' => 1,
@@ -138,16 +160,16 @@ function grid402_get_oracle_wallet_balances(): array {
             'params' => $params,
         ]);
 
-        foreach ($rpcUrls as $url) {
+        foreach ($urls as $url) {
             $ch = curl_init($url);
             curl_setopt_array($ch, [
                 CURLOPT_POST => true,
                 CURLOPT_POSTFIELDS => $payload,
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
-                CURLOPT_TIMEOUT => 3,
-                CURLOPT_CONNECTTIMEOUT => 2,
-                CURLOPT_USERAGENT => 'Grid402-Admin-Probe/2.0',
+                CURLOPT_TIMEOUT => $timeoutSec,
+                CURLOPT_CONNECTTIMEOUT => min(2, $timeoutSec),
+                CURLOPT_USERAGENT => 'Grid402-Admin-Probe/2.1',
                 CURLOPT_SSL_VERIFYPEER => true,
                 CURLOPT_SSL_VERIFYHOST => 2,
             ]);
@@ -158,7 +180,7 @@ function grid402_get_oracle_wallet_balances(): array {
 
             if ($httpCode === 200 && is_string($response)) {
                 $json = @json_decode($response, true);
-                if (isset($json['result'])) {
+                if (is_array($json) && array_key_exists('result', $json) && !isset($json['error'])) {
                     return $json['result'];
                 }
             }
@@ -167,36 +189,102 @@ function grid402_get_oracle_wallet_balances(): array {
         return null;
     };
 
-    try {
-        // 1. Saldo USDC (ERC-20 balanceOf)
-        $cleanAddr = str_starts_with($oracleAddress, '0x') ? substr($oracleAddress, 2) : $oracleAddress;
-        $callData = '0x70a08231' . str_pad($cleanAddr, 64, '0', STR_PAD_LEFT);
-        $resUsdc = $execRpc('eth_call', [
-            [
-                'to' => $usdcContract,
-                'data' => $callData,
-            ],
-            'latest'
-        ]);
+    $cleanAddr = str_starts_with(strtolower($oracleAddress), '0x') ? substr($oracleAddress, 2) : $oracleAddress;
+    $erc20BalanceCallData = '0x70a08231' . str_pad($cleanAddr, 64, '0', STR_PAD_LEFT);
 
-        if (is_string($resUsdc) && str_starts_with($resUsdc, '0x')) {
-            $hexVal = substr($resUsdc, 2);
-            $rawInt = hexdec($hexVal);
-            $usdcBalance = round($rawInt / 1000000, 4); // USDC tem 6 decimais
-            $rpcOk = true;
+    $queryEvmUsdc = static function (array $rpcs, array $contracts) use ($execRpc, $erc20BalanceCallData): array {
+        $sumUsdc = 0.0;
+        $ok = false;
+        foreach ($contracts as $contractAddr) {
+            $res = $execRpc($rpcs, 'eth_call', [
+                ['to' => $contractAddr, 'data' => $erc20BalanceCallData],
+                'latest',
+            ], 2);
+            if (is_string($res) && str_starts_with($res, '0x')) {
+                $hexVal = ltrim(substr($res, 2), '0');
+                $rawInt = ($hexVal === '') ? 0 : hexdec($hexVal);
+                $sumUsdc += ($rawInt / 1000000.0);
+                $ok = true;
+            }
+        }
+        return ['usdc' => round($sumUsdc, 4), 'ok' => $ok];
+    };
+
+    $usdcBalance = 0.0;
+    $ethBalance = 0.0;
+    $baseRpcOk = false;
+    $polygonUsdc = 0.0;
+    $polygonRpcOk = false;
+    $arbitrumUsdc = 0.0;
+    $arbitrumRpcOk = false;
+    $solanaUsdc = 0.0;
+    $solanaSol = 0.0;
+    $solanaAtaInitialized = null;
+    $solanaAtaCount = 0;
+    $solanaRpcOk = false;
+
+    try {
+        // 1. Base Mainnet: USDC + ETH
+        $baseUsdcRes = $queryEvmUsdc($baseRpcUrls, [$usdcContract]);
+        if ($baseUsdcRes['ok']) {
+            $usdcBalance = $baseUsdcRes['usdc'];
+            $baseRpcOk = true;
         }
 
-        // 2. Saldo ETH (eth_getBalance para reserva de gas)
-        $resEth = $execRpc('eth_getBalance', [
-            $oracleAddress,
-            'latest'
-        ]);
-
+        $resEth = $execRpc($baseRpcUrls, 'eth_getBalance', [$oracleAddress, 'latest'], 2);
         if (is_string($resEth) && str_starts_with($resEth, '0x')) {
-            $hexEth = substr($resEth, 2);
-            $rawEth = hexdec($hexEth);
-            $ethBalance = round($rawEth / 1e18, 5); // ETH tem 18 decimais
-            $rpcOk = true;
+            $hexEth = ltrim(substr($resEth, 2), '0');
+            $rawEth = ($hexEth === '') ? 0 : hexdec($hexEth);
+            $ethBalance = round($rawEth / 1e18, 5);
+            $baseRpcOk = true;
+        }
+
+        // 2. Polygon PoS: USDC Native + USDC.e
+        $polyRes = $queryEvmUsdc($polygonRpcUrls, [
+            '0x3c499c542cef5e3811e1192ce70d8cc03d5c3359',
+            '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',
+        ]);
+        $polygonUsdc = $polyRes['usdc'];
+        $polygonRpcOk = $polyRes['ok'];
+
+        // 3. Arbitrum One: USDC Native + USDC.e
+        $arbRes = $queryEvmUsdc($arbitrumRpcUrls, [
+            '0xaf88d065e77c8cc2239327c5edb3a432268e5831',
+            '0xff970a61a04b1ca14834a43f5de4533ebddb5cc8',
+        ]);
+        $arbitrumUsdc = $arbRes['usdc'];
+        $arbitrumRpcOk = $arbRes['ok'];
+
+        // 4. Solana Mainnet: SPL USDC (ATA status + balance) + SOL balance
+        if ($solAddress !== '' && $solUsdcMint !== '') {
+            $solTokens = $execRpc($solanaRpcUrls, 'getTokenAccountsByOwner', [
+                $solAddress,
+                ['mint' => $solUsdcMint],
+                ['encoding' => 'jsonParsed'],
+            ], 2);
+            if (is_array($solTokens) && isset($solTokens['value']) && is_array($solTokens['value'])) {
+                $solanaRpcOk = true;
+                $solanaAtaCount = count($solTokens['value']);
+                $solanaAtaInitialized = ($solanaAtaCount > 0);
+                $sumSolUsdc = 0.0;
+                foreach ($solTokens['value'] as $acct) {
+                    $tokenAmt = $acct['account']['data']['parsed']['info']['tokenAmount'] ?? null;
+                    if (is_array($tokenAmt)) {
+                        if (isset($tokenAmt['uiAmount']) && is_numeric($tokenAmt['uiAmount'])) {
+                            $sumSolUsdc += (float) $tokenAmt['uiAmount'];
+                        } elseif (isset($tokenAmt['amount']) && is_numeric($tokenAmt['amount'])) {
+                            $sumSolUsdc += ((float) $tokenAmt['amount']) / 1000000.0;
+                        }
+                    }
+                }
+                $solanaUsdc = round($sumSolUsdc, 4);
+            }
+
+            $solBal = $execRpc($solanaRpcUrls, 'getBalance', [$solAddress], 2);
+            if (is_array($solBal) && isset($solBal['value']) && is_numeric($solBal['value'])) {
+                $solanaSol = round(((float) $solBal['value']) / 1e9, 6);
+                $solanaRpcOk = true;
+            }
         }
     } catch (\Throwable $e) {
         if (file_exists($cacheFile)) {
@@ -208,21 +296,59 @@ function grid402_get_oracle_wallet_balances(): array {
         }
     }
 
+    $totalUsdcBalance = round($usdcBalance + $polygonUsdc + $arbitrumUsdc + $solanaUsdc, 4);
     $result = [
         'oracle_address' => $oracleAddress,
+        'solana_address' => $solAddress,
         'usdc_balance' => $usdcBalance,
+        'total_usdc_balance' => $totalUsdcBalance,
         'eth_balance' => $ethBalance,
         'network' => 'Base Mainnet',
         'chain_id' => 8453,
+        'chains' => [
+            'base' => [
+                'network' => 'Base Mainnet',
+                'chain_id' => 8453,
+                'usdc_balance' => $usdcBalance,
+                'native_balance' => $ethBalance,
+                'native_symbol' => 'ETH',
+                'rpc_ok' => $baseRpcOk,
+            ],
+            'polygon' => [
+                'network' => 'Polygon PoS',
+                'chain_id' => 137,
+                'usdc_balance' => $polygonUsdc,
+                'rpc_ok' => $polygonRpcOk,
+            ],
+            'arbitrum' => [
+                'network' => 'Arbitrum One',
+                'chain_id' => 42161,
+                'usdc_balance' => $arbitrumUsdc,
+                'rpc_ok' => $arbitrumRpcOk,
+            ],
+            'solana' => [
+                'network' => 'Solana Mainnet',
+                'address' => $solAddress,
+                'usdc_balance' => $solanaUsdc,
+                'sol_balance' => $solanaSol,
+                'ata_initialized' => $solanaAtaInitialized,
+                'ata_count' => $solanaAtaCount,
+                'rpc_ok' => $solanaRpcOk,
+            ],
+        ],
         'cached_at' => $now,
-        'rpc_operational' => $rpcOk,
+        'rpc_operational' => $baseRpcOk,
     ];
 
-    $dir = dirname($cacheFile);
-    if (!is_dir($dir)) {
-        @mkdir($dir, 0755, true);
+    if (function_exists('grid402_atomic_write')) {
+        grid402_atomic_write($cacheFile, $result);
+    } else {
+        $dir = dirname($cacheFile);
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0755, true);
+        }
+        @file_put_contents($cacheFile, (string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
     }
-    @file_put_contents($cacheFile, (string) json_encode($result, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
     return $result;
 }
@@ -1151,12 +1277,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // 4. Endpoints de API JSON e Exportacao CSV
 // Mapas canonicos de origem de pagamento e categoria de falha (usados no CSV, no JSON e no painel)
 $paymentSourceLabels = [
-    'tx_hash' => 'TX hash (legado)',
-    'pass' => 'Session pass',
     'facilitator' => 'Facilitador x402 (settle)',
-    'facilitator_verify_only' => 'Facilitador (verify only)',
-    'mercadopago' => 'Pix (Mercado Pago)',
+    'pass' => 'Session pass',
+    'web3_topup' => 'Web3 Top-Up (Pass)',
+    'mercadopago' => 'Pix / Cartão (Mercado Pago)',
     'rapidapi' => 'RapidAPI Hub',
+    'mcp' => 'MCP Server (/mcp)',
+    'solana_spl' => 'Solana SPL (USDC)',
+    'evm_base' => 'Base EVM (On-Chain)',
+    'evm_polygon' => 'Polygon EVM (On-Chain)',
+    'evm_arbitrum' => 'Arbitrum EVM (On-Chain)',
+    'evm_optimism' => 'Optimism EVM (On-Chain)',
+    'evm_ethereum' => 'Ethereum EVM (On-Chain)',
+    'tx_hash' => 'TX hash (legado)',
+    'promo_pass' => 'Pass Promocional (Grátis)',
+    'facilitator_verify_only' => 'Facilitador (verify only)',
     'sandbox' => 'Sandbox',
     'unknown' => 'Não identificada',
 ];
@@ -1291,8 +1426,8 @@ if ($apiParam === 'export_csv') {
     $events = $metrics['recent_events'] ?? [];
 
     if ($csvScope === 'paid') {
-        // Exportacao historica de todas as transacoes pagas a partir do requests.jsonl (nao afetada por rajadas no buffer de 100)
-        $paidSourcesList = ['facilitator', 'tx_hash', 'pass', 'rapidapi', 'mercadopago', 'web3_topup', 'solana_spl'];
+        // Exportacao historica de todas as transacoes pagas a partir do requests.jsonl (+ rotacionado .1)
+        $paidSourcesList = ['facilitator', 'tx_hash', 'pass', 'web3_topup', 'mercadopago', 'rapidapi', 'solana_spl', 'mcp'];
         $historicalPaid = [];
         $logPath = function_exists('grid402_get_request_log_path') ? grid402_get_request_log_path() : (GRID402_PRIVATE_DIR . '/requests.jsonl');
         $priceMap = [
@@ -1302,34 +1437,43 @@ if ($apiParam === 'export_csv') {
             'notarize' => 0.0050, 'forex' => 0.0050, 'crypto' => 0.0050, 'indicators' => 0.0050, 'holidays' => 0.0050,
             'workdays' => 0.0050, 'global-markets' => 0.0050, 'dns' => 0.0050, 'ssl' => 0.0050, 'asn' => 0.0050, 'cep' => 0.0050,
         ];
-        if (is_file($logPath) && is_readable($logPath)) {
-            $lines = @file($logPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            if (is_array($lines)) {
-                foreach (array_reverse($lines) as $ln) {
-                    $row = @json_decode($ln, true);
-                    if (!is_array($row)) continue;
-                    $src = strtolower((string) ($row['payment_source'] ?? ''));
-                    if ((int) ($row['status'] ?? 0) !== 200) continue;
-                    if (!in_array($src, $paidSourcesList, true) && !str_starts_with($src, 'evm_') && !str_starts_with($src, 'multichain_')) continue;
-                    $svc = strtolower((string) ($row['service'] ?? ''));
-                    $isZeroRec = in_array($src, ['pass', 'rapidapi'], true);
-                    $rowPrice = isset($row['price_usdc']) && is_numeric($row['price_usdc'])
-                        ? (float) $row['price_usdc']
-                        : (float) ($priceMap[$svc] ?? 0.0050);
-                    $historicalPaid[] = [
-                        'timestamp' => (string) ($row['ts'] ?? ''),
-                        'service' => $svc,
-                        'status' => 200,
-                        'type' => 'paid',
-                        'is_paid' => true,
-                        'price_usdc' => $isZeroRec ? 0.0 : $rowPrice,
-                        'tx_hash' => (string) ($row['request_id'] ?? ''),
-                        'payment_source' => $src,
-                        'failure_category' => '',
-                        'settlement_tx' => '',
-                        'ip_masked' => (string) ($row['ip_hmac'] ?? ''),
-                    ];
+        foreach ([$logPath, $logPath . '.1'] as $candidateLog) {
+            if (!is_file($candidateLog) || !is_readable($candidateLog)) {
+                continue;
+            }
+            $lines = @file($candidateLog, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+            if (!is_array($lines)) {
+                continue;
+            }
+            foreach (array_reverse($lines) as $ln) {
+                $row = @json_decode($ln, true);
+                if (!is_array($row)) continue;
+                $src = strtolower((string) ($row['payment_source'] ?? ''));
+                if ((int) ($row['status'] ?? 0) !== 200) continue;
+                if (!in_array($src, $paidSourcesList, true) && !str_starts_with($src, 'evm_') && !str_starts_with($src, 'multichain_')) continue;
+                $svc = strtolower((string) ($row['service'] ?? ''));
+                $isZeroRec = in_array($src, ['pass', 'rapidapi'], true);
+                $hasExplicitPrice = isset($row['price_usdc']) && is_numeric($row['price_usdc']);
+                if ($hasExplicitPrice) {
+                    $resolvedPrice = (float) $row['price_usdc'];
+                } elseif ($isZeroRec) {
+                    $resolvedPrice = 0.0;
+                } else {
+                    $resolvedPrice = (float) ($priceMap[$svc] ?? 0.0050);
                 }
+                $historicalPaid[] = [
+                    'timestamp' => (string) ($row['ts'] ?? ''),
+                    'service' => $svc,
+                    'status' => 200,
+                    'type' => 'paid',
+                    'is_paid' => true,
+                    'price_usdc' => $resolvedPrice,
+                    'tx_hash' => (string) ($row['request_id'] ?? ''),
+                    'payment_source' => $src,
+                    'failure_category' => '',
+                    'settlement_tx' => '',
+                    'ip_masked' => (string) ($row['ip_hmac'] ?? ''),
+                ];
             }
         }
         $events = $historicalPaid;
@@ -1441,6 +1585,15 @@ if ($apiParam === 'stats') {
     foreach ($paymentSourceKeys as $key) {
         $paymentSources[$key] = (int)($rawSources[$key] ?? 0);
     }
+    foreach ($rawSources as $extraKey => $extraVal) {
+        $extraKeyStr = (string) $extraKey;
+        if (!array_key_exists($extraKeyStr, $paymentSources) && (int) $extraVal > 0) {
+            $paymentSources[$extraKeyStr] = (int) $extraVal;
+            if (!isset($paymentSourceLabels[$extraKeyStr])) {
+                $paymentSourceLabels[$extraKeyStr] = $extraKeyStr;
+            }
+        }
+    }
 
     $failureCategories = [];
     $rawFailures = is_array($metrics['failure_categories'] ?? null) ? $metrics['failure_categories'] : [];
@@ -1454,6 +1607,7 @@ if ($apiParam === 'stats') {
         'total_requests' => (int)($metrics['total_requests'] ?? 0),
         'total_page_views' => $totalPageViews,
         'today_page_views' => $todayPageViews,
+        'total_bot_views' => (int)($metrics['total_bot_views'] ?? 0),
         'total_paid_requests' => (int)($metrics['total_paid_requests'] ?? 0),
         'total_sandbox_requests' => (int)($metrics['total_sandbox_requests'] ?? 0),
         'total_revenue_usdc' => $revenueUsdc,
@@ -1480,6 +1634,8 @@ if ($apiParam === 'stats') {
         'oracle_configured' => $oracleConfigured,
         'status_counts' => $metrics['status_counts'] ?? [],
         'service_counts' => $metrics['service_counts'] ?? [],
+        'service_paid_counts' => $metrics['service_paid_counts'] ?? [],
+        'service_revenue_usdc' => $metrics['service_revenue_usdc'] ?? [],
         'payment_sources' => $paymentSources,
         'failure_categories' => $failureCategories,
         'payment_source_labels' => $paymentSourceLabels,
@@ -1752,6 +1908,12 @@ $twoFactorEnabled = array_key_exists('two_factor_telegram', $currentAuthData) ? 
 $twoFactorActive = grid402_is_telegram_2fa_required($currentAuthData);
 
 $metrics = grid402_get_metrics();
+foreach (is_array($metrics['payment_sources'] ?? null) ? $metrics['payment_sources'] : [] as $extraSrcKey => $extraSrcVal) {
+    $extraSrcKeyStr = (string) $extraSrcKey;
+    if (!isset($paymentSourceLabels[$extraSrcKeyStr]) && (int) $extraSrcVal > 0) {
+        $paymentSourceLabels[$extraSrcKeyStr] = $extraSrcKeyStr;
+    }
+}
 $forex = grid402_service_forex();
 $usdRate = (float)($forex['rates']['USD']['bid'] ?? 5.50);
 $wallet = grid402_get_oracle_wallet_balances();

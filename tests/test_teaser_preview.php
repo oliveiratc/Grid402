@@ -43,10 +43,14 @@ assert_test(
 );
 
 assert_test(
-    "CNPJ válido contém chave preview com razão social e situação cadastral",
+    "CNPJ válido contém preview estático/mascarado sem vazar dados reais (V-13)",
     isset($bbPreview['preview']['razao_social']) &&
-    !empty($bbPreview['preview']['razao_social']) &&
-    isset($bbPreview['preview']['situacao_cadastral']),
+    str_starts_with((string) $bbPreview['preview']['razao_social'], '[LOCKED') &&
+    isset($bbPreview['preview']['situacao_cadastral']) &&
+    $bbPreview['preview']['situacao_cadastral'] === '[LOCKED]' &&
+    ($bbPreview['preview']['preview_mode'] ?? '') === 'static_schema_sample' &&
+    ($bbPreview['preview']['cnpj_valid'] ?? false) === true &&
+    !str_contains(strtoupper((string) json_encode($bbPreview['preview'])), 'BANCO DO BRASIL'),
     json_encode($bbPreview['preview'] ?? [])
 );
 
@@ -82,11 +86,13 @@ assert_test(
 );
 
 assert_test(
-    "CEP válido contém chave preview com cidade e UF abertos",
-    isset($cepPreview['preview']['cidade']) &&
-    $cepPreview['preview']['cidade'] === 'São Paulo' &&
-    isset($cepPreview['preview']['uf']) &&
-    $cepPreview['preview']['uf'] === 'SP',
+    "CEP válido contém preview estático/mascarado sem vazar cidade/UF live (V-13)",
+    ($cepPreview['preview']['cep'] ?? '') === '01310-100' &&
+    ($cepPreview['preview']['cep_format_valid'] ?? false) === true &&
+    ($cepPreview['preview']['preview_mode'] ?? '') === 'static_schema_sample' &&
+    str_starts_with((string) ($cepPreview['preview']['cidade'] ?? ''), '[LOCKED') &&
+    ($cepPreview['preview']['uf'] ?? '') === '[LOCKED]' &&
+    !str_contains((string) json_encode($cepPreview['preview']), 'São Paulo'),
     json_encode($cepPreview['preview'] ?? [])
 );
 
@@ -95,7 +101,9 @@ assert_test(
     isset($cepPreview['locked_fields']) &&
     is_array($cepPreview['locked_fields']) &&
     in_array('logradouro', $cepPreview['locked_fields'], true) &&
-    in_array('bairro', $cepPreview['locked_fields'], true),
+    in_array('bairro', $cepPreview['locked_fields'], true) &&
+    in_array('cidade', $cepPreview['locked_fields'], true) &&
+    in_array('uf', $cepPreview['locked_fields'], true),
     json_encode($cepPreview['locked_fields'] ?? [])
 );
 
@@ -113,14 +121,18 @@ assert_test(
 echo "\n[3] Testes da Previa de Indicadores Economicos:\n";
 $indPreview = grid402_teaser_indicators();
 assert_test(
-    "Indicadores contem selic_target aberta e data de referencia",
-    isset($indPreview['selic_target']) && $indPreview['selic_target'] > 0 &&
-    isset($indPreview['reference_date']),
+    "Indicadores contem preview estatico/mascarado sem selic_target numerica live (V-13)",
+    ($indPreview['preview_mode'] ?? '') === 'static_schema_sample' &&
+    is_string($indPreview['selic_target'] ?? null) &&
+    str_starts_with((string) $indPreview['selic_target'], '[LOCKED') &&
+    isset($indPreview['reference_date']) &&
+    is_array($indPreview['sample_schema'] ?? null),
     json_encode($indPreview)
 );
 assert_test(
     "Indicadores contem campos protegidos locked_fields",
     isset($indPreview['locked_fields']) && is_array($indPreview['locked_fields']) &&
+    in_array('selic_target', $indPreview['locked_fields'], true) &&
     in_array('cdi_annual', $indPreview['locked_fields'], true) &&
     in_array('ipca_12m', $indPreview['locked_fields'], true),
     json_encode($indPreview['locked_fields'] ?? [])
@@ -130,14 +142,19 @@ assert_test(
 echo "\n[4] Testes da Previa de Feriados:\n";
 $holPreview = grid402_teaser_holidays(2026);
 assert_test(
-    "Feriados contem proximo feriado e total do ano abertos",
-    isset($holPreview['next_holiday']) && is_array($holPreview['next_holiday']) &&
-    isset($holPreview['total_holidays_in_year']) && $holPreview['total_holidays_in_year'] >= 14,
+    "Feriados contem preview estatico/mascarado sem proximo feriado real nem contagem live (V-13)",
+    ($holPreview['year'] ?? 0) === 2026 &&
+    ($holPreview['preview_mode'] ?? '') === 'static_schema_sample' &&
+    is_string($holPreview['next_holiday'] ?? null) &&
+    str_starts_with((string) $holPreview['next_holiday'], '[LOCKED') &&
+    !isset($holPreview['total_holidays_in_year']) &&
+    is_array($holPreview['sample_schema'] ?? null),
     json_encode($holPreview)
 );
 assert_test(
     "Feriados contem campos protegidos locked_fields",
     isset($holPreview['locked_fields']) && is_array($holPreview['locked_fields']) &&
+    in_array('next_holiday', $holPreview['locked_fields'], true) &&
     in_array('full_year_schedule', $holPreview['locked_fields'], true),
     json_encode($holPreview['locked_fields'] ?? [])
 );

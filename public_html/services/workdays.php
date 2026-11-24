@@ -278,7 +278,8 @@ function grid402_service_workdays(array $params): array {
 }
 
 /**
- * Gera amostra gratuita (teaser) no HTTP 402 para o servico de Dias Uteis
+ * Gera amostra estrutural estatica/mascarada (teaser) no HTTP 402 para o servico de Dias Uteis.
+ * Nao executa o calculo real de dia util/feriado para a data informada antes do pagamento.
  */
 function grid402_teaser_workdays(array $params = []): array {
     $baseDate = isset($params['start_date']) ? trim((string) $params['start_date']) : (isset($params['date']) ? trim((string) $params['date']) : gmdate('Y-m-d'));
@@ -286,31 +287,32 @@ function grid402_teaser_workdays(array $params = []): array {
         $baseDate = gmdate('Y-m-d');
     }
 
-    $check = grid402_is_workday($baseDate);
-    $year = (int) substr($baseDate, 0, 4);
-    $hData = grid402_service_holidays($year);
-
-    $nextHoliday = null;
-    if (isset($hData['holidays']) && is_array($hData['holidays'])) {
-        foreach ($hData['holidays'] as $h) {
-            if ($h['date'] >= $baseDate && !empty($h['is_banking_holiday'])) {
-                $nextHoliday = $h;
-                break;
-            }
-        }
-    }
-
     return [
         'base_date' => $baseDate,
-        'is_workday' => $check['is_workday'] ?? false,
-        'day_type' => $check['day_type'] ?? 'unknown',
-        'holiday_name' => $check['holiday_name'] ?? null,
-        'next_banking_holiday' => $nextHoliday,
+        'convention' => 'ANBIMA / Febraban Banking Calendar',
+        'modes_supported' => ['check', 'range', 'projection'],
+        'preview_mode' => 'static_schema_sample',
+        'is_workday' => '[LOCKED — unlock via x402 or Session Pass]',
+        'day_type' => '[LOCKED]',
+        'holiday_name' => '[LOCKED]',
+        'sample_schema' => [
+            'mode' => 'range',
+            'workdays' => 21,
+            'calendar_days' => 30,
+            'is_workday' => true,
+            'day_type' => 'workday',
+            'next_workday' => 'YYYY-MM-DD',
+        ],
         'locked_fields' => [
+            'is_workday',
+            'day_type',
+            'holiday_name',
+            'next_workday',
             'workdays',
             'calendar_days',
             'target_date',
-            'holidays_in_range'
+            'holidays_in_range',
+            '_oracle_proof',
         ]
     ];
 }

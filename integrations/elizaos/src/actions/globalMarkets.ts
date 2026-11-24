@@ -2,7 +2,7 @@
  * Ação ElizaOS: Mercados Globais, Moedas BCE e Calendário de Bolsas
  */
 
-import { Grid402Client } from '../client.js';
+import { Grid402Client, resolveGrid402PassToken } from '../client.js';
 
 export const getGlobalMarketsAction = {
   name: 'GET_GLOBAL_MARKETS',
@@ -17,7 +17,7 @@ export const getGlobalMarketsAction = {
   validate: async (_runtime: any, _message: any) => true,
   handler: async (runtime: any, message: any, _state?: any, _options?: any, callback?: any) => {
     try {
-      const passToken = runtime?.getSetting?.('GRID402_PASS_TOKEN') || process.env.GRID402_PASS_TOKEN;
+      const passToken = resolveGrid402PassToken(runtime);
       const client = new Grid402Client({ passToken });
       
       const contentText = message?.content?.text || '';

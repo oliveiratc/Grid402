@@ -81,29 +81,50 @@ function grid402_service_cep(string $code): array {
 }
 
 /**
- * Extrai a amostra parcial (teaser data) para inclusao no desafio HTTP 402
- * Retorna array com ['success' => true, 'preview' => [...], 'locked_fields' => [...]]
- * ou ['success' => false, 'code' => 400|404, ...] em caso de erro cadastral
+ * Gera amostra estrutural estática/mascarada (teaser data) para inclusão no desafio HTTP 402.
+ * Não consulta ViaCEP/IBGE antes do pagamento nem gera 404/502 antes do 402.
+ * Retorna erro 400 apenas se o CEP não tiver exatamente 8 dígitos numéricos.
  */
 function grid402_get_cep_preview(string $code): array {
-    $full = grid402_service_cep($code);
-    if (!($full['success'] ?? false)) {
-        return $full;
+    $cleanCode = preg_replace('/\D/', '', trim($code));
+    if (strlen($cleanCode) !== 8) {
+        return [
+            'success' => false,
+            'error' => 'InvalidCEP',
+            'message' => 'O parâmetro code deve conter um CEP brasileiro válido de 8 dígitos (ex: code=01310100).',
+            'code' => 400,
+        ];
     }
 
+    $formattedCep = substr($cleanCode, 0, 5) . '-' . substr($cleanCode, 5, 3);
     return [
         'success' => true,
         'preview' => [
-            'cep' => $full['cep'] ?? $code,
-            'cidade' => $full['cidade'] ?? '',
-            'uf' => $full['uf'] ?? '',
+            'cep' => $formattedCep,
+            'cep_format_valid' => true,
+            'base_oficial' => 'Base Pública Aberta Nacional e Diretório Municipal IBGE',
+            'preview_mode' => 'static_schema_sample',
+            'cidade' => '[LOCKED — unlock via x402 or Session Pass]',
+            'uf' => '[LOCKED]',
+            'sample_schema' => [
+                'cep' => '01310-100',
+                'logradouro' => 'Avenida Exemplo',
+                'bairro' => 'Centro',
+                'cidade' => 'Cidade Exemplo',
+                'uf' => 'XX',
+                'ibge' => '0000000',
+                'ddd' => '00',
+            ],
         ],
         'locked_fields' => [
             'logradouro',
             'bairro',
+            'cidade',
+            'uf',
             'complemento',
             'ddd',
             'ibge',
+            '_oracle_proof',
         ],
     ];
 }

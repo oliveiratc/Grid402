@@ -111,12 +111,17 @@ run_test("Checagem pontual de dia e proximo dia util", function() {
     assert($res['next_workday'] === '2026-12-28');
 });
 
-run_test("Teaser gratuito no HTTP 402", function() {
+run_test("Teaser gratuito no HTTP 402 (estatico/mascarado sem vazamento V-13)", function() {
     $teaser = grid402_teaser_workdays(['date' => '2026-12-25']);
-    assert($teaser['is_workday'] === false);
-    assert($teaser['holiday_name'] === 'Natal');
+    assert(($teaser['base_date'] ?? '') === '2026-12-25');
+    assert(($teaser['preview_mode'] ?? '') === 'static_schema_sample');
+    assert(is_string($teaser['is_workday'] ?? null) && str_starts_with((string) $teaser['is_workday'], '[LOCKED'));
+    assert(($teaser['holiday_name'] ?? '') === '[LOCKED]');
+    assert(!str_contains((string) json_encode($teaser), 'Natal'));
     assert(!empty($teaser['locked_fields']));
-    assert(in_array('workdays', $teaser['locked_fields']));
+    assert(in_array('is_workday', $teaser['locked_fields'], true));
+    assert(in_array('holiday_name', $teaser['locked_fields'], true));
+    assert(in_array('workdays', $teaser['locked_fields'], true));
 });
 
 run_test("Tratamento defensivo de limites e erros", function() {

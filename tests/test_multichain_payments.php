@@ -44,9 +44,13 @@ $oracleHexNo0x = substr(strtolower(GRID402_WALLET_ADDRESS), 2);
 $paddedTo = '0x' . str_pad($oracleHexNo0x, 64, '0', STR_PAD_LEFT);
 $paddedFrom = '0x' . str_pad(str_repeat('1', 40), 64, '0', STR_PAD_LEFT);
 
+$recentBlockTs = time() - 120;
+$expiredBlockTs = time() - (80 * 3600); // > 72h (GRID402_MAX_TX_AGE_SECONDS)
+
 $arbReceiptOk = [
     'status' => '0x1',
     'blockNumber' => '0x123456',
+    'blockTimestamp' => $recentBlockTs,
     'logs' => [
         [
             'address' => '0xaf88d065e77c8cC2239327C5EDb3A432268e5831', // Arbitrum Native USDC
@@ -58,9 +62,20 @@ $arbReceiptOk = [
 $resArb = grid402_verify_evm_receipt_usdc($arbReceiptOk, 'arbitrum', 2000000);
 mc_check(($resArb['valid'] ?? false) === true && ($resArb['network'] ?? '') === 'arbitrum' && ($resArb['raw_amount'] ?? 0) === 2000000, 'Recibo EVM válido na Arbitrum (2.00 USDC nativo) aprovado');
 
+$arbReceiptExpired = $arbReceiptOk;
+$arbReceiptExpired['blockTimestamp'] = $expiredBlockTs;
+$resArbExp = grid402_verify_evm_receipt_usdc($arbReceiptExpired, 'arbitrum', 2000000);
+mc_check(($resArbExp['valid'] ?? true) === false && ($resArbExp['code'] ?? 0) === 403 && ($resArbExp['error'] ?? '') === 'TransactionExpired', 'Recibo EVM com bloco >72h é rejeitado com HTTP 403 TransactionExpired (V-04)');
+
+$arbReceiptNoTs = $arbReceiptOk;
+unset($arbReceiptNoTs['blockTimestamp'], $arbReceiptNoTs['blockNumber']);
+$resArbNoTs = grid402_verify_evm_receipt_usdc($arbReceiptNoTs, 'arbitrum', 2000000);
+mc_check(($resArbNoTs['valid'] ?? true) === false && ($resArbNoTs['code'] ?? 0) === 403 && ($resArbNoTs['error'] ?? '') === 'TransactionExpired', 'Recibo EVM sem timestamp válido é rejeitado fail-closed com HTTP 403 TransactionExpired (V-04)');
+
 $polyUsdceReceiptOk = [
     'status' => '0x1',
     'blockNumber' => '0x654321',
+    'blockTimestamp' => $recentBlockTs,
     'logs' => [
         [
             'address' => '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', // Polygon USDC.e oficial Circle
@@ -96,6 +111,7 @@ $solMint = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 
 $solTxOk = [
     'slot' => 310000000,
+    'blockTime' => $recentBlockTs,
     'meta' => [
         'err' => null,
         'preTokenBalances' => [
@@ -109,8 +125,19 @@ $solTxOk = [
 $resSolOk = grid402_verify_solana_tx_usdc($solTxOk, 5000000);
 mc_check(($resSolOk['valid'] ?? false) === true && ($resSolOk['network'] ?? '') === 'solana' && ($resSolOk['raw_amount'] ?? 0) === 5000000, 'Transação Solana SPL USDC válida (+5.00 USDC delta) aprovada');
 
+$solTxExpired = $solTxOk;
+$solTxExpired['blockTime'] = $expiredBlockTs;
+$resSolExp = grid402_verify_solana_tx_usdc($solTxExpired, 5000000);
+mc_check(($resSolExp['valid'] ?? true) === false && ($resSolExp['code'] ?? 0) === 403 && ($resSolExp['error'] ?? '') === 'TransactionExpired', 'Transação Solana com blockTime >72h é rejeitada com HTTP 403 TransactionExpired (V-04)');
+
+$solTxNoTime = $solTxOk;
+unset($solTxNoTime['blockTime']);
+$resSolNoTime = grid402_verify_solana_tx_usdc($solTxNoTime, 5000000);
+mc_check(($resSolNoTime['valid'] ?? true) === false && ($resSolNoTime['code'] ?? 0) === 403 && ($resSolNoTime['error'] ?? '') === 'TransactionExpired', 'Transação Solana sem blockTime é rejeitada fail-closed com HTTP 403 TransactionExpired (V-04)');
+
 $solTxNewAta = [
     'slot' => 310000001,
+    'blockTime' => $recentBlockTs,
     'meta' => [
         'err' => null,
         'preTokenBalances' => [],

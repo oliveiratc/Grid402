@@ -263,7 +263,13 @@ class Grid402 {
     }
 
     const baseUrl = String(creds.baseUrl || 'https://grid402.online').replace(/\/$/, '');
-    const authMode = creds.authMode || (creds.sessionPass ? 'sessionPass' : 'sandbox');
+    const defaultRapidApiHost = 'grid402-open-data-kyb-ai-utilities.p.rapidapi.com';
+    const rapidApiHost = String(creds.rapidApiHost || defaultRapidApiHost)
+      .replace(/^https?:\/\//i, '')
+      .replace(/\/.*$/, '')
+      .trim() || defaultRapidApiHost;
+    const authMode = creds.authMode || '';
+    const canContinueOnFail = () => Boolean(typeof this.continueOnFail === 'function' && this.continueOnFail());
 
     for (let i = 0; i < items.length; i++) {
       const getParam = (name, fallback = '') => {
@@ -278,6 +284,7 @@ class Grid402 {
       };
 
       const operation = getParam('operation', 'dossier');
+      const isFreeOperation = operation === 'summary' || operation === 'pass-balance';
       const qs = new URLSearchParams();
       let path = `/api/v1/${operation}`;
 
@@ -327,21 +334,61 @@ class Grid402 {
         qs.set('market', String(getParam('market', 'US')).trim());
       }
 
-      const queryString = qs.toString();
-      const fullUrl = `${baseUrl}${path}${queryString ? '?' + queryString : ''}`;
-
       const headers = {
         'Accept': 'application/json',
-        'User-Agent': 'n8n-nodes-grid402/1.0.0',
+        'User-Agent': 'n8n-nodes-grid402/1.1.0',
       };
 
-      if (authMode === 'sessionPass' && creds.sessionPass) {
-        headers['X-Payment'] = String(creds.sessionPass).trim();
-      } else if (authMode === 'rapidApi' && creds.rapidApiKey) {
-        headers['X-RapidAPI-Key'] = String(creds.rapidApiKey).trim();
-      } else {
-        headers['X-Payment'] = 'demo';
+      let effectiveBaseUrl = baseUrl;
+
+      if (!isFreeOperation) {
+        if (authMode === 'sessionPass') {
+          const token = String(creds.sessionPass || '').trim();
+          if (!token) {
+            const errMsg = 'Credencial Grid402 incompleta: modo Session Pass selecionado, mas o token pass_g402_... está vazio. Adquira via Pix/Cartão em https://grid402.online/pass?tier=starter&autopix=1 ou selecione explicitamente o modo Sandbox.';
+            if (canContinueOnFail()) {
+              returnData.push({ json: { error: 'MissingSessionPass', message: errMsg }, pairedItem: { item: i } });
+              continue;
+            }
+            throw new Error(errMsg);
+          }
+          headers['X-Payment'] = token;
+        } else if (authMode === 'rapidApi') {
+          const key = String(creds.rapidApiKey || '').trim();
+          if (!key) {
+            const errMsg = 'Credencial Grid402 incompleta: modo RapidAPI selecionado, mas a X-RapidAPI-Key está vazia. Informe sua chave RapidAPI Hub ou troque o modo de autenticação.';
+            if (canContinueOnFail()) {
+              returnData.push({ json: { error: 'MissingRapidApiKey', message: errMsg }, pairedItem: { item: i } });
+              continue;
+            }
+            throw new Error(errMsg);
+          }
+          let hostHeader = rapidApiHost;
+          if (baseUrl.includes('.p.rapidapi.com')) {
+            try {
+              hostHeader = new URL(baseUrl).host;
+            } catch (_) {
+              hostHeader = rapidApiHost;
+            }
+          } else {
+            effectiveBaseUrl = `https://${rapidApiHost}`;
+          }
+          headers['X-RapidAPI-Key'] = key;
+          headers['X-RapidAPI-Host'] = hostHeader;
+        } else if (authMode === 'sandbox') {
+          headers['X-Payment'] = 'demo';
+        } else {
+          const errMsg = 'Credencial Grid402 não configurada para operação paga. Configure Grid402 API com Session Pass (https://grid402.online/pass), RapidAPI Hub ou selecione explicitamente o modo Sandbox (3 req/dia).';
+          if (canContinueOnFail()) {
+            returnData.push({ json: { error: 'MissingCredentials', message: errMsg }, pairedItem: { item: i } });
+            continue;
+          }
+          throw new Error(errMsg);
+        }
       }
+
+      const queryString = qs.toString();
+      const fullUrl = `${effectiveBaseUrl}${path}${queryString ? '?' + queryString : ''}`;
 
       const response = await fetch(fullUrl, { method: 'GET', headers });
       const data = await response.json().catch(() => ({ status: response.status }));
@@ -352,9 +399,25 @@ class Grid402 {
           rapidapi_card_usd: 'https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities',
           how_to_configure: 'Copie seu token pass_g402_... após pagar o Pix e cole na credencial Grid402 API do n8n.',
         };
+        const statusLabel = response.status === 402 ? 'HTTP 402 Payment Required' : 'HTTP 429 Rate Limit Exceeded';
+        const actionableMsg = `[Grid402 ${statusLabel}] ${data.message || data.reason || data.error || 'Créditos ou assinatura necessários.'} — Adquira Session Pass via Pix/Cartão em https://grid402.online/pass?tier=starter&autopix=1 ou assine no RapidAPI Hub.`;
+        if (canContinueOnFail()) {
+          returnData.push({ json: { ...data, http_status: response.status, error_message: actionableMsg }, pairedItem: { item: i } });
+          continue;
+        }
+        throw new Error(actionableMsg);
       }
 
-      returnData.push({ json: data });
+      if (response.status >= 400) {
+        const errMsg = `[Grid402 HTTP ${response.status}] ${data.message || data.error || 'Falha na requisição'}`;
+        if (canContinueOnFail()) {
+          returnData.push({ json: { ...data, http_status: response.status, error_message: errMsg }, pairedItem: { item: i } });
+          continue;
+        }
+        throw new Error(errMsg);
+      }
+
+      returnData.push({ json: data, pairedItem: { item: i } });
     }
 
     return [returnData];

@@ -3,31 +3,50 @@ version: 2.0.0
 description: "Official Model Context Protocol (MCP) Server for Grid402 - 27 on-chain oracle tools and 25 public open-data microservices (Web-to-Markdown, Email Verify, KYB Dossier 360, CNPJ, GLEIF LEI, OFAC, Forex, Crypto, DNS, SSL, ASN, CEP) with Multi-Chain x402 USDC micropayments."
 startCommand:
   type: stdio
-  config:
-    command: npx
-    args:
-      - "-y"
-      - "grid402-mcp"
-    env:
-      GRID402_ENDPOINT:
-        type: string
-        description: "Grid402 Hub API Endpoint"
-        default: "https://grid402.online"
-      GRID402_SANDBOX:
-        type: string
-        description: "Set to 'true' for free Sandbox Mode (3 queries per day per IP) without a wallet"
-        default: "false"
-      GRID402_SESSION_PASS:
+  configSchema:
+    type: object
+    properties:
+      sessionPass:
         type: string
         description: "Prepaid Session Pass token (pass_g402_...) for sub-15ms calls (optional)"
-      GRID402_PRIVATE_KEY:
+      privateKey:
         type: string
         description: "EVM (0x...) or Solana (Base58) private key for automated Multi-Chain USDC x402 payment settlement (optional)"
-      GRID402_SOLANA_PRIVATE_KEY:
+      solanaPrivateKey:
         type: string
         description: "Solana Ed25519 private key (Base58 or JSON byte array) for automated SPL USDC x402 payment settlement (optional)"
-      GRID402_PAYMENT_NETWORK:
+      paymentNetwork:
         type: string
         description: "Preferred payment network for automatic x402 settlement: base, polygon, arbitrum, solana, optimism, or ethereum (default: base)"
         default: "base"
-
+      gasless:
+        type: boolean
+        description: "Enable gasless x402 EIP-3009 settlement via PayAI facilitator by default (set false to force on-chain ERC-20 transfer)"
+        default: true
+      sandbox:
+        type: boolean
+        description: "Set to true for free Sandbox Mode (3 queries per day per IP) without a wallet"
+        default: false
+      apiUrl:
+        type: string
+        description: "Grid402 Hub API Endpoint"
+        default: "https://grid402.online"
+  commandFunction: |-
+    (config) => {
+      const env = {};
+      if (config.sessionPass) env.GRID402_SESSION_PASS = String(config.sessionPass);
+      if (config.privateKey) env.GRID402_PRIVATE_KEY = String(config.privateKey);
+      if (config.solanaPrivateKey) env.GRID402_SOLANA_PRIVATE_KEY = String(config.solanaPrivateKey);
+      if (config.paymentNetwork) env.GRID402_PAYMENT_NETWORK = String(config.paymentNetwork);
+      if (config.gasless !== undefined) env.GRID402_X402_GASLESS = String(Boolean(config.gasless));
+      if (config.sandbox !== undefined) env.GRID402_SANDBOX = String(Boolean(config.sandbox));
+      if (config.apiUrl) {
+        env.GRID402_API_URL = String(config.apiUrl);
+        env.GRID402_ENDPOINT = String(config.apiUrl);
+      }
+      return {
+        command: 'npx',
+        args: ['-y', 'grid402-mcp'],
+        env,
+      };
+    }

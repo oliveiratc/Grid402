@@ -85,7 +85,7 @@ $promoCampaign = (is_array($promoStatus) && !empty($promoStatus['ok'])) ? $promo
         'idle_passes' => $userIdleStats['idle_passes'],
         'idle_usdc'   => $userIdleStats['idle_usdc'],
         'expires_in'  => $userIdleStats['expires_min_days'],
-        'lang'        => 'pt-BR',
+        'lang'        => 'en',
     ]); ?>
     <?php endif; ?>
 
@@ -182,10 +182,10 @@ $promoCampaign = (is_array($promoStatus) && !empty($promoStatus['ok'])) ? $promo
     <h2 data-i18n="pass.packages.title">Packages</h2>
     <div class="note" style="border-color:rgba(16,185,129,.45);background:rgba(16,185,129,.08);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem;">
         <div>
-            <strong style="color:#10B981;">⚡ Ativação Instantânea via Pix (Sem Cadastro / Zero-PII):</strong>
-            <span style="color:var(--text);"> Clique em <em>Pay with Pix</em> abaixo, escaneie o QR Code no app do seu banco e receba seu token <code>pass_g402_...</code> na tela em menos de 5 segundos (100% dados públicos sob a Lei nº 12.527/2011 - LAI).</span>
+            <strong style="color:#10B981;" data-i18n="pass.pix_banner.title">⚡ Instant Activation via Pix BRL (No Signup / Zero-PII):</strong>
+            <span style="color:var(--text);" data-i18n-html="pass.pix_banner.desc"> Click <em>Pay with Pix</em> below, scan the QR Code in your banking app, and receive your <code>pass_g402_...</code> token on screen in under 5 seconds (100% public data under Brazil Law 12.527/2011 - LAI).</span>
         </div>
-        <button type="button" class="btn btn-pix" style="width:auto;padding:.55rem 1rem;" onclick="startMpPix('starter', this)">⚡ Gerar QR Pix R$ 12 Agora (400 créditos)</button>
+        <button type="button" class="btn btn-pix" style="width:auto;padding:.55rem 1rem;" onclick="startMpPix('starter', this)" data-i18n="pass.pix_banner.cta">⚡ Generate R$ 12 Pix QR Now (400 credits)</button>
     </div>
     <div class="grid">
         <?php foreach ($packages as $tier => $pkg): ?>
@@ -234,14 +234,14 @@ $promoCampaign = (is_array($promoStatus) && !empty($promoStatus['ok'])) ? $promo
 
     <section id="multichain-web3" style="margin-top:2rem; background:var(--surface); border:1px solid rgba(0,240,255,.35); border-radius:14px; padding:1.5rem;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; margin-bottom:.75rem;">
-            <h2 style="margin:0; font-size:1.25rem;">⚡ Pagamento Web3 Multi-Chain (USDC)</h2>
-            <span style="font-size:.78rem; padding:.2rem .65rem; border-radius:999px; background:rgba(0,240,255,.12); color:var(--cyan); border:1px solid rgba(0,240,255,.3);">6 Redes Suportadas</span>
+            <h2 style="margin:0; font-size:1.25rem;" data-i18n="pass.web3.title">⚡ Multi-Chain Web3 Payment (USDC)</h2>
+            <span style="font-size:.78rem; padding:.2rem .65rem; border-radius:999px; background:rgba(0,240,255,.12); color:var(--cyan); border:1px solid rgba(0,240,255,.3);" data-i18n="pass.web3.badge">6 Supported Chains</span>
         </div>
-        <p style="margin-top:0; color:var(--muted); font-size:.92rem;">
-            Escolha sua blockchain preferida para emitir um Session Pass (<strong>2 USDC</strong> Starter • <strong>5 USDC</strong> Pro • <strong>20 USDC</strong> Fleet) sem taxas de bridge:
+        <p style="margin-top:0; color:var(--muted); font-size:.92rem;" data-i18n-html="pass.web3.subtitle">
+            Choose your preferred blockchain to issue a Session Pass (<strong>2 USDC</strong> Starter • <strong>5 USDC</strong> Pro • <strong>20 USDC</strong> Fleet) with zero bridge fees:
         </p>
 
-        <div id="pass-network-selector" role="radiogroup" aria-label="Selecionar rede Web3" style="display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1.1rem;">
+        <div id="pass-network-selector" role="radiogroup" aria-label="Select Web3 network" style="display:flex; flex-wrap:wrap; gap:.5rem; margin-bottom:1.1rem;">
             <button type="button" class="btn btn-outline pass-net-btn" data-chain="base" onclick="selectPassNetwork('base')" style="width:auto; padding:.45rem .85rem; border-color:var(--cyan); background:rgba(0,240,255,.15); color:#fff;">🔵 Base</button>
             <button type="button" class="btn btn-outline pass-net-btn" data-chain="arbitrum" onclick="selectPassNetwork('arbitrum')" style="width:auto; padding:.45rem .85rem;">🔷 Arbitrum</button>
             <button type="button" class="btn btn-outline pass-net-btn" data-chain="polygon" onclick="selectPassNetwork('polygon')" style="width:auto; padding:.45rem .85rem;">🟣 Polygon</button>
@@ -250,24 +250,46 @@ $promoCampaign = (is_array($promoStatus) && !empty($promoStatus['ok'])) ? $promo
             <button type="button" class="btn btn-outline pass-net-btn" data-chain="solana" onclick="selectPassNetwork('solana')" style="width:auto; padding:.45rem .85rem;">◎ Solana (SPL)</button>
         </div>
 
+        <!-- 1-Click EIP-1193 Wallet Checkout (MetaMask, Coinbase Wallet, Rabby) -->
+        <div id="pass-web3-wallet-box" style="background:rgba(0,82,255,.10); border:1px solid rgba(0,82,255,.4); border-radius:10px; padding:1rem; margin-bottom:1rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.65rem; margin-bottom:.75rem;">
+                <strong style="font-size:.94rem; color:#F8FAFC;">1-Click Wallet Checkout (MetaMask / EIP-1193)</strong>
+                <div id="pass-web3-tier-selector" role="radiogroup" aria-label="Select USDC package" style="display:flex; gap:.4rem; flex-wrap:wrap;">
+                    <button type="button" class="btn btn-outline pass-tier-btn" data-tier="starter" data-usdc="2" onclick="selectWeb3Tier('starter', 2)" style="width:auto; padding:.38rem .72rem; font-size:.82rem; border-color:var(--cyan); background:rgba(0,240,255,.15); color:#fff;">Starter — 2 USDC (400 cr)</button>
+                    <button type="button" class="btn btn-outline pass-tier-btn" data-tier="pro" data-usdc="5" onclick="selectWeb3Tier('pro', 5)" style="width:auto; padding:.38rem .72rem; font-size:.82rem;">Pro — 5 USDC (1,200 cr)</button>
+                    <button type="button" class="btn btn-outline pass-tier-btn" data-tier="fleet" data-usdc="20" onclick="selectWeb3Tier('fleet', 20)" style="width:auto; padding:.38rem .72rem; font-size:.82rem;">Fleet — 20 USDC (6,000 cr)</button>
+                </div>
+            </div>
+            <div style="display:flex; gap:.65rem; flex-wrap:wrap; align-items:center;">
+                <button type="button" id="btn-pass-wallet-pay" class="btn btn-card" style="width:auto; padding:.7rem 1.25rem;" onclick="connectAndPayWeb3Pass(this)">🦊 Connect Wallet &amp; Pay (MetaMask / EIP-1193)</button>
+                <span id="pass-wallet-status" style="font-size:.84rem; color:#CBD5E1;">Sends official USDC transfer on the selected EVM chain and auto-issues your pass.</span>
+            </div>
+        </div>
+
         <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:.85rem; margin-bottom:1rem;">
             <div style="background:#060B19; border:1px solid var(--border); border-radius:10px; padding:.85rem 1rem;">
-                <div style="font-size:.78rem; color:var(--muted); margin-bottom:.25rem;">Carteira EVM (Base, Arbitrum, Polygon, Optimism, Ethereum):</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:.5rem; margin-bottom:.35rem;">
+                    <span style="font-size:.78rem; color:var(--muted);">EVM Wallet (Base, Arbitrum, Polygon, Optimism, Ethereum):</span>
+                    <button type="button" class="btn btn-outline" style="width:auto; padding:.22rem .55rem; font-size:.75rem;" onclick="copyElementText('pass-evm-addr', this)" aria-label="Copy EVM wallet address">Copy EVM</button>
+                </div>
                 <code id="pass-evm-addr" style="color:var(--cyan); font-size:.82rem; word-break:break-all;"><?php echo htmlspecialchars((string) $supportedNets['base']['recipient'], ENT_QUOTES, 'UTF-8'); ?></code>
             </div>
             <div style="background:#060B19; border:1px solid var(--border); border-radius:10px; padding:.85rem 1rem;">
-                <div style="font-size:.78rem; color:var(--muted); margin-bottom:.25rem;">Carteira Solana (SPL USDC):</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:.5rem; margin-bottom:.35rem;">
+                    <span style="font-size:.78rem; color:var(--muted);">Solana Wallet (SPL USDC):</span>
+                    <button type="button" class="btn btn-outline" style="width:auto; padding:.22rem .55rem; font-size:.75rem;" onclick="copyElementText('pass-sol-addr', this)" aria-label="Copy Solana wallet address">Copy Solana</button>
+                </div>
                 <code id="pass-sol-addr" style="color:#10B981; font-size:.82rem; word-break:break-all;"><?php echo htmlspecialchars((string) $supportedNets['solana']['recipient'], ENT_QUOTES, 'UTF-8'); ?></code>
             </div>
         </div>
 
         <div id="pass-selected-net-info" style="font-size:.85rem; color:#CBD5E1; margin-bottom:.85rem;">
-            Rede ativa: <strong style="color:var(--cyan);">Base Mainnet</strong> • Contrato USDC: <code><?php echo htmlspecialchars((string) $supportedNets['base']['usdc_contract'], ENT_QUOTES, 'UTF-8'); ?></code>
+            Active chain: <strong style="color:var(--cyan);">Base Mainnet</strong> • USDC Contract: <code><?php echo htmlspecialchars((string) $supportedNets['base']['usdc_contract'], ENT_QUOTES, 'UTF-8'); ?></code>
         </div>
 
         <div style="display:flex; gap:.6rem; flex-wrap:wrap; align-items:center;">
-            <input type="text" id="pass-mc-tx-input" placeholder="Cole o tx_hash (0x...) ou assinatura Solana Base58" style="flex:1; min-width:240px; padding:.65rem .85rem; border-radius:8px; border:1px solid var(--border); background:#060B19; color:#fff; font-family:monospace; font-size:.86rem;">
-            <button type="button" class="btn btn-pix" style="width:auto;" onclick="validateMultiChainPass(this)">⚡ Validar Transação e Emitir Pass</button>
+            <input type="text" id="pass-mc-tx-input" placeholder="Paste your USDC tx_hash (0x...) or Solana Base58 signature" aria-label="USDC transaction hash or Solana signature" style="flex:1; min-width:240px; padding:.65rem .85rem; border-radius:8px; border:1px solid var(--border); background:#060B19; color:#fff; font-family:monospace; font-size:.86rem;">
+            <button type="button" class="btn btn-pix" style="width:auto;" onclick="validateMultiChainPass(this)">⚡ Validate Transaction &amp; Issue Pass</button>
         </div>
         <div id="pass-mc-feedback" style="margin-top:.65rem; font-size:.86rem; color:var(--muted);"></div>
     </section>
@@ -282,8 +304,21 @@ $promoCampaign = (is_array($promoStatus) && !empty($promoStatus['ok'])) ? $promo
 <script>
 const PASS_MULTICHAIN = <?php echo json_encode($supportedNets, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
 let selectedPassChain = 'base';
+let selectedWeb3Tier = 'starter';
+let selectedWeb3Usdc = 2;
 let mpCurrentOrderId = null;
 let mpPollTimer = null;
+
+function selectWeb3Tier(tier, usdc) {
+    selectedWeb3Tier = tier;
+    selectedWeb3Usdc = Number(usdc) || 2;
+    document.querySelectorAll('.pass-tier-btn').forEach(btn => {
+        const active = btn.getAttribute('data-tier') === tier;
+        btn.style.borderColor = active ? 'var(--cyan)' : 'var(--border)';
+        btn.style.background = active ? 'rgba(0,240,255,.15)' : 'transparent';
+        btn.style.color = active ? '#fff' : 'var(--text)';
+    });
+}
 
 function selectPassNetwork(slug) {
     if (!PASS_MULTICHAIN[slug]) return;
@@ -297,13 +332,145 @@ function selectPassNetwork(slug) {
     });
     const info = document.getElementById('pass-selected-net-info');
     if (info) {
-        info.innerHTML = 'Rede ativa: <strong style="color:var(--cyan);">' + cfg.display_name + '</strong> • Contrato/Mint USDC: <code>' + cfg.usdc_contract + '</code>';
+        info.innerHTML = 'Active chain: <strong style="color:var(--cyan);">' + cfg.display_name + '</strong> • USDC Contract/Mint: <code>' + cfg.usdc_contract + '</code>';
     }
     const inp = document.getElementById('pass-mc-tx-input');
     if (inp) {
         inp.placeholder = cfg.type === 'solana'
-            ? 'Cole a assinatura Base58 da transação SPL USDC na Solana'
-            : ('Cole o tx_hash (0x...) da transferência USDC em ' + cfg.display_name);
+            ? 'Paste the Base58 signature of your Solana SPL USDC transfer'
+            : ('Paste the tx_hash (0x...) of your USDC transfer on ' + cfg.display_name);
+    }
+}
+
+async function connectAndPayWeb3Pass(btn) {
+    const statusEl = document.getElementById('pass-wallet-status');
+    const fb = document.getElementById('pass-mc-feedback');
+    const inp = document.getElementById('pass-mc-tx-input');
+    const cfg = PASS_MULTICHAIN[selectedPassChain] || PASS_MULTICHAIN.base;
+
+    if (cfg.type === 'solana') {
+        if (statusEl) {
+            statusEl.style.color = '#F59E0B';
+            statusEl.textContent = 'Solana uses SPL wallets (Phantom/Solflare). Copy the Solana address below, transfer ' + selectedWeb3Usdc + ' USDC (SPL), then paste the Base58 signature to activate.';
+        }
+        return;
+    }
+
+    const provider = window.ethereum;
+    if (!provider || typeof provider.request !== 'function') {
+        if (statusEl) {
+            statusEl.style.color = '#F59E0B';
+            statusEl.textContent = 'No EIP-1193 wallet detected (MetaMask, Coinbase Wallet, Rabby). Copy the EVM address below to transfer USDC manually and paste the tx_hash.';
+        }
+        return;
+    }
+
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Connecting wallet...';
+    if (statusEl) { statusEl.style.color = '#CBD5E1'; statusEl.textContent = '1/3 Requesting account access...'; }
+
+    try {
+        const accounts = await provider.request({ method: 'eth_requestAccounts', params: [] });
+        if (!accounts || accounts.length === 0) {
+            throw new Error('No wallet account was connected.');
+        }
+        const fromAddr = accounts[0];
+
+        if (statusEl) statusEl.textContent = '2/3 Switching network to ' + cfg.display_name + '...';
+        try {
+            await provider.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: cfg.chain_id_hex }],
+            });
+        } catch (switchErr) {
+            if (switchErr && switchErr.code === 4902) {
+                const explorerBase = String(cfg.explorer_tx_url || '').replace(/\/tx\/$/, '');
+                await provider.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                        chainId: cfg.chain_id_hex,
+                        chainName: cfg.display_name,
+                        nativeCurrency: cfg.native_currency || { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                        rpcUrls: Array.isArray(cfg.rpcs) && cfg.rpcs.length ? [cfg.rpcs[0]] : [],
+                        blockExplorerUrls: explorerBase ? [explorerBase] : [],
+                    }],
+                });
+            } else {
+                throw switchErr;
+            }
+        }
+
+        const amountRaw = Math.round(selectedWeb3Usdc * 1e6);
+        const recipientHex = String(cfg.recipient || '').toLowerCase().replace(/^0x/, '').padStart(64, '0');
+        const amountHex = amountRaw.toString(16).padStart(64, '0');
+        const callData = '0xa9059cbb' + recipientHex + amountHex;
+
+        btn.textContent = 'Confirm ' + selectedWeb3Usdc + ' USDC in wallet...';
+        if (statusEl) statusEl.textContent = '3/3 Approve the ' + selectedWeb3Usdc + ' USDC transfer on ' + cfg.display_name + ' in your wallet.';
+
+        const txHash = await provider.request({
+            method: 'eth_sendTransaction',
+            params: [{
+                from: fromAddr,
+                to: cfg.usdc_contract,
+                data: callData,
+            }],
+        });
+
+        if (inp) inp.value = txHash;
+        btn.textContent = 'Confirming on-chain...';
+        if (statusEl) {
+            statusEl.style.color = '#00F0FF';
+            statusEl.textContent = 'Transaction broadcast (' + txHash.slice(0, 12) + '...). Waiting for RPC confirmation to issue your Session Pass...';
+        }
+
+        let issued = null;
+        let lastErr = 'Waiting for block confirmation...';
+        for (let attempt = 1; attempt <= 5; attempt++) {
+            await new Promise(r => setTimeout(r, attempt === 1 ? 3500 : 3000));
+            const res = await fetch('/api/v1/pass-emitir', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ txHash, chain: selectedPassChain }),
+            });
+            const data = await res.json();
+            if (data && data.ok && data.pass_token) {
+                issued = data;
+                break;
+            }
+            lastErr = (data && (data.message || data.error)) ? (data.message || data.error) : lastErr;
+            if (res.status !== 404) {
+                break;
+            }
+        }
+
+        if (issued) {
+            if (statusEl) { statusEl.style.color = '#10B981'; statusEl.textContent = '✓ Payment confirmed on ' + cfg.display_name + '! Your Session Pass is ready above.'; }
+            if (fb) fb.textContent = '';
+            showIssuedPass({
+                pass_token: issued.pass_token,
+                credits: issued.credits_total,
+                ttl_days: issued.ttl_days || (issued.tier === 'fleet' ? 365 : 180),
+                sandbox: false,
+            });
+            const panel = document.getElementById('mp-status-panel');
+            if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+            if (statusEl) {
+                statusEl.style.color = '#F59E0B';
+                statusEl.textContent = 'Tx sent (' + txHash.slice(0, 12) + '...) and prefilled below. Wait a few seconds for block propagation and click Validate Transaction.';
+            }
+            if (fb) fb.textContent = lastErr;
+        }
+    } catch (err) {
+        if (statusEl) {
+            statusEl.style.color = '#F59E0B';
+            statusEl.textContent = 'Wallet checkout cancelled or failed: ' + (err && err.message ? err.message : String(err));
+        }
+    } finally {
+        btn.disabled = false;
+        btn.textContent = orig;
     }
 }
 
@@ -312,13 +479,13 @@ async function validateMultiChainPass(btn) {
     const fb = document.getElementById('pass-mc-feedback');
     const txHash = inp ? inp.value.trim() : '';
     if (!txHash) {
-        if (fb) fb.textContent = 'Informe o hash ou assinatura da transação USDC.';
+        if (fb) fb.textContent = 'Please enter the USDC transaction hash or Solana signature.';
         return;
     }
     const orig = btn.textContent;
     btn.disabled = true;
-    btn.textContent = 'Validando on-chain...';
-    if (fb) fb.textContent = 'Auditando transação em ' + (PASS_MULTICHAIN[selectedPassChain]?.display_name || selectedPassChain) + '...';
+    btn.textContent = 'Validating on-chain...';
+    if (fb) fb.textContent = 'Auditing transaction on ' + (PASS_MULTICHAIN[selectedPassChain]?.display_name || selectedPassChain) + '...';
     try {
         const res = await fetch('/api/v1/pass-emitir', {
             method: 'POST',
@@ -327,18 +494,20 @@ async function validateMultiChainPass(btn) {
         });
         const data = await res.json();
         if (data && data.ok && data.pass_token) {
-            if (fb) fb.textContent = '';
+            if (fb) fb.textContent = data.idempotent ? '✓ Existing Session Pass recovered idempotently.' : '';
             showIssuedPass({
                 pass_token: data.pass_token,
                 credits: data.credits_total,
                 ttl_days: data.ttl_days || (data.tier === 'fleet' ? 365 : 180),
                 sandbox: false,
             });
+            const panel = document.getElementById('mp-status-panel');
+            if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
         } else {
-            if (fb) fb.textContent = 'Erro: ' + (data.message || data.error || 'Transação não confirmada.');
+            if (fb) fb.textContent = 'Error: ' + (data.message || data.error || 'Transaction not confirmed yet.');
         }
     } catch (e) {
-        if (fb) fb.textContent = 'Erro de rede ao consultar /api/v1/pass-emitir.';
+        if (fb) fb.textContent = 'Network error while querying /api/v1/pass-emitir.';
     } finally {
         btn.disabled = false;
         btn.textContent = orig;
@@ -426,11 +595,14 @@ async function pollOrderStatus(orderId, paymentId = null) {
         const data = await res.json();
         if (data.status === 'approved' && data.pass_token) {
             showIssuedPass(data);
+            return true;
         } else if (data.status === 'rejected' || data.status === 'cancelled' || data.status === 'expired') {
             if (mpPollTimer) { clearInterval(mpPollTimer); mpPollTimer = null; }
-            showPanel('Pagamento não concluído', 'Status: ' + data.status + '. Gere uma nova cobrança se necessário.');
+            showPanel('Payment not completed', 'Status: ' + data.status + '. Please generate a new payment if needed.');
+            return true;
         }
     } catch (_) {}
+    return false;
 }
 
 function startPolling(orderId) {
@@ -441,7 +613,7 @@ function startPolling(orderId) {
 async function startMpPix(tier, btn) {
     const orig = btn.textContent;
     btn.disabled = true;
-    btn.textContent = 'Gerando Pix...';
+    btn.textContent = 'Generating Pix...';
     document.getElementById('mp-success-area').style.display = 'none';
     try {
         const email = document.getElementById('mp-email').value.trim();
@@ -452,10 +624,10 @@ async function startMpPix(tier, btn) {
         });
         const data = await res.json();
         if (!res.ok || !data.ok) {
-            throw new Error(data.message || 'Erro ao gerar cobrança Pix.');
+            throw new Error(data.message || 'Unable to generate Pix charge.');
         }
         mpCurrentOrderId = data.order_id;
-        showPanel(`Pix ${data.label} — R$ ${Number(data.amount_brl).toFixed(2).replace('.', ',')}`, 'Escaneie o QR Code ou copie o código Pix abaixo.');
+        showPanel(`Pix ${data.label} — R$ ${Number(data.amount_brl).toFixed(2).replace('.', ',')}`, 'Scan the QR Code or copy the Pix code below.');
         document.getElementById('mp-pix-area').style.display = 'flex';
         const mime = data.qr_mime || 'image/png';
         document.getElementById('mp-qr-img').src = data.qr_code_base64 ? `data:${mime};base64,${data.qr_code_base64}` : '';
@@ -464,7 +636,7 @@ async function startMpPix(tier, btn) {
         startPolling(data.order_id);
         document.getElementById('mp-status-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
     } catch (e) {
-        showPanel('Não foi possível gerar o Pix', e.message || String(e));
+        showPanel('Unable to generate Pix', e.message || String(e));
         document.getElementById('mp-pix-area').style.display = 'none';
     } finally {
         btn.disabled = false;
@@ -475,7 +647,7 @@ async function startMpPix(tier, btn) {
 async function startMpCheckoutPro(tier, btn) {
     const orig = btn.textContent;
     btn.disabled = true;
-    btn.textContent = 'Abrindo Mercado Pago...';
+    btn.textContent = 'Opening Mercado Pago...';
     try {
         const email = document.getElementById('mp-email').value.trim();
         const res = await fetch('/api/v1/pass/mp-checkout', {
@@ -485,11 +657,11 @@ async function startMpCheckoutPro(tier, btn) {
         });
         const data = await res.json();
         if (!res.ok || !data.ok || !data.checkout_url) {
-            throw new Error(data.message || 'Erro ao iniciar Checkout Pro.');
+            throw new Error(data.message || 'Unable to start Checkout Pro.');
         }
         window.location.href = data.checkout_url;
     } catch (e) {
-        showPanel('Não foi possível abrir o Checkout Pro', e.message || String(e));
+        showPanel('Unable to open Checkout Pro', e.message || String(e));
         btn.disabled = false;
         btn.textContent = orig;
     }
@@ -512,7 +684,19 @@ function copyText(inputId, btn) {
     const el = document.getElementById(inputId);
     navigator.clipboard.writeText(el.value).then(() => {
         const old = btn.textContent;
-        btn.textContent = 'Copiado!';
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = old, 1800);
+    });
+}
+
+function copyElementText(elementId, btn) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    const text = (el.textContent || '').trim();
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+        const old = btn.textContent;
+        btn.textContent = '✓ Copied!';
         setTimeout(() => btn.textContent = old, 1800);
     });
 }
@@ -521,7 +705,7 @@ function copyToken(btn) {
     const val = document.getElementById('mp-token-value').textContent;
     navigator.clipboard.writeText(val).then(() => {
         const old = btn.textContent;
-        btn.textContent = 'Copiado!';
+        btn.textContent = 'Copied!';
         setTimeout(() => btn.textContent = old, 1800);
     });
 }
@@ -533,13 +717,15 @@ function copyToken(btn) {
     const sandboxApprove = params.get('sandbox_approve');
     if (mpOrder) {
         mpCurrentOrderId = mpOrder;
-        showPanel('Verificando pagamento...', 'Consultando confirmação da ordem ' + mpOrder + '...');
+        showPanel('Checking payment...', 'Querying confirmation for order ' + mpOrder + '...');
         if (sandboxApprove === '1') {
             await approveSandboxOrder();
             return;
         }
-        await pollOrderStatus(mpOrder, paymentId);
-        startPolling(mpOrder);
+        const isTerminal = await pollOrderStatus(mpOrder, paymentId);
+        if (!isTerminal) {
+            startPolling(mpOrder);
+        }
         return;
     }
 

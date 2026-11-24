@@ -62,15 +62,47 @@ function grid402_pass_verify_token_format(string $token): ?string {
 }
 
 /**
- * Normaliza um registro de passe legado (escala 100x) para a escala oficial v2 (1 crédito = 0.0050 USDC)
+ * Normaliza um registro de passe legado (escalas 10x ou 100x) para a escala oficial v2_5000
+ * (1 crédito = 0.0050 USDC), utilizando usdc_deposited quando disponível para detectar o fator real.
  */
 function grid402_normalize_pass_entry(array $entry): array {
     if (($entry['credit_scale'] ?? '') !== 'v2_5000') {
-        $total = (int) ($entry['credits_total'] ?? 0);
-        $rem = (int) ($entry['credits_remaining'] ?? 0);
-        if ($total >= 4000) {
-            $entry['credits_total'] = max(1, intdiv($total, 100));
-            $entry['credits_remaining'] = max(0, intdiv($rem, 100));
+        $total = max(0, (int) ($entry['credits_total'] ?? 0));
+        $rem = max(0, (int) ($entry['credits_remaining'] ?? 0));
+        $mode = strtolower(trim((string) ($entry['mode'] ?? 'production')));
+        $tier = strtolower(trim((string) ($entry['tier'] ?? 'standard')));
+        $usdcRaw = trim((string) ($entry['usdc_deposited'] ?? ''));
+
+        $amountUsdc = 0.0;
+        if (preg_match('/^([0-9]+(?:\.[0-9]+)?)/', $usdcRaw, $m) === 1) {
+            $amountUsdc = (float) $m[1];
+        }
+
+        $divisor = 1;
+        if ($amountUsdc > 0.0 && $total > 0) {
+            // Na escala v2_5000 (1 cr = 0.0050 USDC), 1 USDC gera 200 créditos base (até 1.5x com bônus Fleet).
+            // Escala legada 10x gera ratio ~10..15; escala legada 100x gera ratio ~100..150.
+            $expectedBaseCredits = $amountUsdc / 0.005;
+            $ratio = $total / max(0.0001, $expectedBaseCredits);
+            if ($ratio >= 50.0) {
+                $divisor = 100;
+            } elseif ($ratio >= 5.0) {
+                $divisor = 10;
+            }
+        } elseif ($mode !== 'sandbox' && !str_starts_with($tier, 'promo_') && $total > 0) {
+            // Fallback conservador quando usdc_deposited estiver ausente em registros antigos
+            if ($total >= 40000) {
+                $divisor = 100;
+            } elseif ($total >= 4000 && $tier !== 'fleet') {
+                $divisor = 10;
+            }
+        }
+
+        if ($divisor > 1) {
+            $newTotal = max(1, intdiv($total, $divisor));
+            $newRem = min($newTotal, max(0, intdiv($rem, $divisor)));
+            $entry['credits_total'] = $newTotal;
+            $entry['credits_remaining'] = $newRem;
         }
         $entry['credit_scale'] = 'v2_5000';
     }
@@ -80,6 +112,17 @@ function grid402_normalize_pass_entry(array $entry): array {
         $entry['credits_used_today'] = 0;
     }
     return $entry;
+}
+
+/**
+ * Busca um Session Pass já emitido pelo tx_hash/lock_key para retorno idempotente no checkout Web3.
+ */
+function grid402_find_session_pass_by_tx(string $txHash): ?array {
+    $repo = grid402_pass_repository();
+    if (method_exists($repo, 'findPassByTxHash')) {
+        return $repo->findPassByTxHash($txHash);
+    }
+    return null;
 }
 
 /**

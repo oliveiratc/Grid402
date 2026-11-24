@@ -27,11 +27,11 @@ echo "  GRID402 // SUÍTE DE TESTES: REVENUE ENGINE V4\n";
 echo "=================================================================\n\n";
 
 // -----------------------------------------------------------------
-// 1. Multi-Chain accepts[] (Mainnet 4 redes vs. Sepolia 1 rede)
+// 1. Multi-Chain accepts[] (Mainnet 3 EVM default V-05, 4 com flag Solana vs. Sepolia 1 rede)
 // -----------------------------------------------------------------
-echo "[1/7] Multi-Chain x402 accepts[] (Base, Polygon, Arbitrum, Solana vs. Sepolia):\n";
+echo "[1/7] Multi-Chain x402 accepts[] (Base, Polygon, Arbitrum default V-05; Solana via flag vs. Sepolia):\n";
 $acceptsMainnet = grid402_build_accepts(5000);
-t_assert('Mainnet emite exatamente 4 ofertas exact', count($acceptsMainnet) === 4, 'Got: ' . count($acceptsMainnet));
+t_assert('Mainnet emite exatamente 3 ofertas EVM exact por padrão (V-05 Solana opt-in)', count($acceptsMainnet) === 3, 'Got: ' . count($acceptsMainnet));
 $nets = array_column($acceptsMainnet, 'network');
 t_assert('Base (eip155:8453) é o primeiro item', ($nets[0] ?? '') === 'eip155:8453');
 t_assert('Polygon (eip155:137) presente com contrato oficial',
@@ -42,11 +42,26 @@ t_assert('Arbitrum (eip155:42161) presente com contrato oficial',
     in_array('eip155:42161', $nets, true) &&
     strtolower((string) ($acceptsMainnet[2]['asset'] ?? '')) === strtolower('0xaf88d065e77c8cC2239327C5EDb3A432268e5831')
 );
-t_assert('Solana (solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp) presente com SPL USDC, payTo Solana e feePayer',
-    ($acceptsMainnet[3]['network'] ?? '') === 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp' &&
-    ($acceptsMainnet[3]['asset'] ?? '') === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' &&
-    ($acceptsMainnet[3]['payTo'] ?? '') === GRID402_SOLANA_WALLET_ADDRESS &&
-    !empty($acceptsMainnet[3]['extra']['feePayer'])
+t_assert('Solana NÃO anunciada quando GRID402_SOLANA_X402_ENABLED=false (V-05)',
+    !in_array('solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp', $nets, true)
+);
+
+// Subprocesso isolado para validar GRID402_SOLANA_X402_ENABLED=true (4 redes incluindo Solana)
+$solEnabledCmd = sprintf(
+    '%s -r %s',
+    escapeshellarg(PHP_BINARY),
+    escapeshellarg("putenv('GRID402_SOLANA_X402_ENABLED=true'); define('GRID402_EXEC', true); require '" . str_replace('\\', '/', __DIR__ . '/../public_html/config.php') . "'; require '" . str_replace('\\', '/', __DIR__ . '/../public_html/x402.php') . "'; echo json_encode(grid402_build_accepts(5000));")
+);
+$solEnabledOut = (string) shell_exec($solEnabledCmd);
+$solEnabledAccepts = json_decode($solEnabledOut, true);
+t_assert('Com GRID402_SOLANA_X402_ENABLED=true, Mainnet emite 4 ofertas incluindo Solana SPL USDC, payTo Solana e feePayer',
+    is_array($solEnabledAccepts) &&
+    count($solEnabledAccepts) === 4 &&
+    ($solEnabledAccepts[3]['network'] ?? '') === 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp' &&
+    ($solEnabledAccepts[3]['asset'] ?? '') === 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' &&
+    ($solEnabledAccepts[3]['payTo'] ?? '') === GRID402_SOLANA_WALLET_ADDRESS &&
+    !empty($solEnabledAccepts[3]['extra']['feePayer']),
+    $solEnabledOut
 );
 
 // Subprocesso isolado para validar GRID402_X402_NETWORK=base-sepolia
@@ -93,7 +108,7 @@ t_assert('Payload Arbitrum v2 decodificado corretamente', $decArb['ok'] === true
 $valArbReq = grid402_validate_exact_requirements($decArb, 5000);
 t_assert('Requisitos locais Arbitrum validados com sucesso', !empty($valArbReq['valid']), json_encode($valArbReq));
 
-// Solana SVM payload (>= 64 bytes binários como transação Solana real) + liquidação mockada + anti-replay
+// Solana SVM payload (>= 64 bytes binários como transação Solana real)
 $solTxBytes = base64_encode(random_bytes(160));
 $solEnvelope = [
     'x402Version' => 2,
@@ -112,26 +127,62 @@ $solEnvelope = [
 $solProofB64 = base64_encode((string) json_encode($solEnvelope));
 $decSol = grid402_decode_x402_payload($solProofB64);
 t_assert('Payload Solana SVM decodificado corretamente (kind=svm)', $decSol['ok'] === true && ($decSol['kind'] ?? '') === 'svm', json_encode($decSol));
-$valSolReq = grid402_validate_exact_requirements($decSol, 5000);
-t_assert('Requisitos locais Solana validados com sucesso', !empty($valSolReq['valid']), json_encode($valSolReq));
 
+// Com flag default false (V-05), Solana gasless é rejeitada localmente com 402
+$valSolDefaultOff = grid402_validate_exact_requirements($decSol, 5000);
+t_assert('Com GRID402_SOLANA_X402_ENABLED=false, requisitos locais Solana são rejeitados (V-05)', empty($valSolDefaultOff['valid']) && ($valSolDefaultOff['code'] ?? 0) === 402, json_encode($valSolDefaultOff));
+
+// Em subprocesso isolado com GRID402_SOLANA_X402_ENABLED=true, valida + liquida + bloqueia replay
+$solSubStorage = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'grid402_sol_v4_' . bin2hex(random_bytes(4));
+mkdir($solSubStorage, 0775, true);
+$solSubScript = $solSubStorage . DIRECTORY_SEPARATOR . 'run_sol.php';
+file_put_contents($solSubScript, <<<'PHP'
+<?php
+require_once $argv[1] . '/tests/helpers_x402_exact.php';
+$dir = t_bootstrap('settle');
+$solProofB64 = $argv[2];
+$decSol = grid402_decode_x402_payload($solProofB64);
+$valSolReq = grid402_validate_exact_requirements($decSol, 5000);
 $calls = [];
 t_install_transport([
     '/v2/x402/verify' => ['status' => 200, 'body' => ['isValid' => true, 'payer' => 'So1anaPayerTestAddress111111111111111111111']],
     '/v2/x402/settle' => ['status' => 200, 'body' => ['success' => true, 'transaction' => '5eyktSolanaTxSignatureMock11111111111111111111111111111111111111111111', 'network' => 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp']],
 ], $calls);
-
 $solSettle1 = grid402_validate_exact_payment($solProofB64, 5000, 'extract');
-t_assert('Liquidação Solana via PayAI mock aprovada (HTTP 200, source=facilitator, network CAIP-2 Solana)',
-    !empty($solSettle1['valid']) &&
-    ($solSettle1['source'] ?? '') === 'facilitator' &&
-    ($solSettle1['network'] ?? '') === 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
-    json_encode($solSettle1)
-);
 $solReplay = grid402_validate_exact_payment($solProofB64, 5000, 'extract');
+t_rmdir($dir);
+echo json_encode([
+    'req_valid' => !empty($valSolReq['valid']),
+    'settle1' => $solSettle1,
+    'replay' => $solReplay,
+]);
+PHP);
+$solSubEnv = [];
+foreach (array_merge($_ENV, $_SERVER) as $ek => $ev) {
+    if (is_string($ek) && (is_string($ev) || is_numeric($ev))) {
+        $solSubEnv[$ek] = (string) $ev;
+    }
+}
+$solSubEnv['GRID402_SOLANA_X402_ENABLED'] = 'true';
+$solProc = proc_open([PHP_BINARY, $solSubScript, dirname(__DIR__), $solProofB64], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $solPipes, dirname(__DIR__), $solSubEnv);
+$solOutJson = is_resource($solProc) ? (string) stream_get_contents($solPipes[1]) : '';
+if (is_resource($solProc)) {
+    fclose($solPipes[1]);
+    fclose($solPipes[2]);
+    proc_close($solProc);
+}
+t_rmdir($solSubStorage);
+$solSubRes = json_decode($solOutJson, true) ?: [];
+t_assert('Com GRID402_SOLANA_X402_ENABLED=true, requisitos locais Solana são validados com sucesso', !empty($solSubRes['req_valid']), $solOutJson);
+t_assert('Liquidação Solana via PayAI mock aprovada (HTTP 200, source=facilitator, network CAIP-2 Solana)',
+    !empty($solSubRes['settle1']['valid']) &&
+    ($solSubRes['settle1']['source'] ?? '') === 'facilitator' &&
+    ($solSubRes['settle1']['network'] ?? '') === 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
+    $solOutJson
+);
 t_assert('Replay da mesma transação Solana bloqueado com HTTP 403',
-    empty($solReplay['valid']) && ($solReplay['code'] ?? 0) === 403,
-    json_encode($solReplay)
+    empty($solSubRes['replay']['valid']) && ($solSubRes['replay']['code'] ?? 0) === 403,
+    $solOutJson
 );
 
 // Rejeição de carteira/ativo inválido em Polygon
@@ -294,17 +345,17 @@ try {
     $rBadEmail = $httpCall("{$baseUrl}/api/v1/email-verify?email=nao-e-email");
     t_assert('HTTP GET /api/v1/email-verify?email=nao-e-email retorna 400 antes do 402', $rBadEmail['code'] === 400, "Code: {$rBadEmail['code']}");
 
-    // 402 multi-chain em /api/v1/extract
+    // 402 multi-chain em /api/v1/extract (3 redes EVM default V-05)
     $r402Ext = $httpCall("{$baseUrl}/api/v1/extract?url=" . urlencode('https://example.com'));
     $j402Ext = json_decode($r402Ext['body'], true);
-    t_assert('HTTP 402 em /api/v1/extract inclui price_usdc=0.0050, 4 redes em accepts[], preview e checkout Pix + RapidAPI',
+    t_assert('HTTP 402 em /api/v1/extract inclui price_usdc=0.0050, 3 redes EVM em accepts[] (default V-05), preview e checkout Pix + RapidAPI',
         $r402Ext['code'] === 402 &&
         ($j402Ext['price_usdc'] ?? '') === '0.0050' &&
-        count($j402Ext['accepts'] ?? []) === 4 &&
+        count($j402Ext['accepts'] ?? []) === 3 &&
         isset($j402Ext['preview'], $j402Ext['locked_fields']) &&
         str_contains((string) ($j402Ext['fiat_and_card_checkout']['pix_instant_brl']['starter_url'] ?? ''), 'autopix=1') &&
         str_contains((string) ($j402Ext['fiat_and_card_checkout']['rapidapi_credit_card_usd']['all_25_apis_url'] ?? ''), 'rapidapi.com'),
-        "Code={$r402Ext['code']}"
+        "Code={$r402Ext['code']} accepts=" . count($j402Ext['accepts'] ?? [])
     );
 
     // Sandbox 3 req/dia -> 3x HTTP 200, 4ª retorna HTTP 429

@@ -306,17 +306,49 @@ function grid402_service_global_markets(string $market = 'US', string $dateStr =
 }
 
 /**
- * Gera a prévia gratuita (Teaser HTTP 402) para o endpoint Global Markets
+ * Gera a prévia estrutural estática/mascarada (Teaser HTTP 402) para o endpoint Global Markets.
+ * Não consulta o ECB/Frankfurter nem executa o cálculo real de pregão/feriado antes do pagamento.
  */
 function grid402_preview_global_markets(string $market = 'US', string $dateStr = '', string $baseCurrency = 'USD'): array {
-    $res = grid402_service_global_markets($market, $dateStr, $baseCurrency);
+    $market = strtoupper(trim($market));
+    if (!in_array($market, ['US', 'EU', 'UK', 'BR'], true)) {
+        $market = 'US';
+    }
+
+    $dateStr = trim($dateStr);
+    if ($dateStr === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateStr)) {
+        $dateStr = gmdate('Y-m-d');
+    }
+
+    $base = strtoupper(trim($baseCurrency));
+    if (!preg_match('/^[A-Z]{3}$/', $base)) {
+        $base = 'USD';
+    }
+
+    $marketNames = [
+        'US' => 'United States (NYSE / Federal Reserve)',
+        'EU' => 'Eurozone (ECB / TARGET2 Settlement)',
+        'UK' => 'United Kingdom (London Stock Exchange / Bank of England)',
+        'BR' => 'Brazil (B3 / ANBIMA Financial Calendar)',
+    ];
+
     return [
-        'market' => $res['market'],
-        'market_name' => $res['market_name'],
-        'date_checked' => $res['date_checked'],
-        'is_business_day' => $res['is_business_day'] ? 'YES (OPEN)' : 'NO (CLOSED)',
-        'fx_base' => $res['fx_reference']['base_currency'],
-        'currencies_available' => $res['fx_reference']['currencies_count'] . ' global currencies',
+        'market' => $market,
+        'market_name' => $marketNames[$market],
+        'date_checked' => $dateStr,
+        'preview_mode' => 'static_schema_sample',
+        'is_business_day' => '[LOCKED — unlock via x402 or Session Pass]',
+        'fx_base' => $base,
+        'currencies_available' => '30+ global ECB reference currencies',
+        'sample_schema' => [
+            'is_business_day' => true,
+            'is_holiday' => false,
+            'next_business_day' => 'YYYY-MM-DD',
+            'fx_reference' => [
+                'provider' => 'European Central Bank (ECB Open Data)',
+                'base_currency' => 'USD',
+                'rates' => ['EUR' => 0.92, 'GBP' => 0.79, 'BRL' => 5.42],
+            ],
+        ],
     ];
 }
-

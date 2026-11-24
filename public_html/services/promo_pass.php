@@ -57,15 +57,15 @@ function grid402_promo_ip_hmac(string $clientIp, string $code): string {
 }
 
 /**
- * Resolve o IP do cliente de forma conservadora (Cloudflare/Hostinger ou REMOTE_ADDR).
+ * Resolve o IP do cliente delegando exclusivamente para grid402_get_trusted_client_ip()
+ * (imune a spoofing de CF-Connecting-IP quando fora da Cloudflare).
  */
 function grid402_promo_resolve_client_ip(): string {
-    $cfIp = trim((string) ($_SERVER['HTTP_CF_CONNECTING_IP'] ?? ''));
-    if ($cfIp !== '' && filter_var($cfIp, FILTER_VALIDATE_IP) !== false) {
-        return $cfIp;
+    if (function_exists('grid402_get_trusted_client_ip')) {
+        return grid402_get_trusted_client_ip();
     }
     $remote = trim((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
-    if ($remote !== '') {
+    if ($remote !== '' && filter_var($remote, FILTER_VALIDATE_IP) !== false) {
         return $remote;
     }
     return '127.0.0.1';
@@ -179,12 +179,14 @@ function grid402_promo_get_status(string $rawCode, ?int $nowEpoch = null): array
 }
 
 /**
- * Ajusta metadados promocionais (validade 30d, tier promo e usdc_deposited=0.0000) sob flock.
+ * Ajusta metadados promocionais (validade 30d, tier promo, daily_credit_limit, locked_limits=true
+ * e usdc_deposited=0.0000) em um único flock de session_passes.json (sem locks aninhados).
  */
 function grid402_promo_finalize_pass_record(string $passToken, array $campaign, int $nowEpoch): array {
     $parts = explode('_', $passToken);
     $passId = $parts[2] ?? '';
     $validityDays = max(1, (int) ($campaign['validity_days'] ?? 30));
+    $dailyLimit = max(0, (int) ($campaign['daily_credit_limit'] ?? 0));
     $expiresEpoch = $nowEpoch + ($validityDays * 86400);
     $expiresIso = gmdate('Y-m-d\TH:i:s\Z', $expiresEpoch);
     $tierLabel = 'promo_' . strtolower((string) $campaign['code']);
@@ -202,6 +204,10 @@ function grid402_promo_finalize_pass_record(string $passToken, array $campaign, 
                 $store[$passId]['expires_epoch'] = $expiresEpoch;
                 $store[$passId]['promo_code'] = (string) $campaign['code'];
                 $store[$passId]['promo_partner'] = (string) ($campaign['partner'] ?? '');
+                $store[$passId]['locked_limits'] = true;
+                if ($dailyLimit > 0) {
+                    $store[$passId]['daily_credit_limit'] = $dailyLimit;
+                }
                 ftruncate($fp, 0);
                 rewind($fp);
                 fwrite($fp, (string) json_encode($store, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
@@ -224,7 +230,39 @@ function grid402_promo_finalize_pass_record(string $passToken, array $campaign, 
 }
 
 /**
- * Executa o resgate atômico de um Session Pass promocional (1 por IP HMAC, até max_claims).
+ * Reverte uma reserva pendente em promo_claims.json caso a emissão do Session Pass falhe.
+ */
+function grid402_promo_rollback_reservation(string $file, string $bucketKey, string $ipHmac, string $pendingMarker): void {
+    $fp = @fopen($file, 'c+');
+    if (!$fp) {
+        return;
+    }
+    try {
+        if (flock($fp, LOCK_EX)) {
+            try {
+                $store = grid402_read_locked_json($fp, []);
+                if (isset($store[$bucketKey]['claims_by_ip_hmac'][$ipHmac])
+                    && ($store[$bucketKey]['claims_by_ip_hmac'][$ipHmac]['pass_id'] ?? '') === $pendingMarker
+                ) {
+                    unset($store[$bucketKey]['claims_by_ip_hmac'][$ipHmac]);
+                    $curTotal = (int) ($store[$bucketKey]['total_claims'] ?? 0);
+                    $store[$bucketKey]['total_claims'] = max(0, $curTotal - 1);
+                    ftruncate($fp, 0);
+                    rewind($fp);
+                    fwrite($fp, (string) json_encode($store, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+                    fflush($fp);
+                }
+            } finally {
+                flock($fp, LOCK_UN);
+            }
+        }
+    } finally {
+        fclose($fp);
+    }
+}
+
+/**
+ * Executa o resgate atômico em duas fases sem locks aninhados (1 por IP HMAC, até max_claims).
  */
 function grid402_promo_claim_pass(string $rawCode, ?string $clientIp = null, ?int $nowEpoch = null): array {
     $campaign = grid402_promo_find_campaign($rawCode);
@@ -294,6 +332,8 @@ function grid402_promo_claim_pass(string $rawCode, ?string $clientIp = null, ?in
         ];
     }
 
+    // Fase 1 (lock exclusivo apenas em promo_claims.json): valida IP/cota e reserva vaga atomicamente
+    $reservation = null;
     try {
         if (!flock($fp, LOCK_EX)) {
             return [
@@ -338,30 +378,11 @@ function grid402_promo_claim_pass(string $rawCode, ?string $clientIp = null, ?in
 
             $nextIndex = $totalClaims + 1;
             $nonce = bin2hex(random_bytes(8));
+            $pendingMarker = 'pending:' . $nonce;
             $syntheticTx = 'promo:' . strtolower($code) . ':' . $nextIndex . ':' . $nonce;
 
-            $repo = grid402_pass_repository();
-            $issued = $repo->issuePass($syntheticTx, $credits * 5000, false);
-            $token = (string) ($issued['pass_token'] ?? '');
-            if ($token === '') {
-                return [
-                    'ok' => false,
-                    'code' => 500,
-                    'error' => 'PassIssueFailed',
-                    'message' => 'Failed to issue promotional Session Pass.',
-                ];
-            }
-
-            if ($dailyLimit > 0) {
-                $repo->updatePassLimits($token, $dailyLimit, null);
-            }
-            $meta = grid402_promo_finalize_pass_record($token, $campaign, $now);
-
-            $parts = explode('_', $token);
-            $passId = $parts[2] ?? '';
-
             $byIp[$ipHmac] = [
-                'pass_id' => $passId,
+                'pass_id' => $pendingMarker,
                 'claimed_at' => gmdate('Y-m-d\TH:i:s\Z', $now),
             ];
             $bucket['total_claims'] = $nextIndex;
@@ -373,23 +394,10 @@ function grid402_promo_claim_pass(string $rawCode, ?string $clientIp = null, ?in
             fwrite($fp, (string) json_encode($store, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
             fflush($fp);
 
-            $domain = defined('GRID402_CANONICAL_DOMAIN') ? rtrim(GRID402_CANONICAL_DOMAIN, '/') : 'https://grid402.online';
-
-            return [
-                'ok' => true,
-                'code' => 200,
-                'promo_code' => $code,
-                'campaign_title' => $campaign['title'],
-                'pass_token' => $token,
-                'tier' => $meta['tier'],
-                'credits' => $credits,
-                'ttl_days' => $meta['validity_days'],
-                'daily_credit_limit' => $dailyLimit,
-                'expires_at' => $meta['expires_at'],
-                'remaining_claims' => max(0, $maxClaims - $nextIndex),
-                'max_claims' => $maxClaims,
-                'curl_snippet' => 'curl -s -H "X-Payment: ' . $token . '" "' . $domain . '/api/v1/extract?url=https://example.com"',
-                'mcp_snippet' => 'GRID402_SESSION_PASS=' . $token . ' npx -y grid402-mcp',
+            $reservation = [
+                'next_index' => $nextIndex,
+                'pending_marker' => $pendingMarker,
+                'synthetic_tx' => $syntheticTx,
             ];
         } finally {
             flock($fp, LOCK_UN);
@@ -397,6 +405,82 @@ function grid402_promo_claim_pass(string $rawCode, ?string $clientIp = null, ?in
     } finally {
         fclose($fp);
     }
+
+    // Fase 2 (fora do lock de promo_claims.json — sem locks aninhados): emite e finaliza o Session Pass
+    $token = '';
+    $meta = [];
+    try {
+        $repo = grid402_pass_repository();
+        $issued = $repo->issuePass($reservation['synthetic_tx'], $credits * 5000, false);
+        $token = (string) ($issued['pass_token'] ?? '');
+        if ($token === '') {
+            grid402_promo_rollback_reservation($file, $bucketKey, $ipHmac, $reservation['pending_marker']);
+            return [
+                'ok' => false,
+                'code' => 500,
+                'error' => 'PassIssueFailed',
+                'message' => 'Failed to issue promotional Session Pass.',
+            ];
+        }
+        $meta = grid402_promo_finalize_pass_record($token, $campaign, $now);
+    } catch (Throwable $e) {
+        grid402_promo_rollback_reservation($file, $bucketKey, $ipHmac, $reservation['pending_marker']);
+        return [
+            'ok' => false,
+            'code' => 500,
+            'error' => 'PassIssueFailed',
+            'message' => 'Failed to issue promotional Session Pass.',
+        ];
+    }
+
+    // Fase 3 (lock rápido em promo_claims.json): substitui marcador pendente pelo pass_id final
+    $parts = explode('_', $token);
+    $passId = $parts[2] ?? '';
+    $fpCommit = @fopen($file, 'c+');
+    if ($fpCommit) {
+        try {
+            if (flock($fpCommit, LOCK_EX)) {
+                try {
+                    $store = grid402_read_locked_json($fpCommit, []);
+                    if (isset($store[$bucketKey]['claims_by_ip_hmac'][$ipHmac])) {
+                        $store[$bucketKey]['claims_by_ip_hmac'][$ipHmac] = [
+                            'pass_id' => $passId,
+                            'claimed_at' => gmdate('Y-m-d\TH:i:s\Z', $now),
+                        ];
+                        ftruncate($fpCommit, 0);
+                        rewind($fpCommit);
+                        fwrite($fpCommit, (string) json_encode($store, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+                        fflush($fpCommit);
+                    }
+                } finally {
+                    flock($fpCommit, LOCK_UN);
+                }
+            }
+        } finally {
+            fclose($fpCommit);
+        }
+    }
+
+    $nextIndex = (int) $reservation['next_index'];
+    $domain = defined('GRID402_CANONICAL_DOMAIN') ? rtrim(GRID402_CANONICAL_DOMAIN, '/') : 'https://grid402.online';
+
+    return [
+        'ok' => true,
+        'code' => 200,
+        'promo_code' => $code,
+        'campaign_title' => $campaign['title'],
+        'pass_token' => $token,
+        'tier' => $meta['tier'],
+        'credits' => $credits,
+        'ttl_days' => $meta['validity_days'],
+        'daily_credit_limit' => $dailyLimit,
+        'locked_limits' => true,
+        'expires_at' => $meta['expires_at'],
+        'remaining_claims' => max(0, $maxClaims - $nextIndex),
+        'max_claims' => $maxClaims,
+        'curl_snippet' => 'curl -s -H "X-Payment: ' . $token . '" "' . $domain . '/api/v1/extract?url=https://example.com"',
+        'mcp_snippet' => 'GRID402_SESSION_PASS=' . $token . ' npx -y grid402-mcp',
+    ];
 }
 
 /**

@@ -2,11 +2,11 @@
  * Provider de Contexto do Grid402 para o Runtime do ElizaOS
  */
 
-import { DEFAULT_GRID402_BASE_URL } from '../client.js';
+import { DEFAULT_GRID402_BASE_URL, resolveGrid402PassToken } from '../client.js';
 
 export const grid402Provider = {
   get: async (runtime: any, _message: any, _state?: any) => {
-    const passToken = runtime?.getSetting?.('GRID402_PASS_TOKEN') || process.env.GRID402_PASS_TOKEN;
+    const passToken = resolveGrid402PassToken(runtime);
     const hasPass = Boolean(passToken && passToken.startsWith('pass_g402_'));
 
     return `[Grid402 Network Intelligence Context]

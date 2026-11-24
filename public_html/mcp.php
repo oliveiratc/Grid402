@@ -22,6 +22,8 @@ require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/x402.php';
 require_once __DIR__ . '/facilitator.php';
 require_once __DIR__ . '/metrics.php';
+require_once __DIR__ . '/logger.php';
+require_once __DIR__ . '/growth.php';
 require_once __DIR__ . '/services/forex.php';
 require_once __DIR__ . '/services/crypto.php';
 require_once __DIR__ . '/services/dns.php';
@@ -57,6 +59,7 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment, x-payment, X-Payment-Network, x-payment-network, X-Session-Pass, x-session-pass, PAYMENT-SIGNATURE, payment-signature, Idempotency-Key, X-Request-Id');
 header('Access-Control-Expose-Headers: PAYMENT-REQUIRED, PAYMENT-RESPONSE, X-PAYMENT-RESPONSE, X-Payment-Status, X-Payment-Amount, X-Payment-Network, X-Request-Id');
+grid402_emit_request_id_header();
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
@@ -170,17 +173,25 @@ function mcp_error($id, int $code, string $message, ?array $data = null): void {
     exit;
 }
 
-function mcp_content_text(array $payload): array {
-    return [
+function mcp_content_text(array $payload, array $meta = [], bool $isError = false): array {
+    $res = [
         'content' => [[
             'type' => 'text',
             'text' => json_encode($payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
         ]],
     ];
+    if ($isError) {
+        $res['isError'] = true;
+    }
+    if (!empty($meta)) {
+        $res['_meta'] = $meta;
+    }
+    return $res;
 }
 
 function mcp_tools_definitions(): array {
-    $payProp = ['type' => 'string', 'description' => 'Optional txHash on Base Mainnet, Session Pass token (pass_g402_...), EIP-3009 base64 payload, or demo for Sandbox.'];
+    $payProp = ['type' => 'string', 'description' => 'Optional txHash on Base/Polygon/Arbitrum/Solana, Session Pass token (pass_g402_...), x402 EIP-3009 base64 payload, or demo for Sandbox (3 req/day).'];
+    $payPropPass = ['type' => 'string', 'description' => 'Required real USDC payment proof: txHash on Base/Polygon/Arbitrum/Solana or x402 EIP-3009 base64 payload (Starter 2.00 USDC = 400 credits). Sandbox/demo and existing Session Pass tokens are not accepted.'];
     $roAnn = ['readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => true];
     $localRoAnn = ['readOnlyHint' => true, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false];
     $writeAnn = ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => true];
@@ -210,13 +221,17 @@ function mcp_tools_definitions(): array {
         ['name' => 'grid402_global_markets', 'description' => 'World Exchange Settlement Calendar (US, EU, UK, BR) and 30+ ECB FX Reference Rates (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['market' => ['type' => 'string', 'description' => 'Market code: US, EU, UK or BR.'], 'base' => ['type' => 'string', 'description' => 'Base currency for ECB FX reference rates (e.g. USD, EUR, BRL).'], 'date' => ['type' => 'string', 'description' => 'Optional target date in YYYY-MM-DD format.'], 'payment_tx_hash' => $payProp], 'required' => []], 'annotations' => $roAnn],
         ['name' => 'grid402_extract', 'description' => 'SSRF-hardened Web URL to LLM-ready clean Markdown extractor with metadata and absolute links (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['url' => ['type' => 'string', 'description' => 'Public HTTP or HTTPS web page URL to fetch and convert to clean Markdown.'], 'max_chars' => ['type' => 'integer', 'description' => 'Optional maximum output character length (500 to 25000, default 12000).'], 'payment_tx_hash' => $payProp], 'required' => ['url']], 'annotations' => $roAnn],
         ['name' => 'grid402_email_verify', 'description' => 'Zero-PII B2B email deliverability audit: RFC syntax, DNS MX, SPF, DMARC, disposable domain and role-based score (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['email' => ['type' => 'string', 'description' => 'Corporate or business email address to audit without persisting raw PII.'], 'payment_tx_hash' => $payProp], 'required' => ['email']], 'annotations' => $roAnn],
-        ['name' => 'grid402_pass', 'description' => 'x402 Prepaid Session Pass issuance (Starter 2 USDC = 400 credits/180d, Pro 5 USDC = 1,200 credits/180d, Fleet 20 USDC = 6,000 credits/365d) or status check.', 'inputSchema' => ['type' => 'object', 'properties' => ['status' => ['type' => 'string', 'description' => 'Optional existing pass_g402_... token to check status without issuing a new pass.'], 'payment_tx_hash' => $payProp], 'required' => []], 'annotations' => $writeAnn],
+        ['name' => 'grid402_pass', 'description' => 'x402 Prepaid Session Pass issuance (Starter 2 USDC = 400 credits/180d, Pro 5 USDC = 1,200 credits/180d, Fleet 20 USDC = 6,000 credits/365d; requires real USDC payment, demo/pass-for-pass not allowed) or status check.', 'inputSchema' => ['type' => 'object', 'properties' => ['status' => ['type' => 'string', 'description' => 'Optional existing pass_g402_... token to check status without issuing a new pass.'], 'payment_tx_hash' => $payPropPass], 'required' => []], 'annotations' => $writeAnn],
         ['name' => 'grid402_pass_balance', 'description' => 'Free Session Pass balance and Spend Controls telemetry (free).', 'inputSchema' => ['type' => 'object', 'properties' => ['token' => ['type' => 'string', 'description' => 'Session Pass token (pass_g402_...) to inspect.']], 'required' => ['token']], 'annotations' => $localRoAnn],
         ['name' => 'grid402_verify', 'description' => 'Stateless verification of an _oracle_proof ECDSA secp256k1 signature (free).', 'inputSchema' => ['type' => 'object', 'properties' => ['payload' => ['type' => 'object', 'description' => 'Full JSON response object containing the _oracle_proof block to verify.']], 'required' => ['payload']], 'annotations' => $localRoAnn],
     ];
 }
 
-function mcp_accepts_unpaid(string $service, ?int $requiredRawUnits = null): array {
+function mcp_canonical_domain(): string {
+    return defined('GRID402_CANONICAL_DOMAIN') ? rtrim((string) GRID402_CANONICAL_DOMAIN, '/') : 'https://grid402.online';
+}
+
+function mcp_accepts_unpaid(string $service, ?int $requiredRawUnits = null, ?string $reason = null): array {
     $price = match (true) {
         $service === 'dossier' => '0.0500',
         $service === 'kyb-audit' => '0.0250',
@@ -228,14 +243,22 @@ function mcp_accepts_unpaid(string $service, ?int $requiredRawUnits = null): arr
         default => '0.0050',
     };
     $rawUnits = (int) ($requiredRawUnits ?? (int) round(((float) $price) * 1e6));
-    return [
+    $domain = mcp_canonical_domain();
+    $resourceUrl = $domain . '/api/v1/' . $service;
+    $resource = [
+        'url' => $resourceUrl,
+        'description' => 'Grid402 x402 API service: /api/v1/' . $service . ' (' . $price . ' USDC)',
+        'mimeType' => 'application/json',
+    ];
+    $payload = [
         'error' => 'PaymentRequired',
         'payment_required' => true,
         'service' => $service,
         'price_usdc' => $price,
         'price_raw_units' => $rawUnits,
+        'x402Version' => 2,
+        'resource' => $resource,
         'accepts' => grid402_build_accepts($rawUnits),
-        'x402_version' => 2,
         'facilitator' => 'https://facilitator.payai.network',
         'payTo' => GRID402_ORACLE_WALLET,
         'network' => 'base-mainnet',
@@ -243,16 +266,75 @@ function mcp_accepts_unpaid(string $service, ?int $requiredRawUnits = null): arr
         'token' => 'USDC',
         'token_contract' => GRID402_USDC_CONTRACT,
         'fiat_and_card_checkout' => [
-            'pix_instant_brl' => 'https://grid402.online/pass?tier=starter&autopix=1 (R$ 12 = 400 credits, <15ms)',
-            'session_pass_url' => 'https://grid402.online/pass',
+            'pix_instant_brl' => $domain . '/pass?tier=starter&autopix=1 (R$ 12 = 400 credits, <15ms)',
+            'session_pass_url' => $domain . '/pass',
             'rapidapi_credit_card_usd' => [
                 'all_25_apis' => 'https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities',
                 'web_markdown_email_network' => 'https://rapidapi.com/oliveiratc/api/grid402-web-to-markdown-email-verify-network-utilities',
                 'brazil_kyb_cnpj_anbima' => 'https://rapidapi.com/oliveiratc/api/brazil-kyb-cnpj-cgu-sanctions-anbima-workdays-api',
             ],
         ],
-        'hint' => 'Call the API endpoint directly (e.g. https://grid402.online/api/v1/' . $service . '), pass payment_tx_hash / X-Payment / PAYMENT-SIGNATURE, get an instant Session Pass via Pix/Card at https://grid402.online/pass?tier=starter&autopix=1, or subscribe via Credit Card on RapidAPI.',
+        'hint' => 'Send signed x402 v2 payment in params._meta["x402/payment"] or header PAYMENT-SIGNATURE, pass a prepaid Session Pass token (get instant Pix/Card pass at ' . $domain . '/pass), or subscribe with Credit Card on RapidAPI.',
     ];
+    if ($reason !== null && $reason !== '') {
+        $payload['reason'] = $reason;
+    }
+    return $payload;
+}
+
+function mcp_payment_required_result($id, string $service, int $rawCost, ?string $reason = null): never {
+    $unpaid = mcp_accepts_unpaid($service, $rawCost, $reason);
+    $x402Error = [
+        'x402Version' => 2,
+        'error' => ($reason !== null && $reason !== '') ? $reason : 'Payment required',
+        'resource' => $unpaid['resource'],
+        'accepts' => $unpaid['accepts'],
+        'service' => $service,
+        'price_usdc' => $unpaid['price_usdc'],
+        'price_raw_units' => $unpaid['price_raw_units'],
+        'payTo' => $unpaid['payTo'],
+        'fiat_and_card_checkout' => $unpaid['fiat_and_card_checkout'],
+    ];
+
+    if (!headers_sent()) {
+        $paymentReqHeader = base64_encode((string) json_encode([
+            'x402Version' => 2,
+            'error' => $x402Error['error'],
+            'resource' => $unpaid['resource'],
+            'accepts' => $unpaid['accepts'],
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        header('PAYMENT-REQUIRED: ' . $paymentReqHeader);
+    }
+
+    $credits = max(1, intdiv($rawCost, 5000));
+    $domain = mcp_canonical_domain();
+    $reasonLine = ($reason !== null && $reason !== '') ? "Reason: {$reason}\n\n" : '';
+    $sandboxLine = $service === 'pass'
+        ? "Note: Sandbox/demo mode and existing Session Pass tokens are NOT accepted to issue a new pass. Use real USDC or Pix/Card checkout.\n"
+        : "4) Free Sandbox Trial (3 req/day per IP): pass payment_tx_hash=\"demo\" for testing.\n";
+
+    $humanMessage = "Payment Required for Grid402 tool '{$service}' ({$unpaid['price_usdc']} USDC / {$credits} credit(s)).\n"
+        . $reasonLine
+        . "How to unlock immediately:\n"
+        . "1) Instant Session Pass via Pix (BRL) or Card (from R$ 12 = 400 credits, <15ms): {$domain}/pass (Quick Pix: {$domain}/pass?tier=starter&autopix=1)\n"
+        . "   Pass your token in header `X-Payment: pass_g402_...` or argument `payment_tx_hash`.\n"
+        . "2) RapidAPI Hub (International Credit Card in USD): https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities\n"
+        . "3) Autonomous x402 v2 Gasless / Multi-Chain USDC (Base, Polygon, Arbitrum): send signed x402 payload in `params._meta[\"x402/payment\"]` or header `PAYMENT-SIGNATURE`, or pay {$unpaid['price_usdc']} USDC ({$rawCost} raw units) to {$unpaid['payTo']} and pass the txHash.\n"
+        . $sandboxLine
+        . "\nMachine-readable x402 v2 challenge:\n"
+        . json_encode($unpaid, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+
+    mcp_result($id, [
+        'isError' => true,
+        'content' => [[
+            'type' => 'text',
+            'text' => $humanMessage,
+        ]],
+        '_meta' => [
+            'x402/error' => $x402Error,
+        ],
+    ]);
+    exit;
 }
 
 function mcp_tool_call($responseId, string $tool, array $arguments, array $params): void {
@@ -357,7 +439,15 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
     $txHash = isset($arguments['payment_tx_hash']) ? trim((string)$arguments['payment_tx_hash']) : '';
     $xPaymentHeader = trim((string) ($_SERVER['HTTP_X_PAYMENT'] ?? $_SERVER['HTTP_X_SESSION_PASS'] ?? $mcpHdrMap['x-payment'] ?? $mcpHdrMap['x-session-pass'] ?? ''));
     $meta = isset($params['_meta']) && is_array($params['_meta']) ? $params['_meta'] : [];
-    $x402Payment = isset($meta['x402/payment']) ? trim((string)$meta['x402/payment']) : '';
+    $x402Payment = '';
+    if (isset($meta['x402/payment'])) {
+        if (is_array($meta['x402/payment'])) {
+            $encodedMetaPay = json_encode($meta['x402/payment'], JSON_UNESCAPED_SLASHES);
+            $x402Payment = is_string($encodedMetaPay) ? base64_encode($encodedMetaPay) : '';
+        } elseif (is_string($meta['x402/payment'])) {
+            $x402Payment = trim($meta['x402/payment']);
+        }
+    }
     $payHeader = trim((string) ($_SERVER['HTTP_PAYMENT_SIGNATURE'] ?? $mcpHdrMap['payment-signature'] ?? ''));
     $mcpAuthHeader = trim((string) ($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? $mcpHdrMap['authorization'] ?? ''));
     $mcpAuthProof = '';
@@ -378,10 +468,90 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
     }
 
     $clientIp = grid402_get_trusted_client_ip();
+    $priceUsdcFloat = (float) number_format($rawCost / 1e6, 4, '.', '');
+    $canonicalResourceUrl = mcp_canonical_domain() . '/api/v1/' . $service;
 
     if ($effectiveProof === '') {
-        grid402_record_telemetry($service, 402, false, null, $clientIp, (float) number_format($rawCost / 1e6, 4, '.', ''), 'challenge_402');
-        mcp_error($responseId, -32001, 'PaymentRequired', mcp_accepts_unpaid($service, $rawCost));
+        grid402_record_telemetry($service, 402, false, null, $clientIp, $priceUsdcFloat, 'challenge_402');
+        if (function_exists('grid402_log_request')) {
+            grid402_log_request([
+                'service' => $service,
+                'status' => 402,
+                'payment_source' => 'none',
+                'price_usdc' => $priceUsdcFloat,
+                'error' => 'PaymentRequired',
+                'method' => 'POST',
+                'ip' => $clientIp,
+            ]);
+        }
+        if (function_exists('grid402_growth_event')) {
+            grid402_growth_event('challenge_402', [
+                'service' => $service,
+                'ip' => $clientIp,
+                'type' => 'mcp',
+            ]);
+        }
+        mcp_payment_required_result($responseId, $service, $rawCost);
+    }
+
+    $proofIsPayload = grid402_classify_payment_proof($effectiveProof) === 'x402_payload';
+    $mcpFailPayment = static function (array $val) use ($responseId, $service, $rawCost, $priceUsdcFloat, $proofIsPayload, $effectiveProof, $clientIp): never {
+        $failCode = (int)($val['code'] ?? 402);
+        $failCategory = (string)($val['category'] ?? 'payment_rejected');
+        $failSource = (string)($val['source'] ?? ($proofIsPayload ? 'facilitator' : 'unknown'));
+        grid402_record_telemetry(
+            $service,
+            $failCode,
+            false,
+            $proofIsPayload ? null : $effectiveProof,
+            $clientIp,
+            $priceUsdcFloat,
+            null,
+            ['failure_category' => $failCategory]
+        );
+        if (function_exists('grid402_log_request')) {
+            grid402_log_request([
+                'service' => $service,
+                'status' => $failCode,
+                'payment_source' => $failSource !== '' ? $failSource : 'unknown',
+                'price_usdc' => $priceUsdcFloat,
+                'error' => $failCategory . ': ' . (string)($val['reason'] ?? 'payment_rejected'),
+                'method' => 'POST',
+                'ip' => $clientIp,
+            ]);
+        }
+        if ($failCategory === 'sandbox_rate_limited' && function_exists('grid402_growth_event')) {
+            grid402_growth_event('sandbox_rate_limited', [
+                'service' => $service,
+                'ip' => $clientIp,
+                'type' => 'mcp',
+            ]);
+        }
+        $reason = (string)($val['reason'] ?? 'Payment validation failed.');
+        mcp_payment_required_result($responseId, $service, $rawCost, $reason);
+    };
+
+    // V-01: Bloqueia demo/sandbox e pagamento com outro Session Pass na emissão de grid402_pass
+    if ($service === 'pass') {
+        $proofLower = strtolower(trim($effectiveProof));
+        if ($proofLower === 'demo' || $proofLower === 'sandbox') {
+            $mcpFailPayment([
+                'valid' => false,
+                'code' => 403,
+                'source' => 'sandbox',
+                'category' => 'sandbox_pass_forbidden',
+                'reason' => 'Sandbox/demo mode cannot be used to issue a Session Pass. Pay with real USDC (2.00 USDC Starter) via x402 or purchase via Pix/Card at https://grid402.online/pass.',
+            ]);
+        }
+        if (str_starts_with($proofLower, 'pass_g402_')) {
+            $mcpFailPayment([
+                'valid' => false,
+                'code' => 403,
+                'source' => 'pass',
+                'category' => 'pass_for_pass_forbidden',
+                'reason' => 'An existing Session Pass cannot be used to issue a new Session Pass. Pay with real USDC via x402 or purchase via Pix/Card at https://grid402.online/pass.',
+            ]);
+        }
     }
 
     $validation = grid402_validate_payment(
@@ -390,26 +560,25 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
         $clientIp,
         $service,
         $mcpNetHeader !== '' ? $mcpNetHeader : null,
-        true
+        true,
+        $canonicalResourceUrl
     );
-    $proofIsPayload = grid402_classify_payment_proof($effectiveProof) === 'x402_payload';
-    $mcpFailPayment = static function (array $val) use ($responseId, $service, $rawCost, $proofIsPayload, $effectiveProof, $clientIp): never {
-        grid402_record_telemetry(
-            $service,
-            (int)($val['code'] ?? 402),
-            false,
-            $proofIsPayload ? null : $effectiveProof,
-            $clientIp,
-            (float) number_format($rawCost / 1e6, 4, '.', ''),
-            null,
-            ['failure_category' => $val['category'] ?? 'payment_rejected']
-        );
-        $unpaidData = mcp_accepts_unpaid($service, $rawCost);
-        $unpaidData['reason'] = $val['reason'] ?? 'Falha na validacao do pagamento.';
-        mcp_error($responseId, -32001, 'PaymentRequired', $unpaidData);
-    };
     if (empty($validation['valid'])) {
         $mcpFailPayment($validation);
+    }
+
+    // Defesa em profundidade V-01: nunca emitir pass em modo sandbox ou pago com outro pass
+    if ($service === 'pass' && (!empty($validation['sandbox']) || ($validation['source'] ?? '') === 'pass')) {
+        if (!empty($validation['session_pass']) && !empty($validation['credits_debited']) && function_exists('grid402_refund_session_pass')) {
+            grid402_refund_session_pass($effectiveProof, (int) $validation['credits_debited'], $service, ['reason' => 'pass_for_pass_blocked', 'via' => 'mcp']);
+        }
+        $mcpFailPayment([
+            'valid' => false,
+            'code' => 403,
+            'source' => (string)($validation['source'] ?? 'sandbox'),
+            'category' => 'pass_issuance_forbidden',
+            'reason' => 'Session Pass issuance requires real USDC payment or Pix/Card checkout at https://grid402.online/pass.',
+        ]);
     }
 
     // Para emissao de Session Pass, liquidar antes de emitir para obter settlement_tx/lock_key real
@@ -464,14 +633,14 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
             (string)($arguments['url'] ?? ''),
             isset($arguments['max_chars']) ? (int)$arguments['max_chars'] : 12000
         ),
-        'email-verify' => grid402_service_email_verify((string)$arguments['email'] ?? ''),
-        'pass' => (static function () use ($validation, $proofIsPayload, $effectiveProof, $rawCost, $isSandbox): array {
+        'email-verify' => grid402_service_email_verify((string)($arguments['email'] ?? '')),
+        'pass' => (static function () use ($validation, $proofIsPayload, $effectiveProof, $rawCost): array {
             $actualPaid = (int) ($validation['raw_amount'] ?? $rawCost);
             $passTxRef = (string) ($validation['lock_key'] ?? $validation['settlement_tx'] ?? ($proofIsPayload ? ('mcp_' . bin2hex(random_bytes(8))) : $effectiveProof));
             return grid402_issue_session_pass(
                 $passTxRef,
                 $actualPaid > 0 ? $actualPaid : (int)$rawCost,
-                $isSandbox
+                false
             );
         })(),
         default => ['code' => 500, 'error' => 'ToolDispatchMissing'],
@@ -483,6 +652,13 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
     if ($execCode !== 200) {
         if (!empty($validation['needs_settle'])) {
             grid402_abort_verified_exact_payment($validation);
+        } elseif (!empty($validation['session_pass']) && !empty($validation['credits_debited']) && function_exists('grid402_refund_session_pass')) {
+            grid402_refund_session_pass($effectiveProof, (int) $validation['credits_debited'], $service, ['http_status' => $execCode, 'via' => 'mcp']);
+        } elseif (!empty($validation['lock_key']) && function_exists('grid402_release_transaction_lock')) {
+            $srcErr = (string) ($validation['source'] ?? '');
+            if ($srcErr === 'tx_hash' || $srcErr === 'solana_spl' || str_starts_with($srcErr, 'evm_') || str_starts_with($srcErr, 'multichain_')) {
+                grid402_release_transaction_lock((string) $validation['lock_key']);
+            }
         }
         $paymentSourceErr = (string) ($validation['source'] ?? '');
         $settlementTxErr = $validation['settlement_tx'] ?? ($proofIsPayload ? null : $effectiveProof);
@@ -496,7 +672,18 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
             null,
             ['payment_source' => $paymentSourceErr !== '' ? $paymentSourceErr : null]
         );
-        mcp_result($responseId, mcp_content_text(is_array($result) ? $result : ['result' => $result]));
+        if (function_exists('grid402_log_request')) {
+            grid402_log_request([
+                'service' => $service,
+                'status' => $execCode,
+                'payment_source' => $paymentSourceErr !== '' ? $paymentSourceErr : 'unknown',
+                'price_usdc' => 0.0,
+                'error' => (string) (is_array($result) ? ($result['error'] ?? $result['message'] ?? ('HTTP_' . $execCode)) : ('HTTP_' . $execCode)),
+                'method' => 'POST',
+                'ip' => $clientIp,
+            ]);
+        }
+        mcp_result($responseId, mcp_content_text(is_array($result) ? $result : ['result' => $result], [], true));
     }
 
     if (!empty($validation['needs_settle'])) {
@@ -529,10 +716,67 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
         ['payment_source' => $paymentSourceVal !== '' ? $paymentSourceVal : null]
     );
 
+    if (function_exists('grid402_log_request')) {
+        grid402_log_request([
+            'service' => $service,
+            'status' => 200,
+            'payment_source' => $paymentSourceVal !== '' ? $paymentSourceVal : 'mcp',
+            'price_usdc' => $revenueUsdc,
+            'method' => 'POST',
+            'ip' => $clientIp,
+        ]);
+    }
+
+    if (function_exists('grid402_growth_event')) {
+        if ($isRealPayment) {
+            if ($service === 'pass') {
+                grid402_growth_event('pass_purchase', [
+                    'service' => 'pass',
+                    'payer' => $validation['payer'] ?? '',
+                    'proof' => $settlementTx ?? '',
+                    'amount_usdc' => $revenueUsdc,
+                    'ip' => $clientIp,
+                    'type' => 'mcp',
+                ]);
+            } else {
+                grid402_growth_event('paid_request', [
+                    'service' => $service,
+                    'payer' => $validation['payer'] ?? '',
+                    'proof' => $proofIsPayload ? ($settlementTx ?? '') : $effectiveProof,
+                    'amount_usdc' => $revenueUsdc,
+                    'ip' => $clientIp,
+                    'type' => $paymentSourceVal === 'pass' ? 'pass' : 'x402',
+                ]);
+            }
+        } else {
+            grid402_growth_event($isSandbox ? 'sandbox_request' : 'verify_only', [
+                'service' => $service,
+                'proof' => $proofIsPayload ? '' : $effectiveProof,
+                'ip' => $clientIp,
+                'type' => $paymentSourceVal !== '' ? $paymentSourceVal : 'mcp',
+            ]);
+        }
+    }
+
+    $responseMeta = [];
     if ($paymentSourceVal === 'facilitator') {
         $receiptHeader = grid402_build_payment_response_header($validation);
         header('PAYMENT-RESPONSE: ' . $receiptHeader);
         header('X-PAYMENT-RESPONSE: ' . $receiptHeader);
+        $responseMeta['x402/payment-response'] = [
+            'success' => true,
+            'transaction' => $validation['settlement_tx'] ?? null,
+            'network' => $validation['network'] ?? GRID402_X402_NETWORK_V2,
+            'payer' => $validation['payer'] ?? null,
+        ];
+    } elseif ($isRealPayment && !empty($settlementTx)) {
+        $responseMeta['x402/payment-response'] = [
+            'success' => true,
+            'transaction' => $settlementTx,
+            'network' => $validation['network'] ?? GRID402_X402_NETWORK_V2,
+            'payer' => $validation['payer'] ?? null,
+            'source' => $paymentSourceVal,
+        ];
     }
 
     if (is_array($result) && (!isset($result['code']) || $result['code'] === 200)) {
@@ -540,5 +784,5 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
         grid402_sign_data($result, $isSandbox);
     }
 
-    mcp_result($responseId, mcp_content_text(is_array($result) ? $result : ['result' => $result]));
+    mcp_result($responseId, mcp_content_text(is_array($result) ? $result : ['result' => $result], $responseMeta));
 }

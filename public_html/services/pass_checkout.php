@@ -67,13 +67,58 @@ function grid402_emitir_passe_por_tx(string $txHash, ?string $network = null): a
 
     // 2. Trava atômica anti-replay isolada por rede (Base mantém chave legada)
     if (!grid402_claim_transaction_lock($lockKey)) {
+        // Idempotência: se esta tx já emitiu um Session Pass, devolve o passe existente sem reemitir nem cobrar novamente
+        $existingPass = function_exists('grid402_find_session_pass_by_tx')
+            ? grid402_find_session_pass_by_tx($lockKey)
+            : null;
+        if ($existingPass === null && $slug === 'solana' && function_exists('grid402_find_session_pass_by_tx')) {
+            $existingPass = grid402_find_session_pass_by_tx($cleanTx);
+        }
+        if (is_array($existingPass) && !empty($existingPass['pass_token'])) {
+            $existingUsdc = trim((string) ($existingPass['usdc_deposited'] ?? '0.0000'));
+            if (!str_contains(strtoupper($existingUsdc), 'USDC')) {
+                $existingUsdc .= ' USDC';
+            }
+            $existingTier = (string) ($existingPass['tier'] ?? 'standard');
+            return [
+                'ok' => true,
+                'idempotent' => true,
+                'error' => null,
+                'message' => "Passe de sessão já emitido anteriormente via {$netCfg['display_name']} (retorno idempotente).",
+                'code' => 200,
+                'network' => $netCfg['display_name'],
+                'network_slug' => $slug,
+                'chain_id' => $netCfg['chain_id'],
+                'payer' => '',
+                'tx_hash' => $cleanTx,
+                'explorer_url' => grid402_explorer_tx_url($slug, $cleanTx),
+                'raw_usdc_units' => 0,
+                'usdc_deposited' => $existingUsdc,
+                'tier' => $existingTier,
+                'pass_token' => $existingPass['pass_token'],
+                'mode' => $existingPass['mode'] ?? 'production',
+                'credits_total' => (int) ($existingPass['credits_total'] ?? 0),
+                'credits_remaining' => (int) ($existingPass['credits_remaining'] ?? 0),
+                'issued_at' => $existingPass['issued_at'] ?? null,
+                'expires_at' => $existingPass['expires_at'] ?? null,
+                'ttl_days' => ($existingTier === 'fleet') ? 365 : 180,
+                'usage_instructions' => [
+                    'header' => 'X-Payment: ' . $existingPass['pass_token'],
+                    'check_balance_url' => GRID402_CANONICAL_DOMAIN . '/api/v1/pass/balance',
+                    'check_statement_url' => GRID402_CANONICAL_DOMAIN . '/api/v1/pass/statement',
+                ],
+            ];
+        }
+
         return [
             'ok' => false,
             'error' => 'ReplayDetected',
-            'message' => "Esta transação na rede {$netCfg['display_name']} já foi utilizada para emitir um passe anteriormente.",
+            'message' => "Esta transação na rede {$netCfg['display_name']} já foi utilizada anteriormente.",
             'code' => 403,
         ];
     }
+
+    $minRawUnits = defined('GRID402_CREDIT_UNIT_RAW') ? max(5000, (int) GRID402_CREDIT_UNIT_RAW) : 5000;
 
     try {
         $rawAmount = 0;
@@ -91,19 +136,29 @@ function grid402_emitir_passe_por_tx(string $txHash, ?string $network = null): a
                 ];
             }
 
-            $check = grid402_verify_solana_tx_usdc($txData, 1);
+            $check = grid402_verify_solana_tx_usdc($txData, $minRawUnits);
             if (empty($check['valid'])) {
                 grid402_release_transaction_lock($lockKey);
                 $errCode = (string) ($check['error'] ?? 'NoUsdcTransfer');
+                $mappedErr = match ($errCode) {
+                    'TransactionFailedOnChain' => 'TxFailed',
+                    'TransactionExpired' => 'TransactionExpired',
+                    'InsufficientAmount', 'InsufficientUsdcAmount' => 'InsufficientAmount',
+                    default => 'NoUsdcTransfer',
+                };
+                $httpCode = ($mappedErr === 'TransactionExpired') ? 403 : (int) ($check['code'] ?? 402);
                 return [
                     'ok' => false,
-                    'error' => ($errCode === 'TransactionFailedOnChain') ? 'TxFailed' : 'NoUsdcTransfer',
-                    'message' => (string) ($check['message'] ?? 'Nenhuma transferência válida de SPL USDC encontrada na Solana.'),
-                    'code' => 402,
+                    'error' => $mappedErr,
+                    'message' => (string) ($check['message'] ?? 'Nenhuma transferência válida de SPL USDC (>= 0.0050 USDC) encontrada na Solana.'),
+                    'code' => $httpCode,
                 ];
             }
             $rawAmount = (int) ($check['raw_amount'] ?? 0);
-            $payer = 'solana';
+            $payer = trim((string) ($check['payer'] ?? ''));
+            if ($payer === '') {
+                $payer = 'solana';
+            }
         } else {
             $receipt = ($slug === 'base')
                 ? grid402_rpc_get_receipt($cleanTx)
@@ -119,27 +174,38 @@ function grid402_emitir_passe_por_tx(string $txHash, ?string $network = null): a
                 ];
             }
 
-            $check = grid402_verify_evm_receipt_usdc($receipt, $slug, 1);
+            $check = grid402_verify_evm_receipt_usdc($receipt, $slug, $minRawUnits);
             if (empty($check['valid'])) {
                 grid402_release_transaction_lock($lockKey);
                 $errCode = (string) ($check['error'] ?? 'NoUsdcTransfer');
+                $mappedErr = match ($errCode) {
+                    'TransactionFailedOnChain' => 'TxFailed',
+                    'TransactionExpired' => 'TransactionExpired',
+                    'InsufficientAmount', 'InsufficientUsdcAmount' => 'InsufficientAmount',
+                    default => 'NoUsdcTransfer',
+                };
+                $httpCode = ($mappedErr === 'TransactionExpired') ? 403 : (int) ($check['code'] ?? 402);
                 return [
                     'ok' => false,
-                    'error' => ($errCode === 'TransactionFailedOnChain') ? 'TxFailed' : 'NoUsdcTransfer',
-                    'message' => (string) ($check['message'] ?? "Nenhuma transferência de USDC oficial encontrada na rede {$netCfg['display_name']}."),
-                    'code' => 402,
+                    'error' => $mappedErr,
+                    'message' => (string) ($check['message'] ?? "Nenhuma transferência de USDC oficial (>= 0.0050 USDC) encontrada na rede {$netCfg['display_name']}."),
+                    'code' => $httpCode,
                 ];
             }
             $rawAmount = (int) ($check['raw_amount'] ?? 0);
-            $payer = strtolower((string) ($receipt['from'] ?? ''));
+            $payer = strtolower(trim((string) ($check['payer'] ?? $receipt['from'] ?? '')));
         }
 
-        if ($rawAmount <= 0) {
+        if ($rawAmount < $minRawUnits) {
             grid402_release_transaction_lock($lockKey);
             return [
                 'ok' => false,
-                'error' => 'NoUsdcTransfer',
-                'message' => 'Valor de USDC transferido inválido.',
+                'error' => 'InsufficientAmount',
+                'message' => sprintf(
+                    'Valor transferido insuficiente. Mínimo exigido para emissão de Session Pass: %.4f USDC (%d raw units = 1 crédito).',
+                    $minRawUnits / 1e6,
+                    $minRawUnits
+                ),
                 'code' => 402,
             ];
         }
@@ -149,6 +215,7 @@ function grid402_emitir_passe_por_tx(string $txHash, ?string $network = null): a
 
         return [
             'ok' => true,
+            'idempotent' => false,
             'error' => null,
             'message' => "Passe de sessão emitido com sucesso via {$netCfg['display_name']}.",
             'code' => 200,

@@ -76,7 +76,7 @@ class TestGrid402SDK(unittest.TestCase):
 
     def test_version_and_exports(self) -> None:
         """Verifica versao semantica e exportacoes principais."""
-        self.assertEqual(__version__, "2.5.2")
+        self.assertEqual(__version__, "2.6.0")
         self.assertTrue(issubclass(Grid402PaymentRequiredError, Grid402Error))
 
     def test_pydantic_models(self) -> None:
@@ -206,45 +206,73 @@ class TestGrid402SDK(unittest.TestCase):
             self.assertTrue(err.preview_data.get("sample"))
 
     def test_agentkit_auto_settlement(self) -> None:
-        """Simula auto-liquidacao on-chain com carteira CDP e wallet_provider."""
+        """Simula auto-liquidacao on-chain com carteira CDP moderna (send_transaction) e fallback legado (transfer)."""
         provider = Grid402ActionProvider(sandbox=False)
 
-        mock_wallet = MagicMock()
-        mock_transfer = MagicMock()
-        mock_transfer.transaction_hash = "0xmocked_tx_hash_12345"
-        mock_wallet.transfer.return_value = mock_transfer
-
         challenge_bytes = (
-            b'{"price_usdc": "0.0200", '
+            b'{"price_usdc": "0.0100", "price_raw_units": 10000, '
             b'"recipient_wallet": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90"}'
         )
         success_bytes = b'{"razao_social": "BANCO DO BRASIL SA", "cnpj": "00000000000191"}'
 
         import urllib.error
-        challenge_error = urllib.error.HTTPError(
+
+        # 1. Caminho moderno CDP AgentKit v0.1+: send_transaction ERC-20 + wait_for_transaction_receipt
+        mock_modern_wallet = MagicMock(spec=["send_transaction", "wait_for_transaction_receipt"])
+        mock_modern_wallet.send_transaction.return_value = "0xmocked_modern_tx_hash_999"
+
+        challenge_error_1 = urllib.error.HTTPError(
             url="https://grid402.online/api/v1/cnpj",
             code=402,
             msg="Payment Required",
             hdrs={},  # type: ignore
             fp=MagicMock(read=MagicMock(return_value=challenge_bytes)),
         )
+        success_response_1 = MagicMock()
+        success_response_1.status = 200
+        success_response_1.read.return_value = success_bytes
+        success_response_1.__enter__.return_value = success_response_1
 
-        success_response = MagicMock()
-        success_response.read.return_value = success_bytes
-        success_response.__enter__.return_value = success_response
-
-        # Primeira chamada lanca 402, segunda chamada (apos pagamento) retorna sucesso
-        with patch("urllib.request.urlopen", side_effect=[challenge_error, success_response]):
-            res = provider.query_cnpj("00000000000191", wallet_provider=mock_wallet)
-
-            mock_wallet.transfer.assert_called_once_with(
-                to="0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
-                amount="0.0200",
-                asset_id="usdc",
-            )
+        with patch("urllib.request.urlopen", side_effect=[challenge_error_1, success_response_1]):
+            res = provider.query_cnpj("00000000000191", wallet_provider=mock_modern_wallet)
+            mock_modern_wallet.send_transaction.assert_called_once()
+            tx_payload = mock_modern_wallet.send_transaction.call_args[0][0]
+            self.assertEqual(tx_payload["to"], "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913")
+            self.assertTrue(tx_payload["data"].startswith("0xa9059cbb"))
+            mock_modern_wallet.wait_for_transaction_receipt.assert_called_once_with("0xmocked_modern_tx_hash_999")
             self.assertEqual(res.get("razao_social"), "BANCO DO BRASIL SA")
             self.assertTrue(res.get("_x402_settlement", {}).get("settled"))
-            self.assertEqual(res.get("_x402_settlement", {}).get("tx_hash"), "0xmocked_tx_hash_12345")
+            self.assertEqual(res.get("_x402_settlement", {}).get("tx_hash"), "0xmocked_modern_tx_hash_999")
+
+        # 2. Fallback legado: wallet com apenas transfer() + transfer_result.wait()
+        mock_legacy_wallet = MagicMock(spec=["transfer"])
+        mock_transfer = MagicMock(spec=["transaction_hash", "wait"])
+        mock_transfer.transaction_hash = "0xmocked_tx_hash_12345"
+        mock_legacy_wallet.transfer.return_value = mock_transfer
+
+        challenge_error_2 = urllib.error.HTTPError(
+            url="https://grid402.online/api/v1/cnpj",
+            code=402,
+            msg="Payment Required",
+            hdrs={},  # type: ignore
+            fp=MagicMock(read=MagicMock(return_value=challenge_bytes)),
+        )
+        success_response_2 = MagicMock()
+        success_response_2.status = 200
+        success_response_2.read.return_value = success_bytes
+        success_response_2.__enter__.return_value = success_response_2
+
+        with patch("urllib.request.urlopen", side_effect=[challenge_error_2, success_response_2]):
+            res_legacy = provider.query_cnpj("00000000000191", wallet_provider=mock_legacy_wallet)
+            mock_legacy_wallet.transfer.assert_called_once_with(
+                to="0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                amount="0.0100",
+                asset_id="usdc",
+            )
+            mock_transfer.wait.assert_called_once()
+            self.assertEqual(res_legacy.get("razao_social"), "BANCO DO BRASIL SA")
+            self.assertTrue(res_legacy.get("_x402_settlement", {}).get("settled"))
+            self.assertEqual(res_legacy.get("_x402_settlement", {}).get("tx_hash"), "0xmocked_tx_hash_12345")
 
     def test_client_indicators_and_holidays(self) -> None:
         """Verifica chamadas a get_indicators e get_holidays no Grid402Client."""
@@ -344,6 +372,45 @@ class TestGrid402SDK(unittest.TestCase):
 
         res = client.verify_proof(signed, oracle_public_key=TEST_ORACLE_PUBKEY_PEM)
         self.assertFalse(res.valid)
+
+    def test_client_rapidapi_proxy_routing(self) -> None:
+        """V-08: Verifica roteamento pelo proxy RapidAPI com X-RapidAPI-Key e X-RapidAPI-Host."""
+        client = Grid402Client(rapidapi_key="rapid_key_test_123")
+        mock_response = MagicMock()
+        mock_response.read.return_value = b'{"status": "success", "service": "forex"}'
+        mock_response.__enter__.return_value = mock_response
+
+        with patch("urllib.request.urlopen", return_value=mock_response) as mock_urlopen:
+            res = client.get_forex()
+            self.assertEqual(res.get("service"), "forex")
+            req_arg = mock_urlopen.call_args[0][0]
+            self.assertEqual(
+                req_arg.full_url,
+                "https://grid402-open-data-kyb-ai-utilities.p.rapidapi.com/api/v1/forex",
+            )
+            self.assertEqual(req_arg.headers.get("X-rapidapi-key"), "rapid_key_test_123")
+            self.assertEqual(
+                req_arg.headers.get("X-rapidapi-host"),
+                "grid402-open-data-kyb-ai-utilities.p.rapidapi.com",
+            )
+            self.assertNotIn("X-payment", req_arg.headers)
+
+        custom_client = Grid402Client(
+            rapidapi_key="rapid_key_custom_456",
+            rapidapi_host="https://brazil-kyb-cnpj-cgu-sanctions-anbima-workdays-api.p.rapidapi.com/",
+        )
+        with patch("urllib.request.urlopen", return_value=mock_response) as mock_urlopen:
+            custom_client.get_cnpj("00000000000191")
+            req_arg = mock_urlopen.call_args[0][0]
+            self.assertTrue(
+                req_arg.full_url.startswith(
+                    "https://brazil-kyb-cnpj-cgu-sanctions-anbima-workdays-api.p.rapidapi.com/api/v1/cnpj"
+                )
+            )
+            self.assertEqual(
+                req_arg.headers.get("X-rapidapi-host"),
+                "brazil-kyb-cnpj-cgu-sanctions-anbima-workdays-api.p.rapidapi.com",
+            )
 
     def test_oracle_proof_sandbox_mode(self) -> None:
         """Verifica validacao de prova emitida em modo Sandbox."""

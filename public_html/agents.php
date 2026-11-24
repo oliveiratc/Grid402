@@ -488,7 +488,10 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
       "command": "npx",
       "args": ["-y", "grid402-mcp@latest"],
       "env": {
-        "GRID402_BASE_URL": "https://grid402.online"
+        "GRID402_API_URL": "https://grid402.online",
+        "GRID402_SESSION_PASS": "pass_g402_YOUR_TOKEN",
+        "GRID402_PRIVATE_KEY": "0xYOUR_OPTIONAL_EVM_KEY",
+        "GRID402_X402_GASLESS": "true"
       }
     }
   }
@@ -509,7 +512,7 @@ export const defaultCharacter = {
   settings: {
     secrets: {
       // Top up your balance at https://grid402.online/pass
-      GRID402_PASS_TOKEN: "pass_g402_live..."
+      GRID402_SESSION_PASS: "pass_g402_live..."
     }
   }
 };</pre>
@@ -521,30 +524,31 @@ export const defaultCharacter = {
 
         <div class="code-box">
             <button class="copy-btn" onclick="copySnippet('code-py', this)" data-i18n="agents.btn.copy_py">Copy Python</button>
-            <pre id="code-py">import requests
+            <pre id="code-py">import os
+import requests
 
 BASE_URL = "https://grid402.online"
 
 def query_oracle(endpoint, payment_proof=None):
     headers = {"Accept": "application/json"}
     if payment_proof:
-        # Accepts Base TxHash (0x...), Session Pass (pass_g402_...), or "demo"
+        # Accepts Session Pass (pass_g402_...), x402 PAYMENT-SIGNATURE, Base TxHash (0x...), or "demo" (3/day)
         headers["X-Payment"] = payment_proof
         
     res = requests.get(f"{BASE_URL}{endpoint}", headers=headers)
     
     if res.status_code == 402:
         body = res.json()
-        print(f"[402 Challenge] Price: {body.get('price_usdc')} USDC on Base")
-        print(f"[Free Preview]  {body.get('preview')}")
+        print(f"[402 Challenge] Price: {body.get('price_usdc')} USDC (x402 v2 accepts: {len(body.get('accepts', []))} chains)")
+        print(f"[Checkout]      Pix/Card Pass: https://grid402.online/pass")
         return body
         
     data = res.json()
     print("[200 OK] Oracle Proof Verified:", "_oracle_proof" in data)
     return data
 
-# Example: Global Corporate Identity (GLEIF LEI) or OFAC AML
-query_oracle("/api/v1/lei?lei=5493006MHB84DD0ZWV18", payment_proof="demo")</pre>
+# Example: Global Corporate Identity (GLEIF LEI) using Session Pass from env
+query_oracle("/api/v1/lei?lei=5493006MHB84DD0ZWV18", payment_proof=os.getenv("GRID402_SESSION_PASS", "demo"))</pre>
         </div>
 
         <!-- 4. Terminal cURL -->
@@ -553,20 +557,20 @@ query_oracle("/api/v1/lei?lei=5493006MHB84DD0ZWV18", payment_proof="demo")</pre>
 
         <div class="code-box">
             <button class="copy-btn" onclick="copySnippet('code-curl', this)" data-i18n="agents.btn.copy_curl">Copy cURL</button>
-            <pre id="code-curl"># 1. Inspect HTTP 402 Challenge + Free Teaser Preview
+            <pre id="code-curl"># 1. Inspect HTTP 402 v2 Challenge (PAYMENT-REQUIRED header + accepts[])
 curl -i "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18"
 
-# 2. Issue a Prepaid Session Pass (400 credits = 2.0000 USDC or "demo" in Sandbox)
-curl -H "X-Payment: demo" "https://grid402.online/api/v1/pass"
+# 2. Issue a Prepaid Session Pass (2.0000 USDC = 400 credits via x402, or Pix/Card at https://grid402.online/pass)
+curl -H "PAYMENT-SIGNATURE: $X402_SIGNED_PAYLOAD" "https://grid402.online/api/v1/pass"
 
-# 3. Execute <15ms calls using your Session Pass or Base TxHash
-curl -H "X-Payment: pass_g402_YOUR_TOKEN" \
-  "https://grid402.online/api/v1/global-markets?market=US&base=USD"
+# 3. Execute &lt;15ms calls using your Session Pass or x402 PAYMENT-SIGNATURE
+curl -H "X-Payment: $GRID402_SESSION_PASS" \
+  "https://grid402.online/api/v1/global-markets?market=US&amp;base=USD"
 
-# 4. Stateless ECDSA Oracle Proof verification (Free, <1ms)
+# 4. Stateless ECDSA Oracle Proof verification (Free, &lt;1ms) — send the full oracle JSON response directly
 curl -X POST "https://grid402.online/api/v1/verify" \
   -H "Content-Type: application/json" \
-  -d '{"full_response_with_proof": {...}}'</pre>
+  -d '{"status":"success","data":{...},"_meta":{...},"_oracle_proof":{"oracle_address":"0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90","timestamp":1794140000,"data_hash":"0x...","signature":"0x...","algorithm":"secp256k1-sha256","sandbox":false}}'</pre>
         </div>
 
         <!-- Tabela de Endpoints -->
@@ -587,7 +591,7 @@ curl -X POST "https://grid402.online/api/v1/verify" \
                 <tr>
                     <td><span class="endpoint-name">/api/v1/pass</span></td>
                     <td data-i18n="svc.pass.desc">Prepaid Session Pass (400 to 6,000 credits; 1 credit = 0.0050 USDC) for ultra-fast M2M calls (&lt;15ms)</td>
-                    <td><span class="tag-price">2 / 5 / 20 USDC (400 / 1,000 / 6,000 cr)</span></td>
+                    <td><span class="tag-price">2 / 5 / 20 USDC (400 / 1,200 / 6,000 cr)</span></td>
                     <td><span class="proof-yes" data-i18n="agents.yes">✓ Yes</span></td>
                 </tr>
                 <tr>

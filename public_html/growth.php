@@ -131,9 +131,12 @@ function grid402_growth_normalize(array $data): array {
     }
     $out['payload_version'] = 1;
     $out['profiles'] = is_array($data['profiles'] ?? null) ? $data['profiles'] : [];
-    $out['builders'] = is_array($data['builders'] ?? null) ? $data['builders'] : [];
-    $out['referrals'] = is_array($data['referrals'] ?? null) ? $data['referrals'] : [];
-    $out['rewards'] = is_array($data['rewards'] ?? null) ? $data['rewards'] : [];
+    $out['builders'] = is_array($data['builders'] ?? null) ? array_values(array_slice($data['builders'], -500)) : [];
+    $out['referrals'] = is_array($data['referrals'] ?? null) ? array_values(array_slice($data['referrals'], -500)) : [];
+    $out['rewards'] = is_array($data['rewards'] ?? null) ? array_values(array_slice($data['rewards'], -200)) : [];
+    $out['processed_pass_proofs'] = is_array($data['processed_pass_proofs'] ?? null)
+        ? array_values(array_slice($data['processed_pass_proofs'], -500))
+        : [];
     $out['audit_log'] = is_array($data['audit_log'] ?? null) ? array_slice($data['audit_log'], -100) : [];
     $out['events'] = is_array($data['events'] ?? null) ? array_slice($data['events'], -100) : [];
     $out['created_at'] = $data['created_at'] ?? gmdate('Y-m-d\TH:i:s\Z');
@@ -256,23 +259,27 @@ function grid402_growth_event(string $type, array $context = []): array {
             isset($context['ip']) ? (string)$context['ip'] : null
         );
 
-        $isRapidApiProxy = (strtolower(trim((string)($context['payer'] ?? ''))) === 'rapidapi_proxy')
+        $rawPayerLower = strtolower(trim((string)($context['payer'] ?? '')));
+        $isRapidApiProxy = ($rawPayerLower === 'rapidapi_proxy')
             || (strtolower(trim((string)($context['type'] ?? ''))) === 'rapidapi');
+        $isMpChannel = str_starts_with($rawPayerLower, 'mp_');
         if (!isset($data['profiles'][$actor]) || !is_array($data['profiles'][$actor])) {
             $data['profiles'][$actor] = [
                 'actor_id' => $actor,
-                'channel' => $isRapidApiProxy ? 'rapidapi' : 'web3',
+                'channel' => $isRapidApiProxy ? 'rapidapi' : ($isMpChannel ? 'mercadopago' : 'web3'),
                 'first_seen_at' => $now,
                 'last_seen_at' => $now,
                 'first_paid_at' => null,
                 'second_paid_at' => null,
-                'wallet_last4' => (!$isRapidApiProxy && isset($context['payer']) && trim((string)$context['payer']) !== '')
+                'wallet_last4' => (!$isRapidApiProxy && !$isMpChannel && isset($context['payer']) && trim((string)$context['payer']) !== '')
                     ? substr(strtolower((string)$context['payer']), -4)
                     : null,
                 'services' => [],
                 'paid_services' => [],
                 'paid_requests' => 0,
                 'paid_revenue_usdc' => 0.0,
+                'pass_purchases' => 0,
+                'promo_passes' => 0,
                 'requests_24h' => 0,
                 'requests_24h_start' => $now,
                 'sandbox_requests' => 0,
@@ -298,7 +305,8 @@ function grid402_growth_event(string $type, array $context = []): array {
         }
 
         $isPaid = !empty($context['is_paid']) || $type === 'paid_request';
-        $amount = (float)($context['amount_usdc'] ?? 0.0);
+        $amount = max(0.0, (float)($context['amount_usdc'] ?? 0.0));
+        $eventAmount = 0.0;
 
         if ($type === 'challenge_402') {
             $p['challenges_402'] = (int)($p['challenges_402'] ?? 0) + 1;
@@ -306,8 +314,37 @@ function grid402_growth_event(string $type, array $context = []): array {
             $p['sandbox_rate_limited'] = (int)($p['sandbox_rate_limited'] ?? 0) + 1;
         } elseif ($type === 'sandbox' || $type === 'sandbox_request' || !empty($context['sandbox'])) {
             $p['sandbox_requests'] = (int)($p['sandbox_requests'] ?? 0) + 1;
-        } elseif ($type === 'pass_purchase' || $type === 'promo_pass') {
-            // Compra de créditos não tem receita incremental de consulta; rastreamos como sinal de intenção.
+        } elseif ($type === 'promo_pass') {
+            // Passe promocional gratuito: registra engajamento sem inflar receita nem pagantes
+            $p['promo_passes'] = (int)($p['promo_passes'] ?? 0) + 1;
+        } elseif ($type === 'pass_purchase') {
+            // Compra real de Session Pass (Pix/Mercado Pago ou Web3 /pass-emitir): contabiliza receita e conversão
+            $proofKey = trim((string)($context['proof'] ?? ''));
+            $processedProofs = is_array($data['processed_pass_proofs'] ?? null) ? $data['processed_pass_proofs'] : [];
+            $isDuplicateProof = ($proofKey !== '' && in_array($proofKey, $processedProofs, true));
+            if (!$isDuplicateProof && $amount > 0.0) {
+                if ($proofKey !== '') {
+                    $processedProofs[] = $proofKey;
+                    if (count($processedProofs) > 500) {
+                        $processedProofs = array_values(array_slice($processedProofs, -500));
+                    }
+                    $data['processed_pass_proofs'] = $processedProofs;
+                }
+                $p['pass_purchases'] = (int)($p['pass_purchases'] ?? 0) + 1;
+                $p['paid_requests'] = (int)($p['paid_requests'] ?? 0) + 1;
+                $p['paid_revenue_usdc'] = round((float)($p['paid_revenue_usdc'] ?? 0.0) + $amount, 8);
+                if (!isset($p['paid_services']) || !is_array($p['paid_services'])) {
+                    $p['paid_services'] = [];
+                }
+                $p['paid_services'][$service] = (int)($p['paid_services'][$service] ?? 0) + 1;
+                if (empty($p['first_paid_at'])) {
+                    $p['first_paid_at'] = $now;
+                    $p['first_service'] = $service;
+                } elseif (empty($p['second_paid_at'])) {
+                    $p['second_paid_at'] = $now;
+                }
+                $eventAmount = $amount;
+            }
         } elseif ($isPaid) {
             $p['paid_requests'] = (int)($p['paid_requests'] ?? 0) + 1;
             $p['paid_revenue_usdc'] = round((float)($p['paid_revenue_usdc'] ?? 0.0) + $amount, 8);
@@ -321,6 +358,7 @@ function grid402_growth_event(string $type, array $context = []): array {
             } elseif (empty($p['second_paid_at'])) {
                 $p['second_paid_at'] = $now;
             }
+            $eventAmount = $amount;
         }
 
         // Janela deslizante de ~24h para "requests_24h" (não é mais acumulador vitalício)
@@ -336,7 +374,7 @@ function grid402_growth_event(string $type, array $context = []): array {
             'type' => $type,
             'actor_id' => $actor,
             'service' => $service,
-            'amount_usdc' => $isPaid ? $amount : 0.0,
+            'amount_usdc' => round($eventAmount, 8),
         ];
         if (count($data['events']) > 100) {
             $data['events'] = array_values(array_slice($data['events'], -100));
@@ -427,6 +465,9 @@ function grid402_growth_register_builder(array $input): array {
             'registered_at' => gmdate('Y-m-d\TH:i:s\Z'),
             'paid_requests_tracked' => 0,
         ];
+        if (count($data['builders']) > 500) {
+            $data['builders'] = array_values(array_slice($data['builders'], -500));
+        }
         return $data;
     });
 }
@@ -451,6 +492,9 @@ function grid402_growth_create_referral(array $input): array {
             'first_payment_volume_usdc' => 0.0,
             'created_at' => gmdate('Y-m-d\TH:i:s\Z'),
         ];
+        if (count($data['referrals']) > 500) {
+            $data['referrals'] = array_values(array_slice($data['referrals'], -500));
+        }
         return $data;
     });
 }

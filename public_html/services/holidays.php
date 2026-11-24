@@ -142,30 +142,32 @@ function grid402_service_holidays(?int $year = null, bool $forceRefresh = false)
 }
 
 /**
- * Gera amostra gratuita (teaser) no HTTP 402 para o servico de Feriados
+ * Gera amostra estrutural estatica/mascarada (teaser) no HTTP 402 para o servico de Feriados.
+ * Nao computa nem entrega o proximo feriado real ou a lista do ano antes do pagamento.
  */
 function grid402_teaser_holidays(?int $year = null): array {
-    $data = grid402_service_holidays($year);
-    $holidays = $data['holidays'] ?? [];
-    $today = date('Y-m-d');
-
-    $nextHoliday = null;
-    foreach ($holidays as $h) {
-        if ($h['date'] >= $today) {
-            $nextHoliday = $h;
-            break;
-        }
-    }
-    if ($nextHoliday === null && !empty($holidays)) {
-        $nextHoliday = $holidays[0];
-    }
+    $targetYear = ($year !== null && $year >= 1900 && $year <= 2100) ? $year : (int) gmdate('Y');
 
     return [
-        'next_holiday' => $nextHoliday,
-        'total_holidays_in_year' => count($holidays),
+        'year' => $targetYear,
+        'source' => 'Calendario Nacional e ANBIMA / Febraban',
+        'preview_mode' => 'static_schema_sample',
+        'calendar_scope' => 'National, mobile (Easter/Carnival/Corpus Christi) and banking holidays',
+        'next_holiday' => '[LOCKED — unlock via x402 or Session Pass]',
+        'sample_schema' => [
+            'date' => 'YYYY-01-01',
+            'name' => 'Exemplo Feriado Nacional',
+            'type' => 'national',
+            'day_of_week' => 'Quarta-feira',
+            'is_banking_holiday' => true,
+        ],
         'locked_fields' => [
+            'next_holiday',
+            'total_holidays',
+            'holidays',
             'full_year_schedule',
-            'banking_days_count'
+            'banking_days_count',
+            '_oracle_proof',
         ]
     ];
 }
