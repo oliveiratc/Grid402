@@ -1,6 +1,6 @@
 {
   "name": "grid402-mcp",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "Official Model Context Protocol (MCP) Server for Grid402 - The Verifiable Data and HTTP x402 Payment Layer for Autonomous AI Agents (27 MCP Tools: Web-to-Markdown Extractor, Zero-PII Email Verifier, KYB 360 AI Dossier, Financial Markets, Compliance, Global LEI, OFAC AML, Network Audits) with Multi-Chain auto-payer and gasless PayAI x402 across Base, Polygon, Arbitrum and Solana.",
   "type": "module",
   "bin": {
