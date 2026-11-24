@@ -172,6 +172,10 @@ $promoCampaign = (is_array($promoStatus) && !empty($promoStatus['ok'])) ? $promo
                 <span id="mp-token-meta" style="font-size:.88rem;color:var(--muted);"></span>
             </div>
             <pre id="mp-token-snippet" style="margin-top:1rem;"></pre>
+            <div style="display:flex;gap:.75rem;margin-top:.9rem;flex-wrap:wrap;align-items:center;">
+                <a class="btn btn-outline" style="width:auto;padding:.55rem 1rem;" href="https://github.com/oliveiratc/Grid402" target="_blank" rel="noopener noreferrer">⭐ Star Grid402 on GitHub (MCP &amp; n8n recipes)</a>
+                <a class="btn btn-outline" style="width:auto;padding:.55rem 1rem;" href="/catalog">Browse all 25 APIs</a>
+            </div>
         </div>
     </div>
 
@@ -347,7 +351,7 @@ function showPanel(title, msg, isOk = false) {
     panel.classList.add('active');
     document.getElementById('mp-panel-title').textContent = title;
     document.getElementById('mp-panel-msg').textContent = msg;
-    pill.textContent = isOk ? 'Aprovado' : 'Aguardando pagamento...';
+    pill.textContent = isOk ? 'Active' : 'Awaiting payment...';
     pill.className = 'status-pill' + (isOk ? ' ok' : '');
 }
 
