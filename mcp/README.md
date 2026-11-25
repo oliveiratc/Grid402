@@ -1,5 +1,8 @@
 # grid402-mcp ⚡
 
+[![oliveiratc/Grid402 MCP server](https://glama.ai/mcp/servers/oliveiratc/Grid402/badges/score.svg)](https://glama.ai/mcp/servers/oliveiratc/Grid402)
+[![Grid402 MCP connector](https://glama.ai/mcp/connectors/io.github.oliveiratc/grid402/badges/score.svg)](https://glama.ai/mcp/connectors/io.github.oliveiratc/grid402)
+
 Servidor oficial do **Model Context Protocol (MCP)** para o **Grid402** — Hub de 25 Micro-Serviços de Dados Públicos Abertos e Utilitários de Rede (27 ferramentas MCP) com liquidação de micropagamentos x402 em USDC Multi-Chain (Base, Arbitrum, Polygon, Optimism, Ethereum e Solana SPL).
 
 Compatível nativamente com **Claude Desktop**, **Cursor**, **Smithery.ai**, **Glama**, **Coinbase AgentKit** e qualquer orquestrador compatível com a especificação MCP da Anthropic.

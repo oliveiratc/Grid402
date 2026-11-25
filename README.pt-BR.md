@@ -17,6 +17,11 @@
 </p>
 
 <p align="center">
+  <a href="https://glama.ai/mcp/servers/oliveiratc/Grid402"><img src="https://glama.ai/mcp/servers/oliveiratc/Grid402/badges/score.svg" alt="oliveiratc/Grid402 MCP server"></a>
+  <a href="https://glama.ai/mcp/connectors/io.github.oliveiratc/grid402"><img src="https://glama.ai/mcp/connectors/io.github.oliveiratc/grid402/badges/score.svg" alt="Grid402 MCP connector"></a>
+</p>
+
+<p align="center">
   <strong>25 APIs em produção de dados públicos, compliance KYB e inteligência de rede</strong> com prova criptográfica ECDSA <code>secp256k1</code> (<code>_oracle_proof</code>), micropagamentos nativos <strong>HTTP x402 v2</strong> em USDC (Base, Polygon, Arbitrum, Solana), <strong>Session Passes</strong> sub-15ms (USDC ou Pix) e <strong>Servidor MCP com 27 ferramentas</strong>.
 </p>
 
