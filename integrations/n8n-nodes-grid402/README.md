@@ -49,4 +49,17 @@ No painel do seu n8n:
 - **Rede, Segurança e Identidade Global:**
   - `Resolução DNS Autoritativa`, `Inspeção TLS/SSL`, `Inteligência BGP/ASN`, `Auditoria Completa de Domínio`, `GLEIF LEI`, `OFAC SDN / ONU` e `Notarização Criptográfica SHA-256 + ECDSA`.
 
+---
+
+## 📦 Workflows Prontos para Importar no n8n (Copiar / Importar JSON)
+
+No n8n, clique em **Workflows → Import from URL** (ou baixe o `.json` e use **Import from File**):
+
+1. **Enriquecimento B2B + Dossiê KYB 360º (`email-verify` + `dossier` + `extract`):**
+   - Arquivo: [`examples/n8n/grid402_b2b_lead_kyb_enrichment_workflow.json`](https://github.com/oliveiratc/Grid402/blob/main/examples/n8n/grid402_b2b_lead_kyb_enrichment_workflow.json)
+   - Valida o e-mail corporativo (Zero-PII), consulta o Dossiê 360º com Veredito IA (`APPROVED`/`FLAGGED`/`REJECTED`) e extrai o site do lead em Markdown limpo.
+2. **Compliance CNPJ + Endereçamento CEP (`compliance` + `cep`):**
+   - Arquivo: [`examples/n8n/grid402_cnpj_compliance_workflow.json`](https://github.com/oliveiratc/Grid402/blob/main/examples/n8n/grid402_cnpj_compliance_workflow.json)
+   - Cruza Receita Federal + Sanções CGU (CEIS/CNEP) + consulta CEP com código IBGE.
+
 Licença MIT • Grid402 Network Intelligence (`https://grid402.online`)

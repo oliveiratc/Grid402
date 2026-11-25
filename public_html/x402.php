@@ -1221,6 +1221,21 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         'catalog_url' => $canonicalBase . '/catalog',
     ];
 
+    $isPassEndpoint = (strtolower(trim((string) ($serviceName ?? ''))) === 'pass');
+    $sandboxTestBlock = $isPassEndpoint
+        ? [
+            'supported' => false,
+            'reason' => 'Sandbox/demo mode and existing Session Passes cannot issue a new Session Pass. Pay with real USDC (x402 or on-chain) or Pix/Card at ' . $canonicalBase . '/pass.',
+        ]
+        : [
+            'header' => 'X-Payment: demo',
+            'rate_limit' => GRID402_SANDBOX_RATE_LIMIT . ' req/day per IP',
+            'description' => 'Test the full response schema for free by sending header X-Payment: demo.',
+        ];
+    $actionRequiredText = $isPassEndpoint
+        ? "1) Instant Session Pass via Pix (BRL) or Card (from R$ 12 = 400 credits, <15ms): {$canonicalBase}/pass?tier=starter&autopix=1. 2) Pay {$priceDisplay} USDC via x402 v2 PAYMENT-SIGNATURE (gasless via PayAI) or send USDC on-chain and activate via POST {$canonicalBase}/api/v1/pass-emitir {\"txHash\":\"0x...\",\"chain\":\"base\"}. 3) Send your issued token in header X-Payment: pass_g402_<token> across all 25 APIs (or GRID402_SESSION_PASS in grid402-mcp)."
+        : "1) Sign x402 v2 PAYMENT-SIGNATURE (gasless via PayAI on " . ((function_exists('grid402_is_solana_x402_enabled') && grid402_is_solana_x402_enabled()) ? 'Base/Polygon/Arbitrum/Solana' : 'Base/Polygon/Arbitrum') . ") or send {$priceDisplay} USDC and retry with X-Payment: <tx_hash>. 2) Sub-15ms Session Pass (USDC or Pix R$12 = 400 credits): {$canonicalBase}/pass?tier=starter&autopix=1 -> X-Payment: pass_g402_<token>. 3) Free Sandbox (" . GRID402_SANDBOX_RATE_LIMIT . " req/day): X-Payment: demo.";
+
     $payload = [
         'x402Version' => 2,
         'error' => 'PaymentRequired',
@@ -1241,12 +1256,8 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         'extensions' => [
             'bazaar' => $bazaarInfo,
         ],
-        'sandbox_test' => [
-            'header' => 'X-Payment: demo',
-            'rate_limit' => GRID402_SANDBOX_RATE_LIMIT . ' req/day per IP',
-            'description' => 'Test the full response schema for free by sending header X-Payment: demo.',
-        ],
-        'action_required' => "1) Sign x402 v2 PAYMENT-SIGNATURE (gasless via PayAI on " . ((function_exists('grid402_is_solana_x402_enabled') && grid402_is_solana_x402_enabled()) ? 'Base/Polygon/Arbitrum/Solana' : 'Base/Polygon/Arbitrum') . ") or send {$priceDisplay} USDC and retry with X-Payment: <tx_hash>. 2) Sub-15ms Session Pass (USDC or Pix R$12 = 400 credits): {$canonicalBase}/pass?tier=starter&autopix=1 -> X-Payment: pass_g402_<token>. 3) Free Sandbox (" . GRID402_SANDBOX_RATE_LIMIT . " req/day): X-Payment: demo.",
+        'sandbox_test' => $sandboxTestBlock,
+        'action_required' => $actionRequiredText,
         'fiat_and_card_checkout' => $fiatAndCardCheckout,
         'conversion' => $conversionInfo,
         'docs' => $canonicalBase . '/llms.txt',

@@ -4,10 +4,14 @@ Template pronto para importar no **n8n** e consultar dados oficiais brasileiros 
 
 ## Como importar e testar em 30 segundos
 
+Templates disponíveis nesta pasta:
+- **`grid402_b2b_lead_kyb_enrichment_workflow.json`** *(Recomendado)*: fluxo completo de qualificação B2B (`email-verify` Zero-PII → filtro de e-mail válido → `dossier` 360º KYB com veredito IA → `extract` do site em Markdown para LLM/CRM).
+- **`grid402_cnpj_compliance_workflow.json`**: consulta paralela de `compliance` (CNPJ + CGU) e `cep` (endereço + código IBGE).
+
 1. No n8n, crie um novo workflow e clique em **Menu (`...`) > Import from File**.
-2. Selecione o arquivo `grid402_cnpj_compliance_workflow.json`.
+2. Selecione `grid402_b2b_lead_kyb_enrichment_workflow.json` (ou `grid402_cnpj_compliance_workflow.json`).
 3. Clique em **Test workflow**:
-   - Por padrão, o nó `Configurar Consulta` envia `X-Payment: demo` (modo Sandbox gratuito, até 3 chamadas/dia por IP).
+   - Por padrão, o nó de configuração envia `X-Payment: demo` (modo Sandbox gratuito, até 3 chamadas/dia por IP).
 4. Para rodar em **produção** (sem limite de sandbox, latência `<15ms` e suporte a `Idempotency-Key`):
    - Gere um **Session Pass** em `https://grid402.online/pass` via **Pix** (Starter: R$ 12 por 400 créditos válidos por 180 dias; Pro: R$ 29 por 1.200 créditos; Fleet: R$ 115 por 6.000 créditos por 365 dias) ou **USDC** (a partir de 2 USDC).
    - Substitua `demo` no campo `x_payment` pelo seu token `pass_g402_...`.

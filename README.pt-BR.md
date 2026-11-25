@@ -80,12 +80,32 @@ npx -y @smithery/cli install grid402-mcp --client cursor
 npx -y grid402-mcp
 ```
 
+#### Saia do Sandbox Grátis para Produção em 10 Segundos (`claude_desktop_config.json` / Cursor `mcp.json`)
+
+O servidor MCP libera 3 consultas Sandbox grátis por dia automaticamente. Para liberar chamadas ilimitadas sub-15ms com um Session Pass pré-pago (a partir de R$ 12 no Pix ou 2 USDC em `https://grid402.online/pass`) ou pagamentos autônomos gasless via x402 (`GRID402_PRIVATE_KEY`), adicione `env`:
+
+```json
+{
+  "mcpServers": {
+    "grid402": {
+      "command": "npx",
+      "args": ["-y", "grid402-mcp"],
+      "env": {
+        "GRID402_SESSION_PASS": "pass_g402_seu_token_aqui",
+        "GRID402_PAYMENT_NETWORK": "base"
+      }
+    }
+  }
+}
+```
+
 ---
 
 ## Receitas Prontas (Copiar e Rodar)
 
 | Caso de Uso | Stack | Arquivo |
 |---|---|---|
+| **Enriquecimento B2B + KYB 360 (Email Verify + Dossiê + Extract)** | n8n (importação JSON em 1 clique) | [`examples/n8n/grid402_b2b_lead_kyb_enrichment_workflow.json`](examples/n8n/grid402_b2b_lead_kyb_enrichment_workflow.json) |
 | **Compliance 360 de CNPJ + CEP Automático** | n8n (workflow pronto) | [`examples/n8n/grid402_cnpj_compliance_workflow.json`](examples/n8n/grid402_cnpj_compliance_workflow.json) |
 | **Compliance CNPJ + Session Pass via Pix** | n8n | [`examples/n8n_cnpj_compliance_pix.json`](examples/n8n_cnpj_compliance_pix.json) |
 | **MCP para Claude Desktop e Cursor (27 tools)** | Node.js / MCP stdio + HTTP | [`mcp/README.md`](mcp/README.md) |

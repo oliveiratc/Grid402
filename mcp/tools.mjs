@@ -670,6 +670,7 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
   const headers = {
     'Accept': 'application/json',
     'User-Agent': 'Grid402-MCP-Server/2.0.0',
+    'X-Grid402-Channel': 'mcp',
   };
 
   if (params.idempotency_key) {

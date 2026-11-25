@@ -167,14 +167,18 @@ $promoCampaign = (is_array($promoStatus) && !empty($promoStatus['ok'])) ? $promo
         <div id="mp-success-area" style="display:none;margin-top:1rem;">
             <div style="font-size:.9rem;color:var(--green);font-weight:700;" data-i18n="pass.success.title">Session Pass issued successfully!</div>
             <div id="mp-token-value" class="token-box"></div>
-            <div style="display:flex;gap:.75rem;margin-top:.75rem;flex-wrap:wrap;align-items:center;">
+            <div style="display:flex;gap:.65rem;margin-top:.75rem;flex-wrap:wrap;align-items:center;">
                 <button type="button" class="btn btn-pix" style="width:auto;" onclick="copyToken(this)" data-i18n="pass.success.copy_btn">Copy Token</button>
+                <button type="button" class="btn btn-outline" style="width:auto;padding:.68rem 1rem;" onclick="copyElementText('mp-token-snippet', this)">Copy cURL + MCP</button>
+                <button type="button" id="btn-test-issued-pass" class="btn btn-card" style="width:auto;padding:.68rem 1.05rem;" onclick="testIssuedPassNow(this)">⚡ Test Pass Now (1 credit)</button>
                 <span id="mp-token-meta" style="font-size:.88rem;color:var(--muted);"></span>
             </div>
+            <div id="mp-test-result" role="status" aria-live="polite" style="display:none;margin-top:.85rem;background:#050914;border:1px solid var(--border);border-radius:10px;padding:.85rem 1rem;"></div>
             <pre id="mp-token-snippet" style="margin-top:1rem;"></pre>
             <div style="display:flex;gap:.75rem;margin-top:.9rem;flex-wrap:wrap;align-items:center;">
                 <a class="btn btn-outline" style="width:auto;padding:.55rem 1rem;" href="https://github.com/oliveiratc/Grid402" target="_blank" rel="noopener noreferrer">⭐ Star Grid402 on GitHub (MCP &amp; n8n recipes)</a>
                 <a class="btn btn-outline" style="width:auto;padding:.55rem 1rem;" href="/catalog">Browse all 25 APIs</a>
+                <a class="btn btn-outline" style="width:auto;padding:.55rem 1rem;" href="/payment-dashboard">Open Usage Statement</a>
             </div>
         </div>
     </div>
@@ -308,6 +312,7 @@ let selectedWeb3Tier = 'starter';
 let selectedWeb3Usdc = 2;
 let mpCurrentOrderId = null;
 let mpPollTimer = null;
+let lastIssuedPassToken = '';
 
 function selectWeb3Tier(tier, usdc) {
     selectedWeb3Tier = tier;
@@ -526,14 +531,20 @@ function showPanel(title, msg, isOk = false) {
 
 function showIssuedPass(data) {
     if (mpPollTimer) { clearInterval(mpPollTimer); mpPollTimer = null; }
+    lastIssuedPassToken = data.pass_token || '';
+    const testResultEl = document.getElementById('mp-test-result');
+    if (testResultEl) {
+        testResultEl.style.display = 'none';
+        testResultEl.innerHTML = '';
+    }
     document.getElementById('mp-pix-area').style.display = 'none';
     document.getElementById('mp-success-area').style.display = 'block';
     document.getElementById('mp-token-value').textContent = data.pass_token;
     const extraCap = data.daily_credit_limit ? ` • Daily cap ${data.daily_credit_limit} cr/day` : '';
     document.getElementById('mp-token-meta').textContent = `${data.credits} credits • Valid ${data.ttl_days || 180} days${extraCap}` + (data.sandbox ? ' • SANDBOX' : '');
-    const curlLine = data.curl_snippet || `curl -s -H "X-Payment: ${data.pass_token}" "${window.location.origin}/api/v1/cnpj?cnpj=00000000000191"`;
-    const mcpLine = data.mcp_snippet ? `\n# MCP (Claude Desktop / Cursor):\n${data.mcp_snippet}` : '';
-    document.getElementById('mp-token-snippet').textContent = curlLine + mcpLine;
+    const curlLine = data.curl_snippet || `curl -s -H "X-Payment: ${data.pass_token}" "${window.location.origin}/api/v1/forex"`;
+    const mcpLine = data.mcp_snippet || `GRID402_SESSION_PASS=${data.pass_token} npx -y grid402-mcp`;
+    document.getElementById('mp-token-snippet').textContent = `# cURL (sub-15ms):\n${curlLine}\n\n# MCP Server (Claude Desktop / Cursor / Windsurf):\n${mcpLine}\n\n# HTTP Header (n8n / Python / Node):\nX-Payment: ${data.pass_token}`;
     showPanel(
         data.promo_code ? `Promo ${data.promo_code} Activated!` : 'Payment Confirmed!',
         data.promo_code ? 'Your free promotional Session Pass is active and ready to use across all 25 APIs and 27 MCP tools.' : 'Your Session Pass is active and ready to use.',
@@ -546,6 +557,50 @@ function showIssuedPass(data) {
             document.cookie = 'g402_pass_token=' + encodeURIComponent(data.pass_token) + '; path=/; max-age=2592000; Secure; SameSite=Lax';
         }
     } catch (_) {}
+}
+
+async function testIssuedPassNow(btn) {
+    const token = (lastIssuedPassToken || (document.getElementById('mp-token-value')?.textContent || '')).trim();
+    const out = document.getElementById('mp-test-result');
+    if (!token || !out) return;
+    const orig = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Testing /api/v1/forex...';
+    out.style.display = 'block';
+    out.style.borderColor = 'var(--border)';
+    out.innerHTML = '<span style="color:var(--muted);font-size:.86rem;">Calling <code>/api/v1/forex</code> with <code>X-Payment</code>...</span>';
+    try {
+        const t0 = performance.now();
+        const res = await fetch('/api/v1/forex', {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Payment': token,
+            },
+        });
+        const elapsedMs = Math.round(performance.now() - t0);
+        const remaining = res.headers.get('X-Pass-Credits-Remaining');
+        const rawText = await res.text();
+        let parsed = null;
+        try { parsed = rawText ? JSON.parse(rawText) : null; } catch (_) {}
+
+        if (res.ok && parsed) {
+            out.style.borderColor = 'var(--green)';
+            const creditsInfo = remaining !== null ? ` • Credits remaining: <strong>${remaining}</strong>` : '';
+            const previewJson = JSON.stringify(parsed, null, 2).split('\n').slice(0, 14).join('\n');
+            out.innerHTML = `<div style="font-size:.85rem;color:var(--green);font-weight:700;margin-bottom:.45rem;">✓ Live call succeeded (HTTP ${res.status} in ${elapsedMs}ms${creditsInfo})</div><pre style="margin:0;max-height:220px;overflow:auto;">${previewJson.replace(/</g, '&lt;')}</pre>`;
+        } else {
+            out.style.borderColor = 'var(--warn)';
+            const errMsg = (parsed && (parsed.message || parsed.error)) ? (parsed.message || parsed.error) : (`HTTP ${res.status}`);
+            out.innerHTML = `<div style="font-size:.85rem;color:var(--warn);font-weight:700;">Test returned HTTP ${res.status}: ${String(errMsg).replace(/</g, '&lt;')}</div>`;
+        }
+    } catch (err) {
+        out.style.borderColor = '#EF4444';
+        out.innerHTML = `<div style="font-size:.85rem;color:#EF4444;font-weight:700;">Network error while testing pass: ${String(err && err.message ? err.message : err).replace(/</g, '&lt;')}</div>`;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = orig;
+    }
 }
 
 async function claimPromoPass(btn) {

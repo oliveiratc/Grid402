@@ -697,6 +697,7 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
     $isVerifyOnly = (($validation['source'] ?? '') === 'facilitator_verify_only');
     $isRealPayment = !$isSandbox && !$isVerifyOnly;
     $paymentSourceVal = (string)($validation['source'] ?? '');
+    $telemetryPaymentSource = $isRealPayment ? 'mcp' : ($paymentSourceVal !== '' ? $paymentSourceVal : null);
     $settlementTx = $validation['settlement_tx'] ?? ($proofIsPayload ? null : $effectiveProof);
 
     // Evita dupla contagem de receita quando pagamento é consumo de crédito de Session Pass
@@ -713,14 +714,18 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
         $clientIp,
         $revenueUsdc,
         $isSandbox ? 'sandbox' : ($isVerifyOnly ? 'verify_only' : null),
-        ['payment_source' => $paymentSourceVal !== '' ? $paymentSourceVal : null]
+        [
+            'payment_source' => $telemetryPaymentSource,
+            'channel' => 'mcp',
+            'settlement_source' => $paymentSourceVal !== '' ? $paymentSourceVal : null,
+        ]
     );
 
     if (function_exists('grid402_log_request')) {
         grid402_log_request([
             'service' => $service,
             'status' => 200,
-            'payment_source' => $paymentSourceVal !== '' ? $paymentSourceVal : 'mcp',
+            'payment_source' => $isRealPayment ? 'mcp' : ($paymentSourceVal !== '' ? $paymentSourceVal : 'unknown'),
             'price_usdc' => $revenueUsdc,
             'method' => 'POST',
             'ip' => $clientIp,

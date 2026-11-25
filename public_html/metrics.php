@@ -408,8 +408,8 @@ function grid402_record_telemetry(
         if ($isBillablePaid) {
             $metrics['total_paid_requests'] = ((int)($metrics['total_paid_requests'] ?? 0)) + 1;
             $metrics['total_revenue_usdc'] = round(((float)($metrics['total_revenue_usdc'] ?? 0)) + $effectivePrice, 4);
-            // Registra service_paid_counts apenas para faturamento positivo ou consumo de pass pago/rapidapi (nunca promo_*/sandbox)
-            if ($effectivePrice > 0.0 || $paymentSource === 'pass' || $paymentSource === 'rapidapi') {
+            // Registra service_paid_counts apenas para faturamento positivo ou consumo de pass pago/rapidapi/mcp (nunca promo_*/sandbox)
+            if ($effectivePrice > 0.0 || $paymentSource === 'pass' || $paymentSource === 'rapidapi' || $paymentSource === 'mcp') {
                 $metrics['service_paid_counts'][$svc] = ((int)($metrics['service_paid_counts'][$svc] ?? 0)) + 1;
             }
             if ($effectivePrice > 0.0) {

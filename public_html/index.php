@@ -1349,6 +1349,7 @@ if ($isValidApiAction) {
             $previewData = $teaser['preview'];
             $lockedFields = $teaser['locked_fields'];
         } elseif ($apiParam === 'pass') {
+            $passCanonicalBase = defined('GRID402_CANONICAL_DOMAIN') ? rtrim((string) GRID402_CANONICAL_DOMAIN, '/') : 'https://grid402.online';
             $previewData = [
                 'product' => 'x402 Prepaid Session Pass (High-Frequency M2M & Web3 Top-Up)',
                 'selected_tier' => $passTierSelected,
@@ -1361,6 +1362,12 @@ if ($isValidApiAction) {
                 'network' => 'Multi-Chain USDC: Base (8453), Arbitrum (42161), Polygon (137), Optimism (10), Ethereum (1), and Solana SPL USDC',
                 'token' => 'USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)',
                 'recipient' => GRID402_WALLET_ADDRESS,
+                'checkout_url' => $passCanonicalBase . '/pass',
+                'pix_instant_url' => $passCanonicalBase . '/pass?tier=starter&autopix=1',
+                'web3_activate_endpoint' => 'POST /api/v1/pass-emitir {"txHash":"0x...","chain":"base"}',
+                'usage_header' => 'X-Payment: pass_g402_<your_token>',
+                'usage_example_curl' => 'curl -s -H "X-Payment: pass_g402_<your_token>" "https://grid402.online/api/v1/forex"',
+                'usage_example_mcp' => 'GRID402_SESSION_PASS=pass_g402_<your_token> npx -y grid402-mcp',
             ];
             $lockedFields = ['pass_token', 'credits_total', 'credits_remaining', 'expires_at', 'tier', '_oracle_proof'];
         }
@@ -1937,6 +1944,13 @@ if ($isValidApiAction) {
     // porque a receita ja foi contabilizada no ato da compra/emissao do passe (Web3 ou Mercado Pago).
     $settlementTx = $validation['settlement_tx'] ?? null;
     $paymentSourceVal = (string) ($validation['source'] ?? '');
+    $reqUserAgentLower = strtolower(trim((string) ($_SERVER['HTTP_USER_AGENT'] ?? '')));
+    $reqChannelHeader = strtolower(trim((string) ($_SERVER['HTTP_X_GRID402_CHANNEL'] ?? '')));
+    $isMcpClient = str_starts_with($reqUserAgentLower, 'grid402-mcp-server/') || $reqChannelHeader === 'mcp';
+    $telemetryPaymentSource = ($isRealPayment && $isMcpClient && $paymentSourceVal !== 'rapidapi' && !$isPassEmitir)
+        ? 'mcp'
+        : null;
+
     if ($isPassEmitir) {
         $isIdempotentTopup = !empty($result['idempotent']);
         $deposited = $isIdempotentTopup ? 0.0 : (((int) ($result['raw_usdc_units'] ?? 0)) / 1000000.0);
@@ -1983,7 +1997,12 @@ if ($isValidApiAction) {
             null,
             $revenueUsdcToRecord,
             $isSandbox ? 'sandbox' : ($isVerifyOnly ? 'verify_only' : null),
-            ['payment_source' => $validation['source'] ?? null, 'defer_latency_sample' => true]
+            [
+                'payment_source' => $telemetryPaymentSource ?? ($validation['source'] ?? null),
+                'channel' => $isMcpClient ? 'mcp' : null,
+                'settlement_source' => $validation['source'] ?? null,
+                'defer_latency_sample' => true,
+            ]
         );
         $txForNotification = (string) ($settlementTx ?? $proofForLog ?? '');
         $rawValidatedNet = (string) ($validation['network'] ?? 'base');
@@ -2109,7 +2128,7 @@ if ($isValidApiAction) {
         'service' => $apiParam,
         'status' => 200,
         'latency_ms' => $finalLatencyMs,
-        'payment_source' => (string) ($validation['source'] ?? 'unknown'),
+        'payment_source' => (string) ($telemetryPaymentSource ?? ($validation['source'] ?? 'unknown')),
         'idempotent_replay' => ($isPassEmitir && !empty($result['idempotent'])),
     ]);
 

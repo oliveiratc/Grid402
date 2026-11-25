@@ -1,0 +1,316 @@
+{
+  "name": "Grid402 - Enriquecimento B2B Completo (Email Verify + Dossie KYB 360 + Extract)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "b2b0a001-0001-4000-8000-000000000001",
+      "name": "Receber Lead B2B",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        180,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "lead-email",
+              "name": "email",
+              "value": "contato@grid402.online",
+              "type": "string"
+            },
+            {
+              "id": "lead-cnpj",
+              "name": "cnpj",
+              "value": "00000000000191",
+              "type": "string"
+            },
+            {
+              "id": "lead-website",
+              "name": "website",
+              "value": "https://grid402.online",
+              "type": "string"
+            },
+            {
+              "id": "lead-xpayment",
+              "name": "x_payment",
+              "value": "demo",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b2b0a001-0002-4000-8000-000000000002",
+      "name": "Configurar Lead e Credencial",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        400,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://grid402.online/api/v1/email-verify?email={{ encodeURIComponent($json.email) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Payment",
+              "value": "={{ $json.x_payment }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b2b0a001-0003-4000-8000-000000000003",
+      "name": "Grid402 - Email Verify Zero-PII",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-syntax",
+              "leftValue": "={{ $json.valid_syntax }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "cond-disposable",
+              "leftValue": "={{ $json.is_disposable }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b2b0a001-0004-4000-8000-000000000004",
+      "name": "Email Corporativo Valido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        880,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://grid402.online/api/v1/dossier?cnpj={{ $('Configurar Lead e Credencial').item.json.cnpj }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Payment",
+              "value": "={{ $('Configurar Lead e Credencial').item.json.x_payment }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b2b0a001-0005-4000-8000-000000000005",
+      "name": "Grid402 - Dossie 360 KYB + Veredito IA",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1140,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://grid402.online/api/v1/extract?url={{ encodeURIComponent($('Configurar Lead e Credencial').item.json.website) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Payment",
+              "value": "={{ $('Configurar Lead e Credencial').item.json.x_payment }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b2b0a001-0006-4000-8000-000000000006",
+      "name": "Grid402 - Extrair Site para Markdown",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1380,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-verdict",
+              "leftValue": "={{ $('Grid402 - Dossie 360 KYB + Veredito IA').item.json.verdict }}",
+              "rightValue": "APPROVED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b2b0a001-0007-4000-8000-000000000007",
+      "name": "Veredito KYB APPROVED?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1620,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Guia Rapido Grid402\n\n1. **Teste gratis (Sandbox):** deixe `x_payment = demo` no no `Configurar Lead e Credencial` (3 chamadas/dia por IP — use no maximo 1 no por vez ou gere seu Session Pass abaixo).\n2. **Producao (<15ms, zero limite diario):** gere seu **Session Pass** em `https://grid402.online/pass?tier=starter&autopix=1` (Pix a partir de R$ 12 = 400 creditos ou USDC Multi-Chain).\n3. **Ativar:** substitua `demo` pelo token `pass_g402_...` no campo `x_payment` e rode o fluxo completo (`email-verify` + `dossier` + `extract`).",
+        "height": 220,
+        "width": 520,
+        "color": 5
+      },
+      "id": "b2b0a001-0008-4000-8000-000000000008",
+      "name": "Guia Rapido Grid402",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        180,
+        60
+      ]
+    }
+  ],
+  "connections": {
+    "Receber Lead B2B": {
+      "main": [
+        [
+          {
+            "node": "Configurar Lead e Credencial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configurar Lead e Credencial": {
+      "main": [
+        [
+          {
+            "node": "Grid402 - Email Verify Zero-PII",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Grid402 - Email Verify Zero-PII": {
+      "main": [
+        [
+          {
+            "node": "Email Corporativo Valido?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Corporativo Valido?": {
+      "main": [
+        [
+          {
+            "node": "Grid402 - Dossie 360 KYB + Veredito IA",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Grid402 - Dossie 360 KYB + Veredito IA": {
+      "main": [
+        [
+          {
+            "node": "Grid402 - Extrair Site para Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Grid402 - Extrair Site para Markdown": {
+      "main": [
+        [
+          {
+            "node": "Veredito KYB APPROVED?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "Grid402"
+    },
+    {
+      "name": "KYB"
+    },
+    {
+      "name": "B2B"
+    },
+    {
+      "name": "x402"
+    }
+  ]
+}
