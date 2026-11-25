@@ -480,12 +480,12 @@ function grid402_validate_payment(
     if ($txHash === 'demo' || $txHash === 'sandbox') {
         $rate = grid402_check_sandbox_rate_limit($clientIp);
         if (!$rate['allowed']) {
-            $periodLabel = (($rate['window_seconds'] ?? 86400) >= 86400) ? 'por dia' : 'por hora';
+            $periodLabel = (($rate['window_seconds'] ?? 86400) >= 86400) ? 'per day' : 'per hour';
             return [
                 'valid' => false,
                 'sandbox' => true,
                 'category' => 'sandbox_rate_limited',
-                'reason' => "Limite de {$rate['limit']} consultas gratuitas de sandbox {$periodLabel} atingido para este IP. Para continuar agora sem limite de taxa (<15ms), emita um Session Pass via Pix/Cartao (a partir de R$ 12 = 400 creditos) ou Multi-Chain USDC em https://grid402.online/pass",
+                'reason' => "Free sandbox quota of {$rate['limit']} requests {$periodLabel} reached for this IP. Continue immediately (<15ms, no sandbox limit) with an x402 v2 USDC payment, a prepaid Session Pass (from $2.00 USDC or R$ 12 Pix/Card = 400 credits) at https://grid402.online/pass, or RapidAPI.",
                 'code' => 429,
                 'retry_after' => $rate['retry_after'],
                 'remaining' => 0,
@@ -642,10 +642,11 @@ function grid402_validate_payment(
                             'valid' => false,
                             'sandbox' => true,
                             'category' => 'sandbox_rate_limited',
-                            'reason' => "Limite de {$rate['limit']} consultas gratuitas de sandbox atingido para este IP.",
+                            'reason' => "Free sandbox quota of {$rate['limit']} requests reached for this IP. Upgrade to production via x402 v2 USDC payment or Session Pass at https://grid402.online/pass.",
                             'code' => 429,
                             'retry_after' => $rate['retry_after'],
                             'remaining' => 0,
+                            'upgrade_url' => 'https://grid402.online/pass',
                         ];
                     }
 

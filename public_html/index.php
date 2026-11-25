@@ -1390,7 +1390,7 @@ if ($isValidApiAction) {
         );
         http_response_code($statusCode);
         header('Content-Type: application/json; charset=utf-8');
-        if ($statusCode === 402) {
+        if ($statusCode === 402 || $isSandboxRateLimited) {
             header('X-Authenticate: x402');
             header('X-Accept-Payment: base:usdc:' . GRID402_WALLET_ADDRESS . ':' . $servicePriceDisplay);
             $prBundle = grid402_emit_payment_required_header(
@@ -1401,7 +1401,8 @@ if ($isValidApiAction) {
                 null,
                 (string) ($valResult['reason'] ?? '')
             );
-        } elseif ($statusCode === 429 || $statusCode === 503) {
+        }
+        if ($statusCode === 429 || $statusCode === 503) {
             header('Retry-After: ' . ($valResult['retry_after'] ?? 3600));
         }
         grid402_growth_event($isSandboxRateLimited ? 'sandbox_rate_limited' : 'challenge_402', [
@@ -1443,13 +1444,16 @@ if ($isValidApiAction) {
         if (isset($valResult['allowed_endpoints'])) {
             $errPayload['allowed_endpoints'] = $valResult['allowed_endpoints'];
         }
-        if ($statusCode === 402 && isset($prBundle)) {
+        if (($statusCode === 402 || $isSandboxRateLimited) && isset($prBundle)) {
             $errPayload['x402Version'] = 2;
             $errPayload['resource'] = $prBundle['resource'];
             $errPayload['accepts'] = $prBundle['accepts'];
             $errPayload['extensions'] = ['bazaar' => $prBundle['bazaar']];
             $errPayload['price_usdc'] = $servicePriceDisplay;
             $errPayload['recipient_wallet'] = GRID402_WALLET_ADDRESS;
+        }
+        if ($statusCode === 429) {
+            $errPayload['retry_after_seconds'] = (int) ($valResult['retry_after'] ?? 3600);
         }
         if (isset($valResult['sandbox'])) {
             $errPayload['sandbox'] = true;
@@ -1459,7 +1463,12 @@ if ($isValidApiAction) {
                 'session_pass_url' => $valResult['upgrade_url'],
                 'pix_instant_starter_url' => 'https://grid402.online/pass?tier=starter&autopix=1',
                 'pix_instant_pro_url' => 'https://grid402.online/pass?tier=pro&autopix=1',
-                'starter_tier' => 'R$ 12,00 (Pix/Cartao) ou 2.0000 USDC = 400 creditos',
+                'starter_tier' => '2.0000 USDC or R$ 12.00 (Pix/Card) = 400 credits (180d)',
+                'how_to_continue' => [
+                    'x402_gasless' => 'Sign the x402 v2 challenge in accepts[] and retry with header PAYMENT-SIGNATURE: <base64_payload>',
+                    'x402_onchain' => "Send {$servicePriceDisplay} USDC to " . GRID402_WALLET_ADDRESS . ' on Base/Polygon/Arbitrum/Solana and retry with X-Payment: <tx_hash>',
+                    'session_pass_no_wallet' => 'Get a prepaid token at https://grid402.online/pass (Pix/Card or USDC) and retry with X-Payment: pass_g402_<token>',
+                ],
                 'rapidapi_credit_card_usd' => [
                     'plans' => 'BASIC Free (25/mo) | PRO $9.90/mo (1,500 std calls) | ULTRA $29.00/mo (6,000 std calls) | MEGA $79.00/mo (25,000 std calls; dedicated KYB quotas for /dossier and /compliance)',
                     'all_25_apis_url' => 'https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities',

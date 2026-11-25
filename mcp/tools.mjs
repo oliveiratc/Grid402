@@ -734,7 +734,7 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
       ...limitData,
       payment_required: true,
       error: limitData.error || 'SandboxRateLimitExceeded',
-      message: limitData.message || 'Suas 3 consultas gratuitas do dia foram utilizadas. Escolha uma opção abaixo para continuar imediatamente sem limite de taxa:',
+      message: limitData.message || 'Your daily free sandbox quota (3 requests/day) has been reached. Continue immediately with x402 USDC payment, a prepaid Session Pass (USDC or Pix/Card), or RapidAPI:',
       checkout_options: CHECKOUT_OPTIONS,
     };
   }
