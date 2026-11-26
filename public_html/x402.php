@@ -561,6 +561,14 @@ function grid402_validate_payment(
     $txHash = $parsedNet['tx_hash'];
 
     // 2. Validacao do formato (0x + 64 hex)
+    if (preg_match('/^0x[a-f0-9]{40}$/', $txHash) === 1) {
+        return [
+            'valid' => false,
+            'reason' => 'Invalid payment proof: received a 40-hex EVM wallet address instead of a 64-hex USDC txHash or signed x402 payload. Accepted formats: "PAYMENT-SIGNATURE: <base64 x402 v2 payload>", "X-Payment: 0x<64 hex>" (txHash), "X-Payment: pass_g402_..." (Session Pass), or "X-Payment: demo" (sandbox). Guide: /llms.txt',
+            'category' => 'invalid_proof',
+            'code' => 400,
+        ];
+    }
     if (!preg_match('/^0x[a-f0-9]{64}$/', $txHash)) {
         return [
             'valid' => false,

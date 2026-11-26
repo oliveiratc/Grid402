@@ -124,30 +124,37 @@ if ($isRootOnlyRequest && (str_contains($acceptHeader, 'text/markdown') || str_c
     exit;
 }
 
-// Extração do comprovante de pagamento X-Payment (ou alias X-Session-Pass) e PAYMENT-SIGNATURE
+// Extração do comprovante de pagamento X-Payment (ou alias X-Session-Pass), PAYMENT-SIGNATURE e aliases x402
 // Ignora valores vazios/whitespace para que HTTP_X_PAYMENT="" nao curto-circuite HTTP_X_SESSION_PASS
 $paymentProof = '';
+$paymentProofSourceHeader = 'none';
 foreach ([
-    $_SERVER['HTTP_X_PAYMENT'] ?? null,
-    $_SERVER['HTTP_X_SESSION_PASS'] ?? null,
-    $normalizedReqHeaders['x-payment'] ?? null,
-    $normalizedReqHeaders['x-session-pass'] ?? null,
-] as $proofCandidate) {
+    'x-payment' => $_SERVER['HTTP_X_PAYMENT'] ?? null,
+    'x-session-pass' => $_SERVER['HTTP_X_SESSION_PASS'] ?? null,
+    'x-payment_norm' => $normalizedReqHeaders['x-payment'] ?? null,
+    'x-session-pass_norm' => $normalizedReqHeaders['x-session-pass'] ?? null,
+] as $hdrKey => $proofCandidate) {
     $trimmedCandidate = trim((string) ($proofCandidate ?? ''));
     if ($trimmedCandidate !== '') {
         $paymentProof = $trimmedCandidate;
+        $paymentProofSourceHeader = str_replace('_norm', '', (string) $hdrKey);
         break;
     }
 }
 if ($paymentProof === '') {
-    // Clientes x402 v2 padrao enviam a prova no cabecalho PAYMENT-SIGNATURE
+    // Clientes x402 v2 padrao enviam a prova no cabecalho PAYMENT-SIGNATURE (ou aliases X-Payment-Signature / Payment)
     foreach ([
-        $_SERVER['HTTP_PAYMENT_SIGNATURE'] ?? null,
-        $normalizedReqHeaders['payment-signature'] ?? null,
-    ] as $sigCandidate) {
+        'payment-signature' => $_SERVER['HTTP_PAYMENT_SIGNATURE'] ?? null,
+        'payment-signature_norm' => $normalizedReqHeaders['payment-signature'] ?? null,
+        'x-payment-signature' => $_SERVER['HTTP_X_PAYMENT_SIGNATURE'] ?? null,
+        'x-payment-signature_norm' => $normalizedReqHeaders['x-payment-signature'] ?? null,
+        'payment' => $_SERVER['HTTP_PAYMENT'] ?? null,
+        'payment_norm' => $normalizedReqHeaders['payment'] ?? null,
+    ] as $sigHdr => $sigCandidate) {
         $trimmedSig = trim((string) ($sigCandidate ?? ''));
         if ($trimmedSig !== '') {
             $paymentProof = $trimmedSig;
+            $paymentProofSourceHeader = str_replace('_norm', '', (string) $sigHdr);
             break;
         }
     }
@@ -167,8 +174,10 @@ if ($paymentProof === '') {
     }
     if (preg_match('/^(?:x402|payment)\s+(.+)$/is', $authHeader, $am)) {
         $paymentProof = trim($am[1]);
-    } elseif (preg_match('/^bearer\s+((?:pass_g402_|0x[a-f0-9]{40,}|eyJ|\{).+)$/is', $authHeader, $bm)) {
+        $paymentProofSourceHeader = 'authorization_x402';
+    } elseif (preg_match('/^bearer\s+((?:pass_g402_|0x[a-f0-9]{40,}|ey[A-Za-z0-9_-]|ew[A-Za-z0-9_-]|\{).+)$/is', $authHeader, $bm)) {
         $paymentProof = trim($bm[1]);
+        $paymentProofSourceHeader = 'authorization_bearer';
     }
 }
 if ($paymentProof !== '' && function_exists('grid402_normalize_payment_proof_header')) {
@@ -191,14 +200,21 @@ $rawRequestBody = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) ===
 if ($paymentProof === '') {
     if (!empty($_GET['tx'])) {
         $paymentProof = trim((string) $_GET['tx']);
+        $paymentProofSourceHeader = 'query_tx';
     } elseif (!empty($_GET['txHash'])) {
         $paymentProof = trim((string) $_GET['txHash']);
+        $paymentProofSourceHeader = 'query_tx';
     } elseif (!empty($_GET['tx_hash'])) {
         $paymentProof = trim((string) $_GET['tx_hash']);
+        $paymentProofSourceHeader = 'query_tx';
     } elseif ($rawRequestBody !== '') {
         $parsedPost = @json_decode($rawRequestBody, true);
         if (is_array($parsedPost)) {
-            $paymentProof = trim((string) ($parsedPost['tx'] ?? $parsedPost['txHash'] ?? $parsedPost['tx_hash'] ?? ''));
+            $postTxCandidate = trim((string) ($parsedPost['tx'] ?? $parsedPost['txHash'] ?? $parsedPost['tx_hash'] ?? ''));
+            if ($postTxCandidate !== '') {
+                $paymentProof = $postTxCandidate;
+                $paymentProofSourceHeader = 'post_tx';
+            }
         }
     }
 }
@@ -1388,10 +1404,11 @@ if ($isValidApiAction) {
     $proofIsPayload = false;
     $proofForLog = null;
 
-    $emitPaymentFailure = static function (array $valResult) use ($apiParam, $servicePriceDisplay, $servicePriceRaw, &$proofIsPayload, &$proofForLog, $paymentProof): never {
+    $emitPaymentFailure = static function (array $valResult) use ($apiParam, $servicePriceDisplay, $servicePriceRaw, &$proofIsPayload, &$proofForLog, $paymentProof, $paymentProofSourceHeader): never {
         $serviceLabel = $apiParam !== '' ? $apiParam : 'technical-utility';
         $statusCode = (int) ($valResult['code'] ?? 402);
         $isSandboxRateLimited = ($statusCode === 429 && (!empty($valResult['sandbox']) || ($valResult['category'] ?? '') === 'sandbox_rate_limited'));
+        $includeChallenge = ($statusCode === 402 || $statusCode === 400 || $isSandboxRateLimited);
         $failureCategory = (string) ($valResult['category'] ?? ($isSandboxRateLimited ? 'sandbox_rate_limited' : 'payment_rejected'));
         grid402_record_telemetry(
             $serviceLabel,
@@ -1405,7 +1422,7 @@ if ($isValidApiAction) {
         );
         http_response_code($statusCode);
         header('Content-Type: application/json; charset=utf-8');
-        if ($statusCode === 402 || $isSandboxRateLimited) {
+        if ($includeChallenge) {
             header('X-Authenticate: x402');
             header('X-Accept-Payment: base:usdc:' . GRID402_WALLET_ADDRESS . ':' . $servicePriceDisplay);
             $prBundle = grid402_emit_payment_required_header(
@@ -1459,7 +1476,7 @@ if ($isValidApiAction) {
         if (isset($valResult['allowed_endpoints'])) {
             $errPayload['allowed_endpoints'] = $valResult['allowed_endpoints'];
         }
-        if (($statusCode === 402 || $isSandboxRateLimited) && isset($prBundle)) {
+        if ($includeChallenge && isset($prBundle)) {
             $errPayload['x402Version'] = 2;
             $errPayload['resource'] = $prBundle['resource'];
             $errPayload['accepts'] = $prBundle['accepts'];
@@ -1473,9 +1490,10 @@ if ($isValidApiAction) {
         if (isset($valResult['sandbox'])) {
             $errPayload['sandbox'] = true;
         }
-        if (!empty($valResult['upgrade_url'])) {
+        if (!empty($valResult['upgrade_url']) || $statusCode === 400) {
+            $upgradeSessionUrl = !empty($valResult['upgrade_url']) ? (string) $valResult['upgrade_url'] : 'https://grid402.online/pass';
             $errPayload['upgrade_to_production'] = [
-                'session_pass_url' => $valResult['upgrade_url'],
+                'session_pass_url' => $upgradeSessionUrl,
                 'pix_instant_starter_url' => 'https://grid402.online/pass?tier=starter&autopix=1',
                 'pix_instant_pro_url' => 'https://grid402.online/pass?tier=pro&autopix=1',
                 'starter_tier' => '2.0000 USDC or R$ 12.00 (Pix/Card) = 400 credits (180d)',
@@ -1496,11 +1514,15 @@ if ($isValidApiAction) {
         $logPaySource = $proofIsPayload
             ? 'facilitator'
             : (str_starts_with(strtolower($paymentProof), 'pass_g402_') ? 'pass' : ((strtolower($paymentProof) === 'demo' || strtolower($paymentProof) === 'sandbox') ? 'sandbox' : 'unknown'));
+        $proofDiag = function_exists('grid402_summarize_rejected_proof_shape')
+            ? grid402_summarize_rejected_proof_shape($paymentProofSourceHeader, $paymentProof)
+            : null;
         grid402_log_request([
             'service' => $serviceLabel,
             'status' => $statusCode,
             'payment_source' => $logPaySource,
             'error' => $errCodeLabel . ': ' . (string) ($valResult['reason'] ?? ''),
+            'proof_diag' => $proofDiag,
         ]);
         echo json_encode($errPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         exit;

@@ -60,7 +60,11 @@ function grid402_normalize_payment_proof_header(string $raw): string {
  * Decodifica base64 padrao ou url-safe de forma estrita (tolerando whitespace MIME). Retorna null se invalido.
  */
 function grid402_base64_decode_strict(string $value): ?string {
-    $value = preg_replace('/\s+/', '', trim($value)) ?? '';
+    $value = trim($value);
+    if (preg_match('/%(?:2[bBfF]|3[dD])/', $value) === 1) {
+        $value = rawurldecode($value);
+    }
+    $value = preg_replace('/\s+/', '', $value) ?? '';
     if ($value === '' || !preg_match('/^[A-Za-z0-9+\/_-]+={0,2}$/', $value)) {
         return null;
     }
@@ -1008,7 +1012,7 @@ function grid402_facilitator_call(string $endpoint, array $body, int $timeout): 
 /**
  * Monta os requisitos de pagamento do servico (fonte da verdade do servidor) conforme a versao, rede e metodo (EIP-3009 ou Permit2).
  */
-function grid402_build_payment_requirements(int $version, int $requiredRawUnits, string $resourceUrl = '', ?string $networkKey = null, string $authType = 'eip3009', ?array $acceptedExtra = null): array {
+function grid402_build_payment_requirements(int $version, int $requiredRawUnits, string $resourceUrl = '', ?string $networkKey = null, string $authType = 'eip3009', ?array $acceptedExtra = null, ?array $clientAccepted = null): array {
     $supported = grid402_exact_supported_networks();
     $resolvedKey = ($networkKey !== null && $networkKey !== '') ? strtolower(trim($networkKey)) : GRID402_X402_NETWORK_V2;
     $netSpec = $supported[$resolvedKey] ?? [
@@ -1028,11 +1032,39 @@ function grid402_build_payment_requirements(int $version, int $requiredRawUnits,
         }
     }
 
+    $reqPayTo = (string) $netSpec['payTo'];
+    $reqAsset = (string) $netSpec['asset'];
+    $reqTimeout = 300;
+    $reqAmountStr = (string) $requiredRawUnits;
+
+    if ($version === 2 && is_array($clientAccepted)) {
+        if (($netSpec['kind'] ?? 'evm') === 'evm') {
+            if (is_string($clientAccepted['asset'] ?? null) && strtolower(trim($clientAccepted['asset'])) === strtolower($reqAsset)) {
+                $reqAsset = trim($clientAccepted['asset']);
+            }
+            if (is_string($clientAccepted['payTo'] ?? null) && strtolower(trim($clientAccepted['payTo'])) === strtolower($reqPayTo)) {
+                $reqPayTo = trim($clientAccepted['payTo']);
+            }
+        }
+        if (isset($clientAccepted['maxTimeoutSeconds']) && is_numeric($clientAccepted['maxTimeoutSeconds'])) {
+            $cliTimeout = (int) $clientAccepted['maxTimeoutSeconds'];
+            if ($cliTimeout >= 30 && $cliTimeout <= 3600) {
+                $reqTimeout = $cliTimeout;
+            }
+        }
+        if (isset($clientAccepted['amount'])) {
+            $accAmt = grid402_normalize_uint_string($clientAccepted['amount']);
+            if ($accAmt !== null && strlen($accAmt) <= 18 && (int) $accAmt >= $requiredRawUnits) {
+                $reqAmountStr = $accAmt;
+            }
+        }
+    }
+
     $base = [
         'scheme' => 'exact',
-        'payTo' => $netSpec['payTo'],
-        'maxTimeoutSeconds' => 300,
-        'asset' => $netSpec['asset'],
+        'payTo' => $reqPayTo,
+        'maxTimeoutSeconds' => $reqTimeout,
+        'asset' => $reqAsset,
         'extra' => $extra,
     ];
     if ($version === 1) {
@@ -1046,7 +1078,7 @@ function grid402_build_payment_requirements(int $version, int $requiredRawUnits,
     }
     return $base + [
         'network' => $netSpec['v2'],
-        'amount' => (string) $requiredRawUnits,
+        'amount' => $reqAmountStr,
     ];
 }
 
@@ -1234,11 +1266,18 @@ function grid402_verify_exact_payment(string $rawProof, int $requiredRawUnits, ?
         grid402_normalize_v2_discovery_payload($paymentPayload, $serviceSlug, $priceDisplay, (string) $resourceUrl);
     }
 
-    $acceptedExtra = is_array($paymentPayload['accepted']['extra'] ?? null) ? $paymentPayload['accepted']['extra'] : null;
+    $clientAccepted = is_array($paymentPayload['accepted'] ?? null) ? $paymentPayload['accepted'] : null;
+    if ($decoded['version'] === 2 && !$isSvm && is_array($clientAccepted) && isset($clientAccepted['amount'])) {
+        $accAmtNorm = grid402_normalize_uint_string($clientAccepted['amount']);
+        if ($accAmtNorm !== null && strlen($accAmtNorm) <= 18 && (int) $accAmtNorm > $rawPaidUnits) {
+            unset($clientAccepted['amount']);
+        }
+    }
+    $acceptedExtra = is_array($clientAccepted['extra'] ?? null) ? $clientAccepted['extra'] : null;
     $requestBody = [
         'x402Version' => $decoded['version'],
         'paymentPayload' => $paymentPayload,
-        'paymentRequirements' => grid402_build_payment_requirements($decoded['version'], $requiredRawUnits, (string) $resourceUrl, $decoded['network'], $authType, $acceptedExtra),
+        'paymentRequirements' => grid402_build_payment_requirements($decoded['version'], $requiredRawUnits, (string) $resourceUrl, $decoded['network'], $authType, $acceptedExtra, $clientAccepted),
     ];
     $unavailable = static fn(string $reason = 'Servico de liquidacao temporariamente indisponivel. Tente novamente em instantes.'): array => [
         'valid' => false,

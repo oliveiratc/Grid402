@@ -101,6 +101,86 @@ function grid402_sanitize_log_text(?string $value, int $maxLen = 180): ?string {
 }
 
 /**
+ * Resume estritamente o formato estrutural de uma prova rejeitada (Zero-PII e Zero-Secret)
+ * para diagnostico de vazamento no /admin sem expor tokens, hashes, enderecos ou assinaturas.
+ */
+function grid402_summarize_rejected_proof_shape(string $headerSource, string $rawProof, ?string $userAgent = null): string {
+    $hdrClean = preg_replace('/[^a-z0-9_-]/', '', strtolower(trim($headerSource))) ?? '';
+    if ($hdrClean === '') {
+        $hdrClean = 'none';
+    }
+    $hdrClean = substr($hdrClean, 0, 32);
+
+    $trimmed = trim($rawProof);
+    $len = strlen($trimmed);
+    $lower = strtolower($trimmed);
+
+    if ($trimmed === '') {
+        $shape = 'empty';
+    } elseif (str_starts_with($lower, 'pass_g402_')) {
+        $shape = "pass_token(len={$len})";
+    } elseif (preg_match('/^0x[a-f0-9]{40}$/', $lower) === 1) {
+        $shape = "evm_address_40hex(len={$len})";
+    } elseif (preg_match('/^0x[a-f0-9]{64}$/', $lower) === 1) {
+        $shape = "evm_txhash_64hex(len={$len})";
+    } elseif (str_starts_with($lower, '0x')) {
+        $shape = "hex_other(len={$len})";
+    } elseif (preg_match('/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/', $trimmed) === 1) {
+        $shape = "jwt_3parts(len={$len})";
+    } else {
+        $decodedObj = null;
+        if (function_exists('grid402_try_decode_x402_blob')) {
+            $decodedObj = grid402_try_decode_x402_blob($trimmed);
+        } elseif ($len >= 2 && str_starts_with($trimmed, '{') && str_ends_with($trimmed, '}')) {
+            $tmp = @json_decode($trimmed, true);
+            if (is_array($tmp) && !array_is_list($tmp)) {
+                $decodedObj = $tmp;
+            }
+        }
+
+        if (is_array($decodedObj)) {
+            $safeKeys = [];
+            foreach (array_slice(array_keys($decodedObj), 0, 6) as $k) {
+                $sk = preg_replace('/[^a-zA-Z0-9_-]/', '', (string) $k) ?? '';
+                if ($sk !== '') {
+                    $safeKeys[] = substr($sk, 0, 24);
+                }
+            }
+            $metaParts = [];
+            if (isset($decodedObj['x402Version']) && is_scalar($decodedObj['x402Version'])) {
+                $metaParts[] = 'v=' . preg_replace('/[^0-9]/', '', (string) $decodedObj['x402Version']);
+            }
+            $netVal = $decodedObj['accepted']['network'] ?? $decodedObj['network'] ?? null;
+            if (is_string($netVal) && $netVal !== '') {
+                $safeNet = preg_replace('/[^a-zA-Z0-9:_-]/', '', $netVal) ?? '';
+                if ($safeNet !== '') {
+                    $metaParts[] = 'net=' . substr($safeNet, 0, 32);
+                }
+            }
+            $keysStr = implode(',', $safeKeys);
+            $extraMeta = !empty($metaParts) ? (';' . implode(';', $metaParts)) : '';
+            $shape = "x402_json[keys={$keysStr}{$extraMeta}](len={$len})";
+        } elseif ($len >= 16 && preg_match('/^[A-Za-z0-9+\/_-]+={0,2}$/', $trimmed) === 1 && base64_decode(strtr($trimmed, '-_', '+/'), true) !== false) {
+            $shape = "base64_non_json(len={$len})";
+        } elseif (preg_match('/^[1-9A-HJ-NP-Za-km-z]{64,90}$/', $trimmed) === 1) {
+            $shape = "solana_b58(len={$len})";
+        } elseif (preg_match('/^[a-zA-Z0-9_-]{1,32}$/', $trimmed) === 1) {
+            $shape = "word(len={$len})";
+        } else {
+            $shape = "other(len={$len})";
+        }
+    }
+
+    $uaRaw = trim((string) ($userAgent ?? ($_SERVER['HTTP_USER_AGENT'] ?? '')));
+    $uaToken = 'none';
+    if ($uaRaw !== '' && preg_match('/([a-zA-Z0-9._-]{1,24}(?:\/[a-zA-Z0-9._-]{1,12})?)/', $uaRaw, $uaMatch) === 1) {
+        $uaToken = $uaMatch[1];
+    }
+
+    return grid402_sanitize_log_text("hdr={$hdrClean} | shape={$shape} | ua={$uaToken}", 180) ?? "hdr={$hdrClean}";
+}
+
+/**
  * Grava uma linha estruturada JSONL Zero-PII com rotacao automatica em 10 MB.
  *
  * Campos suportados em $event:
@@ -158,6 +238,12 @@ function grid402_log_request(array $event): bool {
     ];
     if (isset($event['price_usdc']) && is_numeric($event['price_usdc'])) {
         $entry['price_usdc'] = round((float) $event['price_usdc'], 6);
+    }
+    if (!empty($event['proof_diag']) && is_string($event['proof_diag'])) {
+        $sanitizedDiag = grid402_sanitize_log_text($event['proof_diag'], 180);
+        if ($sanitizedDiag !== null) {
+            $entry['proof_diag'] = $sanitizedDiag;
+        }
     }
 
     $line = json_encode($entry, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n";
@@ -283,6 +369,7 @@ function grid402_read_recent_payment_failures(int $limit = 25): array {
                 'status' => $status,
                 'payment_source' => (string) ($entry['payment_source'] ?? 'unknown'),
                 'error' => grid402_sanitize_log_text($err, 180) ?? '',
+                'proof_diag' => grid402_sanitize_log_text(isset($entry['proof_diag']) ? (string) $entry['proof_diag'] : null, 180) ?? '',
                 'ip_hmac' => (string) ($entry['ip_hmac'] ?? ''),
             ];
             if (count($failures) >= $limit) {

@@ -1166,7 +1166,12 @@ $pricingLookup = [
                                     <td><strong><?php echo htmlspecialchars((string) ($pf['service'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></td>
                                     <td><span class="tag-status status-<?php echo (int) ($pf['status'] ?? 402); ?>">HTTP <?php echo (int) ($pf['status'] ?? 402); ?></span></td>
                                     <td><?php echo htmlspecialchars((string) ($pf['payment_source'] ?? 'unknown'), ENT_QUOTES, 'UTF-8'); ?></td>
-                                    <td style="font-family: var(--font-mono); font-size: 0.78rem; color: #FCA5A5; word-break: break-word;"><?php echo htmlspecialchars((string) ($pf['error'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td style="font-family: var(--font-mono); font-size: 0.78rem; color: #FCA5A5; word-break: break-word;">
+                                        <div><?php echo htmlspecialchars((string) ($pf['error'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
+                                        <?php if (!empty($pf['proof_diag'])): ?>
+                                        <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;"><?php echo htmlspecialchars((string) $pf['proof_diag'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                                 <?php endforeach; ?>
                             <?php endif; ?>
@@ -1906,7 +1911,10 @@ $pricingLookup = [
                     <td><strong>${safeHtmlText(pf.service || '')}</strong></td>
                     <td><span class="tag-status status-${st}">HTTP ${st}</span></td>
                     <td>${safeHtmlText(pf.payment_source || 'unknown')}</td>
-                    <td style="font-family: var(--font-mono); font-size: 0.78rem; color: #FCA5A5; word-break: break-word;">${safeHtmlText(pf.error || '')}</td>
+                    <td style="font-family: var(--font-mono); font-size: 0.78rem; color: #FCA5A5; word-break: break-word;">
+                        <div>${safeHtmlText(pf.error || '')}</div>
+                        ${pf.proof_diag ? `<div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">${safeHtmlText(pf.proof_diag)}</div>` : ''}
+                    </td>
                 </tr>`;
             });
             tbody.innerHTML = html;
