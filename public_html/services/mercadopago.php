@@ -26,6 +26,14 @@ require_once __DIR__ . '/pass.php';
  */
 function grid402_mp_packages(): array {
     return [
+        'micro' => [
+            'tier' => 'micro',
+            'label' => 'Micro Pass (5 Dossiês)',
+            'amount_brl' => 4.90,
+            'raw_usdc_units' => 250000, // 0.25 USDC equiv. -> 50 creditos (5 dossies KYB ou 50 req padrao)
+            'credits' => 50,
+            'ttl_days' => 90,
+        ],
         'starter' => [
             'tier' => 'starter',
             'label' => 'Starter Pass',
@@ -262,7 +270,7 @@ function grid402_mp_create_pix(string $tier, string $email = ''): array {
     $packages = grid402_mp_packages();
     $tierKey = strtolower(trim($tier));
     if (!isset($packages[$tierKey])) {
-        return ['ok' => false, 'code' => 400, 'error' => 'InvalidTier', 'message' => 'Pacote invalido. Escolha starter, pro ou fleet.'];
+        return ['ok' => false, 'code' => 400, 'error' => 'InvalidTier', 'message' => 'Pacote invalido. Escolha micro, starter, pro ou fleet.'];
     }
     $pkg = $packages[$tierKey];
 
@@ -277,8 +285,19 @@ function grid402_mp_create_pix(string $tier, string $email = ''): array {
         ];
     }
 
-    $payerEmail = filter_var(trim($email), FILTER_VALIDATE_EMAIL) ?: 'pagador@grid402.online';
     $orderId = 'mp_ord_' . bin2hex(random_bytes(8));
+    $cleanEmail = filter_var(trim($email), FILTER_VALIDATE_EMAIL);
+    // Nunca enviar e-mail no dominio proprio do vendedor (@grid402.online), prevenindo bloqueio antifraude no Mercado Pago BR.
+    if ($cleanEmail !== false && !str_ends_with(strtolower($cleanEmail), '@grid402.online')) {
+        $payerEmail = $cleanEmail;
+    } else {
+        $fallbackEnv = function_exists('grid402_env') ? trim((string) grid402_env('GRID402_MP_FALLBACK_PAYER_EMAIL', '')) : '';
+        if ($fallbackEnv !== '' && filter_var($fallbackEnv, FILTER_VALIDATE_EMAIL) !== false && !str_ends_with(strtolower($fallbackEnv), '@grid402.online')) {
+            $payerEmail = $fallbackEnv;
+        } else {
+            $payerEmail = 'pix.' . substr($orderId, -8) . '@clientes-checkout.example.com';
+        }
+    }
     $domain = defined('GRID402_CANONICAL_DOMAIN') ? rtrim(GRID402_CANONICAL_DOMAIN, '/') : 'https://grid402.online';
     $now = time();
 
@@ -364,7 +383,7 @@ function grid402_mp_create_checkout_pro(string $tier, string $email = ''): array
     $packages = grid402_mp_packages();
     $tierKey = strtolower(trim($tier));
     if (!isset($packages[$tierKey])) {
-        return ['ok' => false, 'code' => 400, 'error' => 'InvalidTier', 'message' => 'Pacote invalido. Escolha starter, pro ou fleet.'];
+        return ['ok' => false, 'code' => 400, 'error' => 'InvalidTier', 'message' => 'Pacote invalido. Escolha micro, starter, pro ou fleet.'];
     }
     $pkg = $packages[$tierKey];
 

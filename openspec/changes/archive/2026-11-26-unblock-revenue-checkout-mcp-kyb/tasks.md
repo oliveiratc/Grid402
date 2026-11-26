@@ -1,0 +1,39 @@
+# Tasks
+
+## 1. Protocolo x402 v1/v2, CORS e Ocultação Consistente de Solana (RF01, RF03, RF04)
+
+- [x] 1.1 Atualizar `public_html/x402.php` e `public_html/facilitator.php` para prefixar `resource` relativo com `GRID402_CANONICAL_DOMAIN` no x402 v1 e normalizar `paymentPayload.accepted` no x402 v2 (`amount` como string, `network` CAIP-2 canônico e espelhamento consistente de `extra`, incluindo `assetTransferMethod`), verificando em teste PHP dedicado (`tests/test_revenue_unblock_change1.php`) que payloads v1 relativos e v2 com `amount` inteiro / alias `"base"` / `extra.assetTransferMethod` geram `accepted` idêntico a `paymentRequirements`
+- [x] 1.2 Ocultar Solana das ofertas públicas quando `GRID402_SOLANA_X402_ENABLED=false` em `public_html/services/multichain.php` (helper de redes públicas), `public_html/x402.php`, `public_html/index.php`, `public_html/catalog.php`, `public_html/pass.php`, `public_html/mcp.php`, `public_html/assets/js/i18n.js` e manifestos estáticos (`pricing.json`, `openapi.json`, `llms.txt`, `llms-full.txt`, `.well-known/ai-agent.json`, `.well-known/ai-plugin.json`, `.well-known/mcp.json`), verificando em `tests/test_revenue_unblock_change1.php` que `accepts[]`, UI e manifestos não expõem Solana com flag desligada e preservam oferta Solana quando `GRID402_SOLANA_X402_ENABLED=true`
+- [x] 1.3 Ampliar `Access-Control-Allow-Headers` em `public_html/index.php` (`X-Payment-Signature`, `Payment`, `X-Grid402-Channel`) e `public_html/mcp.php` (`X-Payment-Signature`, `Payment`, `Mcp-Session-Id`, `MCP-Protocol-Version`) além de aceitar os aliases `X-Payment-Signature` e `Payment` na leitura de credenciais em `public_html/mcp.php`, verificando com teste de preflight `OPTIONS` e extração de headers
+
+## 2. Checkout Mercado Pago / Pix, Pacote `micro` R$ 4,90 e CTA Cartão USD RapidAPI (RF05, RF06, RF10)
+
+- [x] 2.1 Adicionar o pacote `micro` (`amount_brl: 4.90`, `raw_usdc_units: 250000`, `credits: 50`, `ttl_days: 90`) em `grid402_mp_packages()` e remover o fallback `pagador@grid402.online` em `public_html/services/mercadopago.php` (usando e-mail válido informado ou domínio neutro fora de `grid402.online`), verificando via testes automatizados de `mp-pix` e `mp-checkout` para `micro` e chamada sem e-mail
+- [x] 2.2 Atualizar `public_html/pass.php` (e chaves correspondentes em `public_html/assets/js/i18n.js`) para exibir os 4 pacotes BRL com ancoragem do `starter` (R$ 0,30/dossiê) vs. `micro` (R$ 4,90), remover o auto-disparo de `startMpPix()` após 250ms em `?method=pix`/`?autopix=1` (apenas destacando/rolando para o plano), validar disponibilidade de `GRID402_MP_ACCESS_TOKEN`/sandbox na UI, exigir e-mail válido no formulário Pix e exibir CTA claro de **Cartão USD via RapidAPI** (`https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities`), verificando renderização SSR e ausência de auto-disparo em teste PHP
+- [x] 2.3 Adicionar o CTA de **Cartão USD via RapidAPI** na seção `#topup` da Home (`public_html/index.php`), verificando presença do link oficial no HTML SSR da Home
+
+## 3. Persistência Unificada de Session Pass, Top-Up Web3 e Playground (RF02, RF07, RF08, RF11)
+
+- [x] 3.1 Criar `public_html/assets/js/pass_storage.js` expondo `window.Grid402PassStorage` (`grid402_active_pass_token` + cookie `g402_pass_token` `SameSite=Lax`, com leitura retrocompatível de `grid402_last_pass_token` e `grid402_session_pass`) e integrá-lo em `public_html/index.php`, `public_html/pass.php`, `public_html/dossie_kyb.php` e `public_html/payment_dashboard.php` (incluindo leitura de `$_COOKIE['g402_pass_token']` no PHP SSR de `payment_dashboard.php`), verificando em teste PHP a integração nas 4 páginas e fallback de cookie no `payment_dashboard.php`
+- [x] 3.2 Corrigir `public_html/index.php` para eliminar duplicidade de `copyOracleAddress()` e do ID `btn-copy-oracle` (separando a ação do modal Web3 em `copyWeb3ModalAddress()` / `btn-copy-modal-oracle`) e implementar retry com backoff (mínimo 5 tentativas) em `startWeb3Topup()` preservando o link clicável do `txHash` e preenchendo `#manual-pass-tx-input` em caso de erro, verificando por asserções estáticas sobre o HTML/JS renderizado em `tests/test_revenue_unblock_change1.php`
+- [x] 3.3 Atualizar o Playground da Home (`public_html/index.php`) para incluir o modo **Session Pass (`pass_g402_...`)** pré-preenchido via `Grid402PassStorage`, exibir card dedicado de HTTP `429` promovendo `MCPTRY50` (`/pass?promo=MCPTRY50`) e atalho para Session Pass (sem loop de `402`), e diferenciar cancelamento EIP-1193 (`4001`) de erros técnicos reais em `payPlaygroundWithWeb3()`, verificando o HTML/JS renderizado em teste automatizado
+- [x] 3.4 Enriquecer as respostas JSON HTTP `429` (`SandboxRateLimitExceeded`) e orientações de upgrade em `public_html/x402.php` e `public_html/index.php` com o cupom `MCPTRY50` em inglês (`https://grid402.online/pass?promo=MCPTRY50`), link `/pass` sem `autopix=1` forçado e opções RapidAPI USD (sem Solana quando desligada), verificando via teste automatizado de esgotamento da cota sandbox
+
+## 4. Navegação Global e Destravamento Comercial de `/dossie-kyb` (RF10)
+
+- [x] 4.1 Incluir o link `/dossie-kyb` (`Dossiê KYB`) em `public_html/includes/nav.php` (6 links principais com `aria-current="page"` e suporte desktop/mobile) e atualizar eventuais asserções de navegação e `assets/js/i18n.js`, verificando renderização de `grid402_render_public_nav(['active' => '/dossie-kyb'])` em teste PHP
+- [x] 4.2 Atualizar `public_html/dossie_kyb.php` para: (a) oferecer amostra real completa e estática de CNPJ público exemplo renderizada no relatório completo com selo de amostra e botão de impressão/PDF funcional; (b) permitir escolher entre **Micro R$ 4,90 (5 dossiês)** e **Starter R$ 12,00 (40 dossiês — R$ 0,30/dossiê)** validando disponibilidade do Mercado Pago e e-mail do pagador; (c) renderizar QR Code respeitando `data.qr_mime` dinamicamente; e (d) usar `Grid402PassStorage`, verificando o HTML/JS renderizado em teste automatizado
+
+## 5. Evolução do Servidor `/mcp` Hospedado (RF09)
+
+- [x] 5.1 Implementar em `public_html/mcp.php` a negociação dinâmica de `protocolVersion` no método `initialize` (`2025-06-18`, `2025-03-26`, `2024-11-05`) e o auto-trial gratuito de 1 chamada/dia por IP (`private_data/mcp_trial_rates.json` com `flock(LOCK_EX)` e `payment_source = 'mcp_sandbox'`, bloqueado para `grid402_pass`), além de atualizar `mcp_payment_required_result()` para promover `MCPTRY50` (`/pass?promo=MCPTRY50`) em inglês como passo #1 e remover `autopix=1` forçado, verificando em `tests/test_revenue_unblock_change1.php` os cenários de handshake, 1ª chamada auto-trial, 2ª chamada bloqueada com `MCPTRY50` e negação em `grid402_pass`
+
+## 6. Verificação Integrada e Empacotamento da Change 1
+
+- [x] 6.1 Atualizar testes existentes impactados pelas mudanças de spec (ex.: oferta padrão de 3 redes EVM com Solana desabilitada e 6 links na navbar) e executar toda a suíte de homologação (`verify_storage_integrity.php`, `test_maturity_and_m2m_controls.php`, `test_concurrency_and_load.php`, `test_session_pass_statement.php`, `test_agentkit_integration.php`, `test_e2e_full.php`, `test_revenue_unblock_change1.php`, `node mcp/test_mcp.mjs` e `npx -y @fission-ai/openspec@latest validate --all --strict`), confirmando 100% de aprovação
+- [x] 6.2 Gerar pacote atualizado de deploy Hostinger executando `powershell -ExecutionPolicy Bypass -File scripts/package_deploy.ps1` e validar a existência e integridade de `dist/grid402_hostinger_deploy.zip`
+
+## Workflow follow-up
+
+- Após validação integral contra todos os cenários das specs, arquivar a change `unblock-revenue-checkout-mcp-kyb` via `openspec archive` (mesclando delta specs em `openspec/specs/`).
+- Em seguida, abrir a Change 2 (`real-telemetry-admin-and-discovery-hardening`, cobrindo RF12 a RF18 do PRD).

@@ -49,16 +49,19 @@ require_once __DIR__ . '/services/pass.php';
 require_once __DIR__ . '/services/oracle_signer.php';
 
 const MCP_PROTOCOL_VERSION = '2024-11-05';
+const MCP_SUPPORTED_PROTOCOL_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05'];
 const MCP_SERVER_NAME = 'grid402-mcp';
 const MCP_SERVER_VERSION = '2.0.0';
+const MCP_AUTO_TRIAL_DAILY_LIMIT = 1;
+const MCP_AUTO_TRIAL_WINDOW_SECONDS = 86400;
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-cache, no-store, must-revalidate');
 header('X-Content-Type-Options: nosniff');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment, x-payment, X-Payment-Network, x-payment-network, X-Session-Pass, x-session-pass, PAYMENT-SIGNATURE, payment-signature, Idempotency-Key, X-Request-Id');
-header('Access-Control-Expose-Headers: PAYMENT-REQUIRED, PAYMENT-RESPONSE, X-PAYMENT-RESPONSE, X-Payment-Status, X-Payment-Amount, X-Payment-Network, X-Request-Id');
+header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment, x-payment, X-Payment-Network, x-payment-network, X-Session-Pass, x-session-pass, PAYMENT-SIGNATURE, payment-signature, X-Payment-Signature, x-payment-signature, Payment, payment, Mcp-Session-Id, mcp-session-id, MCP-Protocol-Version, mcp-protocol-version, Idempotency-Key, X-Request-Id');
+header('Access-Control-Expose-Headers: PAYMENT-REQUIRED, PAYMENT-RESPONSE, X-PAYMENT-RESPONSE, X-Payment-Status, X-Payment-Amount, X-Payment-Network, Mcp-Session-Id, X-Request-Id');
 grid402_emit_request_id_header();
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -117,10 +120,18 @@ $responseId = $id;
 
 switch ($method) {
     case 'initialize':
+        $requestedVersion = is_array($params) && isset($params['protocolVersion']) ? trim((string) $params['protocolVersion']) : '';
+        $negotiatedVersion = MCP_PROTOCOL_VERSION;
+        if ($requestedVersion !== '') {
+            $negotiatedVersion = in_array($requestedVersion, MCP_SUPPORTED_PROTOCOL_VERSIONS, true)
+                ? $requestedVersion
+                : '2025-03-26';
+        }
         mcp_result($responseId, [
-            'protocolVersion' => MCP_PROTOCOL_VERSION,
+            'protocolVersion' => $negotiatedVersion,
             'capabilities' => ['tools' => (object) []],
             'serverInfo' => ['name' => MCP_SERVER_NAME, 'version' => MCP_SERVER_VERSION],
+            'instructions' => 'Grid402 hosted MCP (27 tools). Free tools: grid402_summary, grid402_verify, grid402_pass_balance. First paid data tool call per IP/day gets 1 free auto-trial; unlock 50 FREE credits (no wallet needed) with promo code MCPTRY50 at https://grid402.online/pass?promo=MCPTRY50, or pay via x402 v2 (Base/Polygon/Arbitrum) / Session Pass / RapidAPI USD.',
         ]);
         break;
 
@@ -266,7 +277,13 @@ function mcp_accepts_unpaid(string $service, ?int $requiredRawUnits = null, ?str
         'token' => 'USDC',
         'token_contract' => GRID402_USDC_CONTRACT,
         'fiat_and_card_checkout' => [
-            'pix_instant_brl' => $domain . '/pass?tier=starter&autopix=1 (R$ 12 = 400 credits, <15ms)',
+            'free_promo' => [
+                'code' => 'MCPTRY50',
+                'credits' => 50,
+                'redeem_url' => $domain . '/pass?promo=MCPTRY50',
+                'description' => 'Claim 50 FREE credits (no wallet or signup needed) and send X-Payment: pass_g402_<token>.',
+            ],
+            'pix_brl' => $domain . '/pass?tier=starter&method=pix (Micro R$ 4.90 = 50 cr | Starter R$ 12 = 400 cr, <15ms)',
             'session_pass_url' => $domain . '/pass',
             'rapidapi_credit_card_usd' => [
                 'all_25_apis' => 'https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities',
@@ -274,7 +291,7 @@ function mcp_accepts_unpaid(string $service, ?int $requiredRawUnits = null, ?str
                 'brazil_kyb_cnpj_anbima' => 'https://rapidapi.com/oliveiratc/api/brazil-kyb-cnpj-cgu-sanctions-anbima-workdays-api',
             ],
         ],
-        'hint' => 'Send signed x402 v2 payment in params._meta["x402/payment"] or header PAYMENT-SIGNATURE, pass a prepaid Session Pass token (get instant Pix/Card pass at ' . $domain . '/pass), or subscribe with Credit Card on RapidAPI.',
+        'hint' => 'Claim 50 FREE credits with code MCPTRY50 at ' . $domain . '/pass?promo=MCPTRY50 (no wallet needed), send signed x402 v2 payment in params._meta["x402/payment"] or header PAYMENT-SIGNATURE, pass a prepaid Session Pass token (' . $domain . '/pass), or subscribe with Credit Card (USD) on RapidAPI.',
     ];
     if ($reason !== null && $reason !== '') {
         $payload['reason'] = $reason;
@@ -313,13 +330,15 @@ function mcp_payment_required_result($id, string $service, int $rawCost, ?string
         ? "Note: Sandbox/demo mode and existing Session Pass tokens are NOT accepted to issue a new pass. Use real USDC or Pix/Card checkout.\n"
         : "4) Free Sandbox Trial (3 req/day per IP): pass payment_tx_hash=\"demo\" for testing.\n";
 
+    $solanaOn = function_exists('grid402_is_solana_x402_enabled') && grid402_is_solana_x402_enabled();
+    $chainsText = $solanaOn ? 'Base, Polygon, Arbitrum, Solana' : 'Base, Polygon, Arbitrum';
     $humanMessage = "Payment Required for Grid402 tool '{$service}' ({$unpaid['price_usdc']} USDC / {$credits} credit(s)).\n"
         . $reasonLine
         . "How to unlock immediately:\n"
-        . "1) Instant Session Pass via Pix (BRL) or Card (from R$ 12 = 400 credits, <15ms): {$domain}/pass (Quick Pix: {$domain}/pass?tier=starter&autopix=1)\n"
-        . "   Pass your token in header `X-Payment: pass_g402_...` or argument `payment_tx_hash`.\n"
-        . "2) RapidAPI Hub (International Credit Card in USD): https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities\n"
-        . "3) Autonomous x402 v2 Gasless / Multi-Chain USDC (Base, Polygon, Arbitrum): send signed x402 payload in `params._meta[\"x402/payment\"]` or header `PAYMENT-SIGNATURE`, or pay {$unpaid['price_usdc']} USDC ({$rawCost} raw units) to {$unpaid['payTo']} and pass the txHash.\n"
+        . "1) FREE 50 Credits Promo (no wallet or signup required): redeem code MCPTRY50 at {$domain}/pass?promo=MCPTRY50 and pass your token via header `X-Payment: pass_g402_...` or argument `payment_tx_hash`.\n"
+        . "2) Prepaid Session Pass via Pix/Card BRL (from R$ 4.90 = 50 cr | Starter R$ 12 = 400 cr, <15ms) or EVM USDC: {$domain}/pass (Pix plans: {$domain}/pass?tier=starter&method=pix)\n"
+        . "3) RapidAPI Hub (International Credit Card in USD): https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities\n"
+        . "4) Autonomous x402 v2 Gasless / Multi-Chain USDC ({$chainsText}): send signed x402 payload in `params._meta[\"x402/payment\"]` or header `PAYMENT-SIGNATURE`, or pay {$unpaid['price_usdc']} USDC ({$rawCost} raw units) to {$unpaid['payTo']} and pass the txHash.\n"
         . $sandboxLine
         . "\nMachine-readable x402 v2 challenge:\n"
         . json_encode($unpaid, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
@@ -335,6 +354,76 @@ function mcp_payment_required_result($id, string $service, int $rawCost, ?string
         ],
     ]);
     exit;
+}
+
+/**
+ * Auto-trial diario gratuito do /mcp hospedado (1 chamada/dia por IP, Zero-PII sob flock).
+ * Permite descoberta imediata sem header manual em ferramentas de dados (nunca em grid402_pass).
+ */
+function mcp_consume_auto_trial(string $clientIp): array {
+    $dir = defined('GRID402_PRIVATE_DIR')
+        ? rtrim((string) GRID402_PRIVATE_DIR, '/\\')
+        : (function_exists('grid402_get_storage_dir') ? grid402_get_storage_dir() : (__DIR__ . '/private_data'));
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+    }
+    $file = $dir . '/mcp_trial_rates.json';
+    $secret = defined('GRID402_CRON_SECRET') ? (string) GRID402_CRON_SECRET : 'grid402_mcp_trial';
+    $ipKey = hash_hmac('sha256', trim($clientIp !== '' ? $clientIp : '127.0.0.1'), 'mcp_trial:' . $secret);
+    $now = time();
+    $window = MCP_AUTO_TRIAL_WINDOW_SECONDS;
+    $limit = MCP_AUTO_TRIAL_DAILY_LIMIT;
+
+    $fp = @fopen($file, 'c+');
+    if (!$fp) {
+        return ['allowed' => false, 'limit' => $limit, 'remaining' => 0, 'retry_after' => $window];
+    }
+
+    $allowed = false;
+    $remaining = 0;
+    $retryAfter = $window;
+    if (flock($fp, LOCK_EX)) {
+        $store = function_exists('grid402_read_locked_json') ? grid402_read_locked_json($fp, []) : [];
+        if (!is_array($store)) {
+            $store = [];
+        }
+        // Limpa entradas expiradas para evitar crescimento ilimitado
+        foreach ($store as $k => $entry) {
+            if (!is_array($entry) || (int) ($entry['window_start'] ?? 0) + $window <= $now) {
+                unset($store[$k]);
+            }
+        }
+        $cur = isset($store[$ipKey]) && is_array($store[$ipKey])
+            ? $store[$ipKey]
+            : ['window_start' => $now, 'count' => 0];
+        $elapsed = $now - (int) ($cur['window_start'] ?? $now);
+        if ($elapsed >= $window) {
+            $cur = ['window_start' => $now, 'count' => 0];
+            $elapsed = 0;
+        }
+        if ((int) $cur['count'] < $limit) {
+            $cur['count'] = (int) $cur['count'] + 1;
+            $store[$ipKey] = $cur;
+            $allowed = true;
+            $remaining = max(0, $limit - (int) $cur['count']);
+            $retryAfter = max(1, $window - $elapsed);
+            ftruncate($fp, 0);
+            rewind($fp);
+            fwrite($fp, (string) json_encode($store, JSON_UNESCAPED_SLASHES));
+            fflush($fp);
+        } else {
+            $retryAfter = max(1, $window - $elapsed);
+        }
+        flock($fp, LOCK_UN);
+    }
+    fclose($fp);
+
+    return [
+        'allowed' => $allowed,
+        'limit' => $limit,
+        'remaining' => $remaining,
+        'retry_after' => $retryAfter,
+    ];
 }
 
 function mcp_tool_call($responseId, string $tool, array $arguments, array $params): void {
@@ -448,7 +537,15 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
             $x402Payment = trim($meta['x402/payment']);
         }
     }
-    $payHeader = trim((string) ($_SERVER['HTTP_PAYMENT_SIGNATURE'] ?? $mcpHdrMap['payment-signature'] ?? ''));
+    $payHeader = trim((string) (
+        $_SERVER['HTTP_PAYMENT_SIGNATURE']
+        ?? $_SERVER['HTTP_X_PAYMENT_SIGNATURE']
+        ?? $_SERVER['HTTP_PAYMENT']
+        ?? $mcpHdrMap['payment-signature']
+        ?? $mcpHdrMap['x-payment-signature']
+        ?? $mcpHdrMap['payment']
+        ?? ''
+    ));
     $mcpAuthHeader = trim((string) ($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? $mcpHdrMap['authorization'] ?? ''));
     $mcpAuthProof = '';
     if (preg_match('/^(?:x402|payment)\s+(.+)$/is', $mcpAuthHeader, $am)) {
@@ -471,30 +568,52 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
     $priceUsdcFloat = (float) number_format($rawCost / 1e6, 4, '.', '');
     $canonicalResourceUrl = mcp_canonical_domain() . '/api/v1/' . $service;
 
+    $usedAutoTrial = false;
+    $validation = null;
     if ($effectiveProof === '') {
-        grid402_record_telemetry($service, 402, false, null, $clientIp, $priceUsdcFloat, 'challenge_402');
-        if (function_exists('grid402_log_request')) {
-            grid402_log_request([
-                'service' => $service,
-                'status' => 402,
-                'payment_source' => 'none',
-                'price_usdc' => $priceUsdcFloat,
-                'error' => 'PaymentRequired',
-                'method' => 'POST',
-                'ip' => $clientIp,
-            ]);
+        if ($service !== 'pass') {
+            $trialRes = mcp_consume_auto_trial($clientIp);
+            if (!empty($trialRes['allowed'])) {
+                $usedAutoTrial = true;
+                $validation = [
+                    'valid' => true,
+                    'sandbox' => true,
+                    'source' => 'mcp_sandbox',
+                    'mcp_auto_trial' => true,
+                    'remaining' => (int) ($trialRes['remaining'] ?? 0),
+                    'limit' => (int) ($trialRes['limit'] ?? MCP_AUTO_TRIAL_DAILY_LIMIT),
+                    'code' => 200,
+                ];
+            }
         }
-        if (function_exists('grid402_growth_event')) {
-            grid402_growth_event('challenge_402', [
-                'service' => $service,
-                'ip' => $clientIp,
-                'type' => 'mcp',
-            ]);
+        if (!$usedAutoTrial) {
+            grid402_record_telemetry($service, 402, false, null, $clientIp, $priceUsdcFloat, 'challenge_402');
+            if (function_exists('grid402_log_request')) {
+                grid402_log_request([
+                    'service' => $service,
+                    'status' => 402,
+                    'payment_source' => 'none',
+                    'price_usdc' => $priceUsdcFloat,
+                    'error' => 'PaymentRequired',
+                    'method' => 'POST',
+                    'ip' => $clientIp,
+                ]);
+            }
+            if (function_exists('grid402_growth_event')) {
+                grid402_growth_event('challenge_402', [
+                    'service' => $service,
+                    'ip' => $clientIp,
+                    'type' => 'mcp',
+                ]);
+            }
+            $trialExhaustedReason = ($service !== 'pass')
+                ? 'Daily free MCP auto-trial (1/day per IP) already used. Claim 50 FREE credits (no wallet needed) with promo code MCPTRY50 at ' . mcp_canonical_domain() . '/pass?promo=MCPTRY50.'
+                : null;
+            mcp_payment_required_result($responseId, $service, $rawCost, $trialExhaustedReason);
         }
-        mcp_payment_required_result($responseId, $service, $rawCost);
     }
 
-    $proofIsPayload = grid402_classify_payment_proof($effectiveProof) === 'x402_payload';
+    $proofIsPayload = !$usedAutoTrial && (grid402_classify_payment_proof($effectiveProof) === 'x402_payload');
     $mcpFailPayment = static function (array $val) use ($responseId, $service, $rawCost, $priceUsdcFloat, $proofIsPayload, $effectiveProof, $clientIp): never {
         $failCode = (int)($val['code'] ?? 402);
         $failCategory = (string)($val['category'] ?? 'payment_rejected');
@@ -531,40 +650,42 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
         mcp_payment_required_result($responseId, $service, $rawCost, $reason);
     };
 
-    // V-01: Bloqueia demo/sandbox e pagamento com outro Session Pass na emissão de grid402_pass
-    if ($service === 'pass') {
-        $proofLower = strtolower(trim($effectiveProof));
-        if ($proofLower === 'demo' || $proofLower === 'sandbox') {
-            $mcpFailPayment([
-                'valid' => false,
-                'code' => 403,
-                'source' => 'sandbox',
-                'category' => 'sandbox_pass_forbidden',
-                'reason' => 'Sandbox/demo mode cannot be used to issue a Session Pass. Pay with real USDC (2.00 USDC Starter) via x402 or purchase via Pix/Card at https://grid402.online/pass.',
-            ]);
+    if (!$usedAutoTrial) {
+        // V-01: Bloqueia demo/sandbox e pagamento com outro Session Pass na emissão de grid402_pass
+        if ($service === 'pass') {
+            $proofLower = strtolower(trim($effectiveProof));
+            if ($proofLower === 'demo' || $proofLower === 'sandbox') {
+                $mcpFailPayment([
+                    'valid' => false,
+                    'code' => 403,
+                    'source' => 'sandbox',
+                    'category' => 'sandbox_pass_forbidden',
+                    'reason' => 'Sandbox/demo mode cannot be used to issue a Session Pass. Pay with real USDC (2.00 USDC Starter) via x402 or purchase via Pix/Card at https://grid402.online/pass.',
+                ]);
+            }
+            if (str_starts_with($proofLower, 'pass_g402_')) {
+                $mcpFailPayment([
+                    'valid' => false,
+                    'code' => 403,
+                    'source' => 'pass',
+                    'category' => 'pass_for_pass_forbidden',
+                    'reason' => 'An existing Session Pass cannot be used to issue a new Session Pass. Pay with real USDC via x402 or purchase via Pix/Card at https://grid402.online/pass.',
+                ]);
+            }
         }
-        if (str_starts_with($proofLower, 'pass_g402_')) {
-            $mcpFailPayment([
-                'valid' => false,
-                'code' => 403,
-                'source' => 'pass',
-                'category' => 'pass_for_pass_forbidden',
-                'reason' => 'An existing Session Pass cannot be used to issue a new Session Pass. Pay with real USDC via x402 or purchase via Pix/Card at https://grid402.online/pass.',
-            ]);
-        }
-    }
 
-    $validation = grid402_validate_payment(
-        $effectiveProof,
-        $rawCost,
-        $clientIp,
-        $service,
-        $mcpNetHeader !== '' ? $mcpNetHeader : null,
-        true,
-        $canonicalResourceUrl
-    );
-    if (empty($validation['valid'])) {
-        $mcpFailPayment($validation);
+        $validation = grid402_validate_payment(
+            $effectiveProof,
+            $rawCost,
+            $clientIp,
+            $service,
+            $mcpNetHeader !== '' ? $mcpNetHeader : null,
+            true,
+            $canonicalResourceUrl
+        );
+        if (empty($validation['valid'])) {
+            $mcpFailPayment($validation);
+        }
     }
 
     // Defesa em profundidade V-01: nunca emitir pass em modo sandbox ou pago com outro pass
@@ -785,6 +906,17 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
     }
 
     if (is_array($result) && (!isset($result['code']) || $result['code'] === 200)) {
+        if (!empty($validation['mcp_auto_trial'])) {
+            $result['sandbox'] = true;
+            $result['_trial_notice'] = [
+                'mode' => 'mcp_sandbox',
+                'quota_limit_per_day' => MCP_AUTO_TRIAL_DAILY_LIMIT,
+                'quota_remaining_today' => (int) ($validation['remaining'] ?? 0),
+                'promo_code' => 'MCPTRY50',
+                'promo_url' => mcp_canonical_domain() . '/pass?promo=MCPTRY50',
+                'message' => 'Free daily MCP auto-trial used (1/day per IP). Unlock 50 FREE credits (no wallet needed) with code MCPTRY50 at ' . mcp_canonical_domain() . '/pass?promo=MCPTRY50, or continue via Session Pass / x402 v2 / RapidAPI USD.',
+            ];
+        }
         $result = grid402_attach_provenance_meta($result, $service);
         grid402_sign_data($result, $isSandbox);
     }

@@ -14,6 +14,7 @@ if (!function_exists('grid402_render_public_nav')) {
         $links = [
             ['href' => ($base !== '' ? $base : '') . '/', 'key' => '/', 'label' => 'Home', 'i18n' => 'nav.home'],
             ['href' => $base . '/catalog', 'key' => '/catalog', 'label' => 'Catalog', 'i18n' => 'nav.catalog'],
+            ['href' => $base . '/dossie-kyb', 'key' => '/dossie-kyb', 'label' => 'Dossiê KYB', 'i18n' => 'nav.dossier'],
             ['href' => $base . '/pass', 'key' => '/pass', 'label' => 'Session Pass', 'i18n' => 'nav.pass'],
             ['href' => $base . '/agents', 'key' => '/agents', 'label' => 'AI Agents', 'i18n' => 'nav.agents'],
             ['href' => $base . '/trust', 'key' => '/trust', 'label' => 'Trust', 'i18n' => 'nav.trust'],

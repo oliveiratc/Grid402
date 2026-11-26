@@ -306,11 +306,43 @@ function grid402_explorer_tx_url(string $network, string $txHash): string {
 }
 
 /**
- * Resumo público compacto das 6 redes suportadas (exposto no desafio HTTP 402 e em /api/v1/pass).
+ * Indica se a rede Solana esta habilitada para exposicao publica em UI/API/manifestos.
+ * Mantem o suporte interno preservado atras da flag GRID402_SOLANA_X402_ENABLED (padrao false).
+ */
+function grid402_is_solana_public_enabled(): bool {
+    if (function_exists('grid402_is_solana_x402_enabled')) {
+        return grid402_is_solana_x402_enabled();
+    }
+    if (defined('GRID402_SOLANA_X402_ENABLED')) {
+        $v = GRID402_SOLANA_X402_ENABLED;
+        return is_bool($v) ? $v : in_array(strtolower(trim((string) $v)), ['1', 'true', 'yes', 'on'], true);
+    }
+    $envVal = function_exists('grid402_env') ? (string) grid402_env('GRID402_SOLANA_X402_ENABLED', '') : '';
+    if (trim($envVal) === '' && function_exists('grid402_env')) {
+        $envVal = (string) grid402_env('GRID402_SOLANA_ATA_READY', '');
+    }
+    return in_array(strtolower(trim($envVal)), ['1', 'true', 'yes', 'on'], true);
+}
+
+/**
+ * Retorna apenas as redes atualmente habilitadas para oferta publica (omite Solana quando a flag estiver desligada).
+ *
+ * @return array<string, array<string, mixed>>
+ */
+function grid402_public_networks(): array {
+    $nets = grid402_supported_networks();
+    if (!grid402_is_solana_public_enabled()) {
+        unset($nets['solana']);
+    }
+    return $nets;
+}
+
+/**
+ * Resumo público compacto das redes ativas suportadas (exposto no desafio HTTP 402 e em /api/v1/pass).
  */
 function grid402_supported_networks_public_summary(): array {
     $out = [];
-    foreach (grid402_supported_networks() as $slug => $net) {
+    foreach (grid402_public_networks() as $slug => $net) {
         $out[$slug] = [
             'name' => $net['display_name'],
             'type' => $net['type'],

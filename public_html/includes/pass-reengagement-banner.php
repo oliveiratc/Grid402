@@ -75,7 +75,7 @@ if (!function_exists('grid402_pass_reengagement_banner')) {
                 ? 'Adquira créditos pré-pagos (R$ 12 Pix ou 2 / 5 / 20 USDC) e consulte APIs em <15ms sem assinar transação a cada chamada.'
                 : 'Purchase prepaid credits (R$ 12 Pix or 2 / 5 / 20 USDC) and query APIs in <15ms without signing a transaction on every call.';
             $cta          = $isPt ? 'Comprar Session Pass' : 'Buy Session Pass';
-            $url          = '/pass?tier=starter&autopix=1';
+            $url          = '/pass?tier=starter&method=pix';
         }
         $url = $opts['url'] ?? $url;
 

@@ -13,6 +13,12 @@ require_once __DIR__ . '/services/pass.php';
 $userIdleStats = grid402_get_user_idle_pass_stats();
 
 $token = trim((string) ($_GET['token'] ?? ''));
+if ($token === '' && !empty($_COOKIE['g402_pass_token'])) {
+    $cookieTok = trim((string) $_COOKIE['g402_pass_token']);
+    if (preg_match('/^pass_g402_[a-z0-9_]{8,24}_[a-f0-9]{16}$/i', $cookieTok) === 1) {
+        $token = $cookieTok;
+    }
+}
 $filterEndpoint = trim((string) ($_GET['endpoint'] ?? ''));
 $filterOutcome = trim((string) ($_GET['outcome'] ?? ''));
 
@@ -249,6 +255,24 @@ $jsonUrl = '/api/v1/pass/statement?' . http_build_query(array_merge($baseQuery, 
     <p><strong>Revenue:</strong> <?php echo number_format((float) ($metrics['total_revenue_usdc'] ?? 0), 4); ?> USDC</p>
     <p><strong data-i18n="paydash.summary.passes">Paid Session Passes issued:</strong> <?php echo $paidPassesCount; ?> (<?php echo $activePaidPasses; ?> active)</p>
 </main>
-<script src="/assets/js/i18n.js?v=3.4.0"></script>
+<script src="/assets/js/pass_storage.js?v=3.5.0"></script>
+<script>
+(function () {
+    var params = new URLSearchParams(window.location.search);
+    var urlToken = (params.get('token') || '').trim();
+    if (window.Grid402PassStorage) {
+        if (urlToken && window.Grid402PassStorage.isValidToken(urlToken)) {
+            window.Grid402PassStorage.save(urlToken);
+        } else if (!urlToken && !<?php echo $token !== '' ? 'true' : 'false'; ?>) {
+            var stored = window.Grid402PassStorage.load();
+            if (stored) {
+                params.set('token', stored);
+                window.location.replace(window.location.pathname + '?' + params.toString());
+            }
+        }
+    }
+})();
+</script>
+<script src="/assets/js/i18n.js?v=3.5.0"></script>
 </body>
 </html>

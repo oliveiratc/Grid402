@@ -1,6 +1,6 @@
 {
   "name": "Grid402",
-  "description": "Global M2M verifiable public-data, KYB/compliance, web-to-Markdown, email verification and network-utility oracle hub for AI agents. Settled pay-per-call via gasless HTTP x402 v2 (USDC on Base, Polygon, Arbitrum, Solana) or sub-15ms Prepaid Session Passes, with ECDSA secp256k1 _oracle_proof signatures.",
+  "description": "Global M2M verifiable public-data, KYB/compliance, web-to-Markdown, email verification and network-utility oracle hub for AI agents. Settled pay-per-call via gasless HTTP x402 v2 (USDC on Base, Polygon, Arbitrum) or sub-15ms Prepaid Session Passes, with ECDSA secp256k1 _oracle_proof signatures.",
   "url": "https://grid402.online",
   "version": "3.4.0",
   "capabilities": [
@@ -670,7 +670,7 @@
     "type": "x402",
     "schemes": ["x402", "session-pass", "none"],
     "headers": ["PAYMENT-SIGNATURE", "X-Payment", "X-Session-Pass"],
-    "note": "No account or API key required. Pay per call via gasless HTTP x402 v2 (USDC on Base, Polygon, Arbitrum, Solana), use a prepaid Session Pass (X-Payment: pass_g402_...), or test free in Sandbox mode (X-Payment: demo, 3 req/day per IP). Discovery and verification endpoints are free."
+    "note": "No account or API key required. Pay per call via gasless HTTP x402 v2 (USDC on Base, Polygon, Arbitrum), use a prepaid Session Pass (X-Payment: pass_g402_...), claim 50 free credits with MCPTRY50 at https://grid402.online/pass?promo=MCPTRY50, or test free in Sandbox mode (X-Payment: demo, 3 req/day per IP). Discovery and verification endpoints are free."
   },
   "rateLimit": {
     "sandbox": "3 requests per day per IP (X-Payment: demo, data endpoints only)",

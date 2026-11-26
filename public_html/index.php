@@ -50,7 +50,7 @@ require_once __DIR__ . '/growth.php';
 function grid402_emit_api_cors_headers(): void {
     header('Access-Control-Allow-Origin: *');
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment, x-payment, X-Payment-Network, x-payment-network, X-Session-Pass, x-session-pass, PAYMENT-SIGNATURE, payment-signature, Idempotency-Key, X-Request-Id, X-Signature, X-RapidAPI-Proxy-Secret, X-RapidAPI-Key, X-RapidAPI-Host');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Payment, x-payment, X-Payment-Network, x-payment-network, X-Session-Pass, x-session-pass, PAYMENT-SIGNATURE, payment-signature, X-Payment-Signature, x-payment-signature, Payment, payment, X-Grid402-Channel, x-grid402-channel, Idempotency-Key, X-Request-Id, X-Signature, X-RapidAPI-Proxy-Secret, X-RapidAPI-Key, X-RapidAPI-Host');
     header('Access-Control-Expose-Headers: WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, PAYMENT-REQUIRED, Payment-Required, payment-required, PAYMENT-RESPONSE, X-PAYMENT-RESPONSE, X-Idempotent-Replay, X-Request-Id');
     if (strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET')) === 'OPTIONS') {
         http_response_code(204);
@@ -382,7 +382,8 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
             <div data-i18n="inst.footer.copy">© <?php echo date('Y'); ?> Grid402 Network Intelligence. All rights reserved.</div>
         </footer>
     </div>
-    <script src="/assets/js/i18n.js?v=3.4.3"></script>
+    <script src="/assets/js/pass_storage.js?v=3.5.0"></script>
+    <script src="/assets/js/i18n.js?v=3.5.0"></script>
 </body>
 </html>
     <?php
@@ -1379,15 +1380,19 @@ if ($isValidApiAction) {
                 'selected_tier' => $passTierSelected,
                 'selected_price_usdc' => $servicePriceDisplay,
                 'credit_unit' => '1 credit = 0.0050 USDC (5,000 raw units) = 1 standard API call',
+                'tier_micro' => 'R$ 4.90 (Pix/Card BRL) = 50 credits (5 KYB dossiers, 90 days validity)',
                 'tier_starter' => '2.0000 USDC (or R$ 12 Pix) = 400 credits (<15ms latency, 180 days validity)',
                 'tier_pro' => '5.0000 USDC (or R$ 29 Pix) = 1,000 base + 200 bonus (+20%) = 1,200 credits (<15ms latency, 180 days validity)',
                 'tier_fleet' => '20.0000 USDC (or R$ 115 Pix) = 4,000 base + 2,000 bonus (+50%) = 6,000 credits (<15ms latency, 365 days validity)',
                 'spend_controls' => 'Supports daily_credit_limit, allowed_endpoints, and free balance check via GET /api/v1/pass/balance',
-                'network' => 'Multi-Chain USDC: Base (8453), Arbitrum (42161), Polygon (137), Optimism (10), Ethereum (1), and Solana SPL USDC',
+                'network' => (function_exists('grid402_is_solana_public_enabled') && grid402_is_solana_public_enabled())
+                    ? 'Multi-Chain USDC: Base (8453), Arbitrum (42161), Polygon (137), Optimism (10), Ethereum (1), and Solana SPL USDC'
+                    : 'Multi-Chain EVM USDC: Base (8453), Arbitrum (42161), Polygon (137), Optimism (10), and Ethereum (1)',
                 'token' => 'USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)',
                 'recipient' => GRID402_WALLET_ADDRESS,
                 'checkout_url' => $passCanonicalBase . '/pass',
-                'pix_instant_url' => $passCanonicalBase . '/pass?tier=starter&autopix=1',
+                'pix_starter_url' => $passCanonicalBase . '/pass?tier=starter&method=pix',
+                'promo_free_50_url' => $passCanonicalBase . '/pass?promo=MCPTRY50',
                 'web3_activate_endpoint' => 'POST /api/v1/pass-emitir {"txHash":"0x...","chain":"base"}',
                 'usage_header' => 'X-Payment: pass_g402_<your_token>',
                 'usage_example_curl' => 'curl -s -H "X-Payment: pass_g402_<your_token>" "https://grid402.online/api/v1/forex"',
@@ -1492,15 +1497,32 @@ if ($isValidApiAction) {
         }
         if (!empty($valResult['upgrade_url']) || $statusCode === 400) {
             $upgradeSessionUrl = !empty($valResult['upgrade_url']) ? (string) $valResult['upgrade_url'] : 'https://grid402.online/pass';
+            $solanaOn = function_exists('grid402_is_solana_public_enabled') && grid402_is_solana_public_enabled();
+            $chainsList = $solanaOn
+                ? ['base', 'arbitrum', 'polygon', 'optimism', 'ethereum', 'solana']
+                : ['base', 'arbitrum', 'polygon', 'optimism', 'ethereum'];
+            $chainsLabel = $solanaOn ? 'Base/Polygon/Arbitrum/Solana' : 'Base/Polygon/Arbitrum';
+            $errPayload['promo_code'] = (string) ($valResult['promo_code'] ?? 'MCPTRY50');
+            $errPayload['promo_url'] = (string) ($valResult['promo_url'] ?? 'https://grid402.online/pass?promo=MCPTRY50');
             $errPayload['upgrade_to_production'] = [
+                'free_promo' => [
+                    'code' => 'MCPTRY50',
+                    'credits' => 50,
+                    'redeem_url' => 'https://grid402.online/pass?promo=MCPTRY50',
+                    'description' => 'Unlock 50 free credits immediately (no wallet or signup needed) and send X-Payment: pass_g402_<token>.',
+                ],
                 'session_pass_url' => $upgradeSessionUrl,
-                'pix_instant_starter_url' => 'https://grid402.online/pass?tier=starter&autopix=1',
-                'pix_instant_pro_url' => 'https://grid402.online/pass?tier=pro&autopix=1',
-                'starter_tier' => '2.0000 USDC or R$ 12.00 (Pix/Card) = 400 credits (180d)',
+                'pix_micro_url' => 'https://grid402.online/pass?tier=micro&method=pix',
+                'pix_starter_url' => 'https://grid402.online/pass?tier=starter&method=pix',
+                'pix_instant_starter_url' => 'https://grid402.online/pass?tier=starter&method=pix',
+                'pix_pro_url' => 'https://grid402.online/pass?tier=pro&method=pix',
+                'starter_tier' => 'Micro R$ 4.90 (50 credits / 5 KYB dossiers) | Starter 2.0000 USDC or R$ 12.00 (Pix/Card) = 400 credits (180d)',
                 'how_to_continue' => [
+                    'free_promo_50_credits' => 'Claim 50 free credits using code MCPTRY50 at https://grid402.online/pass?promo=MCPTRY50 (no wallet required) and retry with X-Payment: pass_g402_<token>',
                     'x402_gasless' => 'Sign the x402 v2 challenge in accepts[] and retry with header PAYMENT-SIGNATURE: <base64_payload>',
-                    'x402_onchain' => "Send {$servicePriceDisplay} USDC to " . GRID402_WALLET_ADDRESS . ' on Base/Polygon/Arbitrum/Solana and retry with X-Payment: <tx_hash>',
-                    'session_pass_no_wallet' => 'Get a prepaid token at https://grid402.online/pass (Pix/Card or USDC) and retry with X-Payment: pass_g402_<token>',
+                    'x402_onchain' => "Send {$servicePriceDisplay} USDC to " . GRID402_WALLET_ADDRESS . " on {$chainsLabel} and retry with X-Payment: <tx_hash>",
+                    'session_pass_no_wallet' => 'Get a prepaid token at https://grid402.online/pass (Pix/Card or EVM USDC) and retry with X-Payment: pass_g402_<token>',
+                    'rapidapi_credit_card_usd' => 'Subscribe with international Credit Card (USD) at https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities',
                 ],
                 'rapidapi_credit_card_usd' => [
                     'plans' => 'BASIC Free (25/mo) | PRO $9.90/mo (1,500 std calls) | ULTRA $29.00/mo (6,000 std calls) | MEGA $79.00/mo (25,000 std calls; dedicated KYB quotas for /dossier and /compliance)',
@@ -1508,7 +1530,7 @@ if ($isValidApiAction) {
                     'web_markdown_email_network_url' => 'https://rapidapi.com/oliveiratc/api/grid402-web-to-markdown-email-verify-network-utilities',
                     'brazil_kyb_cnpj_anbima_url' => 'https://rapidapi.com/oliveiratc/api/brazil-kyb-cnpj-cgu-sanctions-anbima-workdays-api',
                 ],
-                'supported_chains' => ['base', 'arbitrum', 'polygon', 'optimism', 'ethereum', 'solana'],
+                'supported_chains' => $chainsList,
             ];
         }
         $logPaySource = $proofIsPayload
@@ -1687,7 +1709,7 @@ if ($isValidApiAction) {
                 'endpoint' => '/api/v1/' . $apiParam,
                 'reason' => $guardReason,
                 'upgrade_url' => (string) ($rapidGuard['upgrade_url'] ?? 'https://grid402.online/pass'),
-                'pix_instant_starter_url' => 'https://grid402.online/pass?tier=starter&autopix=1',
+                'pix_instant_starter_url' => 'https://grid402.online/pass?tier=starter&method=pix',
             ];
             if (isset($rapidGuard['daily_cap'])) {
                 $guardPayload['daily_cap'] = (int) $rapidGuard['daily_cap'];
@@ -2114,19 +2136,26 @@ if ($isValidApiAction) {
         $result['sandbox'] = true;
         $remQuota = (int) ($validation['remaining'] ?? 0);
         $limQuota = (int) ($validation['limit'] ?? GRID402_SANDBOX_RATE_LIMIT);
+        $solanaPublicOn = function_exists('grid402_is_solana_public_enabled') && grid402_is_solana_public_enabled();
         $result['sandbox_info'] = [
             'quota_remaining_today' => $remQuota,
             'quota_limit_per_day' => $limQuota,
             'quota_remaining_this_hour' => $remQuota,
             'quota_limit_per_hour' => $limQuota,
             'window_seconds' => defined('GRID402_SANDBOX_WINDOW_SECONDS') ? GRID402_SANDBOX_WINDOW_SECONDS : 86400,
-            'message' => "Consulta executada no Modo Sandbox de testes ({$remQuota}/{$limQuota} restantes hoje). Para chamadas em produção sem rate-limit (<15ms), adquira um Session Pass via Pix/Cartão (a partir de R$ 12 = 400 créditos) ou Multi-Chain USDC (Base, Polygon, Arbitrum, Solana).",
+            'message' => "Sandbox query executed ({$remQuota}/{$limQuota} remaining today). Unlock 50 FREE credits with code MCPTRY50 at https://grid402.online/pass?promo=MCPTRY50, or switch to production (<15ms) via Pix/Card (from R$ 4.90), RapidAPI (USD Card) or Multi-Chain EVM USDC (Base, Polygon, Arbitrum).",
             'upgrade_to_production' => [
+                'free_promo_code' => 'MCPTRY50',
+                'free_promo_url' => 'https://grid402.online/pass?promo=MCPTRY50',
                 'session_pass_pix_and_multichain_url' => 'https://grid402.online/pass?tier=starter&method=pix',
+                'micro_tier' => 'R$ 4,90 (Pix/Cartão) = 50 créditos (5 Dossiês KYB, 90 dias)',
                 'starter_tier' => 'R$ 12,00 (Pix/Cartão) ou 2.0000 USDC = 400 créditos (180 dias)',
                 'pro_tier' => 'R$ 29,00 (Pix/Cartão) ou 5.0000 USDC = 1.200 créditos (1.000 + 200 bônus, 180 dias)',
                 'fleet_tier' => 'R$ 115,00 (Pix/Cartão) ou 20.0000 USDC = 6.000 créditos (4.000 + 2.000 bônus, 365 dias)',
-                'supported_chains' => ['base', 'polygon', 'arbitrum', 'solana', 'optimism', 'ethereum'],
+                'rapidapi_credit_card_usd_url' => 'https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities',
+                'supported_chains' => $solanaPublicOn
+                    ? ['base', 'polygon', 'arbitrum', 'solana', 'optimism', 'ethereum']
+                    : ['base', 'polygon', 'arbitrum', 'optimism', 'ethereum'],
                 'header_example' => 'X-Payment: pass_g402_<id>_<hmac>',
             ],
         ];
@@ -3585,7 +3614,7 @@ grid402_log_public_visit('/');
                 </a>
                 <div class="badge-live">
                     <span class="badge-pulse"></span>
-                    <span data-i18n-count="<?php echo count($servicesCatalog); ?>" id="badge-live-text">Base · Polygon · Arbitrum · Solana • <?php echo count($servicesCatalog); ?>/<?php echo count($servicesCatalog); ?> Services Operational</span>
+                    <span data-i18n-count="<?php echo count($servicesCatalog); ?>" id="badge-live-text">Base · Polygon · Arbitrum • <?php echo count($servicesCatalog); ?>/<?php echo count($servicesCatalog); ?> Services Operational</span>
                 </div>
             </div>
         </div>
@@ -3593,7 +3622,7 @@ grid402_log_public_visit('/');
         <section class="hero">
             <div class="hero-tag" data-i18n="hero.tag">Global Microservices and M2M Oracle Hub for Autonomous AI Agents</div>
             <h1 data-i18n="hero.title">Grid402: Global Open-Data and Network Utilities Infrastructure for AI Agents</h1>
-            <p data-i18n="hero.desc">Access 25 global and regional endpoints: LLM-ready Web-to-Markdown Extractor (/extract), Zero-PII B2B Email Verifier (/email-verify), KYB 360 AI Dossier (APPROVED/FLAGGED/REJECTED), worldwide corporate identity (GLEIF LEI across 200+ countries), US Treasury OFAC SDN sanctions + Base Web3 AML, ECDSA timestamp notarization, DNS/SSL/BGP audits, ECB FX, Compliance 360, CEP, and CNPJ in milliseconds with zero signup or API keys. Gasless HTTP x402 via PayAI across Base, Polygon, Arbitrum, and Solana — or Prepaid Session Pass via Pix from R$ 12 (&lt;15ms).</p>
+            <p data-i18n="hero.desc">Access 25 global and regional endpoints: LLM-ready Web-to-Markdown Extractor (/extract), Zero-PII B2B Email Verifier (/email-verify), KYB 360 AI Dossier (APPROVED/FLAGGED/REJECTED), worldwide corporate identity (GLEIF LEI across 200+ countries), US Treasury OFAC SDN sanctions + Base Web3 AML, ECDSA timestamp notarization, DNS/SSL/BGP audits, ECB FX, Compliance 360, CEP, and CNPJ in milliseconds with zero signup or API keys. Gasless HTTP x402 via PayAI across Base, Polygon, and Arbitrum — or Prepaid Session Pass via Pix from R$ 4.90 / Credit Card USD on RapidAPI (&lt;15ms).</p>
             <div class="cta-group">
                 <a href="/pass?tier=starter&amp;method=pix" class="btn btn-primary" style="background: linear-gradient(135deg, #059669 0%, #10B981 100%); color: #04120D; font-weight: 800; box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35);" data-i18n="hero.btn.pix">⚡ Pix R$ 12 (400 créditos)</a>
                 <a href="/dossie-kyb" class="btn btn-primary" style="background: linear-gradient(135deg, #0052FF 0%, #00F0FF 100%); font-weight: 800; box-shadow: 0 4px 15px rgba(0, 82, 255, 0.4);" data-i18n="hero.btn.dossier">📄 Gerar Dossiê KYB</a>
@@ -3602,7 +3631,7 @@ grid402_log_public_visit('/');
                 <a href="/agents" class="btn btn-outline" data-i18n="hero.btn.agents">🤖 AI Agents Hub</a>
             </div>
             <p style="margin-top: .7rem; font-size: .82rem; color: var(--text-muted);" data-i18n-html="hero.subnote">
-                No credit card, no API key, no signup. Sandbox: <strong>3 queries per day per IP</strong>. Production: gasless x402 (Base, Polygon, Arbitrum, Solana) or Session Pass via Pix (R$ 12 = 400 credits).
+                No credit card, no API key, no signup. Sandbox: <strong>3 queries per day per IP</strong> or claim <strong>50 free credits</strong> with <code>MCPTRY50</code>. Production: gasless x402 (Base, Polygon, Arbitrum), RapidAPI (USD Card) or Pix (from R$ 4.90).
             </p>
         </section>
 
@@ -3747,7 +3776,9 @@ grid402_log_public_visit('/');
                     <button type="button" class="btn-sm btn-outline topup-net-btn" data-chain="polygon" onclick="selectTopupNetwork('polygon')" style="border-color: var(--border); color: var(--text-muted);">🟣 Polygon</button>
                     <button type="button" class="btn-sm btn-outline topup-net-btn" data-chain="optimism" onclick="selectTopupNetwork('optimism')" style="border-color: var(--border); color: var(--text-muted);">🔴 Optimism</button>
                     <button type="button" class="btn-sm btn-outline topup-net-btn" data-chain="ethereum" onclick="selectTopupNetwork('ethereum')" style="border-color: var(--border); color: var(--text-muted);">⟠ Ethereum</button>
+                    <?php if (function_exists('grid402_is_solana_public_enabled') && grid402_is_solana_public_enabled()): ?>
                     <button type="button" class="btn-sm btn-outline topup-net-btn" data-chain="solana" onclick="selectTopupNetwork('solana')" style="border-color: var(--border); color: var(--text-muted);">◎ Solana (SPL)</button>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -3823,6 +3854,18 @@ grid402_log_public_visit('/');
                         <button class="btn btn-outline" style="width: 100%; border-color: #00F0FF; color: #00F0FF;" onclick="startWeb3Topup(20, 'fleet')" id="btn-topup-fleet" data-i18n="topup.fleet.btn">Buy Fleet (20 USDC)</button>
                         <a href="/pass?tier=fleet" class="btn btn-outline" style="width: 100%; border-color: #10B981; color: #10B981; text-align: center; text-decoration: none; font-size: 0.86rem;" data-i18n="topup.fleet.pix_btn">Pay R$ 115 (Pix / Card)</a>
                     </div>
+                </div>
+            </div>
+
+            <!-- Opcao Fiat em USD (Cartao de Credito Internacional via RapidAPI) + Cupom MCPTRY50 -->
+            <div id="topup-rapidapi-usd-box" style="background: rgba(0, 82, 255, 0.10); border: 1px solid rgba(0, 240, 255, 0.35); border-radius: 12px; padding: 1.15rem 1.35rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 240px;">
+                    <strong style="color: #F8FAFC; font-size: 0.98rem;" data-i18n="topup.usd.title">💳 Outside Brazil or prefer International Credit Card (USD)?</strong>
+                    <div style="color: #94a3b8; font-size: 0.86rem; margin-top: 0.25rem;" data-i18n="topup.usd.desc">Subscribe with any USD credit card on RapidAPI Hub (Free Basic 25/mo · Pro $9.90/mo for 1,500 calls) or redeem 50 free credits with code MCPTRY50.</div>
+                </div>
+                <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+                    <a href="https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="background: linear-gradient(135deg, #0052FF 0%, #00F0FF 100%); color: #041024; font-weight: 800; text-decoration: none; white-space: nowrap; padding: 0.65rem 1.15rem;" data-i18n="topup.usd.cta">💳 Pay with Credit Card (USD) on RapidAPI</a>
+                    <a href="/pass?promo=MCPTRY50" class="btn btn-outline" style="border-color: rgba(16, 185, 129, 0.5); color: #34D399; text-decoration: none; white-space: nowrap; padding: 0.65rem 1rem;" data-i18n="topup.usd.promo_cta">🎁 Claim 50 Free Credits (MCPTRY50)</a>
                 </div>
             </div>
 
@@ -3913,6 +3956,7 @@ grid402_log_public_visit('/');
                 <div class="mode-toggle-group">
                     <button type="button" class="mode-toggle-btn active" id="btn-mode-challenge" onclick="setPlaygroundMode('challenge')" data-i18n="playground.btn.challenge">🔒 x402 Challenge (HTTP 402)</button>
                     <button type="button" class="mode-toggle-btn" id="btn-mode-sandbox" onclick="setPlaygroundMode('sandbox')" data-i18n="playground.btn.sandbox">🧪 Sandbox (3 queries/day)</button>
+                    <button type="button" class="mode-toggle-btn" id="btn-mode-pass" onclick="setPlaygroundMode('pass')" data-i18n="playground.btn.pass">🔑 Session Pass</button>
                     <button type="button" class="mode-toggle-btn" id="btn-mode-manual" onclick="setPlaygroundMode('manual')" data-i18n="playground.btn.manual">✍️ Validate External JSON</button>
                 </div>
                 <div class="playground-url-bar">
@@ -3939,6 +3983,14 @@ grid402_log_public_visit('/');
                         </p>
                         <div id="playground-params-inputs" style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem;">
                             <!-- Parametros dinamicos do preset atual -->
+                        </div>
+                        <div id="playground-pass-controls" style="display: none; background: rgba(0, 240, 255, 0.06); border: 1px solid rgba(0, 240, 255, 0.3); border-radius: 8px; padding: 0.85rem; margin-bottom: 0.85rem;">
+                            <label for="playground-pass-token-input" style="display: block; font-size: 0.8rem; font-weight: 700; color: #00F0FF; margin-bottom: 0.4rem;">🔑 Session Pass Token (<code>X-Payment</code>)</label>
+                            <input type="text" id="playground-pass-token-input" class="console-input" placeholder="pass_g402_..." autocomplete="off" style="width: 100%; font-family: var(--font-mono); font-size: 0.84rem;" />
+                            <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; font-size: 0.78rem; color: var(--text-muted);">
+                                <span id="playground-pass-balance-hint">Auto-loaded from your saved Session Pass when available.</span>
+                                <a href="/pass?promo=MCPTRY50" style="color: #34d399; text-decoration: none; font-weight: 700;">🎁 Get 50 free credits (MCPTRY50) →</a>
+                            </div>
                         </div>
                     </div>
 
@@ -4003,6 +4055,31 @@ grid402_log_public_visit('/');
                         </div>
                     </div>
 
+                    <!-- Card Dedicado de Limite Sandbox (HTTP 429 — Sem Loop de 402) -->
+                    <div id="playground-rate-limit-card" style="display: none; margin-bottom: 0.85rem; padding: 1rem 1.1rem; border-radius: 10px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(0, 82, 255, 0.16)); border: 1px solid rgba(245, 158, 11, 0.55);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+                            <strong style="color: #FCD34D; font-size: 0.92rem;">⏱️ Daily Free Sandbox Quota Reached (HTTP 429)</strong>
+                            <span style="font-size: 0.76rem; color: #34D399; font-weight: 700;">50 Free Credits Available</span>
+                        </div>
+                        <p id="playground-rate-limit-msg" style="margin: 0 0 0.75rem; font-size: 0.84rem; color: #E2E8F0; line-height: 1.5;">
+                            You hit the 3/day sandbox limit. Claim <strong>50 FREE credits</strong> right now (no wallet or signup needed) with code <code>MCPTRY50</code>, use an existing Session Pass, or pay via Pix / USD Card.
+                        </p>
+                        <div style="display: flex; gap: 0.55rem; flex-wrap: wrap;">
+                            <a href="/pass?promo=MCPTRY50" class="btn-sm" style="text-decoration:none; background: linear-gradient(135deg, #059669, #10B981); color: #04120D; font-weight: 800; padding: 0.52rem 0.95rem; border-radius: 7px;">
+                                🎁 Claim 50 Free Credits (MCPTRY50)
+                            </a>
+                            <button type="button" class="btn-sm btn-primary" onclick="setPlaygroundMode('pass')" style="padding: 0.52rem 0.9rem; font-size: 0.8rem; font-weight: 700;">
+                                🔑 Switch to Session Pass Mode
+                            </button>
+                            <a href="/pass" class="btn-sm btn-outline" style="text-decoration:none; border-color: rgba(0, 240, 255, 0.45); color: #00F0FF; font-weight: 700; padding: 0.5rem 0.85rem; border-radius: 7px;">
+                                ⚡ Buy Pass (Pix R$ 4.90+ / USDC)
+                            </a>
+                            <a href="https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities" target="_blank" rel="noopener noreferrer" class="btn-sm btn-outline" style="text-decoration:none; border-color: rgba(148, 163, 184, 0.45); color: #E2E8F0; font-weight: 700; padding: 0.5rem 0.85rem; border-radius: 7px;">
+                                💳 Credit Card (USD)
+                            </a>
+                        </div>
+                    </div>
+
                     <!-- Banner de Conversão Pós-Sandbox (HTTP 200 demo) -->
                     <div id="playground-sandbox-cta" style="display: none; margin-bottom: 0.75rem; padding: 0.85rem 1rem; border-radius: 10px; background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(0, 82, 255, 0.14)); border: 1px solid rgba(16, 185, 129, 0.45);">
                         <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
@@ -4011,11 +4088,14 @@ grid402_log_public_visit('/');
                                 <span id="playground-sandbox-quota-text">Ready for production without rate limits (&lt;15 ms)?</span>
                             </div>
                             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                <a href="/pass?tier=starter&amp;method=pix" class="btn-sm" style="text-decoration:none; background: linear-gradient(135deg, #059669, #10B981); color: #04120D; font-weight: 800; padding: 0.48rem 0.9rem; border-radius: 7px;">
-                                    ⚡ Gerar Pix Agora (R$ 12 = 400 créditos)
+                                <a href="/pass?promo=MCPTRY50" class="btn-sm" style="text-decoration:none; background: linear-gradient(135deg, #059669, #10B981); color: #04120D; font-weight: 800; padding: 0.48rem 0.9rem; border-radius: 7px;">
+                                    🎁 50 Free Credits (MCPTRY50)
+                                </a>
+                                <a href="/pass?tier=starter&amp;method=pix" class="btn-sm btn-outline" style="text-decoration:none; border-color: rgba(16, 185, 129, 0.55); color: #34D399; font-weight: 700; padding: 0.48rem 0.85rem; border-radius: 7px;">
+                                    ⚡ Pix R$ 4,90 / R$ 12
                                 </a>
                                 <a href="/pass" class="btn-sm btn-outline" style="text-decoration:none; border-color: rgba(0, 240, 255, 0.45); color: #00F0FF; font-weight: 700; padding: 0.48rem 0.85rem; border-radius: 7px;">
-                                    🌐 Multi-Chain USDC (6 redes)
+                                    🌐 EVM USDC &amp; USD Card
                                 </a>
                             </div>
                         </div>
@@ -4458,7 +4538,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                             <div style="color: var(--text-muted); margin-bottom: 4px; font-size: 0.75rem;" data-i18n="modal.web3.recipient">Recipient Address (Oracle Wallet):</div>
                             <div style="display: flex; gap: 8px; align-items: center;">
                                 <input type="text" id="web3-wallet-dest-input" readonly value="<?php echo GRID402_WALLET_ADDRESS; ?>" style="flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border); color: #fff; padding: 6px 8px; border-radius: 6px; font-size: 0.75rem; font-family: var(--font-mono);" />
-                                <button type="button" class="btn-sm" onclick="copyOracleAddress()" id="btn-copy-oracle" style="font-size: 0.75rem; padding: 6px 10px; white-space: nowrap;">📋 Copy</button>
+                                <button type="button" class="btn-sm" onclick="copyWeb3ModalAddress()" id="btn-copy-modal-oracle" style="font-size: 0.75rem; padding: 6px 10px; white-space: nowrap;">📋 Copy</button>
                             </div>
                         </div>
                     </div>
@@ -4913,7 +4993,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
         function setPlaygroundMode(mode) {
             currentPlaygroundMode = mode;
-            ['sandbox', 'challenge', 'manual'].forEach(m => {
+            ['sandbox', 'challenge', 'pass', 'manual'].forEach(m => {
                 const b = document.getElementById('btn-mode-' + m);
                 if (b) {
                     if (m === mode) {
@@ -4926,6 +5006,8 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
 
             const presetControls = document.getElementById('playground-preset-controls');
             const manualControls = document.getElementById('playground-manual-controls');
+            const passControls = document.getElementById('playground-pass-controls');
+            const passInput = document.getElementById('playground-pass-token-input');
             const colTitle = document.getElementById('playground-col-title');
             const runBtn = document.getElementById('btn-run-query');
 
@@ -4933,11 +5015,17 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             if (mode === 'manual') {
                 if (presetControls) presetControls.style.display = 'none';
                 if (manualControls) manualControls.style.display = 'flex';
+                if (passControls) passControls.style.display = 'none';
                 if (colTitle) colTitle.textContent = isEn ? 'Manual JSON Audit' : 'Auditoria Manual de JSON';
                 if (runBtn) runBtn.textContent = isEn ? '🔍 Audit JSON' : '🔍 Auditar JSON';
             } else {
                 if (presetControls) presetControls.style.display = 'block';
                 if (manualControls) manualControls.style.display = 'none';
+                if (passControls) passControls.style.display = (mode === 'pass') ? 'block' : 'none';
+                if (mode === 'pass' && passInput && !passInput.value.trim() && window.Grid402PassStorage) {
+                    const savedTok = window.Grid402PassStorage.load();
+                    if (savedTok) passInput.value = savedTok;
+                }
                 if (colTitle) colTitle.textContent = isEn ? 'Query Configuration' : 'Configuração da Consulta';
                 if (runBtn) runBtn.textContent = isEn ? '⚡ Run Query' : '⚡ Executar Consulta';
             }
@@ -4982,19 +5070,39 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             const runBtn = document.getElementById('btn-run-query');
             const unlockCard = document.getElementById('playground-unlock-card');
             const sandboxCta = document.getElementById('playground-sandbox-cta');
+            const rateLimitCard = document.getElementById('playground-rate-limit-card');
 
             const isEn = (typeof currentLanguage !== 'undefined' && currentLanguage === 'en');
             if (unlockCard) unlockCard.style.display = 'none';
             if (sandboxCta) sandboxCta.style.display = 'none';
-            if (statusBadge) statusBadge.textContent = isEn ? 'Sending...' : 'Enviando...';
-            if (latencyTag) latencyTag.style.display = 'none';
-            if (viewer) viewer.textContent = isEn ? '// Awaiting response from Grid402 hub...' : '// Aguardando resposta do hub Grid402...';
-            if (runBtn) runBtn.disabled = true;
+            if (rateLimitCard) rateLimitCard.style.display = 'none';
 
             const headers = { 'Accept': 'application/json' };
             if (currentPlaygroundMode === 'sandbox') {
                 headers['X-Payment'] = 'demo';
+            } else if (currentPlaygroundMode === 'pass') {
+                const passInp = document.getElementById('playground-pass-token-input');
+                let tok = passInp ? passInp.value.trim() : '';
+                if (!tok && window.Grid402PassStorage) {
+                    tok = window.Grid402PassStorage.load();
+                    if (tok && passInp) passInp.value = tok;
+                }
+                if (!tok || !tok.startsWith('pass_g402_')) {
+                    if (statusBadge) statusBadge.textContent = isEn ? 'Session Pass Required' : 'Token Session Pass Necessário';
+                    if (viewer) viewer.textContent = isEn
+                        ? '// Paste a valid pass_g402_... token above or claim 50 free credits with MCPTRY50 at /pass?promo=MCPTRY50'
+                        : '// Cole um token pass_g402_... válido acima ou resgate 50 créditos grátis com MCPTRY50 em /pass?promo=MCPTRY50';
+                    if (passInp) passInp.focus();
+                    return;
+                }
+                headers['X-Payment'] = tok;
+                if (window.Grid402PassStorage) window.Grid402PassStorage.save(tok);
             }
+
+            if (statusBadge) statusBadge.textContent = isEn ? 'Sending...' : 'Enviando...';
+            if (latencyTag) latencyTag.style.display = 'none';
+            if (viewer) viewer.textContent = isEn ? '// Awaiting response from Grid402 hub...' : '// Aguardando resposta do hub Grid402...';
+            if (runBtn) runBtn.disabled = true;
 
             const startTime = performance.now();
             try {
@@ -5010,7 +5118,18 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 }
 
                 if (response.status === 200) {
-                    if (statusBadge) statusBadge.textContent = 'HTTP 200 OK';
+                    const remPassCredits = response.headers.get('X-Pass-Credits-Remaining');
+                    if (statusBadge) {
+                        statusBadge.textContent = (currentPlaygroundMode === 'pass' && remPassCredits !== null)
+                            ? (`HTTP 200 OK · ${remPassCredits} cr left`)
+                            : 'HTTP 200 OK';
+                    }
+                    const passHint = document.getElementById('playground-pass-balance-hint');
+                    if (passHint && currentPlaygroundMode === 'pass' && remPassCredits !== null) {
+                        passHint.textContent = isEn
+                            ? `Active Pass • ${remPassCredits} credits remaining`
+                            : `Passe ativo • ${remPassCredits} créditos restantes`;
+                    }
                     if (sandboxCta && data && data.sandbox) {
                         const rem = data.sandbox_info
                             ? (data.sandbox_info.quota_remaining_today ?? data.sandbox_info.quota_remaining_this_hour)
@@ -5031,11 +5150,23 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     } else {
                         renderNonProofState(isEn ? 'No _oracle_proof block in response.' : 'Sem bloco _oracle_proof na resposta.');
                     }
-                } else if (response.status === 402 || response.status === 429) {
+                } else if (response.status === 429) {
                     if (statusBadge) {
-                        statusBadge.textContent = response.status === 429
-                            ? (isEn ? 'HTTP 429 Sandbox Quota Exceeded' : 'HTTP 429 Quota Sandbox Excedida')
-                            : 'HTTP 402 Payment Required';
+                        statusBadge.textContent = isEn ? 'HTTP 429 Sandbox Quota Exceeded' : 'HTTP 429 Cota Sandbox Excedida';
+                    }
+                    if (rateLimitCard) {
+                        const rlMsg = document.getElementById('playground-rate-limit-msg');
+                        if (rlMsg && data && data.message) {
+                            rlMsg.textContent = data.message;
+                        }
+                        rateLimitCard.style.display = 'block';
+                    }
+                    renderNonProofState(isEn
+                        ? 'Daily free sandbox quota reached (429). Claim 50 free credits with MCPTRY50 or use a Session Pass.'
+                        : 'Cota diária gratuita do Sandbox atingida (429). Resgate 50 créditos grátis com MCPTRY50 ou use um Session Pass.');
+                } else if (response.status === 402) {
+                    if (statusBadge) {
+                        statusBadge.textContent = 'HTTP 402 Payment Required';
                     }
                     renderPlaygroundUnlockCard(data);
                     render402ChallengeCard(data);
@@ -5807,7 +5938,15 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     if (statusBadge) statusBadge.textContent = 'HTTP ' + res.status;
                 }
             } catch (err) {
-                if (statusBadge) statusBadge.textContent = 'Pagamento Cancelado';
+                const isUserCancel = !!(err && (err.code === 4001 || err.code === 'ACTION_REJECTED' || err.code === 'CHOOSER_CANCELLED'));
+                const safeMsg = String((err && (err.shortMessage || err.message)) || err || 'Unknown wallet error').slice(0, 220);
+                if (isUserCancel) {
+                    if (statusBadge) statusBadge.textContent = 'Pagamento Cancelado';
+                } else {
+                    if (statusBadge) statusBadge.textContent = 'Falha no Pagamento Web3';
+                    if (viewer) viewer.textContent = '// Erro técnico no pagamento Web3: ' + safeMsg;
+                    renderNonProofState('Falha no pagamento Web3: ' + safeMsg);
+                }
             } finally {
                 if (btn) {
                     btn.disabled = false;
@@ -6222,8 +6361,8 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             });
         }
 
-        // Configuração Multi-Chain (5 Redes EVM + Solana SPL USDC) para Web3 Top-Up
-        const GRID402_MULTICHAIN_CONFIG = <?php echo json_encode(grid402_supported_networks(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
+        // Configuração Multi-Chain (redes ativas) para Web3 Top-Up
+        const GRID402_MULTICHAIN_CONFIG = <?php echo json_encode(grid402_public_networks(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE); ?>;
         let GRID402_SELECTED_TOPUP_NET = 'base';
 
         function selectTopupNetwork(slug) {
@@ -6357,6 +6496,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 if (statusTitle) statusTitle.textContent = '3/3 Aguardando confirmação em ' + netCfg.display_name + '...';
                 if (statusMsg) statusMsg.textContent = 'Confirme a transferência de ' + amountUsdc + ' USDC (' + netCfg.display_name + ') na sua carteira para o Grid402.';
 
+                let sentTxHash = '';
                 const txHash = await provider.request({
                     method: 'eth_sendTransaction',
                     params: [{
@@ -6365,15 +6505,37 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                         data: data,
                     }],
                 });
+                sentTxHash = String(txHash || '').trim();
+                const manualTxInput = document.getElementById('manual-pass-tx-input');
+                if (manualTxInput && sentTxHash) {
+                    manualTxInput.value = sentTxHash;
+                }
 
+                const txLinkHtml = '<a href="' + netCfg.explorer_tx_url + sentTxHash + '" target="_blank" rel="noopener noreferrer" style="color: #00F0FF; text-decoration: underline;">' + sentTxHash + '</a>';
                 if (statusTitle) statusTitle.textContent = 'Transação enviada! Confirmando em ' + netCfg.display_name + '...';
-                if (statusMsg) statusMsg.innerHTML = 'Tx enviada: <a href="' + netCfg.explorer_tx_url + txHash + '" target="_blank" style="color: #00F0FF; text-decoration: underline;">' + txHash + '</a><br>Aguardando 3.5 segundos para emissão do seu Session Pass...';
+                if (statusMsg) statusMsg.innerHTML = 'Tx enviada: ' + txLinkHtml + '<br>Aguardando confirmação on-chain (até 5 tentativas automáticas)...';
 
-                await new Promise(r => setTimeout(r, 3500));
-
-                // 4. Chama o checkout Web3 Multi-Chain para validar on-chain e emitir o Session Pass
-                const resp = await fetch('/api/v1/pass-emitir?chain=' + encodeURIComponent(netSlug) + '&tx=' + encodeURIComponent(txHash));
-                const passData = await resp.json();
+                // 4. Chama o checkout Web3 Multi-Chain com retry/backoff (5 tentativas) para nao perder o Pass em lag de RPC
+                const retryDelaysMs = [2500, 3000, 4000, 5000, 6000];
+                let passData = null;
+                let lastErrMsg = '';
+                for (let attempt = 0; attempt < retryDelaysMs.length; attempt++) {
+                    await new Promise(r => setTimeout(r, retryDelaysMs[attempt]));
+                    if (statusMsg) {
+                        statusMsg.innerHTML = 'Tx enviada: ' + txLinkHtml + '<br>Validando confirmação on-chain (tentativa ' + (attempt + 1) + '/' + retryDelaysMs.length + ')...';
+                    }
+                    try {
+                        const resp = await fetch('/api/v1/pass-emitir?chain=' + encodeURIComponent(netSlug) + '&tx=' + encodeURIComponent(sentTxHash));
+                        const parsed = await resp.json();
+                        if (parsed && (parsed.status === 'ACTIVE' || parsed.pass_token)) {
+                            passData = parsed;
+                            break;
+                        }
+                        lastErrMsg = (parsed && (parsed.message || parsed.error)) ? String(parsed.message || parsed.error) : ('HTTP ' + resp.status);
+                    } catch (fetchErr) {
+                        lastErrMsg = (fetchErr && fetchErr.message) ? String(fetchErr.message) : 'Erro temporário de rede';
+                    }
+                }
 
                 if (passData && (passData.status === 'ACTIVE' || passData.pass_token)) {
                     if (statusBox) statusBox.style.display = 'none';
@@ -6387,21 +6549,37 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     const exampleCurl = 'curl "https://grid402.online/api/v1/forex" -H "X-Payment: ' + passData.pass_token + '"';
                     document.getElementById('topup-example-curl').textContent = exampleCurl;
 
-                    try {
-                        localStorage.setItem('grid402_last_pass_token', passData.pass_token);
-                        document.cookie = 'g402_pass_token=' + encodeURIComponent(passData.pass_token) + '; path=/; max-age=2592000; SameSite=Lax';
-                        if (location.protocol === 'https:') {
-                            document.cookie = 'g402_pass_token=' + encodeURIComponent(passData.pass_token) + '; path=/; max-age=2592000; Secure; SameSite=Lax';
-                        }
-                    } catch (e) {}
+                    if (window.Grid402PassStorage && typeof window.Grid402PassStorage.save === 'function') {
+                        window.Grid402PassStorage.save(passData.pass_token);
+                    } else {
+                        try {
+                            localStorage.setItem('grid402_active_pass_token', passData.pass_token);
+                            localStorage.setItem('grid402_last_pass_token', passData.pass_token);
+                            document.cookie = 'g402_pass_token=' + encodeURIComponent(passData.pass_token) + '; path=/; max-age=2592000; SameSite=Lax';
+                            if (location.protocol === 'https:') {
+                                document.cookie = 'g402_pass_token=' + encodeURIComponent(passData.pass_token) + '; path=/; max-age=2592000; Secure; SameSite=Lax';
+                            }
+                        } catch (e) {}
+                    }
 
                     successCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 } else {
-                    throw new Error(passData.message || passData.error || 'A transação foi transmitida, mas o bloco ainda está propagando no RPC. Aguarde alguns segundos e clique em Validar na caixa manual.');
+                    const fallbackErr = new Error(lastErrMsg || 'A transação foi transmitida, mas o bloco ainda está propagando no RPC. Clique em Validar na caixa manual abaixo (seu txHash já foi preenchido).');
+                    fallbackErr.sentTxHash = sentTxHash;
+                    fallbackErr.explorerUrl = netCfg.explorer_tx_url + sentTxHash;
+                    throw fallbackErr;
                 }
             } catch (err) {
-                if (statusTitle) statusTitle.textContent = 'Operação cancelada ou falhou';
-                if (statusMsg) statusMsg.textContent = 'Detalhes do erro: ' + (err.message || err);
+                if (statusTitle) statusTitle.textContent = (err && err.sentTxHash) ? 'Transação enviada — finalize na caixa manual abaixo' : 'Operação cancelada ou falhou';
+                if (statusMsg) {
+                    if (err && err.sentTxHash) {
+                        const manualInput = document.getElementById('manual-pass-tx-input');
+                        if (manualInput) manualInput.value = err.sentTxHash;
+                        statusMsg.innerHTML = 'Sua transação já está na rede: <a href="' + err.explorerUrl + '" target="_blank" rel="noopener noreferrer" style="color: #00F0FF; text-decoration: underline;">' + err.sentTxHash + '</a><br>Detalhes: ' + String(err.message || err).replace(/</g, '&lt;') + '<br>Seu txHash foi preenchido automaticamente em <strong>Validar e Ativar Pass</strong> abaixo.';
+                    } else {
+                        statusMsg.textContent = 'Detalhes do erro: ' + (err.message || err);
+                    }
+                }
             } finally {
                 if (btn) {
                     btn.disabled = false;
@@ -6465,13 +6643,18 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     const exampleCurl = 'curl "https://grid402.online/api/v1/forex" -H "X-Payment: ' + passData.pass_token + '"';
                     document.getElementById('topup-example-curl').textContent = exampleCurl;
 
-                    try {
-                        localStorage.setItem('grid402_last_pass_token', passData.pass_token);
-                        document.cookie = 'g402_pass_token=' + encodeURIComponent(passData.pass_token) + '; path=/; max-age=2592000; SameSite=Lax';
-                        if (location.protocol === 'https:') {
-                            document.cookie = 'g402_pass_token=' + encodeURIComponent(passData.pass_token) + '; path=/; max-age=2592000; Secure; SameSite=Lax';
-                        }
-                    } catch (e) {}
+                    if (window.Grid402PassStorage && typeof window.Grid402PassStorage.save === 'function') {
+                        window.Grid402PassStorage.save(passData.pass_token);
+                    } else {
+                        try {
+                            localStorage.setItem('grid402_active_pass_token', passData.pass_token);
+                            localStorage.setItem('grid402_last_pass_token', passData.pass_token);
+                            document.cookie = 'g402_pass_token=' + encodeURIComponent(passData.pass_token) + '; path=/; max-age=2592000; SameSite=Lax';
+                            if (location.protocol === 'https:') {
+                                document.cookie = 'g402_pass_token=' + encodeURIComponent(passData.pass_token) + '; path=/; max-age=2592000; Secure; SameSite=Lax';
+                            }
+                        } catch (e) {}
+                    }
 
                     successCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 } else {
@@ -6597,10 +6780,12 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             if (e.target.id === 'web3-modal-overlay') closeWeb3Modal();
         }
 
-        function copyOracleAddress() {
+        function copyWeb3ModalAddress() {
             const input = document.getElementById('web3-wallet-dest-input');
+            if (!input) return;
             navigator.clipboard.writeText(input.value).then(() => {
-                const btn = document.getElementById('btn-copy-oracle');
+                const btn = document.getElementById('btn-copy-modal-oracle');
+                if (!btn) return;
                 const orig = btn.textContent;
                 btn.textContent = 'Copiado!';
                 setTimeout(() => { btn.textContent = orig; }, 2000);
@@ -6825,6 +7010,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             }
         }
     </script>
-    <script src="/assets/js/i18n.js?v=3.4.3"></script>
+    <script src="/assets/js/pass_storage.js?v=3.5.0"></script>
+    <script src="/assets/js/i18n.js?v=3.5.0"></script>
 </body>
 </html>

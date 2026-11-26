@@ -28,6 +28,8 @@ header('X-Content-Type-Options: nosniff');
 
 $domain = defined('GRID402_CANONICAL_DOMAIN') ? rtrim(GRID402_CANONICAL_DOMAIN, '/') : 'https://grid402.online';
 $isSandboxMp = grid402_mp_is_sandbox();
+$mpConfigured = $isSandboxMp || (grid402_mp_access_token() !== '');
+$rapidApiKybUrl = 'https://rapidapi.com/oliveiratc/api/brazil-kyb-cnpj-cgu-sanctions-anbima-workdays-api';
 $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
 ?>
 <!DOCTYPE html>
@@ -35,8 +37,8 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerar Dossiê 360º KYB de CNPJ com PDF e Pix (R$ 12 = 40 Dossiês) | Grid402</title>
-    <meta name="description" content="Consulte qualquer CNPJ na Receita Federal, Simples Nacional/MEI e Sanções CGU (CEIS/CNEP) com Veredito de Risco e assinatura criptográfica. Sem cadastro: pague via Pix (R$ 12 = 40 dossiês) e salve em PDF.">
+    <title>Gerar Dossiê 360º KYB de CNPJ com PDF e Pix (a partir de R$ 4,90) | Grid402</title>
+    <meta name="description" content="Consulte qualquer CNPJ na Receita Federal, Simples Nacional/MEI e Sanções CGU (CEIS/CNEP) com Veredito de Risco e assinatura criptográfica. Veja um exemplo real em PDF e pague via Pix (R$ 4,90 = 5 dossiês ou R$ 12 = 40 dossiês).">
     <link rel="canonical" href="<?php echo htmlspecialchars($domain . '/dossie-kyb', ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=2">
@@ -214,13 +216,16 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
         <h1>Gerador de Dossiê 360º KYB de CNPJ com PDF</h1>
         <p class="lead">
             Audite qualquer empresa brasileira em segundos: <strong>Receita Federal (CNPJ)</strong> + <strong>Simples Nacional / MEI</strong> + <strong>Sanções Federais CGU (CEIS/CNEP)</strong> + <strong>Veredito de Risco (APPROVED / FLAGGED / REJECTED)</strong> e assinatura criptográfica ECDSA.
-            Veja a prévia grátis e desbloqueie até <strong>40 dossiês completos por R$ 12 no Pix</strong> (R$ 0,30 por relatório).
+            Confira o <strong>exemplo real completo (com PDF)</strong> abaixo e comece no Pix por <strong>R$ 4,90 (5 dossiês)</strong> ou <strong>R$ 12 (40 dossiês — R$ 0,30 cada)</strong>.
         </p>
     </div>
 
-    <!-- Passo 1: Formulário de CNPJ -->
+    <!-- Passo 1: Formulário de CNPJ + Amostra Real Completa -->
     <section id="lookup-card" class="card card-highlight no-print" aria-labelledby="titulo-busca">
-        <h2 id="titulo-busca" style="margin:0 0 .85rem;font-size:1.15rem;">1. Informe o CNPJ para prévia grátis ou emissão imediata</h2>
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.65rem;margin-bottom:.85rem;">
+            <h2 id="titulo-busca" style="margin:0;font-size:1.15rem;">1. Informe o CNPJ ou abra o exemplo real completo</h2>
+            <button type="button" id="btn-open-sample-dossier" class="btn btn-outline" style="padding:.52rem .95rem;font-size:.86rem;border-color:rgba(0,240,255,.5);color:var(--cyan);">👁️ Ver Exemplo Real de Dossiê (com PDF)</button>
+        </div>
         <form id="cnpj-form" novalidate>
             <div class="form-grid">
                 <div>
@@ -239,7 +244,7 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
                     />
                 </div>
                 <div style="display:flex;gap:.55rem;flex-wrap:wrap;">
-                    <button type="submit" id="btn-preview" class="btn btn-primary">🔍 Ver Prévia Grátis</button>
+                    <button type="submit" id="btn-preview" class="btn btn-primary">📄 Ver Exemplo / Estrutura</button>
                     <button type="button" id="btn-direct-full" class="btn btn-pix" style="display:none;">⚡ Emitir Dossiê Completo</button>
                 </div>
             </div>
@@ -267,22 +272,38 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
         </div>
     </section>
 
-    <!-- Passo 2: Desbloquear via Pix R$ 12 ou Session Pass existente -->
+    <!-- Passo 2: Desbloquear via Pix (Micro R$ 4,90 ou Starter R$ 12) ou Session Pass existente -->
     <section id="unlock-grid" class="two-col no-print" aria-label="Opções de liberação do dossiê">
         <div class="card">
-            <div style="font-size:.76rem;text-transform:uppercase;letter-spacing:.06em;color:#34D399;font-weight:700;">Sem cadastro · Liberação imediata</div>
-            <h2 style="margin:.25rem 0 .4rem;font-size:1.2rem;">Pagar via Pix — R$ 12,00</h2>
-            <p style="color:var(--muted);font-size:.9rem;margin:0 0 .9rem;">
-                Você recebe um <strong>Starter Session Pass</strong> com <strong>400 créditos</strong> (validade de 180 dias), suficiente para gerar até <strong>40 Dossiês 360º KYB</strong> completos (ou 400 chamadas de API).
+            <div style="font-size:.76rem;text-transform:uppercase;letter-spacing:.06em;color:#34D399;font-weight:700;">Sem cadastro · Liberação imediata via Pix</div>
+            <h2 style="margin:.25rem 0 .45rem;font-size:1.2rem;">Escolha seu Pacote Pix</h2>
+            <p style="color:var(--muted);font-size:.88rem;margin:0 0 .85rem;">
+                Teste com <strong>R$ 4,90 (5 dossiês)</strong> ou leve o <strong>Starter por R$ 12,00 (40 dossiês — R$ 0,30 cada, 8x mais créditos)</strong>.
             </p>
+            <div id="kyb-tier-selector" role="radiogroup" aria-label="Escolher pacote Pix" style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:.9rem;">
+                <button type="button" id="btn-tier-micro" class="btn btn-outline kyb-tier-btn" data-tier="micro" style="flex-direction:column;align-items:flex-start;padding:.75rem;text-align:left;border-color:var(--border);">
+                    <span style="font-size:.72rem;text-transform:uppercase;color:#94A3B8;">Entrada · Teste Rápido</span>
+                    <strong style="font-size:1.08rem;color:#fff;">R$ 4,90</strong>
+                    <span style="font-size:.78rem;color:#CBD5E1;">50 créditos · 5 dossiês (90d)</span>
+                </button>
+                <button type="button" id="btn-tier-starter" class="btn btn-outline kyb-tier-btn" data-tier="starter" style="flex-direction:column;align-items:flex-start;padding:.75rem;text-align:left;border-color:#10B981;background:rgba(16,185,129,.12);">
+                    <span style="font-size:.72rem;text-transform:uppercase;color:#34D399;">Melhor Custo-Benefício</span>
+                    <strong style="font-size:1.08rem;color:#fff;">R$ 12,00</strong>
+                    <span style="font-size:.78rem;color:#E2E8F0;">400 créditos · 40 dossiês (R$ 0,30/un)</span>
+                </button>
+            </div>
             <?php if ($isSandboxMp): ?>
             <div style="font-size:.82rem;color:#FCD34D;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);border-radius:8px;padding:.55rem .75rem;margin-bottom:.85rem;">
                 Modo Sandbox Mercado Pago ativo neste ambiente de homologação.
             </div>
+            <?php elseif (!$mpConfigured): ?>
+            <div id="kyb-mp-unavailable" style="font-size:.83rem;color:#FCA5A5;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.45);border-radius:8px;padding:.65rem .8rem;margin-bottom:.85rem;">
+                Checkout BRL via Mercado Pago está temporariamente indisponível neste ambiente. Utilize <a href="/pass#multichain-web3" style="color:#00F0FF;">USDC Web3</a> ou <a href="<?php echo htmlspecialchars($rapidApiKybUrl, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" style="color:#00F0FF;">Cartão USD no RapidAPI</a>.
+            </div>
             <?php endif; ?>
-            <label for="pix-email">E-mail para recibo (opcional)</label>
-            <input type="email" id="pix-email" class="input" style="margin-bottom:.75rem;font-family:'Inter',sans-serif;" placeholder="financeiro@suaempresa.com.br" autocomplete="email" />
-            <button type="button" id="btn-gen-pix" class="btn btn-pix" style="width:100%;">⚡ Gerar QR Code Pix (R$ 12,00 = 40 Dossiês)</button>
+            <label for="pix-email">E-mail para recibo Pix (obrigatório)</label>
+            <input type="email" id="pix-email" class="input" style="margin-bottom:.75rem;font-family:'Inter',sans-serif;" placeholder="financeiro@suaempresa.com.br" autocomplete="email" required />
+            <button type="button" id="btn-gen-pix" class="btn btn-pix" style="width:100%;" <?php echo !$mpConfigured ? 'disabled' : ''; ?>>⚡ Gerar QR Code Pix (Starter — R$ 12,00 = 40 Dossiês)</button>
 
             <div id="pix-panel" class="pix-panel" aria-live="polite">
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;margin-bottom:.75rem;">
@@ -414,12 +435,61 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
     </nav>
 </main>
 
+<script src="/assets/js/pass_storage.js?v=3.5.0"></script>
 <script>
 (function () {
-    const STORAGE_KEY = 'grid402_session_pass';
+    const STORAGE_KEY = 'grid402_active_pass_token';
+    let selectedPixTier = 'starter';
     let lastDossierPayload = null;
     let currentOrderId = null;
     let pollInterval = null;
+
+    const SAMPLE_REAL_DOSSIER = {
+        is_sample_demo: true,
+        cnpj: '00000000000191',
+        verdict: {
+            decision: 'APPROVED',
+            score: 100,
+            summary: 'AMOSTRA ILUSTRATIVA — Empresa com cadastro ATIVO na Receita Federal e Nada Consta nos cadastros federais CGU CEIS/CNEP.'
+        },
+        cnpj_data: {
+            cnpj: '00000000000191',
+            razao_social: 'BANCO DO BRASIL SA',
+            nome_fantasia: 'DIRECAO GERAL',
+            situacao_cadastral: 'ATIVA',
+            data_abertura: '1966-08-01',
+            capital_social: 120000000000.00,
+            cnae_fiscal: '6422100',
+            cnae_fiscal_descricao: 'Bancos múltiplos, com carteira comercial',
+            logradouro: 'SAUN QUADRA 5 LOTE B TORRE I, II E III',
+            numero: 'S/N',
+            bairro: 'ASA NORTE',
+            municipio: 'BRASILIA',
+            uf: 'DF'
+        },
+        simples: {
+            optante_simples: false,
+            optante_mei: false,
+            data_opcao_simples: '—',
+            data_exclusao_simples: '—'
+        },
+        sanctions: {
+            has_sanctions: false,
+            total_sanctions: 0,
+            cadastros_consultados: ['CEIS', 'CNEP (CGU)'],
+            sanctions: []
+        },
+        _meta: {
+            source_authority: 'Receita Federal + CGU CEIS/CNEP (Amostra Ilustrativa Estática)',
+            fetched_at: '2026-11-26T18:00:00Z'
+        },
+        _oracle_proof: {
+            oracle_address: '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90',
+            algorithm: 'secp256k1-sha256',
+            data_hash: '0xSAMPLE_DEMONSTRATION_HASH_EMITIDO_COM_ASSINATURA_REAL_NO_DOSSIE_PAGO',
+            signature: '0xSAMPLE_DEMONSTRATION_ECDSA_SIGNATURE_VALIDAVEL_EM_POST_API_V1_VERIFY'
+        }
+    };
 
     const $ = (id) => document.getElementById(id);
 
@@ -455,48 +525,52 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
     function getActiveToken() {
         const typed = ($('pass-token-input').value || '').trim();
         if (typed) return typed;
-        try { return (localStorage.getItem(STORAGE_KEY) || '').trim(); } catch (_) { return ''; }
+        if (window.Grid402PassStorage) return window.Grid402PassStorage.load();
+        try { return (localStorage.getItem(STORAGE_KEY) || localStorage.getItem('grid402_session_pass') || '').trim(); } catch (_) { return ''; }
     }
 
     function saveToken(token) {
         const clean = (token || '').trim();
         $('pass-token-input').value = clean;
-        try { if (clean) localStorage.setItem(STORAGE_KEY, clean); } catch (_) {}
+        if (window.Grid402PassStorage && clean) {
+            window.Grid402PassStorage.save(clean);
+        } else {
+            try { if (clean) localStorage.setItem(STORAGE_KEY, clean); } catch (_) {}
+        }
         $('btn-direct-full').style.display = clean.startsWith('pass_g402_') ? 'inline-flex' : 'none';
+    }
+
+    function selectPixTier(tier) {
+        selectedPixTier = (tier === 'micro') ? 'micro' : 'starter';
+        document.querySelectorAll('.kyb-tier-btn').forEach((b) => {
+            const active = b.getAttribute('data-tier') === selectedPixTier;
+            b.style.borderColor = active ? '#10B981' : 'var(--border)';
+            b.style.background = active ? 'rgba(16,185,129,.12)' : 'transparent';
+        });
+        const btn = $('btn-gen-pix');
+        if (btn) {
+            btn.textContent = selectedPixTier === 'micro'
+                ? '⚡ Gerar QR Code Pix (Micro — R$ 4,90 = 5 Dossiês)'
+                : '⚡ Gerar QR Code Pix (Starter — R$ 12,00 = 40 Dossiês)';
+        }
+    }
+
+    function openRealSampleDossier() {
+        hideAlert();
+        lastDossierPayload = SAMPLE_REAL_DOSSIER;
+        renderFullReport(SAMPLE_REAL_DOSSIER, null);
+        $('credits-after-badge').textContent = '👁️ AMOSTRA REAL ILUSTRATIVA (Banco do Brasil) — Teste o botão "Imprimir / Salvar PDF (A4)" ao lado ou desbloqueie seu CNPJ acima por R$ 4,90 ou R$ 12.';
     }
 
     async function loadPreview(cnpjDigits) {
         hideAlert();
-        const btn = $('btn-preview');
-        const orig = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = 'Consultando prévia...';
-        try {
-            const res = await fetch('/api/v1/dossier?cnpj=' + encodeURIComponent(cnpjDigits), {
-                headers: { 'Accept': 'application/json' }
-            });
-            const data = await res.json();
-            if (res.status === 400) {
-                showAlert(data.message || 'CNPJ inválido. Verifique os 14 dígitos e tente novamente.');
-                return;
-            }
-            const preview = data.preview || {};
-            const locked = Array.isArray(data.locked_fields) ? data.locked_fields : ['verdict', 'score', 'simples', 'sanctions', '_oracle_proof'];
-            renderKv('preview-kv', [
-                ['CNPJ Consultado', formatCnpj(preview.cnpj || cnpjDigits)],
-                ['Razão Social / Prévia', preview.razao_social || preview.company_name || 'Registro localizado na base pública'],
-                ['UF / Situação', [preview.uf, preview.situacao_cadastral].filter(Boolean).join(' · ') || 'Disponível no dossiê completo'],
-                ['Cobertura', 'Receita Federal + Simples/MEI + CGU CEIS/CNEP']
-            ]);
-            $('preview-locked').innerHTML = locked.map((f) => '<span class="locked-pill">🔒 ' + esc(f) + '</span>').join('');
-            $('preview-card').classList.add('show');
-            $('preview-card').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        } catch (_) {
-            showAlert('Não foi possível consultar a prévia agora. Tente novamente em instantes.');
-        } finally {
-            btn.disabled = false;
-            btn.textContent = orig;
+        openRealSampleDossier();
+        const activeTok = getActiveToken();
+        if (activeTok && activeTok.startsWith('pass_g402_')) {
+            await fetchFullDossier(cnpjDigits, activeTok);
+            return;
         }
+        showAlert('Exibindo exemplo real completo do formato do Dossiê 360º KYB abaixo (inclusive pronto para PDF). Para consultar o CNPJ ' + formatCnpj(cnpjDigits) + ' ao vivo, escolha Micro (R$ 4,90 = 5 dossiês) ou Starter (R$ 12 = 40 dossiês) via Pix.', 'ok');
     }
 
     async function fetchFullDossier(cnpjDigits, token) {
@@ -611,18 +685,25 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
         $('report-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    async function generatePixStarter() {
+    async function generatePixSelected() {
         hideAlert();
+        const emailInput = $('pix-email');
+        const email = (emailInput ? emailInput.value : '').trim();
+        const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        if (!isValidEmail || email.toLowerCase().endsWith('@grid402.online')) {
+            showAlert('Informe um e-mail válido no campo acima para emitir o QR Code Pix.');
+            if (emailInput) emailInput.focus();
+            return;
+        }
         const btn = $('btn-gen-pix');
         const orig = btn.textContent;
         btn.disabled = true;
         btn.textContent = 'Gerando QR Code Pix...';
         try {
-            const email = ($('pix-email').value || '').trim();
             const res = await fetch('/api/v1/pass/mp-pix', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tier: 'starter', email })
+                body: JSON.stringify({ tier: selectedPixTier, email })
             });
             const data = await res.json();
             if (!res.ok || !data.ok) {
@@ -632,7 +713,8 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
             currentOrderId = data.order_id;
             $('pix-panel').classList.add('show');
             if (data.qr_code_base64) {
-                $('pix-qr-img').src = 'data:image/png;base64,' + data.qr_code_base64;
+                const mime = data.qr_mime || 'image/png';
+                $('pix-qr-img').src = 'data:' + mime + ';base64,' + data.qr_code_base64;
             }
             $('pix-code').value = data.qr_code || '';
             if (data.sandbox) {
@@ -730,7 +812,13 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
         }
     });
 
-    $('btn-gen-pix').addEventListener('click', generatePixStarter);
+    $('btn-gen-pix').addEventListener('click', generatePixSelected);
+    if ($('btn-open-sample-dossier')) {
+        $('btn-open-sample-dossier').addEventListener('click', openRealSampleDossier);
+    }
+    document.querySelectorAll('.kyb-tier-btn').forEach((btn) => {
+        btn.addEventListener('click', () => selectPixTier(btn.getAttribute('data-tier')));
+    });
 
     $('btn-copy-pix').addEventListener('click', async () => {
         const code = $('pix-code').value;

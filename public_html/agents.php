@@ -449,7 +449,7 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
             <div class="badge" data-i18n="agents.hero.badge">x402 Global Autonomous Agent Hub • 25 Services</div>
             <h1 data-i18n="agents.hero.title">Global Data and M2M Utility Infrastructure for AI Agents</h1>
             <p class="lead" data-i18n-html="agents.hero.lead">
-                Grid402 empowers autonomous AI agents (Claude, Cursor, LangChain, CrewAI, and Coinbase AgentKit) to query 25 global and Brazilian public-domain endpoints via <strong>gasless HTTP x402 (Base, Polygon, Arbitrum, Solana)</strong> or a <strong>Prepaid Session Pass (&lt;15ms)</strong>, settling USDC micropayments with <strong>ECDSA cryptographic proof</strong>.
+                Grid402 empowers autonomous AI agents (Claude, Cursor, LangChain, CrewAI, and Coinbase AgentKit) to query 25 global and Brazilian public-domain endpoints via <strong>gasless HTTP x402 (Base, Polygon, Arbitrum)</strong> or a <strong>Prepaid Session Pass (&lt;15ms)</strong>, settling USDC micropayments with <strong>ECDSA cryptographic proof</strong>.
             </p>
         </section>
 
@@ -575,7 +575,7 @@ curl -X POST "https://grid402.online/api/v1/verify" \
 
         <!-- Tabela de Endpoints -->
         <h2 class="section-title" data-i18n="agents.table.title">Catalog of All 25 Global Endpoints and Fees</h2>
-        <p class="section-sub" data-i18n="agents.table.sub">Per-call pricing in USDC across 4 gasless PayAI x402 chains (Base, Polygon, Arbitrum, Solana) or in Session Pass credits.</p>
+        <p class="section-sub" data-i18n="agents.table.sub">Per-call pricing in USDC across 3 gasless PayAI x402 EVM chains (Base, Polygon, Arbitrum) or in Session Pass credits.</p>
 
         <div class="table-wrap">
         <table>

@@ -1025,10 +1025,17 @@ function grid402_build_payment_requirements(int $version, int $requiredRawUnits,
     ];
 
     $extra = is_array($netSpec['extra'] ?? null) ? $netSpec['extra'] : [];
-    if ($authType === 'permit2' && ($netSpec['kind'] ?? 'evm') === 'evm') {
-        $extra['assetTransferMethod'] = 'permit2';
-        if (is_array($acceptedExtra) && !empty($acceptedExtra['spenderAddress']) && is_string($acceptedExtra['spenderAddress']) && preg_match('/^0x[a-fA-F0-9]{40}$/', trim($acceptedExtra['spenderAddress']))) {
-            $extra['spenderAddress'] = trim($acceptedExtra['spenderAddress']);
+    if (($netSpec['kind'] ?? 'evm') === 'evm') {
+        if ($authType === 'permit2') {
+            $extra['assetTransferMethod'] = 'permit2';
+            if (is_array($acceptedExtra) && !empty($acceptedExtra['spenderAddress']) && is_string($acceptedExtra['spenderAddress']) && preg_match('/^0x[a-fA-F0-9]{40}$/', trim($acceptedExtra['spenderAddress']))) {
+                $extra['spenderAddress'] = trim($acceptedExtra['spenderAddress']);
+            }
+        } elseif (is_array($acceptedExtra) && isset($acceptedExtra['assetTransferMethod']) && is_string($acceptedExtra['assetTransferMethod']) && strtolower(trim($acceptedExtra['assetTransferMethod'])) === 'eip3009') {
+            $extra['assetTransferMethod'] = 'eip3009';
+        }
+        if (is_array($acceptedExtra) && isset($acceptedExtra['eip2612GasSponsoring']) && is_bool($acceptedExtra['eip2612GasSponsoring'])) {
+            $extra['eip2612GasSponsoring'] = $acceptedExtra['eip2612GasSponsoring'];
         }
     }
 
@@ -1068,10 +1075,15 @@ function grid402_build_payment_requirements(int $version, int $requiredRawUnits,
         'extra' => $extra,
     ];
     if ($version === 1) {
+        $absResource = trim($resourceUrl);
+        if ($absResource !== '' && !preg_match('#^https?://#i', $absResource)) {
+            $canonicalBase = defined('GRID402_CANONICAL_DOMAIN') ? rtrim((string) GRID402_CANONICAL_DOMAIN, '/') : 'https://grid402.online';
+            $absResource = $canonicalBase . '/' . ltrim($absResource, '/');
+        }
         return $base + [
             'network' => $netSpec['v1'],
             'maxAmountRequired' => (string) $requiredRawUnits,
-            'resource' => $resourceUrl,
+            'resource' => $absResource,
             'description' => 'Grid402 micro-service',
             'mimeType' => 'application/json',
         ];
@@ -1274,10 +1286,23 @@ function grid402_verify_exact_payment(string $rawProof, int $requiredRawUnits, ?
         }
     }
     $acceptedExtra = is_array($clientAccepted['extra'] ?? null) ? $clientAccepted['extra'] : null;
+    $paymentRequirements = grid402_build_payment_requirements($decoded['version'], $requiredRawUnits, (string) $resourceUrl, $decoded['network'], $authType, $acceptedExtra, $clientAccepted);
+
+    // Normaliza paymentPayload.accepted (x402 v2) para evitar falsas rejeicoes de deepEqual no PayAI
+    if ($decoded['version'] === 2 && isset($paymentPayload['accepted']) && is_array($paymentPayload['accepted'])) {
+        $paymentPayload['accepted']['scheme'] = $paymentRequirements['scheme'];
+        $paymentPayload['accepted']['network'] = $paymentRequirements['network'];
+        $paymentPayload['accepted']['amount'] = $paymentRequirements['amount'];
+        $paymentPayload['accepted']['asset'] = $paymentRequirements['asset'];
+        $paymentPayload['accepted']['payTo'] = $paymentRequirements['payTo'];
+        $paymentPayload['accepted']['maxTimeoutSeconds'] = $paymentRequirements['maxTimeoutSeconds'];
+        $paymentPayload['accepted']['extra'] = $paymentRequirements['extra'];
+    }
+
     $requestBody = [
         'x402Version' => $decoded['version'],
         'paymentPayload' => $paymentPayload,
-        'paymentRequirements' => grid402_build_payment_requirements($decoded['version'], $requiredRawUnits, (string) $resourceUrl, $decoded['network'], $authType, $acceptedExtra, $clientAccepted),
+        'paymentRequirements' => $paymentRequirements,
     ];
     $unavailable = static fn(string $reason = 'Servico de liquidacao temporariamente indisponivel. Tente novamente em instantes.'): array => [
         'valid' => false,

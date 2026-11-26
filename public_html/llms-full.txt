@@ -61,13 +61,14 @@ X-Payment-Network: eip155:8453
 Existem 4 formas de liquidacao suportadas pelo Grid402:
 
 1. **Protocolo x402 v2 Oficial Multi-Chain Gasless via PayAI (Recomendado para Agentes M2M):**
-   - Aceita `exact` em `accepts[]`: Base (`eip155:8453`), Polygon (`eip155:137`), Arbitrum (`eip155:42161`) via EIP-3009 e Solana (`solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp`) quando habilitada.
+   - Aceita `exact` em `accepts[]`: Base (`eip155:8453`), Polygon (`eip155:137`) e Arbitrum (`eip155:42161`) via EIP-3009.
    - Reenvie a requisicao com o cabecalho `PAYMENT-SIGNATURE: <payload_base64>` (ou `X-Payment: <payload_base64>`).
    - O Grid402 valida e liquida via PayAI Facilitator e devolve HTTP 200 com o recibo de liquidacao no cabecalho `PAYMENT-RESPONSE`.
-   - Modo Sandbox gratuito para desenvolvimento em rotas de dados: `X-Payment: demo` (limite de 3 requisicoes por dia por IP; nao permitido em `/api/v1/pass`).
+   - Modo Sandbox gratuito para desenvolvimento em rotas de dados: `X-Payment: demo` (limite de 3 requisicoes por dia por IP; nao permitido em `/api/v1/pass`). Cupom gratuito: `MCPTRY50` (50 creditos em `https://grid402.online/pass?promo=MCPTRY50`).
 
 2. **Session Pass de Alta Frequencia (<15ms, sem espera de bloco, `1 credito = 0.0050 USDC`):**
    - Compre creditos pre-pagos no portal `https://grid402.online/pass` (Pix/Cartao ou USDC) ou via `GET /api/v1/pass` com pagamento real USDC (`PAYMENT-SIGNATURE` ou txHash):
+     - **Micro Pass (Pix R$ 4,90):** `50 creditos` (5 dossies KYB, validade 90 dias)
      - **Starter Pass (2 USDC / R$ 12):** `400 creditos` (validade 180 dias)
      - **Pro / Agent Pass (5 USDC / R$ 29):** `1.000 base + 200 bonus (+20%) = 1.200 creditos` (validade 180 dias)
      - **Fleet / Enterprise Pass (20 USDC / R$ 115):** `4.000 base + 2.000 bonus (+50%) = 6.000 creditos` (validade 365 dias)
@@ -269,10 +270,9 @@ Resposta de verificacao:
 - Exemplo: `/api/v1/email-verify?email=contato@grid402.online`
 - Descricao: Valida sintaxe RFC, registros DNS MX, politicas SPF e DMARC, dominios descartaveis (disposable), provedores gratuitos e enderecos role-based retornando `deliverability_score` (0 a 100) e `verdict` (`VALID`, `RISKY`, `INVALID`). Estritamente Zero-PII: nunca persiste o e-mail bruto em disco.
 
-### 26. Session Pass Pre-Pago Multi-Chain (5 Redes EVM + Solana) e Spend Controls
-- Emissao Multi-Chain: `POST /api/v1/pass-emitir` (`{"txHash": "...", "chain": "base|arbitrum|polygon|optimism|ethereum|solana"}`) ou `GET /api/v1/pass` (Starter 2 USDC = 400 creditos/180d, Pro 5 USDC = 1.000 base + 200 bonus = 1.200 creditos/180d, Fleet 20 USDC = 4.000 base + 2.000 bonus = 6.000 creditos/365d).
+### 26. Session Pass Pre-Pago Multi-Chain (5 Redes EVM) e Spend Controls
+- Emissao Multi-Chain: `POST /api/v1/pass-emitir` (`{"txHash": "...", "chain": "base|arbitrum|polygon|optimism|ethereum"}`) ou `GET /api/v1/pass` (Starter 2 USDC = 400 creditos/180d, Pro 5 USDC = 1.000 base + 200 bonus = 1.200 creditos/180d, Fleet 20 USDC = 4.000 base + 2.000 bonus = 6.000 creditos/365d).
 - Redes EVM (`0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`): Base (8453), Arbitrum One (42161), Polygon PoS (137), Optimism (10) e Ethereum Mainnet (1).
-- Rede Solana (`CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C`): SPL USDC (`EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`).
 - Consulta Gratuita de Saldo: `GET /api/v1/pass/balance?token=pass_g402_...` (0.0000 USDC)
 - Configuracao Gratuita de Spend Controls: `POST /api/v1/pass/limits` com `token`, `daily_credit_limit` e `allowed_endpoints`.
 - Extrato Zero-PII CSV/JSON (Gratuito): `GET /api/v1/pass/statement?token=pass_g402_...` (parametros opcionais: `format=json` ou `csv`, `endpoint`, `outcome`; retem ate 200 eventos recentes por passe) e painel visual em `/payment-dashboard`.

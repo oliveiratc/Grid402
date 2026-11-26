@@ -19,7 +19,10 @@ grid402_record_page_visit('/pass');
 $domain = defined('GRID402_CANONICAL_DOMAIN') ? rtrim(GRID402_CANONICAL_DOMAIN, '/') : 'https://grid402.online';
 $packages = grid402_mp_packages();
 $isSandbox = grid402_mp_is_sandbox();
-$supportedNets = grid402_supported_networks();
+$mpConfigured = $isSandbox || (grid402_mp_access_token() !== '');
+$solanaEnabled = function_exists('grid402_is_solana_public_enabled') && grid402_is_solana_public_enabled();
+$supportedNets = function_exists('grid402_public_networks') ? grid402_public_networks() : grid402_supported_networks();
+$rapidApiAllUrl = 'https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities';
 $requestedPromo = strtoupper(trim((string) ($_GET['promo'] ?? $_GET['code'] ?? '')));
 $promoStatus = $requestedPromo !== '' ? grid402_promo_get_status($requestedPromo) : null;
 $promoCampaign = (is_array($promoStatus) && !empty($promoStatus['ok'])) ? $promoStatus['campaign'] : null;
@@ -134,10 +137,23 @@ $promoCampaign = (is_array($promoStatus) && !empty($promoStatus['ok'])) ? $promo
     <div class="note" style="border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.08);" data-i18n-html="pass.sandbox_note">
         <strong>Mercado Pago Sandbox Mode active:</strong> payments generated here are simulated for testing and do not perform real charges.
     </div>
+    <?php elseif (!$mpConfigured): ?>
+    <div id="mp-unavailable-banner" class="note" style="border-color:rgba(239,68,68,.55);background:rgba(239,68,68,.10);color:#FCA5A5;">
+        <strong>Checkout BRL (Mercado Pago / Pix) temporariamente indisponível neste servidor.</strong> Utilize pagamento imediato via <a href="#multichain-web3" style="color:#00F0FF;">USDC Web3 (5 redes EVM)</a> ou <a href="<?php echo htmlspecialchars($rapidApiAllUrl, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" style="color:#00F0FF;">Cartão de Crédito em USD via RapidAPI</a>.
+    </div>
     <?php endif; ?>
 
+    <!-- Saida Fiat em USD via RapidAPI para visitantes internacionais -->
+    <section id="rapidapi-usd-section" aria-label="International Credit Card USD via RapidAPI" style="margin:1.25rem 0; background:rgba(0,82,255,.10); border:1px solid rgba(0,240,255,.35); border-radius:12px; padding:1.1rem 1.25rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.85rem;">
+        <div style="flex:1; min-width:240px;">
+            <strong style="color:#fff; font-size:1rem;" data-i18n="pass.usd.title">💳 International Credit Card (USD) — No Crypto Wallet or Pix Required</strong>
+            <div style="font-size:.87rem; color:var(--muted); margin-top:.2rem;" data-i18n="pass.usd.desc">Outside Brazil? Subscribe in USD with any credit card on RapidAPI Hub (Free Basic 25/mo • Pro $9.90/mo for 1,500 calls • Ultra $29/mo for 6,000 calls).</div>
+        </div>
+        <a id="btn-pass-rapidapi-usd" class="btn btn-card" style="width:auto; padding:.7rem 1.2rem; white-space:nowrap;" href="<?php echo htmlspecialchars($rapidApiAllUrl, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" data-i18n="pass.usd.cta">💳 Pay with Credit Card (USD) on RapidAPI →</a>
+    </section>
+
     <div class="email-row">
-        <label for="mp-email" style="font-size:.9rem;color:var(--muted);" data-i18n="pass.email.label">Email for receipt (optional):</label>
+        <label for="mp-email" style="font-size:.9rem;color:var(--muted);" data-i18n="pass.email.label">Email for Pix receipt (required for Pix/Card BRL):</label>
         <input type="email" id="mp-email" class="input" placeholder="dev@yourcompany.com" data-i18n-placeholder="pass.email.placeholder" autocomplete="email" />
     </div>
 
@@ -187,32 +203,46 @@ $promoCampaign = (is_array($promoStatus) && !empty($promoStatus['ok'])) ? $promo
     <div class="note" style="border-color:rgba(16,185,129,.45);background:rgba(16,185,129,.08);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem;">
         <div>
             <strong style="color:#10B981;" data-i18n="pass.pix_banner.title">⚡ Instant Activation via Pix BRL (No Signup / Zero-PII):</strong>
-            <span style="color:var(--text);" data-i18n-html="pass.pix_banner.desc"> Click <em>Pay with Pix</em> below, scan the QR Code in your banking app, and receive your <code>pass_g402_...</code> token on screen in under 5 seconds (100% public data under Brazil Law 12.527/2011 - LAI).</span>
+            <span style="color:var(--text);" data-i18n-html="pass.pix_banner.desc"> Start from <strong>R$ 4,90 (50 credits / 5 KYB dossiers)</strong> or pick <strong>Starter R$ 12 (400 credits = R$ 0,30/dossier, best value)</strong>. Fill in your email above and click <em>Pay with Pix</em>.</span>
         </div>
-        <button type="button" class="btn btn-pix" style="width:auto;padding:.55rem 1rem;" onclick="startMpPix('starter', this)" data-i18n="pass.pix_banner.cta">⚡ Generate R$ 12 Pix QR Now (400 credits)</button>
+        <button type="button" class="btn btn-pix" style="width:auto;padding:.55rem 1rem;" onclick="startMpPix('starter', this)" <?php echo !$mpConfigured ? 'disabled' : ''; ?> data-i18n="pass.pix_banner.cta">⚡ Generate R$ 12 Pix QR Now (400 credits)</button>
     </div>
     <div class="grid">
-        <?php foreach ($packages as $tier => $pkg): ?>
-        <div class="card <?php echo $tier === 'pro' ? 'featured' : ''; ?>">
+        <?php foreach ($packages as $tier => $pkg):
+            $isMicro = ($tier === 'micro');
+            $usdcInt = (int) ($pkg['raw_usdc_units'] / 1000000);
+            $dossiersCount = intdiv((int) $pkg['credits'], 10);
+        ?>
+        <div class="card <?php echo $tier === 'starter' ? 'featured' : ''; ?>" data-tier-card="<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>">
             <div>
-                <div class="tag"><?php echo htmlspecialchars($pkg['label'], ENT_QUOTES, 'UTF-8'); ?></div>
+                <div class="tag"><?php echo htmlspecialchars($pkg['label'], ENT_QUOTES, 'UTF-8'); ?><?php if ($tier === 'starter'): ?> · MELHOR CUSTO-BENEFÍCIO<?php endif; ?></div>
                 <div class="price">R$ <?php echo number_format((float) $pkg['amount_brl'], 2, ',', '.'); ?></div>
-                <div class="price-sub" data-i18n="pass.pkg.<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>.sub">or <?php echo (int) ($pkg['raw_usdc_units'] / 1000000); ?> USDC (6 chains)</div>
-                <div class="credits" data-i18n="pass.pkg.<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>.credits"><?php echo number_format((int) $pkg['credits'], 0, '.', ','); ?> credits (<?php echo number_format((int) $pkg['credits'], 0, '.', ','); ?> standard req)</div>
+                <div class="price-sub" data-i18n="pass.pkg.<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>.sub">
+                    <?php if ($isMicro): ?>
+                        Pix / Card BRL • 5 KYB Dossiers (90d trial tier)
+                    <?php else: ?>
+                        or <?php echo $usdcInt; ?> USDC (<?php echo count($supportedNets); ?> EVM chains) • R$ <?php echo number_format(((float) $pkg['amount_brl']) / max(1, $dossiersCount), 2, ',', '.'); ?>/dossier
+                    <?php endif; ?>
+                </div>
+                <div class="credits" data-i18n="pass.pkg.<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>.credits"><?php echo number_format((int) $pkg['credits'], 0, '.', ','); ?> credits (<?php echo $dossiersCount; ?> KYB dossiers or <?php echo number_format((int) $pkg['credits'], 0, '.', ','); ?> std calls)</div>
                 <p class="desc" data-i18n="pass.pkg.<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>.desc">
-                    <?php if ($tier === 'starter'): ?>
-                        Ideal for individual developers, quick tests, and spot bots (1 credit = 0.0050 USDC). Valid for 180 days.
+                    <?php if ($isMicro): ?>
+                        Low-friction Pix entry pack to validate up to 5 KYB 360º Dossiers or 50 standard API calls. Valid for 90 days.
+                    <?php elseif ($tier === 'starter'): ?>
+                        Best entry value: 8x more credits than Micro for only R$ 12 (R$ 0,30 per KYB Dossier; 1 credit = 0.0050 USDC). Valid for 180 days.
                     <?php elseif ($tier === 'pro'): ?>
-                        For autonomous AI agents and continuous automation pipelines (1,000 base + 200 bonus = 1,200 credits; 16.7% off). Most popular. Valid for 180 days.
+                        For autonomous AI agents and continuous automation pipelines (1,000 base + 200 bonus = 1,200 credits; 16.7% off). Valid for 180 days.
                     <?php else: ?>
                         Agent fleets, corporate ERP systems, and high demand (4,000 base + 2,000 bonus = 6,000 credits; 33.3% off). Valid for 365 days.
                     <?php endif; ?>
                 </p>
             </div>
             <div class="actions">
-                <button type="button" class="btn btn-pix" onclick="startMpPix('<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>', this)" data-i18n="pass.pkg.<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>.btn_pix">Pay with Pix (R$ <?php echo number_format((float) $pkg['amount_brl'], 0, ',', '.'); ?>)</button>
-                <button type="button" class="btn btn-card" onclick="startMpCheckoutPro('<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>', this)" data-i18n="pass.btn.card">Pay with Card (Mercado Pago)</button>
+                <button type="button" class="btn btn-pix" onclick="startMpPix('<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>', this)" <?php echo !$mpConfigured ? 'disabled' : ''; ?> data-i18n="pass.pkg.<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>.btn_pix">Pay with Pix (R$ <?php echo number_format((float) $pkg['amount_brl'], 2, ',', '.'); ?>)</button>
+                <button type="button" class="btn btn-card" onclick="startMpCheckoutPro('<?php echo htmlspecialchars($tier, ENT_QUOTES, 'UTF-8'); ?>', this)" <?php echo !$mpConfigured ? 'disabled' : ''; ?> data-i18n="pass.btn.card">Pay with Card (Mercado Pago)</button>
+                <?php if (!$isMicro): ?>
                 <a class="btn btn-outline" href="#multichain-web3" data-i18n="pass.btn.usdc">Pay with USDC (Web3)</a>
+                <?php endif; ?>
             </div>
         </div>
         <?php endforeach; ?>
@@ -239,7 +269,7 @@ $promoCampaign = (is_array($promoStatus) && !empty($promoStatus['ok'])) ? $promo
     <section id="multichain-web3" style="margin-top:2rem; background:var(--surface); border:1px solid rgba(0,240,255,.35); border-radius:14px; padding:1.5rem;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; margin-bottom:.75rem;">
             <h2 style="margin:0; font-size:1.25rem;" data-i18n="pass.web3.title">⚡ Multi-Chain Web3 Payment (USDC)</h2>
-            <span style="font-size:.78rem; padding:.2rem .65rem; border-radius:999px; background:rgba(0,240,255,.12); color:var(--cyan); border:1px solid rgba(0,240,255,.3);" data-i18n="pass.web3.badge">6 Supported Chains</span>
+            <span style="font-size:.78rem; padding:.2rem .65rem; border-radius:999px; background:rgba(0,240,255,.12); color:var(--cyan); border:1px solid rgba(0,240,255,.3);" data-i18n="pass.web3.badge"><?php echo count($supportedNets); ?> Supported Chains</span>
         </div>
         <p style="margin-top:0; color:var(--muted); font-size:.92rem;" data-i18n-html="pass.web3.subtitle">
             Choose your preferred blockchain to issue a Session Pass (<strong>2 USDC</strong> Starter • <strong>5 USDC</strong> Pro • <strong>20 USDC</strong> Fleet) with zero bridge fees:
@@ -251,7 +281,9 @@ $promoCampaign = (is_array($promoStatus) && !empty($promoStatus['ok'])) ? $promo
             <button type="button" class="btn btn-outline pass-net-btn" data-chain="polygon" onclick="selectPassNetwork('polygon')" style="width:auto; padding:.45rem .85rem;">🟣 Polygon</button>
             <button type="button" class="btn btn-outline pass-net-btn" data-chain="optimism" onclick="selectPassNetwork('optimism')" style="width:auto; padding:.45rem .85rem;">🔴 Optimism</button>
             <button type="button" class="btn btn-outline pass-net-btn" data-chain="ethereum" onclick="selectPassNetwork('ethereum')" style="width:auto; padding:.45rem .85rem;">⟠ Ethereum</button>
+            <?php if ($solanaEnabled && isset($supportedNets['solana'])): ?>
             <button type="button" class="btn btn-outline pass-net-btn" data-chain="solana" onclick="selectPassNetwork('solana')" style="width:auto; padding:.45rem .85rem;">◎ Solana (SPL)</button>
+            <?php endif; ?>
         </div>
 
         <!-- 1-Click EIP-1193 Wallet Checkout (MetaMask, Coinbase Wallet, Rabby) -->
@@ -278,6 +310,7 @@ $promoCampaign = (is_array($promoStatus) && !empty($promoStatus['ok'])) ? $promo
                 </div>
                 <code id="pass-evm-addr" style="color:var(--cyan); font-size:.82rem; word-break:break-all;"><?php echo htmlspecialchars((string) $supportedNets['base']['recipient'], ENT_QUOTES, 'UTF-8'); ?></code>
             </div>
+            <?php if ($solanaEnabled && isset($supportedNets['solana'])): ?>
             <div style="background:#060B19; border:1px solid var(--border); border-radius:10px; padding:.85rem 1rem;">
                 <div style="display:flex; justify-content:space-between; align-items:center; gap:.5rem; margin-bottom:.35rem;">
                     <span style="font-size:.78rem; color:var(--muted);">Solana Wallet (SPL USDC):</span>
@@ -285,6 +318,7 @@ $promoCampaign = (is_array($promoStatus) && !empty($promoStatus['ok'])) ? $promo
                 </div>
                 <code id="pass-sol-addr" style="color:#10B981; font-size:.82rem; word-break:break-all;"><?php echo htmlspecialchars((string) $supportedNets['solana']['recipient'], ENT_QUOTES, 'UTF-8'); ?></code>
             </div>
+            <?php endif; ?>
         </div>
 
         <div id="pass-selected-net-info" style="font-size:.85rem; color:#CBD5E1; margin-bottom:.85rem;">
@@ -292,7 +326,7 @@ $promoCampaign = (is_array($promoStatus) && !empty($promoStatus['ok'])) ? $promo
         </div>
 
         <div style="display:flex; gap:.6rem; flex-wrap:wrap; align-items:center;">
-            <input type="text" id="pass-mc-tx-input" placeholder="Paste your USDC tx_hash (0x...) or Solana Base58 signature" aria-label="USDC transaction hash or Solana signature" style="flex:1; min-width:240px; padding:.65rem .85rem; border-radius:8px; border:1px solid var(--border); background:#060B19; color:#fff; font-family:monospace; font-size:.86rem;">
+            <input type="text" id="pass-mc-tx-input" placeholder="<?php echo $solanaEnabled ? 'Paste your USDC tx_hash (0x...) or Solana Base58 signature' : 'Paste your EVM USDC tx_hash (0x...)'; ?>" aria-label="USDC transaction hash" style="flex:1; min-width:240px; padding:.65rem .85rem; border-radius:8px; border:1px solid var(--border); background:#060B19; color:#fff; font-family:monospace; font-size:.86rem;">
             <button type="button" class="btn btn-pix" style="width:auto;" onclick="validateMultiChainPass(this)">⚡ Validate Transaction &amp; Issue Pass</button>
         </div>
         <div id="pass-mc-feedback" style="margin-top:.65rem; font-size:.86rem; color:var(--muted);"></div>
@@ -550,13 +584,18 @@ function showIssuedPass(data) {
         data.promo_code ? 'Your free promotional Session Pass is active and ready to use across all 25 APIs and 27 MCP tools.' : 'Your Session Pass is active and ready to use.',
         true
     );
-    // Persiste o token em cookie para o banner de reengagement reconhecer o usuário
-    try {
-        document.cookie = 'g402_pass_token=' + encodeURIComponent(data.pass_token) + '; path=/; max-age=2592000; SameSite=Lax';
-        if (location.protocol === 'https:') {
-            document.cookie = 'g402_pass_token=' + encodeURIComponent(data.pass_token) + '; path=/; max-age=2592000; Secure; SameSite=Lax';
-        }
-    } catch (_) {}
+    // Persiste o token na chave unificada (localStorage + cookie) para reconhecimento em todas as paginas
+    if (window.Grid402PassStorage && typeof window.Grid402PassStorage.save === 'function') {
+        window.Grid402PassStorage.save(data.pass_token);
+    } else {
+        try {
+            localStorage.setItem('grid402_active_pass_token', data.pass_token);
+            document.cookie = 'g402_pass_token=' + encodeURIComponent(data.pass_token) + '; path=/; max-age=2592000; SameSite=Lax';
+            if (location.protocol === 'https:') {
+                document.cookie = 'g402_pass_token=' + encodeURIComponent(data.pass_token) + '; path=/; max-age=2592000; Secure; SameSite=Lax';
+            }
+        } catch (_) {}
+    }
 }
 
 async function testIssuedPassNow(btn) {
@@ -666,12 +705,23 @@ function startPolling(orderId) {
 }
 
 async function startMpPix(tier, btn) {
+    const emailInput = document.getElementById('mp-email');
+    const email = emailInput ? emailInput.value.trim() : '';
+    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    if (!isValidEmail || email.toLowerCase().endsWith('@grid402.online')) {
+        showPanel('Informe um e-mail válido para o Pix', 'Digite seu e-mail no campo acima para emitir o QR Code Pix e receber o comprovante com segurança.');
+        document.getElementById('mp-pix-area').style.display = 'none';
+        if (emailInput) {
+            emailInput.focus();
+            emailInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+    }
     const orig = btn.textContent;
     btn.disabled = true;
     btn.textContent = 'Generating Pix...';
     document.getElementById('mp-success-area').style.display = 'none';
     try {
-        const email = document.getElementById('mp-email').value.trim();
         const res = await fetch('/api/v1/pass/mp-pix', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -784,18 +834,23 @@ function copyToken(btn) {
         return;
     }
 
-    // Conversão instantânea (1 clique vindo do Playground, MCP ou CTA externo): /pass?tier=starter&method=pix ou /pass?tier=starter&autopix=1
-    const reqTier = (params.get('tier') || 'starter').toLowerCase();
+    // Destaque visual do plano solicitado na URL sem disparar cobranca Pix automaticamente antes da leitura
+    const reqTier = (params.get('tier') || '').toLowerCase();
     const reqMethod = (params.get('method') || '').toLowerCase();
     const autoPix = params.get('autopix') === '1' || params.get('autopix') === 'true';
-    if ((reqMethod === 'pix' || autoPix) && ['starter', 'pro', 'fleet'].includes(reqTier)) {
-        const pixBtn = document.querySelector(`button[onclick*="startMpPix('${reqTier}'"]`);
-        if (pixBtn) {
-            setTimeout(() => startMpPix(reqTier, pixBtn), 250);
+    if (['micro', 'starter', 'pro', 'fleet'].includes(reqTier)) {
+        const targetCard = document.querySelector(`.card[data-tier-card="${reqTier}"]`);
+        if (targetCard) {
+            targetCard.classList.add('featured');
+            targetCard.style.outline = '2px solid var(--green)';
+            if (reqMethod === 'pix' || autoPix) {
+                targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         }
     }
 })();
 </script>
-<script src="/assets/js/i18n.js?v=3.4.3"></script>
+<script src="/assets/js/pass_storage.js?v=3.5.0"></script>
+<script src="/assets/js/i18n.js?v=3.5.0"></script>
 </body>
 </html>

@@ -155,7 +155,7 @@ $checkedAt = $summary['timestamp'] ?? gmdate('Y-m-d\TH:i:s\Z');
                 </tr>
                 <tr>
                     <td><strong>Commercial Model</strong></td>
-                    <td>Zero sign-up, zero monthly fee. Per-request settlement via HTTP 402 (<code>0.0050 to 0.0500 USDC</code> across 6 chains) or prepaid Session Pass (<code>1 credit = 0.0050 USDC</code>).</td>
+                    <td>Zero sign-up, zero monthly fee. Per-request settlement via HTTP 402 (<code>0.0050 to 0.0500 USDC</code> across 5 EVM chains) or prepaid Session Pass (<code>1 credit = 0.0050 USDC</code>).</td>
                     <td>Annual contracts with minimum monthly commitment, manual onboarding approval, and postpaid billing.</td>
                 </tr>
             </tbody>

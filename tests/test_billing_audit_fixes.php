@@ -444,13 +444,27 @@ try {
     // =========================================================================
     echo "\n[5/9] V-06 + Extra #1 — MCP HTTP (@x402/mcp, objeto _meta, refund e telemetria):\n";
 
-    // 5.1 Sem pagamento -> formato @x402/mcp + header PAYMENT-REQUIRED
+    // 5.1 Sem pagamento -> 1a chamada recebe auto-trial 1/dia (mcp_sandbox); 2a chamada retorna formato @x402/mcp + header PAYMENT-REQUIRED
+    $rMcpTrial = $httpReq('POST', "{$baseUrl}/mcp", ['Content-Type: application/json'], json_encode([
+        'jsonrpc' => '2.0', 'id' => 200, 'method' => 'tools/call',
+        'params' => ['name' => 'grid402_forex', 'arguments' => []],
+    ]));
+    $mcpTrialTxt = (string) ($rMcpTrial['json']['result']['content'][0]['text'] ?? '');
+    $mcpTrialPayload = json_decode($mcpTrialTxt, true) ?: [];
+    t_assert('V-06/RF10: /mcp 1a chamada sem pagamento concede auto-trial 1/dia (mcp_sandbox)',
+        $rMcpTrial['code'] === 200 &&
+        empty($rMcpTrial['json']['result']['isError']) &&
+        !empty($mcpTrialPayload['sandbox']) &&
+        ($mcpTrialPayload['_trial_notice']['mode'] ?? '') === 'mcp_sandbox',
+        substr($rMcpTrial['body'], 0, 240)
+    );
+
     $rMcp402 = $httpReq('POST', "{$baseUrl}/mcp", ['Content-Type: application/json'], json_encode([
         'jsonrpc' => '2.0', 'id' => 201, 'method' => 'tools/call',
         'params' => ['name' => 'grid402_forex', 'arguments' => []],
     ]));
     $mcpErrMeta = $rMcp402['json']['result']['_meta']['x402/error'] ?? [];
-    t_assert('V-06: /mcp sem pagamento devolve result.isError=true + _meta[x402/error] + PAYMENT-REQUIRED',
+    t_assert('V-06: /mcp 2a chamada sem pagamento devolve result.isError=true + _meta[x402/error] + PAYMENT-REQUIRED',
         $rMcp402['code'] === 200 &&
         ($rMcp402['json']['result']['isError'] ?? false) === true &&
         ($mcpErrMeta['x402Version'] ?? 0) === 2 &&

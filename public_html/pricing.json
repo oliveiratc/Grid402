@@ -14,8 +14,7 @@
     "networks": [
       "eip155:8453",
       "eip155:137",
-      "eip155:42161",
-      "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"
+      "eip155:42161"
     ],
     "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
     "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",

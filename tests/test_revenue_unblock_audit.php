@@ -127,7 +127,25 @@ try {
         ($metricsAfterPass['total_paid_requests'] ?? 0) === 1 && abs((float)($metricsAfterPass['total_revenue_usdc'] ?? 0.0)) < 0.0001
     );
 
-    echo "\n=== [5] Hosted MCP (/mcp.php): precos corretos e execucao com Session Pass sem TypeError ===\n";
+    echo "\n=== [5] Hosted MCP (/mcp.php): precos corretos, auto-trial 1/dia e execucao com Session Pass sem TypeError ===\n";
+    // 1a chamada sem credencial recebe auto-trial 1/dia (mcp_sandbox) com _trial_notice
+    $mcpAutoTrial = rev_http('POST', "{$baseUrl}/mcp.php", ['Content-Type: application/json'], json_encode([
+        'jsonrpc' => '2.0',
+        'id' => 10,
+        'method' => 'tools/call',
+        'params' => ['name' => 'grid402_domain_audit', 'arguments' => ['domain' => 'base.org']],
+    ]));
+    $mcpTrialJson = json_decode($mcpAutoTrial['body'], true) ?: [];
+    $mcpTrialPayload = json_decode((string) ($mcpTrialJson['result']['content'][0]['text'] ?? ''), true) ?: [];
+    rev_check(
+        'MCP 1a chamada sem pagamento concede auto-trial 1/dia (mcp_sandbox) com _trial_notice MCPTRY50',
+        empty($mcpTrialJson['result']['isError']) &&
+        !empty($mcpTrialPayload['sandbox']) &&
+        ($mcpTrialPayload['_trial_notice']['mode'] ?? '') === 'mcp_sandbox',
+        'body=' . substr($mcpAutoTrial['body'], 0, 220)
+    );
+
+    // 2a chamada sem pagamento no mesmo dia retorna formato @x402/mcp com 0.0150 USDC (15000)
     $mcpUnpaid = rev_http('POST', "{$baseUrl}/mcp.php", ['Content-Type: application/json'], json_encode([
         'jsonrpc' => '2.0',
         'id' => 1,
@@ -137,7 +155,7 @@ try {
     $mcpUnpaidJson = json_decode($mcpUnpaid['body'], true) ?: [];
     $mcpUnpaidErr = $mcpUnpaidJson['result']['_meta']['x402/error'] ?? [];
     rev_check(
-        'MCP domain_audit sem pagamento retorna formato @x402/mcp (isError + _meta[x402/error] + PAYMENT-REQUIRED) com 0.0150 USDC (15000)',
+        'MCP domain_audit 2a chamada sem pagamento retorna formato @x402/mcp (isError + _meta[x402/error] + PAYMENT-REQUIRED) com 0.0150 USDC (15000)',
         ($mcpUnpaidJson['result']['isError'] ?? false) === true &&
         ($mcpUnpaidErr['price_usdc'] ?? '') === '0.0150' &&
         ($mcpUnpaidErr['price_raw_units'] ?? 0) === 15000 &&

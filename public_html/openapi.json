@@ -3,7 +3,7 @@
   "info": {
     "title": "Grid402 // Global M2M Open Data & Network Utilities Hub",
     "version": "3.4.0",
-    "description": "High-performance autonomous M2M public data, web-to-markdown extraction, Zero-PII email deliverability audit, global compliance (GLEIF LEI, OFAC SDN, Web3 AML), cryptographic notarization, world markets (ECB), and network utilities oracle designed for AI agents, crawlers, and automation pipelines. Settled via gasless HTTP x402 v2 (PayAI across Base, Polygon, Arbitrum, Solana) or Prepaid Session Passes (<15ms).",
+    "description": "High-performance autonomous M2M public data, web-to-markdown extraction, Zero-PII email deliverability audit, global compliance (GLEIF LEI, OFAC SDN, Web3 AML), cryptographic notarization, world markets (ECB), and network utilities oracle designed for AI agents, crawlers, and automation pipelines. Settled via gasless HTTP x402 v2 (PayAI across Base, Polygon, Arbitrum) or Prepaid Session Passes (<15ms).",
     "contact": {
       "name": "Grid402 Support",
       "url": "https://grid402.online",
@@ -1641,13 +1641,13 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-Payment",
-        "description": "Gasless x402 v2 PAYMENT-SIGNATURE (PayAI across Base, Polygon, Arbitrum, Solana), Session Pass token (pass_g402_...), or on-chain USDC transaction hash. For free testing and CI/CD, pass value 'demo' to simulate in Sandbox mode (up to 3 calls/day per IP)."
+        "description": "Gasless x402 v2 PAYMENT-SIGNATURE (PayAI across Base, Polygon, Arbitrum), Session Pass token (pass_g402_...), or on-chain USDC transaction hash. For free testing and CI/CD, pass value 'demo' to simulate in Sandbox mode (up to 3 calls/day per IP) or claim 50 free credits with MCPTRY50 at https://grid402.online/pass?promo=MCPTRY50."
       },
       "x402PaymentSignature": {
         "type": "apiKey",
         "in": "header",
         "name": "PAYMENT-SIGNATURE",
-        "description": "Official HTTP x402 v2 base64-encoded payment authorization payload (EIP-3009 on Base, Polygon, Arbitrum or SVM on Solana) settled gaslessly via PayAI Facilitator."
+        "description": "Official HTTP x402 v2 base64-encoded payment authorization payload (EIP-3009 on Base, Polygon, Arbitrum) settled gaslessly via PayAI Facilitator."
       }
     },
     "responses": {

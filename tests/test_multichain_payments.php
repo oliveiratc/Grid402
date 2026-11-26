@@ -19,8 +19,7 @@ $passed = 0;
 function mc_check(bool $cond, string $msg): void {
     global $passed;
     if (!$cond) {
-        fwrite(STDERR, "  [FAIL] {$msg}\n");
-        exit(1);
+        throw new RuntimeException("  [FAIL] {$msg}");
     }
     $passed++;
     echo "  [PASS] {$msg}\n";
@@ -188,70 +187,104 @@ mc_check(str_starts_with(grid402_explorer_tx_url('solana', $sampleSolSig), 'http
 
 // 5. Testes E2E HTTP via servidor local
 echo "\n[5] Subindo servidor HTTP local para testar HTTP 402, /api/v1/pass-emitir e UI /pass...\n";
-$server = grid402_start_server(['router' => __DIR__ . '/router.php']);
-$baseUrl = $server['base_url'];
+$serverDefault = grid402_start_server([
+    'router' => __DIR__ . '/router.php',
+    'env' => ['GRID402_SOLANA_X402_ENABLED' => 'false'],
+]);
+$serverSolanaOn = null;
 
-$httpReq = static function (string $url, array $headers = [], ?string $postBody = null): array {
-    $ch = curl_init($url);
-    $opts = [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 15,
-        CURLOPT_HTTPHEADER => $headers,
-    ];
-    if ($postBody !== null) {
-        $opts[CURLOPT_POST] = true;
-        $opts[CURLOPT_POSTFIELDS] = $postBody;
+try {
+    $baseUrl = $serverDefault['base_url'];
+
+    $httpReq = static function (string $url, array $headers = [], ?string $postBody = null): array {
+        $ch = curl_init($url);
+        $opts = [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 15,
+            CURLOPT_HTTPHEADER => $headers,
+        ];
+        if ($postBody !== null) {
+            $opts[CURLOPT_POST] = true;
+            $opts[CURLOPT_POSTFIELDS] = $postBody;
+        }
+        curl_setopt_array($ch, $opts);
+        $body = (string) curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        return ['code' => $code, 'body' => $body, 'json' => @json_decode($body, true)];
+    };
+
+    // 5.1. Com flag Solana desligada (padrao): HTTP 402 lista as 5 redes EVM e oculta Solana
+    $r402 = $httpReq("{$baseUrl}/api/v1/forex", ['Accept: application/json']);
+    mc_check($r402['code'] === 402, "Chamada sem pagamento retorna HTTP 402 (recebeu {$r402['code']})");
+    $supNets = $r402['json']['supported_networks'] ?? [];
+    mc_check(count($supNets) === 5 && isset($supNets['base'], $supNets['arbitrum'], $supNets['polygon'], $supNets['optimism'], $supNets['ethereum']) && !isset($supNets['solana']), 'HTTP 402 padrao (Solana desabilitada) anuncia 5 redes EVM e omite Solana');
+
+    // 5.2. /api/v1/pass-emitir rejeita rede não suportada com HTTP 400 UnsupportedNetwork
+    $rBadChain = $httpReq(
+        "{$baseUrl}/api/v1/pass-emitir",
+        ['Content-Type: application/json', 'Accept: application/json'],
+        json_encode(['txHash' => $sampleHash, 'chain' => 'rede_inexistente'])
+    );
+    mc_check($rBadChain['code'] === 400 && ($rBadChain['json']['error'] ?? '') === 'UnsupportedNetwork', "POST /api/v1/pass-emitir com rede inválida retorna HTTP 400 UnsupportedNetwork (recebeu {$rBadChain['code']})");
+
+    // 5.3. Chamada direta com X-Payment-Network inválido retorna HTTP 400 UnsupportedNetwork
+    $rBadHdr = $httpReq("{$baseUrl}/api/v1/forex", ['Accept: application/json', "X-Payment: {$sampleHash}", 'X-Payment-Network: rede_inexistente']);
+    mc_check($rBadHdr['code'] === 400 && ($rBadHdr['json']['error'] ?? '') === 'UnsupportedNetwork', "Chamada direta com X-Payment-Network inválido retorna HTTP 400 UnsupportedNetwork (recebeu {$rBadHdr['code']})");
+
+    // 5.4. Com flag desligada, /pass e / exibem 5 redes EVM e ocultam Solana
+    $rPassDefault = $httpReq("{$baseUrl}/pass", ['Accept: text/html']);
+    mc_check(
+        $rPassDefault['code'] === 200
+        && str_contains($rPassDefault['body'], "selectPassNetwork('arbitrum')")
+        && !str_contains($rPassDefault['body'], "selectPassNetwork('solana')"),
+        'Página /pass oculta Solana por padrão quando GRID402_SOLANA_X402_ENABLED=false'
+    );
+    $rHomeDefault = $httpReq("{$baseUrl}/", ['Accept: text/html']);
+    mc_check(
+        $rHomeDefault['code'] === 200
+        && str_contains($rHomeDefault['body'], 'topup-network-selector')
+        && !str_contains($rHomeDefault['body'], "selectTopupNetwork('solana')"),
+        'Página inicial / (#topup) oculta Solana por padrão quando GRID402_SOLANA_X402_ENABLED=false'
+    );
+
+    // 5.5. Com GRID402_SOLANA_X402_ENABLED=true: HTTP 402, /pass e / voltam a anunciar todas as 6 redes incluindo Solana
+    $serverSolanaOn = grid402_start_server([
+        'router' => __DIR__ . '/router.php',
+        'env' => ['GRID402_SOLANA_X402_ENABLED' => 'true'],
+    ]);
+    $solBaseUrl = $serverSolanaOn['base_url'];
+
+    $r402Sol = $httpReq("{$solBaseUrl}/api/v1/forex", ['Accept: application/json']);
+    $supNetsSol = $r402Sol['json']['supported_networks'] ?? [];
+    mc_check(count($supNetsSol) === 6 && isset($supNetsSol['solana']) && ($supNetsSol['solana']['recipient_wallet'] ?? '') === 'CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C', 'Com GRID402_SOLANA_X402_ENABLED=true, HTTP 402 anuncia todas as 6 redes e expõe carteira Solana oficial');
+
+    $rPassHtml = $httpReq("{$solBaseUrl}/pass", ['Accept: text/html']);
+    mc_check($rPassHtml['code'] === 200, "GET /pass (Solana ON) retorna HTTP 200 (recebeu {$rPassHtml['code']})");
+    mc_check(
+        str_contains($rPassHtml['body'], "selectPassNetwork('arbitrum')")
+        && str_contains($rPassHtml['body'], "selectPassNetwork('polygon')")
+        && str_contains($rPassHtml['body'], "selectPassNetwork('optimism')")
+        && str_contains($rPassHtml['body'], "selectPassNetwork('ethereum')")
+        && str_contains($rPassHtml['body'], "selectPassNetwork('solana')")
+        && str_contains($rPassHtml['body'], 'CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C'),
+        'Com flag habilitada, /pass renderiza seletor das 6 redes e exibe endereço Solana oficial'
+    );
+
+    $rHomeHtml = $httpReq("{$solBaseUrl}/", ['Accept: text/html']);
+    mc_check(
+        $rHomeHtml['code'] === 200
+        && str_contains($rHomeHtml['body'], 'topup-network-selector')
+        && str_contains($rHomeHtml['body'], "selectTopupNetwork('solana')")
+        && str_contains($rHomeHtml['body'], 'CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C'),
+        'Com flag habilitada, página inicial / (#topup) renderiza seletor visual das 6 redes incluindo Solana'
+    );
+} finally {
+    grid402_stop_server($serverDefault);
+    if (is_array($serverSolanaOn)) {
+        grid402_stop_server($serverSolanaOn);
     }
-    curl_setopt_array($ch, $opts);
-    $body = (string) curl_exec($ch);
-    $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    return ['code' => $code, 'body' => $body, 'json' => @json_decode($body, true)];
-};
-
-// 5.1. Desafio HTTP 402 lista as 6 redes em supported_networks
-$r402 = $httpReq("{$baseUrl}/api/v1/forex", ['Accept: application/json']);
-mc_check($r402['code'] === 402, "Chamada sem pagamento retorna HTTP 402 (recebeu {$r402['code']})");
-$supNets = $r402['json']['supported_networks'] ?? [];
-mc_check(count($supNets) === 6 && isset($supNets['base'], $supNets['arbitrum'], $supNets['polygon'], $supNets['optimism'], $supNets['ethereum'], $supNets['solana']), 'HTTP 402 anuncia todas as 6 redes em supported_networks');
-mc_check(($supNets['solana']['recipient_wallet'] ?? '') === 'CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C', 'HTTP 402 expõe carteira Solana oficial');
-
-// 5.2. /api/v1/pass-emitir rejeita rede não suportada com HTTP 400 UnsupportedNetwork
-$rBadChain = $httpReq(
-    "{$baseUrl}/api/v1/pass-emitir",
-    ['Content-Type: application/json', 'Accept: application/json'],
-    json_encode(['txHash' => $sampleHash, 'chain' => 'rede_inexistente'])
-);
-mc_check($rBadChain['code'] === 400 && ($rBadChain['json']['error'] ?? '') === 'UnsupportedNetwork', "POST /api/v1/pass-emitir com rede inválida retorna HTTP 400 UnsupportedNetwork (recebeu {$rBadChain['code']})");
-
-// 5.3. Chamada direta com X-Payment-Network inválido retorna HTTP 400 UnsupportedNetwork
-$rBadHdr = $httpReq("{$baseUrl}/api/v1/forex", ['Accept: application/json', "X-Payment: {$sampleHash}", 'X-Payment-Network: rede_inexistente']);
-mc_check($rBadHdr['code'] === 400 && ($rBadHdr['json']['error'] ?? '') === 'UnsupportedNetwork', "Chamada direta com X-Payment-Network inválido retorna HTTP 400 UnsupportedNetwork (recebeu {$rBadHdr['code']})");
-
-// 5.4. Página /pass renderiza seletor das 6 redes e endereço Solana
-$rPassHtml = $httpReq("{$baseUrl}/pass", ['Accept: text/html']);
-mc_check($rPassHtml['code'] === 200, "GET /pass retorna HTTP 200 (recebeu {$rPassHtml['code']})");
-mc_check(
-    str_contains($rPassHtml['body'], 'selectPassNetwork(\'arbitrum\')')
-    && str_contains($rPassHtml['body'], 'selectPassNetwork(\'polygon\')')
-    && str_contains($rPassHtml['body'], 'selectPassNetwork(\'optimism\')')
-    && str_contains($rPassHtml['body'], 'selectPassNetwork(\'ethereum\')')
-    && str_contains($rPassHtml['body'], 'selectPassNetwork(\'solana\')')
-    && str_contains($rPassHtml['body'], 'CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C'),
-    'Página /pass renderiza seletor das 6 redes e exibe endereço Solana oficial'
-);
-
-// 5.5. Página inicial / (#topup) renderiza seletor das 6 redes
-$rHomeHtml = $httpReq("{$baseUrl}/", ['Accept: text/html']);
-mc_check(
-    $rHomeHtml['code'] === 200
-    && str_contains($rHomeHtml['body'], 'topup-network-selector')
-    && str_contains($rHomeHtml['body'], 'selectTopupNetwork(\'solana\')')
-    && str_contains($rHomeHtml['body'], 'CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1vdEEhGvVCCF8C'),
-    'Página inicial / (#topup) renderiza seletor visual das 6 redes incluindo Solana'
-);
-
-grid402_stop_server($server);
+}
 
 echo "\n=======================================================\n";
 echo "Resultado Final: {$passed} testes aprovados, 0 reprovados.\n";

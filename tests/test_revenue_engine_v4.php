@@ -348,12 +348,14 @@ try {
     // 402 multi-chain em /api/v1/extract (3 redes EVM default V-05)
     $r402Ext = $httpCall("{$baseUrl}/api/v1/extract?url=" . urlencode('https://example.com'));
     $j402Ext = json_decode($r402Ext['body'], true);
-    t_assert('HTTP 402 em /api/v1/extract inclui price_usdc=0.0050, 3 redes EVM em accepts[] (default V-05), preview e checkout Pix + RapidAPI',
+    $starterPixUrl = (string) ($j402Ext['fiat_and_card_checkout']['pix_instant_brl']['starter_url'] ?? '');
+    t_assert('HTTP 402 em /api/v1/extract inclui price_usdc=0.0050, 3 redes EVM em accepts[] (default V-05), preview e checkout Pix (sem autopix=1 forcado) + RapidAPI',
         $r402Ext['code'] === 402 &&
         ($j402Ext['price_usdc'] ?? '') === '0.0050' &&
         count($j402Ext['accepts'] ?? []) === 3 &&
         isset($j402Ext['preview'], $j402Ext['locked_fields']) &&
-        str_contains((string) ($j402Ext['fiat_and_card_checkout']['pix_instant_brl']['starter_url'] ?? ''), 'autopix=1') &&
+        str_contains($starterPixUrl, 'method=pix') &&
+        !str_contains($starterPixUrl, 'autopix=1') &&
         str_contains((string) ($j402Ext['fiat_and_card_checkout']['rapidapi_credit_card_usd']['all_25_apis_url'] ?? ''), 'rapidapi.com'),
         "Code={$r402Ext['code']} accepts=" . count($j402Ext['accepts'] ?? [])
     );
@@ -380,16 +382,19 @@ try {
         ($firstSbBody['sandbox_info']['quota_remaining_today'] ?? -1) === 2 &&
         ($firstSbBody['sandbox_info']['quota_limit_per_day'] ?? -1) === 3
     );
-    t_assert('4ª chamada sandbox retorna Retry-After, PAYMENT-REQUIRED, x402 v2 accepts, retry_after_seconds e upgrade_to_production com how_to_continue',
+    $pixStarter429 = (string) ($fourthSbBody['upgrade_to_production']['pix_instant_starter_url'] ?? '');
+    t_assert('4ª chamada sandbox retorna Retry-After, PAYMENT-REQUIRED, x402 v2 accepts, retry_after_seconds, MCPTRY50 e upgrade_to_production com how_to_continue',
         stripos($fourthSbHdrs ?? '', 'Retry-After:') !== false &&
         stripos($fourthSbHdrs ?? '', 'PAYMENT-REQUIRED:') !== false &&
         (int) ($fourthSbBody['x402Version'] ?? 0) === 2 &&
         !empty($fourthSbBody['accepts']) &&
         (int) ($fourthSbBody['retry_after_seconds'] ?? 0) > 0 &&
         str_contains((string) ($fourthSbBody['message'] ?? ''), 'Free sandbox quota') &&
+        ($fourthSbBody['promo_code'] ?? '') === 'MCPTRY50' &&
         !empty($fourthSbBody['upgrade_to_production']['how_to_continue']['session_pass_no_wallet']) &&
         str_contains((string) ($fourthSbBody['upgrade_to_production']['session_pass_url'] ?? ''), '/pass') &&
-        str_contains((string) ($fourthSbBody['upgrade_to_production']['pix_instant_starter_url'] ?? ''), 'autopix=1') &&
+        str_contains($pixStarter429, 'method=pix') &&
+        !str_contains($pixStarter429, 'autopix=1') &&
         str_contains((string) ($fourthSbBody['upgrade_to_production']['rapidapi_credit_card_usd']['brazil_kyb_cnpj_anbima_url'] ?? ''), 'rapidapi.com')
     );
 

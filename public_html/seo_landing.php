@@ -44,7 +44,7 @@ $pages = [
             'Validação matemática prévia dos dígitos verificadores (rejeita CNPJ inválido com HTTP 400 sem cobrar créditos).',
             'Conformidade rigorosa LGPD Art. 1º (Zero-PII): descarta na origem CPF de sócios e contatos pessoais.',
             'Assinatura criptográfica ECDSA secp256k1 (_oracle_proof) auditável offline em POST /api/v1/verify.',
-            'Compatível com Pix (Mercado Pago), Cartão, n8n, Python, Node.js, MCP e x402 USDC (Base, Polygon, Arbitrum, Solana).',
+            'Compatível com Pix (Mercado Pago), Cartão, n8n, Python, Node.js, MCP e x402 USDC (Base, Polygon, Arbitrum).',
         ],
         'faq' => [
             [
@@ -137,7 +137,7 @@ $pages = [
         'lang' => 'en',
         'path' => '/url-to-markdown-api',
         'title' => 'SSRF-Safe URL to Clean Markdown API for LLMs & RAG ($0.005/page) | Grid402',
-        'description' => 'Convert any public HTTP/HTTPS web page into clean, LLM-ready Markdown with metadata and absolute links. SSRF-hardened, zero headless browser maintenance. Pay via RapidAPI Credit Card ($9.90/mo) or Multi-Chain x402 USDC (Base, Solana, Polygon, Arbitrum).',
+        'description' => 'Convert any public HTTP/HTTPS web page into clean, LLM-ready Markdown with metadata and absolute links. SSRF-hardened, zero headless browser maintenance. Pay via RapidAPI Credit Card ($9.90/mo) or Multi-Chain x402 USDC (Base, Polygon, Arbitrum).',
         'badge' => 'Web-to-Markdown · SSRF-Hardened · LLM & RAG Ready · ECDSA Signed',
         'h1' => 'SSRF-Safe URL to Clean Markdown API for AI Agents & RAG',
         'lead' => 'Turn public web pages into clean, token-efficient Markdown with title, description, word count, and absolute links — without managing Playwright, Puppeteer, or rotating proxies. $0.0050 per page via Multi-Chain x402 USDC or $9.90/mo via Credit Card on RapidAPI.',
@@ -149,17 +149,17 @@ $pages = [
         'python_example' => "from grid402 import Grid402Client\n\nclient = Grid402Client(session_pass=\"pass_g402_YOUR_TOKEN\")\nres = client.extract(\"https://example.com\", max_chars=8000)\nprint(res[\"title\"], res[\"word_count\"])\nprint(res[\"markdown\"][:500])",
         'n8n_example' => "MCP Server (Claude / Cursor / Windsurf):\nnpx -y grid402-mcp  (Tool: grid402_extract)\n\nRapidAPI Credit Card Header:\nX-RapidAPI-Key: YOUR_RAPIDAPI_KEY\nX-RapidAPI-Host: grid402-web-to-markdown-email-verify-network-utilities.p.rapidapi.com",
         'traditional_cost' => '$19 to $83/mo (Firecrawl / ScrapingBee / Browserless subscriptions)',
-        'grid_cost' => '$0.0050/page via x402 USDC (Base, Solana, Polygon, Arbitrum) or $9.90/mo on RapidAPI',
+        'grid_cost' => '$0.0050/page via x402 USDC (Base, Polygon, Arbitrum) or $9.90/mo on RapidAPI',
         'features' => [
             'Strict SSRF defense: blocks localhost, RFC1918 private IPs, link-local cloud metadata (169.254.169.254), and non-HTTP schemes before billing.',
             'Strips scripts, navbars, styles, and boilerplate HTML to save up to 70% of LLM context tokens in RAG pipelines.',
             'Cryptographic ECDSA secp256k1 attestation (_oracle_proof) proving timestamp and exact extracted output.',
-            'Zero-config MCP integration (`npx -y grid402-mcp` v2.0.2 with 3 free daily trial queries + Base/Solana/Polygon/Arbitrum auto-payer).',
+            'Zero-config MCP integration (`npx -y grid402-mcp` v2.0.2 with 3 free daily trial queries + Base/Polygon/Arbitrum auto-payer).',
         ],
         'faq' => [
             [
                 'q' => 'How much does URL-to-Markdown extraction cost?',
-                'a' => 'Each extraction costs $0.0050 USDC (1 credit). You can pay per call with gasless x402 v2 (Base, Polygon, Arbitrum, Solana), buy a prepaid Session Pass (400 pages for $2 USDC), or subscribe with Credit Card on RapidAPI ($9.90/mo for 1,500 standard calls).',
+                'a' => 'Each extraction costs $0.0050 USDC (1 credit). You can pay per call with gasless x402 v2 (Base, Polygon, Arbitrum), claim 50 free credits with MCPTRY50 at /pass?promo=MCPTRY50, buy a prepaid Session Pass (400 pages for $2 USDC), or subscribe with Credit Card on RapidAPI ($9.90/mo for 1,500 standard calls).',
             ],
             [
                 'q' => 'Does Grid402 store the extracted web pages?',
@@ -192,7 +192,7 @@ $pages = [
             '100% Public Corporate Registries & Open Licenses: GLEIF ISO 17442 (CC0 1.0), US OFAC SDN (17 U.S.C. § 105), UN Consolidated Lists, and Brazilian Public Registries (Law 12.527/2011).',
             'Strict GDPR Recital 14 & LGPD Art. 1 Zero-PII compliance: strips individual shareholder CPFs, personal phones, and private emails at ingestion.',
             'Cryptographic audit trail: every response carries _meta (source + UTC timestamp) and _oracle_proof (ECDSA secp256k1 signature verifiable offline).',
-            'PayCensus Multi-Chain Verified Seller (EVM + Solana proven=1) supporting Base, Polygon, Arbitrum, Solana USDC, and RapidAPI Credit Card.',
+            'Multi-Chain x402 v2 EVM settlement (Base, Polygon, Arbitrum USDC) and RapidAPI Credit Card (USD).',
         ],
         'faq' => [
             [
@@ -225,7 +225,7 @@ $pages = [
         'python_example' => "from grid402 import Grid402Client\n\nclient = Grid402Client(session_pass=\"pass_g402_YOUR_TOKEN\")\naudit = client.email_verify(\"dev@company.com\")\nprint(audit[\"verdict\"], audit[\"deliverability_score\"], audit[\"has_mx\"], audit[\"disposable\"])",
         'n8n_example' => "MCP Server (Claude / Cursor / n8n):\nnpx -y grid402-mcp  (Tool: grid402_email_verify)\nn8n Community Node: @oliveiratco1/n8n-nodes-grid402",
         'traditional_cost' => '$16 to $65/mo (ZeroBounce / NeverBounce) with server-side email logging',
-        'grid_cost' => '$0.0050/check via x402 USDC (Base, Solana, Polygon, Arbitrum) or $9.90/mo on RapidAPI',
+        'grid_cost' => '$0.0050/check via x402 USDC (Base, Polygon, Arbitrum) or $9.90/mo on RapidAPI',
         'features' => [
             'True Zero-PII & Zero-Retention: raw email addresses are never written to disk, logs, or databases — responses return only `email_hash_sha256` and domain technical signals.',
             'Full DNS deliverability audit: RFC 5322 syntax, authoritative MX records, SPF policy, DMARC policy, free-provider flag, role-based flag, and disposable domain detection.',
@@ -239,7 +239,7 @@ $pages = [
             ],
             [
                 'q' => 'How is pricing structured for high-volume B2B pipelines?',
-                'a' => 'Pay $0.0050 USDC per verification on Base, Polygon, Arbitrum, or Solana, buy a prepaid Session Pass (6,000 checks for $20 USDC), or subscribe on RapidAPI Hub starting at $9.90/mo.',
+                'a' => 'Pay $0.0050 USDC per verification on Base, Polygon, or Arbitrum, claim 50 free credits with MCPTRY50 at /pass?promo=MCPTRY50, buy a prepaid Session Pass (6,000 checks for $20 USDC), or subscribe on RapidAPI Hub starting at $9.90/mo.',
             ],
             [
                 'q' => 'Does it detect throwaway/disposable email domains?',
@@ -371,7 +371,7 @@ $jsonLd = [
     <div class="cta-row">
         <?php if ($isEn): ?>
         <a class="btn btn-primary" href="<?php echo htmlspecialchars($rapidApiUrl, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">💳 Subscribe via Credit Card on RapidAPI ($9.90/mo)</a>
-        <a class="btn btn-pix" href="/pass">⚡ Buy Prepaid USDC Pass (Base / Solana / Polygon)</a>
+        <a class="btn btn-pix" href="/pass">⚡ Buy Prepaid USDC Pass (Base / Polygon / Arbitrum)</a>
         <a class="btn btn-outline" href="/catalog">Explore all 25 endpoints →</a>
         <?php else: ?>
         <a class="btn btn-pix" href="/pass?tier=starter&amp;method=pix">⚡ Comprar 400 Créditos via Pix (R$ 12)</a>
@@ -458,7 +458,7 @@ $jsonLd = [
     <div class="card" style="text-align:center;border-color:rgba(16,185,129,.45);">
         <?php if ($isEn): ?>
         <h2 style="margin-top:0;">Start in 30 Seconds — Credit Card (USD) or Multi-Chain USDC</h2>
-        <p style="margin-bottom:1rem;">Subscribe with Credit Card on RapidAPI Hub ($9.90/mo) or pay per call in USDC across Base, Polygon, Arbitrum, and Solana with <code>npx -y grid402-mcp</code>.</p>
+        <p style="margin-bottom:1rem;">Subscribe with Credit Card on RapidAPI Hub ($9.90/mo) or pay per call in USDC across Base, Polygon, and Arbitrum with <code>npx -y grid402-mcp</code>.</p>
         <div class="cta-row" style="justify-content:center;margin-bottom:0;">
             <a class="btn btn-primary" href="<?php echo htmlspecialchars($rapidApiUrl, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">💳 Open on RapidAPI Hub ($9.90/mo)</a>
             <a class="btn btn-pix" href="/pass">⚡ Buy Prepaid USDC Pass</a>
