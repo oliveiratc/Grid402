@@ -12,6 +12,10 @@
 - [Payment Dashboard](https://grid402.online/payment-dashboard): Pay-per-Request vs Session Pass — visão de uma única tela
 - [Central de Agentes de IA](https://grid402.online/agents): Guia rapido de integracao para agentes autonomos, Claude Desktop, Python e cURL
 - [OpenAPI Specification](https://grid402.online/openapi.json): Especificacao completa e interativa da API no padrao OpenAPI 3.1
+- [AI Agent Manifest](https://grid402.online/.well-known/ai-agent.json): Manifesto padrao de descoberta com capacidades, auth, rate limits e precos
+- [A2A Agent Card](https://grid402.online/.well-known/agent-card.json): Ficha A2A (Agent-to-Agent) com skills e schemas de entrada e saida
+- [Machine-Readable Pricing](https://grid402.online/pricing.json): Tabela estruturada de precos por chamada e pacotes Session Pass em USD/USDC
+- [Hosted MCP Streamable HTTP](https://grid402.online/mcp): Endpoint JSON-RPC 2.0 publico com 27 tools e handshake tools/list
 - [MCP Server Card](https://grid402.online/.well-known/mcp/server-card.json): Ficha de descoberta de capacidades SEP-1649 para servidores MCP
 - [MCP Well-Known Manifest](https://grid402.online/.well-known/mcp.json): Manifesto estruturado com a lista de ferramentas MCP do Grid402
 - [AI Plugin Manifest](https://grid402.online/.well-known/ai-plugin.json): Manifesto padrao para plugins e descoberta por motores de IA

@@ -14,7 +14,7 @@ ServerSignature Off
 </FilesMatch>
 
 # Exceção explícita para manifestos JSON públicos de descoberta
-<FilesMatch "^(openapi|sitemap|package|x402|mcp|glama|ai-plugin|server-card)\.json$">
+<FilesMatch "^(openapi|sitemap|package|pricing|x402|mcp|glama|ai-plugin|ai-agent|agent-card|server-card)\.json$">
     <IfModule mod_authz_core.c>
         Require all granted
     </IfModule>
@@ -65,7 +65,7 @@ ServerSignature Off
     RewriteRule ^(.*)$ https://grid402.online/$1 [R=301,L]
 
     RewriteCond %{HTTP_HOST} ^www\.grid402\.online$ [NC]
-    RewriteCond %{REQUEST_URI} !^/(api/|mcp|status|telemetry|workdays|llms|openapi\.json|\.well-known/) [NC]
+    RewriteCond %{REQUEST_URI} !^/(api/|mcp|status|telemetry|workdays|llms|openapi\.json|pricing\.json|\.well-known/) [NC]
     RewriteRule ^(.*)$ https://grid402.online/$1 [R=301,L]
 
     RewriteCond %{HTTPS} !=on

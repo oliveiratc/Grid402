@@ -205,7 +205,7 @@ if ($paymentProof === '') {
 
 // Cabeçalhos Globais de IA, Protocolo, Segurança e Conformidade de Dados
 header('Vary: Accept, User-Agent');
-header('Link: </openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json", </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp/server-card.json>; rel="service-meta"; type="application/json", </sitemap.xml>; rel="sitemap"; type="application/xml", </terms>; rel="terms-of-service"; type="text/html", </privacy>; rel="privacy-policy"; type="text/html"');
+header('Link: </openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json", </llms.txt>; rel="help"; type="text/markdown", </.well-known/ai-agent.json>; rel="describedby"; type="application/json", </.well-known/agent-card.json>; rel="agent-card"; type="application/json", </.well-known/mcp.json>; rel="mcp"; type="application/json", </.well-known/mcp/server-card.json>; rel="service-meta"; type="application/json", </pricing.json>; rel="pricing"; type="application/json", </sitemap.xml>; rel="sitemap"; type="application/xml", </terms>; rel="terms-of-service"; type="text/html", </privacy>; rel="privacy-policy"; type="text/html"');
 header('X-Agent-Protocol: x402; network=base; chain_id=8453');
 header('X-Micropayment-Pricing: 0.0050-0.0500 USDC; token=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913; pricing=/catalog');
 header('X-Data-Protection-Policy: Zero-PII; Corporate-Entities-Only; LGPD-Art1-Compliant; GDPR-Recital14-Compliant; CCPA-Compliant');
@@ -236,6 +236,10 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
     <link rel="help" type="text/markdown" href="/llms.txt">
     <link rel="sitemap" type="application/xml" href="/sitemap.xml">
     <link rel="service-meta" type="application/json" href="/.well-known/mcp/server-card.json">
+    <link rel="describedby" type="application/json" href="/.well-known/ai-agent.json">
+    <link rel="agent-card" type="application/json" href="/.well-known/agent-card.json">
+    <link rel="mcp" type="application/json" href="/.well-known/mcp.json">
+    <link rel="pricing" type="application/json" href="/pricing.json">
 
     <!-- Schema.org JSON-LD Completo com Organization e Servicos -->
     <script type="application/ld+json">
@@ -722,6 +726,10 @@ if (!$isHomeRoute && !$isStatusRoute && !$isValidApiAction && !$isInstitutionalR
                 '/privacy',
                 '/llms.txt',
                 '/openapi.json',
+                '/pricing.json',
+                '/.well-known/ai-agent.json',
+                '/.well-known/agent-card.json',
+                '/.well-known/mcp.json',
                 '/.well-known/mcp/server-card.json'
             ]
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
@@ -2164,6 +2172,10 @@ grid402_log_public_visit('/');
     <link rel="help" type="text/markdown" href="/llms.txt">
     <link rel="sitemap" type="application/xml" href="/sitemap.xml">
     <link rel="service-meta" type="application/json" href="/.well-known/mcp/server-card.json">
+    <link rel="describedby" type="application/json" href="/.well-known/ai-agent.json">
+    <link rel="agent-card" type="application/json" href="/.well-known/agent-card.json">
+    <link rel="mcp" type="application/json" href="/.well-known/mcp.json">
+    <link rel="pricing" type="application/json" href="/pricing.json">
 
     <!-- Metadados Schema.org JSON-LD para Agentes de IA e Motores de Busca -->
     <script type="application/ld+json">

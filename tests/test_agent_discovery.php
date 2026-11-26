@@ -95,6 +95,10 @@ try {
     assert_test(is_string($mcpData['instructions'] ?? null) && str_contains($mcpData['instructions'], 'GRID402_SESSION_PASS'), "Campo instructions presente no manifesto MCP");
     assert_test(isset($mcpData['tools']) and is_array($mcpData['tools']), "Manifesto declara array de tools");
     assert_test(count($mcpData['tools'] ?? []) === 27, "Manifesto MCP declara exatamente 27 tools sincronizadas", "Contagem: " . count($mcpData['tools'] ?? []));
+    assert_test(($mcpData['mcp'] ?? false) === true, "Manifesto MCP declara flag raiz mcp: true");
+    assert_test(($mcpData['url'] ?? '') === 'https://grid402.online/mcp', "Manifesto MCP declara url raiz https://grid402.online/mcp");
+    assert_test(($mcpData['endpoint'] ?? '') === 'https://grid402.online/mcp', "Manifesto MCP declara endpoint raiz https://grid402.online/mcp");
+    assert_test(($mcpData['server']['url'] ?? '') === 'https://grid402.online/mcp', "Manifesto MCP declara server.url https://grid402.online/mcp");
 
     $toolNames = array_column($mcpData['tools'] ?? [], 'name');
     assert_test(in_array('grid402_summary', $toolNames, true), "Tool grid402_summary presente");
@@ -139,6 +143,9 @@ try {
     $filesToCheck = [
         __DIR__ . '/../public_html/llms.txt',
         __DIR__ . '/../public_html/llms-full.txt',
+        __DIR__ . '/../public_html/pricing.json',
+        __DIR__ . '/../public_html/.well-known/ai-agent.json',
+        __DIR__ . '/../public_html/.well-known/agent-card.json',
         __DIR__ . '/../public_html/.well-known/mcp.json',
         __DIR__ . '/../public_html/.well-known/ai-plugin.json',
         __DIR__ . '/../public_html/.well-known/x402.json',
@@ -219,6 +226,101 @@ try {
             assert_test($allPricesMatch, "Todos os precos raw USDC em x402.json batem 100% com config.php", implode('; ', $priceErrors));
         }
     }
+
+    // 9. Teste /.well-known/ai-agent.json, /.well-known/agent-card.json, /pricing.json e whitelist .htaccess
+    echo "\n9. Validando ai-agent.json, agent-card.json, pricing.json e .htaccess...\n";
+    $resAiAgent = test_http_request("{$baseUrl}/.well-known/ai-agent.json");
+    assert_test($resAiAgent['code'] === 200, "Status HTTP 200 para /.well-known/ai-agent.json", "Recebido: {$resAiAgent['code']}");
+    $aiAgentData = json_decode($resAiAgent['body'], true);
+    assert_test(is_array($aiAgentData), "Manifesto ai-agent.json e um JSON valido");
+    assert_test(
+        ($aiAgentData['name'] ?? '') === 'Grid402'
+        && ($aiAgentData['url'] ?? '') === 'https://grid402.online'
+        && is_string($aiAgentData['description'] ?? null)
+        && strlen($aiAgentData['description']) > 30,
+        "ai-agent.json contem name, url e description"
+    );
+    $aiCaps = $aiAgentData['capabilities'] ?? [];
+    $allCapsHaveSchemas = is_array($aiCaps) && count($aiCaps) >= 25;
+    if ($allCapsHaveSchemas) {
+        foreach ($aiCaps as $cap) {
+            if (empty($cap['id']) || empty($cap['name']) || empty($cap['description']) || !is_array($cap['inputSchema'] ?? null) || !is_array($cap['outputSchema'] ?? null)) {
+                $allCapsHaveSchemas = false;
+                break;
+            }
+        }
+    }
+    assert_test($allCapsHaveSchemas, "ai-agent.json lista >= 25 capabilities com id, name, description, inputSchema e outputSchema");
+    assert_test(
+        ($aiAgentData['pricing']['currency'] ?? '') === 'USD'
+        && ($aiAgentData['pricing']['payableByAgent'] ?? false) === true
+        && is_array($aiAgentData['pricing']['products'] ?? null)
+        && count($aiAgentData['pricing']['products']) > 0,
+        "ai-agent.json expoe bloco pricing com currency USD, payableByAgent true e products"
+    );
+    assert_test(
+        ($aiAgentData['contact']['email'] ?? '') === 'contato@grid402.online'
+        && ($aiAgentData['auth']['type'] ?? '') === 'x402'
+        && is_array($aiAgentData['rateLimit'] ?? null)
+        && ($aiAgentData['mcp']['url'] ?? '') === 'https://grid402.online/mcp'
+        && ($aiAgentData['openapi'] ?? '') === 'https://grid402.online/openapi.json',
+        "ai-agent.json expoe contact, auth x402, rateLimit, mcp.url e openapi"
+    );
+
+    $resAgentCard = test_http_request("{$baseUrl}/.well-known/agent-card.json");
+    assert_test($resAgentCard['code'] === 200, "Status HTTP 200 para /.well-known/agent-card.json", "Recebido: {$resAgentCard['code']}");
+    $agentCardData = json_decode($resAgentCard['body'], true);
+    assert_test(is_array($agentCardData) && ($agentCardData['name'] ?? '') === 'Grid402' && ($agentCardData['url'] ?? '') === 'https://grid402.online', "agent-card.json valido com name e url");
+    $cardSkills = $agentCardData['skills'] ?? [];
+    $allSkillsValid = is_array($cardSkills) && count($cardSkills) >= 5;
+    if ($allSkillsValid) {
+        foreach ($cardSkills as $skill) {
+            if (empty($skill['id']) || empty($skill['name']) || empty($skill['description']) || !is_array($skill['inputSchema'] ?? null) || !is_array($skill['outputSchema'] ?? null)) {
+                $allSkillsValid = false;
+                break;
+            }
+        }
+    }
+    assert_test($allSkillsValid, "agent-card.json expoe skills com id, name, description, inputSchema e outputSchema");
+    assert_test(is_array($agentCardData['authentication']['schemes'] ?? null) && in_array('x402', $agentCardData['authentication']['schemes'], true), "agent-card.json declara authentication.schemes com x402");
+
+    $resPricing = test_http_request("{$baseUrl}/pricing.json");
+    assert_test($resPricing['code'] === 200, "Status HTTP 200 para /pricing.json", "Recebido: {$resPricing['code']}");
+    $pricingData = json_decode($resPricing['body'], true);
+    assert_test(
+        is_array($pricingData)
+        && ($pricingData['currency'] ?? '') === 'USD'
+        && ($pricingData['payableByAgent'] ?? false) === true
+        && is_array($pricingData['products'] ?? null),
+        "pricing.json valido com currency USD e payableByAgent true"
+    );
+    $pricingById = [];
+    foreach ($pricingData['products'] ?? [] as $prod) {
+        $pricingById[(string) ($prod['id'] ?? '')] = $prod['price'] ?? null;
+    }
+    $pricingMatchesConfig = true;
+    $pricingErrors = [];
+    foreach ($expectedSvcs as $slug => $svc) {
+        $expectedUsd = (float) $svc['price_usdc'];
+        if (!array_key_exists($slug, $pricingById) || abs(((float) $pricingById[$slug]) - $expectedUsd) > 0.000001) {
+            $pricingMatchesConfig = false;
+            $pricingErrors[] = "{$slug}: got=" . var_export($pricingById[$slug] ?? null, true) . " exp={$expectedUsd}";
+        }
+    }
+    foreach (['pass-starter' => 2.0, 'pass-pro' => 5.0, 'pass-fleet' => 20.0] as $packId => $packPrice) {
+        if (!array_key_exists($packId, $pricingById) || abs(((float) $pricingById[$packId]) - $packPrice) > 0.000001) {
+            $pricingMatchesConfig = false;
+            $pricingErrors[] = "{$packId}: got=" . var_export($pricingById[$packId] ?? null, true) . " exp={$packPrice}";
+        }
+    }
+    assert_test($pricingMatchesConfig, "Todos os precos em pricing.json batem 100% com config.php e Session Pass packs", implode('; ', $pricingErrors));
+
+    $htaccessContent = (string) file_get_contents(__DIR__ . '/../public_html/.htaccess');
+    assert_test(
+        preg_match('/<FilesMatch\s+"\^\([^"]*pricing[^"]*ai-agent[^"]*agent-card[^"]*\)\$"/i', $htaccessContent) === 1
+        || (str_contains($htaccessContent, 'pricing') && str_contains($htaccessContent, 'ai-agent') && str_contains($htaccessContent, 'agent-card')),
+        "public_html/.htaccess libera pricing.json, ai-agent.json e agent-card.json no FilesMatch"
+    );
 
 } finally {
     // Encerramento do servidor web de teste (mata a arvore de processos)

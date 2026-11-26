@@ -1,0 +1,261 @@
+{
+  "name": "Grid402",
+  "description": "Global M2M verifiable public-data, KYB/compliance, web-to-Markdown, email verification and network-utility oracle hub for AI agents over HTTP x402 v2 and MCP.",
+  "url": "https://grid402.online",
+  "version": "3.4.0",
+  "provider": {
+    "organization": "Grid402 Network Intelligence",
+    "url": "https://grid402.online"
+  },
+  "documentationUrl": "https://grid402.online/agents",
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false,
+    "stateTransitionHistory": false
+  },
+  "defaultInputModes": [
+    "application/json",
+    "text/plain"
+  ],
+  "defaultOutputModes": [
+    "application/json"
+  ],
+  "skills": [
+    {
+      "id": "kyb_dossier_360",
+      "name": "kyb_dossier_360",
+      "description": "GET /api/v1/dossier and /api/v1/compliance. Brazilian corporate KYB 360 risk dossier with deterministic AI verdict (APPROVED, FLAGGED, REJECTED), score 0-100, Receita Federal CNPJ, Simples/MEI and CGU CEIS/CNEP sanctions.",
+      "tags": ["kyb", "compliance", "brazil", "x402"],
+      "examples": [
+        "GET https://grid402.online/api/v1/dossier?cnpj=00000000000191",
+        "GET https://grid402.online/api/v1/compliance?cnpj=00000000000191"
+      ],
+      "inputSchema": {
+        "type": "object",
+        "required": ["cnpj"],
+        "properties": {
+          "cnpj": { "type": "string", "description": "14-digit Brazilian CNPJ" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "verdict": { "type": "string" },
+          "score": { "type": "integer" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "brazil_corporate_registry",
+      "name": "brazil_corporate_registry",
+      "description": "GET /api/v1/cnpj, /api/v1/simples, /api/v1/sanctions and /api/v1/cep. Official Brazilian corporate registry, Simples Nacional/MEI status, CGU CEIS/CNEP sanctions and postal/IBGE lookup without partner PII.",
+      "tags": ["cnpj", "simples", "sanctions", "cep"],
+      "examples": [
+        "GET https://grid402.online/api/v1/cnpj?cnpj=00000000000191",
+        "GET https://grid402.online/api/v1/cep?code=01310100"
+      ],
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "cnpj": { "type": "string", "description": "14-digit Brazilian CNPJ" },
+          "code": { "type": "string", "description": "8-digit Brazilian CEP" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "service": { "type": "string" },
+          "status": { "type": "string" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "global_lei_and_ofac_aml",
+      "name": "global_lei_and_ofac_aml",
+      "description": "GET /api/v1/lei, /api/v1/ofac and /api/v1/kyb-audit. Global ISO 17442 LEI corporate identity across 200+ jurisdictions, US Treasury OFAC SDN / UN sanctions screening and Base Mainnet EVM wallet AML inspection.",
+      "tags": ["lei", "ofac", "aml", "sanctions", "web3"],
+      "examples": [
+        "GET https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18",
+        "GET https://grid402.online/api/v1/ofac?target=0x8589427373d6d84e98730d7795d8f6f8731fda16"
+      ],
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "lei": { "type": "string", "description": "20-char ISO 17442 LEI code" },
+          "target": { "type": "string", "description": "EVM 0x address or legal entity name" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "match_found": { "type": "boolean" },
+          "aml_status": { "type": "string" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "domain_and_network_audit",
+      "name": "domain_and_network_audit",
+      "description": "GET /api/v1/domain-audit, /api/v1/dns, /api/v1/ssl and /api/v1/asn. Authoritative DNS records, port 443 TLS/SSL certificate audit and BGP/ASN routing intelligence.",
+      "tags": ["dns", "ssl", "tls", "asn", "bgp", "security"],
+      "examples": [
+        "GET https://grid402.online/api/v1/domain-audit?domain=base.org",
+        "GET https://grid402.online/api/v1/dns?domain=base.org"
+      ],
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "domain": { "type": "string", "description": "Domain name to inspect" },
+          "host": { "type": "string", "description": "Hostname for TLS/SSL inspection" },
+          "ip": { "type": "string", "description": "IPv4 or IPv6 address for ASN lookup" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "risk_score": { "type": "integer" },
+          "dns": { "type": "object" },
+          "ssl": { "type": "object" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "web_to_markdown_extract",
+      "name": "web_to_markdown_extract",
+      "description": "GET /api/v1/extract. SSRF-hardened web page URL to clean LLM-ready Markdown extractor with metadata, word count and absolute links.",
+      "tags": ["rag", "markdown", "extract", "web"],
+      "examples": [
+        "GET https://grid402.online/api/v1/extract?url=https://example.com"
+      ],
+      "inputSchema": {
+        "type": "object",
+        "required": ["url"],
+        "properties": {
+          "url": { "type": "string", "description": "Public HTTP or HTTPS URL" },
+          "max_chars": { "type": "integer", "description": "Max length between 500 and 25000" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "title": { "type": "string" },
+          "markdown": { "type": "string" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "email_deliverability_audit",
+      "name": "email_deliverability_audit",
+      "description": "GET /api/v1/email-verify. Zero-PII B2B email deliverability audit checking RFC syntax, DNS MX, SPF, DMARC, disposable domains and role-based score.",
+      "tags": ["email", "deliverability", "zero-pii", "dns"],
+      "examples": [
+        "GET https://grid402.online/api/v1/email-verify?email=contato@grid402.online"
+      ],
+      "inputSchema": {
+        "type": "object",
+        "required": ["email"],
+        "properties": {
+          "email": { "type": "string", "description": "Business email address to audit" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "deliverable": { "type": "boolean" },
+          "score": { "type": "integer" },
+          "mx_valid": { "type": "boolean" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "markets_fx_crypto_and_calendar",
+      "name": "markets_fx_crypto_and_calendar",
+      "description": "GET /api/v1/market-snapshot, /api/v1/forex, /api/v1/crypto, /api/v1/indicators, /api/v1/holidays, /api/v1/workdays and /api/v1/global-markets. PTAX FX, 30+ ECB FX rates, spot crypto, Selic/CDI/IPCA and global settlement calendars.",
+      "tags": ["forex", "crypto", "macro", "ecb", "anbima"],
+      "examples": [
+        "GET https://grid402.online/api/v1/market-snapshot",
+        "GET https://grid402.online/api/v1/global-markets?market=US"
+      ],
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "market": { "type": "string", "description": "US, EU, UK or BR" },
+          "base": { "type": "string", "description": "Base currency code" },
+          "date": { "type": "string", "description": "YYYY-MM-DD" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "service": { "type": "string" },
+          "status": { "type": "string" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "cryptographic_notarize_and_verify",
+      "name": "cryptographic_notarize_and_verify",
+      "description": "GET /api/v1/notarize and POST /api/v1/verify. Deterministic M2M UTC timestamping with SHA-256 existence proof and free stateless ECDSA secp256k1 oracle signature verification.",
+      "tags": ["cryptography", "notarize", "secp256k1", "oracle"],
+      "examples": [
+        "GET https://grid402.online/api/v1/notarize?content=Grid402-M2M-Contract-v1",
+        "POST https://grid402.online/api/v1/verify"
+      ],
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "content": { "type": "string", "description": "Text or SHA-256 hex digest to notarize" },
+          "payload": { "type": "object", "description": "Signed Grid402 JSON response to verify" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "valid": { "type": "boolean" },
+          "sha256_digest": { "type": "string" },
+          "oracle_address": { "type": "string" }
+        }
+      }
+    },
+    {
+      "id": "session_pass_and_health",
+      "name": "session_pass_and_health",
+      "description": "GET /status, GET /api/v1/pass, GET /api/v1/pass/balance, GET /api/v1/pass/statement and POST /api/v1/pass/limits. Prepaid Session Pass issuance, sub-15ms credit consumption, Spend Controls and hub 30-day uptime.",
+      "tags": ["x402", "session-pass", "health", "spend-controls"],
+      "examples": [
+        "GET https://grid402.online/status",
+        "GET https://grid402.online/api/v1/pass/balance?token=pass_g402_..."
+      ],
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "token": { "type": "string", "description": "Session Pass token pass_g402_..." }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string" },
+          "remaining_credits": { "type": "integer" },
+          "uptime_30d": { "type": "number" }
+        }
+      }
+    }
+  ],
+  "authentication": {
+    "schemes": ["x402", "session-pass", "none"]
+  },
+  "endpoints": {
+    "mcp": "https://grid402.online/mcp",
+    "openapi": "https://grid402.online/openapi.json",
+    "pricing": "https://grid402.online/pricing.json",
+    "agentManifest": "https://grid402.online/.well-known/ai-agent.json"
+  }
+}

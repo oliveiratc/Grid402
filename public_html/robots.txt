@@ -13,7 +13,12 @@ Allow: /api/v1/
 Allow: /llms.txt
 Allow: /llms-full.txt
 Allow: /openapi.json
+Allow: /pricing.json
+Allow: /mcp
 Allow: /.well-known/security.txt
+Allow: /.well-known/ai-agent.json
+Allow: /.well-known/agent-card.json
+Allow: /.well-known/mcp.json
 Allow: /.well-known/mcp/server-card.json
 Allow: /.well-known/x402.json
 Allow: /badge/
@@ -67,6 +72,9 @@ User-agent: Applebot-Extended
 Allow: /
 
 User-agent: FacebookBot
+Allow: /
+
+User-agent: AgentBoardBot
 Allow: /
 
 # Apontamento de Sitemaps e Documentacao de Maquina
