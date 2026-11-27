@@ -165,6 +165,7 @@ function grid402_admin_operational_health(
     $tg = is_array($runtimeStatus['telegram'] ?? null) ? $runtimeStatus['telegram'] : [];
     $rapid = is_array($runtimeStatus['rapidapi'] ?? null) ? $runtimeStatus['rapidapi'] : [];
     $mp = is_array($runtimeStatus['mercadopago'] ?? null) ? $runtimeStatus['mercadopago'] : null;
+    $sanctions = is_array($runtimeStatus['sanctions_index'] ?? null) ? $runtimeStatus['sanctions_index'] : null;
     $tgLast = is_array($tg['last_status'] ?? null) ? $tg['last_status'] : null;
 
     $health = [
@@ -182,6 +183,11 @@ function grid402_admin_operational_health(
         'rpc_operational' => (bool) ($walletBalances['rpc_operational'] ?? false),
         'facilitator_mode' => (string) ($fac['mode'] ?? 'unknown'),
         'facilitator_host' => (string) ($fac['host'] ?? ''),
+        'facilitator_primary_base' => (string) ($fac['primary_base'] ?? 'payai'),
+        'facilitator_fallback_host' => (string) ($fac['fallback_host'] ?? ''),
+        'cdp_configured' => (bool) ($fac['cdp_configured'] ?? false),
+        'solana_enabled' => (bool) ($fac['solana_enabled'] ?? false),
+        'sodium_available' => (bool) ($fac['sodium_available'] ?? function_exists('sodium_crypto_sign_detached')),
         'multichain_accepts' => (int) ($fac['multichain_accepts'] ?? 1),
         'rapidapi_configured' => (bool) ($rapid['configured'] ?? false),
         'rapidapi_count' => (int) ($rapid['count'] ?? 0),
@@ -192,6 +198,15 @@ function grid402_admin_operational_health(
     if ($mp !== null) {
         $health['mercadopago_configured'] = (bool) ($mp['configured'] ?? false);
         $health['mercadopago_sandbox'] = (bool) ($mp['sandbox'] ?? false);
+    }
+    if ($sanctions !== null) {
+        $health['sanctions_available'] = (bool) ($sanctions['available'] ?? false);
+        $health['sanctions_freshness'] = (string) ($sanctions['freshness_status'] ?? 'UNAVAILABLE');
+        $health['sanctions_total_entities'] = (int) ($sanctions['total_entities'] ?? 0);
+        $health['sanctions_total_addresses'] = (int) ($sanctions['total_addresses'] ?? 0);
+        $health['sanctions_age_hours'] = isset($sanctions['age_hours']) && is_numeric($sanctions['age_hours'])
+            ? round((float) $sanctions['age_hours'], 2)
+            : null;
     }
 
     return $health;
@@ -290,7 +305,7 @@ function grid402_admin_evaluate_alerts(
             'id' => 'wallet_zero_eth',
             'severity' => 'low',
             'title' => 'Carteira oráculo com 0 ETH na Base',
-            'detail' => "Saldo atual: {$usdcBal} USDC e 0 ETH. Recebimentos via PayAI são gasless, mas saques/transferências exigem ETH para gas.",
+            'detail' => "Saldo atual: {$usdcBal} USDC e 0 ETH. Recebimentos x402 via Coinbase CDP / PayAI são gasless, mas saques/transferências exigem ETH para gas.",
             'action' => 'Deposite uma pequena fração de ETH na Base quando planejar movimentar os USDC.',
         ];
     }
@@ -348,6 +363,41 @@ function grid402_admin_evaluate_alerts(
             'title' => 'Mercado Pago sem MP_ACCESS_TOKEN configurado',
             'detail' => 'O checkout Pix/Cartão do Session Pass está sem credencial de produção ativa.',
             'action' => 'Configure MP_ACCESS_TOKEN (ou MP_SANDBOX_MODE=1 em staging) no .env da Hostinger.',
+        ];
+    }
+
+    // 10. [HIGH/MEDIUM] Índice Oficial de Sanções (4 blocos: OFAC, ONU, UE FSFi, UK OFSI)
+    if (array_key_exists('sanctions_available', $operationalHealth)) {
+        if ($operationalHealth['sanctions_available'] === false) {
+            $alerts[] = [
+                'id' => 'sanctions_index_missing',
+                'severity' => 'high',
+                'title' => 'Índice Oficial de Sanções ausente (fail-closed ativo)',
+                'detail' => 'Endpoints /api/v1/ofac e /api/v1/kyb-audit estão retornando HTTP 503 em modo fail-closed até o índice dos 4 blocos ser sincronizado.',
+                'action' => 'Execute o cron /sync_sanctions.php ou php scripts/sync_sanctions_index.php no servidor.',
+            ];
+        } elseif (strtoupper((string) ($operationalHealth['sanctions_freshness'] ?? '')) === 'STALE') {
+            $ageH = $operationalHealth['sanctions_age_hours'] ?? null;
+            $ageTxt = $ageH !== null ? (number_format((float) $ageH, 1, ',', '.') . 'h atrás') : '> 72h';
+            $alerts[] = [
+                'id' => 'sanctions_index_stale',
+                'severity' => 'medium',
+                'title' => 'Índice Oficial de Sanções desatualizado (STALE > 72h)',
+                'detail' => "Última sincronização dos 4 blocos oficiais (OFAC/ONU/UE/UK) foi há {$ageTxt}.",
+                'action' => 'Verifique a tarefa cron diária de sync_sanctions.php na Hostinger.',
+            ];
+        }
+    }
+
+    // 11. [HIGH] Solana x402 habilitada sem ATA SPL USDC inicializada
+    $solAtaInit = $walletBalances['chains']['solana']['ata_initialized'] ?? null;
+    if (!empty($operationalHealth['solana_enabled']) && $solAtaInit === false) {
+        $alerts[] = [
+            'id' => 'solana_enabled_without_ata',
+            'severity' => 'high',
+            'title' => 'Solana x402 ativa sem ATA SPL USDC na carteira',
+            'detail' => 'GRID402_SOLANA_X402_ENABLED=true, mas a carteira Solana recebedora está sem ATA SPL USDC inicializada on-chain.',
+            'action' => 'Inicialize a ATA SPL USDC ou desative temporariamente GRID402_SOLANA_X402_ENABLED no .env.',
         ];
     }
 

@@ -18,11 +18,12 @@ require_once __DIR__ . '/facilitator.php';
 require_once __DIR__ . '/x402.php';
 require_once __DIR__ . '/services/forex.php';
 require_once __DIR__ . '/services/mercadopago.php';
+require_once __DIR__ . '/services/sanctions_index.php';
 require_once __DIR__ . '/services/admin_insights.php';
 require_once __DIR__ . '/includes/admin_auth_guard.php';
 
 /**
- * Retorna snapshot seguro (sem segredos) do estado do facilitador x402, coletor e Telegram.
+ * Retorna snapshot seguro (sem segredos) do estado do facilitador x402, coletor, sanções e Telegram.
  */
 function grid402_admin_runtime_status(): array {
     $facMode = defined('GRID402_FACILITATOR_MODE') ? (string) GRID402_FACILITATOR_MODE : 'settle';
@@ -30,6 +31,16 @@ function grid402_admin_runtime_status(): array {
     $facHost = $facUrl !== '' ? (string) (parse_url($facUrl, PHP_URL_HOST) ?: '') : '';
     $authMode = function_exists('grid402_facilitator_auth_mode') ? grid402_facilitator_auth_mode() : 'public';
     $x402Network = defined('GRID402_X402_NETWORK') ? (string) GRID402_X402_NETWORK : 'base';
+    $cdpConfigured = function_exists('grid402_cdp_credentials_configured') && grid402_cdp_credentials_configured();
+    $solanaEnabled = function_exists('grid402_is_solana_x402_enabled') && grid402_is_solana_x402_enabled();
+    $sodiumAvailable = function_exists('sodium_crypto_sign_detached');
+    $activeMap = function_exists('grid402_facilitator_active_map') ? grid402_facilitator_active_map() : [];
+    $primaryNet = ($x402Network === 'base-sepolia') ? 'eip155:84532' : 'eip155:8453';
+    $primaryBase = (string) ($activeMap[$primaryNet]['primary'] ?? ($cdpConfigured ? 'cdp' : 'payai'));
+    $primaryUrl = (string) ($activeMap[$primaryNet]['url'] ?? $facUrl);
+    $primaryHost = $primaryUrl !== '' ? (string) (parse_url($primaryUrl, PHP_URL_HOST) ?: $facHost) : $facHost;
+    $fallbackUrl = (string) ($activeMap[$primaryNet]['fallback_url'] ?? '');
+    $fallbackHost = $fallbackUrl !== '' ? (string) (parse_url($fallbackUrl, PHP_URL_HOST) ?: '') : '';
 
     $summaryFile = defined('GRID402_FILE_FREE') ? GRID402_FILE_FREE : '';
     $summaryExists = ($summaryFile !== '' && file_exists($summaryFile));
@@ -51,20 +62,30 @@ function grid402_admin_runtime_status(): array {
         : 1;
     $mpToken = function_exists('grid402_mp_access_token') ? grid402_mp_access_token() : '';
     $mpSandbox = function_exists('grid402_mp_is_sandbox') ? grid402_mp_is_sandbox() : false;
+    $sanctionsStatus = function_exists('grid402_sanctions_index_public_status')
+        ? grid402_sanctions_index_public_status()
+        : ['available' => false, 'freshness_status' => 'UNAVAILABLE', 'total_entities' => 0, 'total_addresses' => 0, 'age_hours' => null];
 
     return [
         'facilitator' => [
             'mode' => $facMode,
             'auth_mode' => $authMode,
-            'host' => $facHost,
+            'host' => $primaryHost !== '' ? $primaryHost : $facHost,
+            'primary_base' => $primaryBase,
+            'fallback_host' => $fallbackHost,
+            'cdp_configured' => $cdpConfigured,
+            'solana_enabled' => $solanaEnabled,
+            'sodium_available' => $sodiumAvailable,
             'network' => $x402Network,
             'multichain_accepts' => $multiChainCount,
+            'active_map' => $activeMap,
         ],
         'collector' => [
             'summary_exists' => $summaryExists,
             'summary_age_sec' => $summaryAgeSec,
             'summary_stale' => ($summaryAgeSec === null || $summaryAgeSec > 600),
         ],
+        'sanctions_index' => $sanctionsStatus,
         'telegram' => $tg,
         'rapidapi' => $rapid,
         'mercadopago' => [
@@ -157,6 +178,11 @@ function grid402_get_oracle_wallet_balances(): array {
         'https://solana-rpc.publicnode.com',
         'https://api.mainnet-beta.solana.com',
     ];
+    $customSolRpc = defined('GRID402_SOLANA_RPC_URL') ? trim((string) GRID402_SOLANA_RPC_URL) : '';
+    if ($customSolRpc !== '' && str_starts_with($customSolRpc, 'https://')) {
+        array_unshift($solanaRpcUrls, $customSolRpc);
+        $solanaRpcUrls = array_values(array_unique($solanaRpcUrls));
+    }
 
     // Helper interno para executar chamadas JSON-RPC em qualquer lista de endpoints com fallback
     $execRpc = static function (array $urls, string $method, array $params, int $timeoutSec = 3): mixed {
@@ -1641,6 +1667,7 @@ if ($apiParam === 'stats') {
         'passes_stats' => $analytics['passes_stats'] ?? [],
         'facilitator_status' => $runtimeStatus['facilitator'],
         'collector_status' => $runtimeStatus['collector'],
+        'sanctions_index_status' => $runtimeStatus['sanctions_index'] ?? null,
         'telegram_status' => $runtimeStatus['telegram'],
         'rapidapi_status' => $runtimeStatus['rapidapi'],
         'mercadopago_status' => $runtimeStatus['mercadopago'],

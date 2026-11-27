@@ -238,10 +238,14 @@ PHP);
 // Teste unitario de leitura de falhas recentes (Zero-PII + exclui PaymentRequired)
 require_once __DIR__ . '/../public_html/logger.php';
 $tmpLogFailures = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'grid402_failures_' . bin2hex(random_bytes(4)) . '.jsonl';
+$tmpDedicatedFailures = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'grid402_payfail_' . bin2hex(random_bytes(4)) . '.json';
 $prevLogEnv = getenv('GRID402_FILE_REQUEST_LOGS');
+$prevDedEnv = getenv('GRID402_FILE_PAYMENT_FAILURES');
 try {
     putenv('GRID402_FILE_REQUEST_LOGS=' . $tmpLogFailures);
     $_ENV['GRID402_FILE_REQUEST_LOGS'] = $tmpLogFailures;
+    putenv('GRID402_FILE_PAYMENT_FAILURES=' . $tmpDedicatedFailures);
+    $_ENV['GRID402_FILE_PAYMENT_FAILURES'] = $tmpDedicatedFailures;
     file_put_contents($tmpLogFailures, implode("\n", [
         json_encode(['ts' => '2026-11-21T10:00:00Z', 'request_id' => 'g402_1', 'service' => 'dns', 'status' => 402, 'payment_source' => 'none', 'error' => 'PaymentRequired', 'ip_hmac' => 'aaa']),
         json_encode(['ts' => '2026-11-21T10:01:00Z', 'request_id' => 'g402_2', 'service' => 'cnpj', 'status' => 402, 'payment_source' => 'facilitator', 'error' => 'PaymentFailed: invalid_exact_evm_insufficient_balance token pass_g402_secret123', 'ip_hmac' => 'bbb']),
@@ -258,7 +262,15 @@ try {
         putenv('GRID402_FILE_REQUEST_LOGS');
         unset($_ENV['GRID402_FILE_REQUEST_LOGS']);
     }
+    if ($prevDedEnv !== false && $prevDedEnv !== '') {
+        putenv('GRID402_FILE_PAYMENT_FAILURES=' . $prevDedEnv);
+        $_ENV['GRID402_FILE_PAYMENT_FAILURES'] = $prevDedEnv;
+    } else {
+        putenv('GRID402_FILE_PAYMENT_FAILURES');
+        unset($_ENV['GRID402_FILE_PAYMENT_FAILURES']);
+    }
     @unlink($tmpLogFailures);
+    @unlink($tmpDedicatedFailures);
 }
 echo "OK!\n";
 
@@ -968,8 +980,11 @@ echo "[5/5] Homologação completa do Painel Administrativo concluída com 100% 
 require_once __DIR__ . '/../public_html/logger.php';
 require_once __DIR__ . '/../public_html/growth.php';
 $tmpLogFile = sys_get_temp_dir() . '/grid402_test_failures_' . bin2hex(random_bytes(4)) . '.jsonl';
+$tmpPayFailFile = sys_get_temp_dir() . '/grid402_test_payfail_' . bin2hex(random_bytes(4)) . '.json';
 putenv('GRID402_FILE_REQUEST_LOGS=' . $tmpLogFile);
 $_ENV['GRID402_FILE_REQUEST_LOGS'] = $tmpLogFile;
+putenv('GRID402_FILE_PAYMENT_FAILURES=' . $tmpPayFailFile);
+$_ENV['GRID402_FILE_PAYMENT_FAILURES'] = $tmpPayFailFile;
 try {
     grid402_log_request(['service' => 'pass-balance', 'status' => 400, 'payment_source' => 'free', 'error' => 'InvalidPassTokenFormat']);
     grid402_log_request(['service' => 'pass-statement', 'status' => 400, 'payment_source' => 'free', 'error' => 'InvalidPassTokenFormat']);
@@ -984,8 +999,11 @@ try {
 } finally {
     @unlink($tmpLogFile);
     @unlink($tmpLogFile . '.lock');
+    @unlink($tmpPayFailFile);
     putenv('GRID402_FILE_REQUEST_LOGS');
     unset($_ENV['GRID402_FILE_REQUEST_LOGS']);
+    putenv('GRID402_FILE_PAYMENT_FAILURES');
+    unset($_ENV['GRID402_FILE_PAYMENT_FAILURES']);
 }
 
 // Validação de daily_history_14d com page_views, categoria sandbox_rate_limited e isolamento de paid_requests_per_service no Growth
@@ -1057,6 +1075,16 @@ assert($evalAlerts['summary']['high'] === 3, 'Deve detectar os 3 alertas de seve
 assert($evalAlerts['summary']['medium'] === 2, 'Deve detectar os 2 alertas de severidade medium (p95 > 1000ms, passes ociosos)');
 assert($evalAlerts['summary']['low'] === 2, 'Deve detectar os 2 alertas de severidade low (0 ETH, baixa tracao)');
 assert($evalAlerts['alerts'][0]['severity'] === 'high' && $evalAlerts['alerts'][count($evalAlerts['alerts']) - 1]['severity'] === 'low', 'Alertas devem estar ordenados high -> medium -> low');
+
+// Validação dos alertas da Fase 1 (Índice Oficial de Sanções 4 Blocos e Solana x402 sem ATA)
+$alSanMissing = grid402_admin_evaluate_alerts($mockMetrics, $mockAnalytics, ['sanctions_available' => false, 'sanctions_freshness' => 'UNAVAILABLE'], []);
+assert(in_array('sanctions_index_missing', array_column($alSanMissing['alerts'], 'id'), true), 'Deve emitir sanctions_index_missing (high) quando indice ausente');
+$alSanStale = grid402_admin_evaluate_alerts($mockMetrics, $mockAnalytics, ['sanctions_available' => true, 'sanctions_freshness' => 'STALE', 'sanctions_age_hours' => 80.5], []);
+assert(in_array('sanctions_index_stale', array_column($alSanStale['alerts'], 'id'), true), 'Deve emitir sanctions_index_stale (medium) quando indice STALE');
+$alSolNoAta = grid402_admin_evaluate_alerts($mockMetrics, $mockAnalytics, ['sanctions_available' => true, 'sanctions_freshness' => 'FRESH', 'solana_enabled' => true], ['chains' => ['solana' => ['ata_initialized' => false]]]);
+$solIds = array_column($alSolNoAta['alerts'], 'id');
+assert(in_array('solana_enabled_without_ata', $solIds, true), 'Deve emitir solana_enabled_without_ata (high) quando Solana ativa sem ATA');
+assert(!in_array('sanctions_index_missing', $solIds, true) && !in_array('sanctions_index_stale', $solIds, true), 'Indice FRESH nao deve emitir alertas de sancoes');
 
 $tmpAlertsState = sys_get_temp_dir() . '/grid402_test_alerts_state_' . bin2hex(random_bytes(4)) . '.json';
 try {

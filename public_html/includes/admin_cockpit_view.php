@@ -61,7 +61,15 @@ $walletTotalUsdc = (float) ($wallet['total_usdc_balance'] ?? ($wallet['usdc_bala
 $walletPolyUsdc = (float) ($walletChains['polygon']['usdc_balance'] ?? 0.0);
 $walletArbUsdc = (float) ($walletChains['arbitrum']['usdc_balance'] ?? 0.0);
 $walletSolUsdc = (float) ($walletChains['solana']['usdc_balance'] ?? 0.0);
+$walletSolSol = (float) ($walletChains['solana']['sol_balance'] ?? 0.0);
 $walletSolAtaInit = $walletChains['solana']['ata_initialized'] ?? null;
+$facCdpActive = !empty($facStatus['cdp_configured']);
+$facSolanaEnabled = !empty($facStatus['solana_enabled']);
+$sanctionsAvail = (bool) ($opHealth['sanctions_available'] ?? false);
+$sanctionsFreshness = strtoupper((string) ($opHealth['sanctions_freshness'] ?? 'UNAVAILABLE'));
+$sanctionsEntities = (int) ($opHealth['sanctions_total_entities'] ?? 0);
+$sanctionsAddresses = (int) ($opHealth['sanctions_total_addresses'] ?? 0);
+$sanctionsAgeHours = $opHealth['sanctions_age_hours'] ?? null;
 
 $formatDeltaBadge = static function (?float $pct): array {
     if ($pct === null) {
@@ -76,13 +84,13 @@ $formatDeltaBadge = static function (?float $pct): array {
     return ['text' => '0,0%', 'class' => 'delta-neutral'];
 };
 
-$servicesCatalogOrder = ['dossier', 'extract', 'email-verify', 'lei', 'ofac', 'notarize', 'global-markets', 'pass', 'pass-emitir', 'compliance', 'sanctions', 'simples', 'workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'kyb-audit', 'domain-audit', 'market-snapshot', 'summary'];
+$servicesCatalogOrder = ['dossier', 'extract', 'email-verify', 'lei', 'ofac', 'notarize', 'global-markets', 'pass', 'pass-emitir', 'compliance', 'sanctions', 'simples', 'workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'kyb-audit', 'domain-audit', 'market-snapshot', 'verify', 'summary'];
 $pricingLookup = [
     'dossier' => 0.0500, 'compliance' => 0.0300, 'kyb-audit' => 0.0250, 'ofac' => 0.0200, 'lei' => 0.0100,
     'cnpj' => 0.0100, 'domain-audit' => 0.0150, 'market-snapshot' => 0.0150, 'sanctions' => 0.0100,
     'simples' => 0.0100, 'pass' => 2.0000, 'pass-emitir' => 2.0000, 'extract' => 0.0050, 'email-verify' => 0.0050, 'notarize' => 0.0050,
     'forex' => 0.0050, 'crypto' => 0.0050, 'indicators' => 0.0050, 'holidays' => 0.0050, 'workdays' => 0.0050,
-    'global-markets' => 0.0050, 'dns' => 0.0050, 'ssl' => 0.0050, 'asn' => 0.0050, 'cep' => 0.0050, 'summary' => 0.0000,
+    'global-markets' => 0.0050, 'dns' => 0.0050, 'ssl' => 0.0050, 'asn' => 0.0050, 'cep' => 0.0050, 'verify' => 0.0000, 'summary' => 0.0000,
 ];
 ?>
 <!DOCTYPE html>
@@ -532,7 +540,10 @@ $pricingLookup = [
                         <div class="settings-card-status" style="margin-top: 0.35rem;">
                             <div id="runtime-facilitator-badge" style="color:<?php echo ($facStatus['mode'] === 'settle' ? '#10B981' : '#F59E0B'); ?>;">
                                 Facilitador x402: <strong><?php echo htmlspecialchars((string)$facStatus['mode'], ENT_QUOTES, 'UTF-8'); ?></strong>
-                                (<?php echo htmlspecialchars(($facStatus['host'] !== '' ? $facStatus['host'] : 'local') . ' · ' . $facStatus['auth_mode'] . ' · ' . (int)($facStatus['multichain_accepts'] ?? 4) . ' chains', ENT_QUOTES, 'UTF-8'); ?>)
+                                (<?php
+                                    $facLabel = $facCdpActive ? 'Coinbase CDP (Base) + PayAI' : (($facStatus['host'] !== '' ? $facStatus['host'] : 'local') . ' · ' . $facStatus['auth_mode']);
+                                    echo htmlspecialchars($facLabel . ' · ' . (int)($facStatus['multichain_accepts'] ?? 4) . ' chains' . ($facSolanaEnabled ? ' · Solana ON' : ' · Solana OFF'), ENT_QUOTES, 'UTF-8');
+                                ?>)
                             </div>
                             <div id="runtime-collector-badge" style="margin-top: 0.25rem; color:<?php echo (!$colStatus['summary_stale'] ? '#10B981' : '#F59E0B'); ?>;">
                                 Coletor (/status): <strong><?php
@@ -814,6 +825,8 @@ $pricingLookup = [
                                 foreach ($serviceRowsCombined as $srRow):
                                     if ($srRow['service'] === 'summary') {
                                         $signalHtml = '<span style="color: var(--text-muted); font-size: 0.72rem;">Gratuito (/status)</span>';
+                                    } elseif ($srRow['service'] === 'verify') {
+                                        $signalHtml = '<span style="color: var(--text-muted); font-size: 0.72rem;">Gratuito (/api/v1/verify)</span>';
                                     } elseif ($srRow['paid'] >= 30) {
                                         $signalHtml = '<span style="color: var(--ok); font-size: 0.72rem; font-weight: 700;">Ativo (Pago)</span>';
                                     } elseif ($srRow['paid'] > 0) {
@@ -880,7 +893,7 @@ $pricingLookup = [
             </div>
 
             <div class="panel">
-                <div class="panel-title">Volume Acumulado por Micro-Serviço (25 Serviços)</div>
+                <div class="panel-title">Volume Acumulado por Endpoint (25 Micro-Serviços + Rotas Auxiliares)</div>
                 <div id="service-bars-container">
                     <?php
                     $maxSvc = max(array_values($serviceCounts) ?: [1]);
@@ -907,7 +920,7 @@ $pricingLookup = [
                 <div class="kpi-card">
                     <div class="kpi-title">Faturamento Total</div>
                     <div class="kpi-value" id="kpi-total-usdc">US$ <?php echo number_format($revenueUsdc, 4); ?></div>
-                    <div class="kpi-sub" id="kpi-total-brl">≈ R$ <?php echo number_format($revenueBrl, 2, ',', '.'); ?> (Base Mainnet)</div>
+                    <div class="kpi-sub" id="kpi-total-brl">≈ R$ <?php echo number_format($revenueBrl, 2, ',', '.'); ?> (Multi-Chain USDC + Pix)</div>
                 </div>
                 <div class="kpi-card">
                     <div class="kpi-title">Faturamento Hoje</div>
@@ -932,12 +945,15 @@ $pricingLookup = [
                     <div class="kpi-value" id="kpi-wallet-usdc">US$ <?php echo number_format((float)($wallet['usdc_balance'] ?? 0.0), 4); ?></div>
                     <div class="kpi-sub" id="kpi-wallet-eth">Reserva Gas: <?php echo number_format((float)($wallet['eth_balance'] ?? 0.0), 5); ?> ETH · Total Multi-Chain: <strong>US$ <?php echo number_format($walletTotalUsdc, 4); ?></strong></div>
                     <div class="kpi-sub" id="kpi-wallet-multichain" style="font-size: 0.7rem; font-family: var(--font-mono); margin-top: 0.25rem;">
-                        Poly: $<?php echo number_format($walletPolyUsdc, 4); ?> · Arb: $<?php echo number_format($walletArbUsdc, 4); ?> · Sol: $<?php echo number_format($walletSolUsdc, 4); ?><?php
+                        Poly: $<?php echo number_format($walletPolyUsdc, 4); ?> · Arb: $<?php echo number_format($walletArbUsdc, 4); ?> · Sol: $<?php echo number_format($walletSolUsdc, 4); ?> (<?php echo number_format($walletSolSol, 4); ?> SOL)<?php
                             if ($walletSolAtaInit === false) {
                                 echo ' <span style="color:#F59E0B;">(ATA ausente)</span>';
                             } elseif ($walletSolAtaInit === true) {
                                 echo ' <span style="color:#10B981;">(ATA OK)</span>';
                             }
+                            echo $facSolanaEnabled
+                                ? ' <span style="color:#10B981;">· x402 ON</span>'
+                                : ' <span style="color:#94A3B8;">· x402 OFF</span>';
                         ?>
                     </div>
                 </div>
@@ -1037,7 +1053,7 @@ $pricingLookup = [
                     <div class="health-tile">
                         <div class="health-label">SLA / Sucesso Técnico</div>
                         <div class="health-val" id="kpi-sla-tech" style="color: <?php echo $error5xxCount === 0 ? '#10B981' : '#EF4444'; ?>;"><?php echo $technicalSuccessRate; ?>%</div>
-                        <div class="health-sub" id="kpi-latency-p95">Sem erros 5xx · Latência p95: <?php echo number_format($latencyP95Ms, 1, ',', '.'); ?> ms</div>
+                        <div class="health-sub" id="kpi-latency-p95"><?php echo $error5xxCount === 0 ? 'Sem erros 5xx' : ($error5xxCount . ' erro(s) 5xx'); ?> · Latência p95: <?php echo number_format($latencyP95Ms, 1, ',', '.'); ?> ms</div>
                     </div>
                     <div class="health-tile">
                         <div class="health-label">Latência p50 / p95</div>
@@ -1051,8 +1067,13 @@ $pricingLookup = [
                     </div>
                     <div class="health-tile">
                         <div class="health-label">Facilitador x402</div>
-                        <div class="health-val" id="health-facilitator-val" style="color: <?php echo $facStatus['mode'] === 'settle' ? '#10B981' : '#F59E0B'; ?>;"><?php echo htmlspecialchars(strtoupper((string) $facStatus['mode']), ENT_QUOTES, 'UTF-8'); ?></div>
-                        <div class="health-sub" id="health-facilitator-sub"><?php echo htmlspecialchars(($facStatus['host'] ?: 'local') . ' · ' . (int) ($facStatus['multichain_accepts'] ?? 4) . ' chains', ENT_QUOTES, 'UTF-8'); ?></div>
+                        <div class="health-val" id="health-facilitator-val" style="color: <?php echo $facStatus['mode'] === 'settle' ? '#10B981' : '#F59E0B'; ?>;"><?php echo htmlspecialchars($facCdpActive ? 'CDP + PAYAI' : strtoupper((string) $facStatus['mode']), ENT_QUOTES, 'UTF-8'); ?></div>
+                        <div class="health-sub" id="health-facilitator-sub"><?php echo htmlspecialchars(($facStatus['host'] ?: 'local') . ' · ' . (int) ($facStatus['multichain_accepts'] ?? 4) . ' chains' . ($facSolanaEnabled ? ' · Solana ON' : ''), ENT_QUOTES, 'UTF-8'); ?></div>
+                    </div>
+                    <div class="health-tile">
+                        <div class="health-label">Índice de Sanções (4 Blocos)</div>
+                        <div class="health-val" id="health-sanctions-val" style="color: <?php echo ($sanctionsAvail && $sanctionsFreshness === 'FRESH') ? '#10B981' : ($sanctionsAvail ? '#F59E0B' : '#EF4444'); ?>;"><?php echo htmlspecialchars($sanctionsAvail ? $sanctionsFreshness : 'AUSENTE', ENT_QUOTES, 'UTF-8'); ?></div>
+                        <div class="health-sub" id="health-sanctions-sub"><?php echo $sanctionsAvail ? (number_format($sanctionsEntities, 0, ',', '.') . ' ent. · ' . number_format($sanctionsAddresses, 0, ',', '.') . ' wallets' . ($sanctionsAgeHours !== null ? ' · ' . number_format((float) $sanctionsAgeHours, 1, ',', '.') . 'h' : '')) : 'Fail-closed ativo (/ofac 503)'; ?></div>
                     </div>
                     <div class="health-tile">
                         <div class="health-label">RapidAPI / Telegram / RPC</div>
@@ -1273,7 +1294,7 @@ $pricingLookup = [
                                 <th>Tipo</th>
                                 <th>Origem / Falha</th>
                                 <th>Valor (USDC)</th>
-                                <th>Transação On-Chain (Base)</th>
+                                <th>Transação On-Chain</th>
                                 <th>IP Requisitante (LGPD)</th>
                             </tr>
                         </thead>
@@ -1336,7 +1357,13 @@ $pricingLookup = [
                                         if ($evTx !== ''):
                                             $isEvmHexTx = (bool) preg_match('/^0x[a-f0-9]{64}$/i', $evTx);
                                             $isSolanaTx = !$isEvmHexTx && (bool) preg_match('/^[1-9A-HJ-NP-Za-km-z]{64,96}$/', $evTx);
-                                            $txExplorerUrl = $isSolanaTx ? ('https://solscan.io/tx/' . rawurlencode($evTx)) : ('https://basescan.org/tx/' . rawurlencode($evTx));
+                                            $txExplorerBase = 'https://basescan.org/tx/';
+                                            if ($isSolanaTx || $evSource === 'solana_spl') $txExplorerBase = 'https://solscan.io/tx/';
+                                            elseif ($evSource === 'evm_polygon') $txExplorerBase = 'https://polygonscan.com/tx/';
+                                            elseif ($evSource === 'evm_arbitrum') $txExplorerBase = 'https://arbiscan.io/tx/';
+                                            elseif ($evSource === 'evm_optimism') $txExplorerBase = 'https://optimistic.etherscan.io/tx/';
+                                            elseif ($evSource === 'evm_ethereum') $txExplorerBase = 'https://etherscan.io/tx/';
+                                            $txExplorerUrl = $txExplorerBase . rawurlencode($evTx);
                                         ?>
                                             <?php if ($isEvmHexTx || $isSolanaTx): ?>
                                                 <a href="<?php echo htmlspecialchars($txExplorerUrl, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener" class="tx-link"><?php echo htmlspecialchars(substr($evTx, 0, 8) . '...' . substr($evTx, -6), ENT_QUOTES, 'UTF-8'); ?> ↗</a>
@@ -1756,8 +1783,26 @@ $pricingLookup = [
             if (colS) colS.textContent = oh.collector_age_sec === null ? 'Ausente' : ('Atualizado há ' + Number(oh.collector_age_sec) + 's');
             const facV = document.getElementById('health-facilitator-val');
             const facS = document.getElementById('health-facilitator-sub');
-            if (facV) { facV.textContent = String(oh.facilitator_mode || 'unknown').toUpperCase(); facV.style.color = oh.facilitator_mode === 'settle' ? '#10B981' : '#F59E0B'; }
-            if (facS) facS.textContent = `${oh.facilitator_host || 'local'} · ${Number(oh.multichain_accepts || 4)} chains`;
+            if (facV) {
+                facV.textContent = oh.cdp_configured ? 'CDP + PAYAI' : String(oh.facilitator_mode || 'unknown').toUpperCase();
+                facV.style.color = oh.facilitator_mode === 'settle' ? '#10B981' : '#F59E0B';
+            }
+            if (facS) facS.textContent = `${oh.facilitator_host || 'local'} · ${Number(oh.multichain_accepts || 4)} chains${oh.solana_enabled ? ' · Solana ON' : ''}`;
+            const sanV = document.getElementById('health-sanctions-val');
+            const sanS = document.getElementById('health-sanctions-sub');
+            if (sanV && oh.sanctions_available !== undefined) {
+                const fresh = String(oh.sanctions_freshness || 'UNAVAILABLE').toUpperCase();
+                sanV.textContent = oh.sanctions_available ? fresh : 'AUSENTE';
+                sanV.style.color = (oh.sanctions_available && fresh === 'FRESH') ? '#10B981' : (oh.sanctions_available ? '#F59E0B' : '#EF4444');
+            }
+            if (sanS && oh.sanctions_available !== undefined) {
+                if (oh.sanctions_available) {
+                    const agePart = (oh.sanctions_age_hours !== null && oh.sanctions_age_hours !== undefined) ? (' · ' + Number(oh.sanctions_age_hours).toFixed(1).replace('.', ',') + 'h') : '';
+                    sanS.textContent = Number(oh.sanctions_total_entities || 0).toLocaleString('pt-BR') + ' ent. · ' + Number(oh.sanctions_total_addresses || 0).toLocaleString('pt-BR') + ' wallets' + agePart;
+                } else {
+                    sanS.textContent = 'Fail-closed ativo (/ofac 503)';
+                }
+            }
             const intV = document.getElementById('health-integrations-val');
             const rpcS = document.getElementById('health-rpc-sub');
             if (intV) intV.textContent = `RapidAPI: ${oh.rapidapi_configured ? ('OK (' + Math.max(1, Number(oh.rapidapi_count || 1)) + ')') : 'OFF'} · TG: ${oh.telegram_configured ? 'OK' : 'OFF'}`;
@@ -1782,6 +1827,7 @@ $pricingLookup = [
             rows.forEach(r => {
                 let sig = '<span class="tag-low-traction">Sem tráfego</span>';
                 if (r.service === 'summary') sig = '<span style="color: var(--text-muted); font-size: 0.72rem;">Gratuito (/status)</span>';
+                else if (r.service === 'verify') sig = '<span style="color: var(--text-muted); font-size: 0.72rem;">Gratuito (/api/v1/verify)</span>';
                 else if (r.paid >= 30) sig = '<span style="color: var(--ok); font-size: 0.72rem; font-weight: 700;">Ativo (Pago)</span>';
                 else if (r.paid > 0) sig = '<span style="color: #38BDF8; font-size: 0.72rem; font-weight: 600;">Com tração paga</span>';
                 else if (r.total > 0) sig = '<span class="tag-low-traction">Sem pagas (só 402/sandbox)</span>';
@@ -2033,7 +2079,7 @@ $pricingLookup = [
 
                 const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
                 setTxt('kpi-total-usdc', 'US$ ' + Number(data.total_revenue_usdc || 0).toFixed(4));
-                setTxt('kpi-total-brl', '≈ R$ ' + Number(data.total_revenue_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + ' (Base Mainnet)');
+                setTxt('kpi-total-brl', '≈ R$ ' + Number(data.total_revenue_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + ' (Multi-Chain USDC + Pix)');
                 setTxt('kpi-today-usdc', 'US$ ' + Number(data.today_revenue_usdc || 0).toFixed(4));
                 setTxt('kpi-today-brl', '≈ R$ ' + Number(data.today_revenue_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + ' hoje');
                 const reqs402 = Number(data.status_counts?.['402'] || 0);
@@ -2046,8 +2092,10 @@ $pricingLookup = [
                 setTxt('kpi-paid-reqs', reqs402.toLocaleString('pt-BR') + ' desafios 402 • ' + Number(data.total_sandbox_requests || 0).toLocaleString('pt-BR') + ' sandbox');
                 setTxt('kpi-arpu-usdc', 'US$ ' + Number(data.arpu_usdc || 0).toFixed(4));
                 setTxt('kpi-arpu-brl', '≈ R$ ' + Number(data.arpu_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 4 }) + ' / consulta paga');
-                setTxt('kpi-sla-tech', Number(data.technical_success_rate ?? 100).toFixed(1) + '%');
-                setTxt('kpi-latency-p95', 'Sem erros 5xx · Latência p95: ' + Number(data.latency_p95_ms || 0).toFixed(1).replace('.', ',') + ' ms');
+                const err5xx = Number(data.error_5xx_count || 0);
+                const slaEl = document.getElementById('kpi-sla-tech');
+                if (slaEl) { slaEl.textContent = Number(data.technical_success_rate ?? 100).toFixed(1) + '%'; slaEl.style.color = err5xx === 0 ? '#10B981' : '#EF4444'; }
+                setTxt('kpi-latency-p95', (err5xx === 0 ? 'Sem erros 5xx' : (err5xx + ' erro(s) 5xx')) + ' · Latência p95: ' + Number(data.latency_p95_ms || 0).toFixed(1).replace('.', ',') + ' ms');
                 setTxt('kpi-sandbox-rate', Number(data.sandbox_rate || 0).toFixed(1) + '%');
 
                 setTxt('kpi-conversion', ((reqs402 + paid) > 0 ? ((paid / (reqs402 + paid)) * 100).toFixed(1) : '0') + '%');
@@ -2063,9 +2111,11 @@ $pricingLookup = [
                         const pU = Number(w.chains.polygon?.usdc_balance || 0).toFixed(4);
                         const aU = Number(w.chains.arbitrum?.usdc_balance || 0).toFixed(4);
                         const sU = Number(w.chains.solana?.usdc_balance || 0).toFixed(4);
+                        const sSol = Number(w.chains.solana?.sol_balance || 0).toFixed(4);
                         const sAta = w.chains.solana?.ata_initialized;
                         const ataBadge = sAta === false ? ' <span style="color:#F59E0B;">(ATA ausente)</span>' : (sAta === true ? ' <span style="color:#10B981;">(ATA OK)</span>' : '');
-                        mcEl.innerHTML = `Poly: $${pU} · Arb: $${aU} · Sol: $${sU}${ataBadge}`;
+                        const solFlag = data.facilitator_status?.solana_enabled ? ' <span style="color:#10B981;">· x402 ON</span>' : ' <span style="color:#94A3B8;">· x402 OFF</span>';
+                        mcEl.innerHTML = `Poly: $${pU} · Arb: $${aU} · Sol: $${sU} (${sSol} SOL)${ataBadge}${solFlag}`;
                     }
                     const rpcEl = document.getElementById('kpi-rpc-status');
                     if (rpcEl) { rpcEl.textContent = w.rpc_operational ? 'RPC ATIVO' : 'CACHE OFFLINE'; rpcEl.style.color = w.rpc_operational ? '#10B981' : '#F59E0B'; }
@@ -2088,7 +2138,9 @@ $pricingLookup = [
                     const facBadge = document.getElementById('runtime-facilitator-badge');
                     if (facBadge) {
                         facBadge.style.color = fs.mode === 'settle' ? '#10B981' : '#F59E0B';
-                        facBadge.innerHTML = `Facilitador x402: <strong>${safeHtmlText(fs.mode || 'unknown')}</strong> (${safeHtmlText(fs.host || 'local')} · ${safeHtmlText(fs.auth_mode || '')} · ${Number(fs.multichain_accepts || 4)} chains)`;
+                        const fLbl = fs.cdp_configured ? 'Coinbase CDP (Base) + PayAI' : (safeHtmlText(fs.host || 'local') + ' · ' + safeHtmlText(fs.auth_mode || ''));
+                        const sLbl = fs.solana_enabled ? ' · Solana ON' : ' · Solana OFF';
+                        facBadge.innerHTML = `Facilitador x402: <strong>${safeHtmlText(fs.mode || 'unknown')}</strong> (${fLbl} · ${Number(fs.multichain_accepts || 4)} chains${sLbl})`;
                     }
                 }
                 if (data.rapidapi_status) renderRapidApiStatusBadge(data.rapidapi_status);
@@ -2156,9 +2208,15 @@ $pricingLookup = [
                             const rawTx = String(ev.settlement_tx || ev.tx_hash || '');
                             const isHex = /^0x[a-f0-9]{64}$/i.test(rawTx);
                             const isSol = !isHex && /^[1-9A-HJ-NP-Za-km-z]{64,96}$/.test(rawTx);
-                            const txHtml = isHex
-                                ? `<a href="https://basescan.org/tx/${encodeURIComponent(rawTx)}" target="_blank" rel="noopener" class="tx-link">${safeHtmlText(rawTx.substr(0, 8))}...${safeHtmlText(rawTx.substr(-6))} ↗</a>`
-                                : (isSol ? `<a href="https://solscan.io/tx/${encodeURIComponent(rawTx)}" target="_blank" rel="noopener" class="tx-link">${safeHtmlText(rawTx.substr(0, 8))}...${safeHtmlText(rawTx.substr(-6))} ↗</a>` : '<span style="color: var(--text-muted);">-</span>');
+                            let expBase = 'https://basescan.org/tx/';
+                            if (isSol || sk === 'solana_spl') expBase = 'https://solscan.io/tx/';
+                            else if (sk === 'evm_polygon') expBase = 'https://polygonscan.com/tx/';
+                            else if (sk === 'evm_arbitrum') expBase = 'https://arbiscan.io/tx/';
+                            else if (sk === 'evm_optimism') expBase = 'https://optimistic.etherscan.io/tx/';
+                            else if (sk === 'evm_ethereum') expBase = 'https://etherscan.io/tx/';
+                            const txHtml = (isHex || isSol)
+                                ? `<a href="${expBase}${encodeURIComponent(rawTx)}" target="_blank" rel="noopener" class="tx-link">${safeHtmlText(rawTx.substr(0, 8))}...${safeHtmlText(rawTx.substr(-6))} ↗</a>`
+                                : '<span style="color: var(--text-muted);">-</span>';
 
                             return `<tr class="event-row" data-type="${safeHtmlText(rawType)}">
                                 <td style="white-space: nowrap;"><div>${safeHtmlText(dualTs.brt)}</div>${dualTs.utc ? `<div style="font-size: 0.7rem; color: var(--text-muted);">${safeHtmlText(dualTs.utc)}</div>` : ''}</td>
