@@ -62,8 +62,8 @@ function grid402_admin_runtime_status(): array {
         : 1;
     $mpToken = function_exists('grid402_mp_access_token') ? grid402_mp_access_token() : '';
     $mpSandbox = function_exists('grid402_mp_is_sandbox') ? grid402_mp_is_sandbox() : false;
-    $sanctionsStatus = function_exists('grid402_sanctions_index_public_status')
-        ? grid402_sanctions_index_public_status()
+    $sanctionsStatus = function_exists('grid402_sanctions_index_summary')
+        ? grid402_sanctions_index_summary()
         : ['available' => false, 'freshness_status' => 'UNAVAILABLE', 'total_entities' => 0, 'total_addresses' => 0, 'age_hours' => null];
 
     return [
