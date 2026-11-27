@@ -310,7 +310,7 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
                     <strong id="pix-status-title" style="color:var(--cyan);">Escaneie o QR Code no app do seu banco</strong>
                     <span id="pix-status-badge" style="font-size:.78rem;padding:.2rem .6rem;border-radius:999px;background:rgba(245,158,11,.15);color:#FCD34D;border:1px solid rgba(245,158,11,.4);">Aguardando Pix...</span>
                 </div>
-                <div class="pix-flex">
+                <div id="pix-qr-content" class="pix-flex">
                     <div class="qr-frame"><img id="pix-qr-img" src="" alt="QR Code Pix para Starter Pass Grid402" /></div>
                     <div style="flex:1;min-width:220px;">
                         <label for="pix-code">Pix Copia e Cola</label>
@@ -324,6 +324,7 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
                         </p>
                     </div>
                 </div>
+                <div id="pix-approved-box" style="display:none;margin-top:.5rem;padding:.75rem .9rem;border-radius:10px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.4);color:#A7F3D0;font-size:.88rem;"></div>
             </div>
         </div>
 
@@ -712,6 +713,17 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
             }
             currentOrderId = data.order_id;
             $('pix-panel').classList.add('show');
+            if ($('pix-qr-content')) $('pix-qr-content').style.display = '';
+            if ($('pix-approved-box')) {
+                $('pix-approved-box').style.display = 'none';
+                $('pix-approved-box').textContent = '';
+            }
+            if ($('pix-status-title')) $('pix-status-title').textContent = 'Escaneie o QR Code no app do seu banco';
+            if ($('pix-status-badge')) {
+                $('pix-status-badge').textContent = 'Aguardando Pix...';
+                $('pix-status-badge').style.color = '#FCD34D';
+                $('pix-status-badge').style.borderColor = 'rgba(245,158,11,.4)';
+            }
             if (data.qr_code_base64) {
                 const mime = data.qr_mime || 'image/png';
                 $('pix-qr-img').src = 'data:' + mime + ';base64,' + data.qr_code_base64;
@@ -738,14 +750,32 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
             if (data.status === 'approved' && data.pass_token) {
                 clearInterval(pollInterval);
                 pollInterval = null;
+                if ($('pix-qr-content')) $('pix-qr-content').style.display = 'none';
+                if ($('btn-sandbox-approve')) $('btn-sandbox-approve').style.display = 'none';
+                if ($('pix-status-title')) $('pix-status-title').textContent = 'Pagamento confirmado! Créditos liberados';
                 $('pix-status-badge').textContent = 'Pix Aprovado!';
                 $('pix-status-badge').style.color = '#6EE7B7';
                 $('pix-status-badge').style.borderColor = 'rgba(16,185,129,.5)';
+                const tierLabels = {
+                    micro: 'Micro Pass',
+                    starter: 'Starter Pass',
+                    pro: 'Pro Pass',
+                    fleet: 'Fleet Pass'
+                };
+                const tierKey = String(data.tier || selectedPixTier || 'starter').toLowerCase();
+                const tierLabel = tierLabels[tierKey] || 'Starter Pass';
+                const creditsNum = Number(data.credits ?? 0);
                 saveToken(data.pass_token);
-                showAlert('Pix confirmado! Seu Starter Pass (' + data.credits + ' créditos) foi salvo: ' + data.pass_token, 'ok');
+                if ($('pix-approved-box')) {
+                    $('pix-approved-box').textContent = tierLabel + ' ativo com ' + creditsNum + ' créditos liberados (' + data.pass_token + '). Clique em "Emitir Dossiê Completo (10 cr)" ao lado para gerar o relatório.';
+                    $('pix-approved-box').style.display = 'block';
+                }
+                showAlert('Pix confirmado! Seu ' + tierLabel + ' (' + creditsNum + ' créditos) foi salvo: ' + data.pass_token, 'ok');
                 const cnpjDigits = onlyDigits($('cnpj-input').value);
                 if (cnpjDigits.length === 14) {
                     await fetchFullDossier(cnpjDigits, data.pass_token);
+                } else if ($('btn-run-with-pass')) {
+                    $('btn-run-with-pass').focus();
                 }
             }
         } catch (_) {}

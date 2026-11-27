@@ -5305,6 +5305,12 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             });
 
             selectPlaygroundPreset('workdays');
+            if (window.Grid402PassStorage && typeof window.Grid402PassStorage.load === 'function') {
+                const savedPass = String(window.Grid402PassStorage.load() || '').trim();
+                if (/^pass_g402_[a-z0-9_]{8,24}_[a-f0-9]{16}$/i.test(savedPass)) {
+                    setPlaygroundMode('pass');
+                }
+            }
         }
 
         function selectPlaygroundPreset(key) {
