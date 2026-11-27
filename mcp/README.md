@@ -3,17 +3,17 @@
 [![oliveiratc/Grid402 MCP server](https://glama.ai/mcp/servers/oliveiratc/Grid402/badges/score.svg)](https://glama.ai/mcp/servers/oliveiratc/Grid402)
 [![Grid402 MCP connector](https://glama.ai/mcp/connectors/io.github.oliveiratc/grid402/badges/score.svg)](https://glama.ai/mcp/connectors/io.github.oliveiratc/grid402)
 
-Servidor oficial do **Model Context Protocol (MCP)** para o **Grid402** — Hub de 25 Micro-Serviços de Dados Públicos Abertos e Utilitários de Rede (27 ferramentas MCP) com liquidação de micropagamentos x402 em USDC Multi-Chain (Base, Arbitrum, Polygon, Optimism, Ethereum e Solana SPL).
+Servidor oficial do **Model Context Protocol (MCP)** para o **Grid402** — Hub de 28 Micro-Serviços de Dados Públicos Abertos e Utilitários de Rede (30 ferramentas MCP) com liquidação de micropagamentos x402 em USDC Multi-Chain (Base, Arbitrum, Polygon, Optimism, Ethereum e Solana SPL).
 
 Compatível nativamente com **Claude Desktop**, **Cursor**, **Smithery.ai**, **Glama**, **Coinbase AgentKit** e qualquer orquestrador compatível com a especificação MCP da Anthropic.
 
 ---
 
-## 🛠️ Ferramentas Disponíveis (27 Tools)
+## 🛠️ Ferramentas Disponíveis (30 Tools)
 
 | Ferramenta | Descrição | Modalidade | Custo |
 |---|---|---|---|
-| `grid402_summary` | Resumo consolidado de saúde dos 25 serviços | Direto | Gratuito |
+| `grid402_summary` | Resumo consolidado de saúde dos 28 serviços | Direto | Gratuito |
 | `grid402_forex` | Cotações em tempo real de USD, EUR e GBP para BRL | On-Demand | 0.0050 USDC (1 cr) |
 | `grid402_crypto` | Preços spot de BTC, ETH, SOL, USDC e BASE | On-Demand | 0.0050 USDC (1 cr) |
 | `grid402_dns` | Resolução autoritativa de DNS (A, AAAA, MX, TXT, NS, CNAME) | On-Demand | 0.0050 USDC (1 cr) |
@@ -37,6 +37,9 @@ Compatível nativamente com **Claude Desktop**, **Cursor**, **Smithery.ai**, **G
 | `grid402_global_markets` | Calendário de bolsas (US/EU/UK/BR) e 30+ taxas de câmbio do BCE | On-Demand | 0.0050 USDC (1 cr) |
 | `grid402_extract` | Extrator anti-SSRF de páginas web HTTP/HTTPS para Markdown limpo (LLMs e RAG) | On-Demand | 0.0050 USDC (1 cr) |
 | `grid402_email_verify` | Auditoria Zero-PII de entregabilidade de e-mail B2B (RFC, MX, SPF, DMARC, disposable e score 0-100) | On-Demand | 0.0050 USDC (1 cr) |
+| `grid402_token_safety` | Auditoria Multi-Chain de segurança de tokens e liquidez DEX (GoPlus + DexScreener em Base, ETH, Polygon, Arbitrum e Solana) | On-Demand | 0.0150 USDC (3 cr) |
+| `grid402_prediction_markets` | Probabilidades normalizadas (0-100%), volume 24h e liquidez de Polymarket Gamma e Kalshi Trade API v2 | On-Demand | 0.0100 USDC (2 cr) |
+| `grid402_batch` | Execução em lote de 1 a 5 chamadas pagas em 1 POST (máx 2 em sandbox) com estorno automático no Session Pass | On-Demand (POST) | Soma exata dos itens |
 | `grid402_pass` | Emissão de Session Pass pré-pago (Starter 400 cr / Pro 1.200 cr / Fleet 6.000 cr) | Pré-Pago | 2 / 5 / 20 USDC |
 | `grid402_pass_balance` | Consulta de saldo, validade e Spend Controls de um Session Pass | Direto | Gratuito |
 | `grid402_verify` | Validação matemática de prova criptográfica de oráculo (_oracle_proof) secp256k1 | Direto | Gratuito |

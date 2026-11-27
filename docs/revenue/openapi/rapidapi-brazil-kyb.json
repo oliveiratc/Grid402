@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Grid402 Brazil KYB, CNPJ, CGU Sanctions & ANBIMA Workdays",
-    "version": "3.4.0",
+    "version": "3.7.0",
     "description": "Verified Receita Federal CNPJ, Simples Nacional / MEI, CGU CEIS/CNEP Sanctions, KYB 360 AI Dossier, Compliance score, ANBIMA bank workdays/holidays, BCB indicators and IBGE/CEP lookups — Zero-PII (LGPD) with signed ECDSA Oracle Proof.\n\nNeed pay-per-call crypto settlement (Base, Polygon, Arbitrum, Solana USDC) or Pix (R$ 12 = 400 credits) with zero monthly retainer? Visit https://grid402.online/pass",
     "contact": {
       "name": "Grid402 Support",

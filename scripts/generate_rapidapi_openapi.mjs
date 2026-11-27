@@ -4,9 +4,9 @@
  * a partir de public_html/openapi.json.
  *
  * Saidas em docs/revenue/openapi/:
- *   - rapidapi-global.json      (13 rotas globais + /api/v1/summary + /api/v1/verify)
+ *   - rapidapi-global.json      (16 rotas globais + /api/v1/summary + /api/v1/verify)
  *   - rapidapi-brazil-kyb.json  (10 rotas Brasil KYB & Dados Publicos)
- *   - rapidapi-all.json         (todas as 23 rotas pagas + /api/v1/summary + /api/v1/verify)
+ *   - rapidapi-all.json         (todas as 26 rotas pagas + /api/v1/summary + /api/v1/verify)
  *
  * Uso:
  *   node scripts/generate_rapidapi_openapi.mjs
@@ -38,6 +38,9 @@ export const PAYMENT_HEADER_NAMES = new Set([
 ]);
 
 export const GLOBAL_PATHS = [
+  "/api/v1/token-safety",
+  "/api/v1/prediction-markets",
+  "/api/v1/batch",
   "/api/v1/extract",
   "/api/v1/email-verify",
   "/api/v1/domain-audit",
@@ -297,7 +300,7 @@ export function generateSpecs(outputDir = OUTPUT_DIR) {
       filename: "rapidapi-all.json",
       title: "Grid402 Complete M2M Data & Utilities Hub",
       description:
-        "Complete Grid402 catalog combining 23 paid M2M open data, LLM Web-to-Markdown extraction, B2B Email Verification, Network Utility audits and Brazilian KYB/compliance endpoints plus free hub summary and ECDSA secp256k1 signature verification.\n\nNeed pay-per-call crypto settlement (Base, Polygon, Arbitrum, Solana USDC) or Pix (R$ 12 = 400 credits) with zero monthly retainer? Visit https://grid402.online/pass",
+        "Complete Grid402 catalog combining 26 paid M2M open data, Multi-Chain Token Safety, Prediction Markets, Batch Orchestration, LLM Web-to-Markdown extraction, B2B Email Verification, Network Utility audits and Brazilian KYB/compliance endpoints plus free hub summary and ECDSA secp256k1 signature verification.\n\nNeed pay-per-call crypto settlement (Base, Polygon, Arbitrum, Solana USDC) or Pix (R$ 12 = 400 credits) with zero monthly retainer? Visit https://grid402.online/pass",
       selectedPaths: ALL_PATHS,
     },
   ];

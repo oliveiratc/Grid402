@@ -46,6 +46,17 @@ const QUERY_DEFAULTS = {
   'global-markets': { market: 'US', base: 'USD' },
   'extract': { url: 'https://example.com' },
   'email-verify': { email: 'contato@grid402.online' },
+  'token-safety': { chain: 'base', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' },
+  'prediction-markets': { q: 'bitcoin', limit: '5' },
+};
+
+const POST_BODIES = {
+  'batch': {
+    items: [
+      { service: 'dns', params: { domain: 'base.org' } },
+      { service: 'notarize', params: { content: 'Grid402-Bazaar-Seed-v1' } },
+    ],
+  },
 };
 
 function parseFlags(argv) {
@@ -187,7 +198,11 @@ async function main() {
 
   for (const slug of candidates) {
     const url = buildTargetUrl(slug);
-    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    const postBody = POST_BODIES[slug] ? JSON.stringify(POST_BODIES[slug]) : null;
+    const probeInit = postBody
+      ? { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json' }, body: postBody }
+      : { headers: { Accept: 'application/json' } };
+    const res = await fetch(url, probeInit);
     const hdr = res.headers.get('payment-required');
     if (res.status !== 402 || !hdr) {
       console.log(`  [WARN] ${slug.padEnd(16)} retornou HTTP ${res.status} (esperado 402 + payment-required)`);
@@ -247,12 +262,16 @@ async function main() {
   let okCount = 0;
   for (const item of ready) {
     const proof = await signTransferAuthorization(wallet, item.accept, item.slug, item.decoded);
-    const res = await fetch(item.url, {
-      headers: {
-        Accept: 'application/json',
-        'PAYMENT-SIGNATURE': proof,
-      },
-    });
+    const postBody = POST_BODIES[item.slug] ? JSON.stringify(POST_BODIES[item.slug]) : null;
+    const reqHeaders = {
+      Accept: 'application/json',
+      'PAYMENT-SIGNATURE': proof,
+    };
+    if (postBody) {
+      reqHeaders['Content-Type'] = 'application/json';
+    }
+    const fetchOpts = postBody ? { method: 'POST', headers: reqHeaders, body: postBody } : { headers: reqHeaders };
+    const res = await fetch(item.url, fetchOpts);
     const text = await res.text();
     if (res.status === 200) {
       okCount++;
