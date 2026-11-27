@@ -1,13 +1,13 @@
 {
   "name": "Grid402",
-  "description": "Global M2M verifiable public-data, KYB/compliance, web-to-Markdown, email verification and network-utility oracle hub for AI agents. Settled pay-per-call via gasless HTTP x402 v2 (USDC on Base, Polygon, Arbitrum) or sub-15ms Prepaid Session Passes, with ECDSA secp256k1 _oracle_proof signatures.",
+  "description": "Global M2M verifiable public-data, token safety, prediction markets, multi-service batch orchestration, KYB/compliance, web-to-Markdown, email verification and network-utility oracle hub for AI agents. Settled pay-per-call via gasless HTTP x402 v2 (USDC on Base, Polygon, Arbitrum) or sub-15ms Prepaid Session Passes, with ECDSA secp256k1 _oracle_proof signatures.",
   "url": "https://grid402.online",
-  "version": "3.4.0",
+  "version": "3.7.0",
   "capabilities": [
     {
       "id": "summary",
       "name": "grid402_summary",
-      "description": "Checks operational health, 30-day uptime and service catalog status across all 25 microservices (free).",
+      "description": "Checks operational health, 30-day uptime and service catalog status across all 28 microservices (free).",
       "url": "https://grid402.online/api/v1/summary",
       "method": "GET",
       "priceUsd": 0,
@@ -566,6 +566,79 @@
           "deliverable": { "type": "boolean" },
           "score": { "type": "integer" },
           "mx_valid": { "type": "boolean" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "token-safety",
+      "name": "grid402_token_safety",
+      "description": "Multi-Chain token security and DEX liquidity audit across Base, Ethereum, Polygon, Arbitrum and SPL networks via public GoPlus Security + DexScreener APIs returning score (0-100), verdict and signed proof (0.0150 USDC / 3 credits).",
+      "url": "https://grid402.online/api/v1/token-safety",
+      "method": "GET",
+      "priceUsd": 0.015,
+      "inputSchema": {
+        "type": "object",
+        "required": ["address"],
+        "properties": {
+          "address": { "type": "string", "description": "Token contract or mint address (EVM 0x... or SPL Base58)" },
+          "chain": { "type": "string", "description": "Optional chain slug (e.g. base, ethereum, polygon, arbitrum; auto-detected for SPL)" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "safety_score": { "type": "integer" },
+          "verdict": { "type": "string" },
+          "risk_flags": { "type": "object" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "prediction-markets",
+      "name": "grid402_prediction_markets",
+      "description": "Normalized public prediction market odds (0-100%), 24h volume and liquidity aggregated from Polymarket Gamma and Kalshi Public Trade API v2 with graceful degradation (0.0100 USDC / 2 credits).",
+      "url": "https://grid402.online/api/v1/prediction-markets",
+      "method": "GET",
+      "priceUsd": 0.01,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "q": { "type": "string", "description": "Optional search query" },
+          "source": { "type": "string", "description": "all, polymarket or kalshi" },
+          "status": { "type": "string", "description": "active or closed" },
+          "limit": { "type": "integer", "description": "Max markets (1 to 20)" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "markets": { "type": "array" },
+          "sources_status": { "type": "object" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "batch",
+      "name": "grid402_batch",
+      "description": "Execute 1 to 5 paid Grid402 data services in a single HTTP POST call (max 2 items in sandbox). Dynamically priced as the exact sum of item fees, with automatic Session Pass partial refund on sub-item failure.",
+      "url": "https://grid402.online/api/v1/batch",
+      "method": "POST",
+      "priceUsd": 0.005,
+      "inputSchema": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "1 to 5 sub-requests [{service, params}]" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "batch_summary": { "type": "object" },
+          "results": { "type": "array" },
           "_oracle_proof": { "type": "object" }
         }
       }

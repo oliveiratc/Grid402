@@ -372,11 +372,11 @@ $jsonLd = [
         <?php if ($isEn): ?>
         <a class="btn btn-primary" href="<?php echo htmlspecialchars($rapidApiUrl, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer">💳 Subscribe via Credit Card on RapidAPI ($9.90/mo)</a>
         <a class="btn btn-pix" href="/pass">⚡ Buy Prepaid USDC Pass (Base / Polygon / Arbitrum)</a>
-        <a class="btn btn-outline" href="/catalog">Explore all 25 endpoints →</a>
+        <a class="btn btn-outline" href="/catalog">Explore all 28 endpoints →</a>
         <?php else: ?>
         <a class="btn btn-pix" href="/pass?tier=starter&amp;method=pix">⚡ Comprar 400 Créditos via Pix (R$ 12)</a>
         <a class="btn btn-primary" href="/dossie-kyb">📄 Gerar Dossiê 360º KYB em PDF</a>
-        <a class="btn btn-outline" href="/catalog">Ver todos os 25 endpoints →</a>
+        <a class="btn btn-outline" href="/catalog">Ver todos os 28 endpoints →</a>
         <?php endif; ?>
     </div>
 
@@ -465,7 +465,7 @@ $jsonLd = [
         </div>
         <?php else: ?>
         <h2 style="margin-top:0;">Comece em menos de 30 segundos sem criar conta</h2>
-        <p style="margin-bottom:1rem;">Gere seu Starter Pass via Pix por R$ 12 (400 créditos) e use em todos os 25 endpoints da plataforma ou no Gerador de Dossiê KYB em PDF.</p>
+        <p style="margin-bottom:1rem;">Gere seu Starter Pass via Pix por R$ 12 (400 créditos) e use em todos os 28 endpoints da plataforma ou no Gerador de Dossiê KYB em PDF.</p>
         <div class="cta-row" style="justify-content:center;margin-bottom:0;">
             <a class="btn btn-pix" href="/pass?tier=starter&amp;method=pix">⚡ Gerar Pix R$ 12 Agora</a>
             <a class="btn btn-primary" href="/dossie-kyb">📄 Abrir Gerador de Dossiê KYB</a>

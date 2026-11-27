@@ -1,21 +1,21 @@
 # Grid402 (HTTP x402 v2 M2M Oracle)
 
-> Zero-PII, machine-to-machine utility APIs for AI agents and automated pipelines, settled via HTTP 402 (x402 v2 USDC micropayments on Base, Polygon, Arbitrum, Optimism, and Ethereum), Grid402 Session Pass (Pix, Card, or USDC), RapidAPI Hub (USD), and Model Context Protocol (/mcp with 27 tools). All endpoints emit ECDSA secp256k1 signed responses (`_oracle_proof` and `_meta`).
+> Zero-PII, machine-to-machine utility APIs for AI agents and automated pipelines, settled via HTTP 402 (x402 v2 USDC micropayments on Base, Polygon, Arbitrum, Optimism, and Ethereum), Grid402 Session Pass (Pix, Card, or USDC), RapidAPI Hub (USD), and Model Context Protocol (/mcp with 30 tools). All endpoints emit ECDSA secp256k1 signed responses (`_oracle_proof` and `_meta`).
 
 ## Payment Options and Free Trials
 
-- **HTTP x402 v2 EVM USDC Pay-Per-Call**: Supported networks include Base (`eip155:8453`, primary USDC contract `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`), Polygon (`eip155:137`), Arbitrum (`eip155:42161`), Optimism (`eip155:10`), and Ethereum (`eip155:1`). Collector address: `0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`. Calls are priced from `0.0050` USDC to `0.0500` USDC.
+- **HTTP x402 v2 EVM USDC Pay-Per-Call**: Supported networks include Base (`eip155:8453`, primary USDC contract `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`), Polygon (`eip155:137`), Arbitrum (`eip155:42161`), Optimism (`eip155:10`), and Ethereum (`eip155:1`). Collector address: `0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`. Calls are priced from `0.0050` USDC to `0.0500` USDC (plus dynamic sums on `/api/v1/batch`).
 - **Grid402 Session Pass (`/pass`)**: Prepaid bearer token (`Authorization: Bearer pass_g402_...` or `X-Payment`) for sub-15ms zero-gas calls. Tiers:
   - **Micro**: R$ 4.90 (50 credits / 5 KYB dossiers, 90-day TTL)
   - **Starter**: R$ 12.00 / 2.00 USDC (400 credits, 180-day TTL)
   - **Pro**: R$ 29.00 / 5.00 USDC (1,200 credits with 20% bonus, 180-day TTL)
   - **Fleet**: R$ 115.00 / 20.00 USDC (6,000 credits with 50% bonus, 365-day TTL)
 - **Instant Free Promo (`MCPTRY50`)**: Claim 50 free trial credits with promo code `MCPTRY50` at https://grid402.online/pass (no crypto wallet required).
-- **MCP Auto-Trial (`/mcp`)**: 27 MCP JSON-RPC 2.0 tools including a daily free MCP auto-trial (1 call/day per IP across paid utility tools before requiring `payment_proof`).
+- **MCP Auto-Trial (`/mcp`)**: 30 MCP JSON-RPC 2.0 tools including a daily free MCP auto-trial (1 call/day per IP across paid utility tools before requiring `payment_proof`).
 - **RapidAPI Hub (USD)**: Available via RapidAPI Hub billed in USD (`X-RapidAPI-Proxy-Secret` bridge; `/api/v1/dossier` enforces a 15 req/day safety cap on RapidAPI).
-- **Sandbox / Demo Header**: Use `X-Payment: demo` (strictly rate-limited per IP; cannot issue Session Passes).
+- **Sandbox / Demo Header**: Use `X-Payment: demo` (strictly rate-limited per IP; max 2 items in `/api/v1/batch`; cannot issue Session Passes).
 
-## Core API Catalog (25 Services)
+## Core API Catalog (28 Services)
 
 - [KYB Dossier 360](https://grid402.online/dossie-kyb): Interactive Web KYB report, JSON export, and paid API `GET /api/v1/dossier?cnpj=00000000000191` (`0.0500` USDC)
 - [Compliance Risk](https://grid402.online/api/v1/compliance?cnpj=00000000000191): `GET /api/v1/compliance` — Combined sanctions, PEP, and RFB score (`0.0300` USDC)
@@ -40,13 +40,16 @@
 - [Global Markets](https://grid402.online/api/v1/global-markets): `GET /api/v1/global-markets` — Global equities and benchmark indices (`0.0050` USDC)
 - [Web Metadata Extract](https://grid402.online/api/v1/extract?url=https://grid402.online): `GET /api/v1/extract` — SSRF-hardened web metadata extraction (`0.0050` USDC)
 - [Email Verification](https://grid402.online/api/v1/email-verify?email=dev@grid402.online): `GET /api/v1/email-verify` — Disposable domain and MX verification (`0.0050` USDC)
+- [Token Safety Audit](https://grid402.online/api/v1/token-safety?chain=base?address=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913): `GET /api/v1/token-safety` — Multi-chain EVM (Base, Ethereum, Polygon, Arbitrum) and SPL token security score, honeypot flags, buy/sell taxes, and DEX liquidity audit via GoPlus and DexScreener (`0.0150` USDC)
+- [Prediction Markets](https://grid402.online/api/v1/prediction-markets?q=bitcoin): `GET /api/v1/prediction-markets` — Normalized implied probability odds (0-100%), volume, and liquidity across Polymarket Gamma and Kalshi (`0.0100` USDC)
+- [Multi-Service Batch Execution](https://grid402.online/api/v1/batch): `POST /api/v1/batch` — Execute 1 to 5 paid services in one HTTP call with exact dynamic sum pricing and automatic Session Pass partial refund (`0.0050`+ USDC dynamic)
 - [Session Pass Issuer](https://grid402.online/api/v1/pass): `GET /api/v1/pass` — Issue a 400-credit Starter Session Pass via x402 (`2.0000` USDC)
 - [Oracle Proof Verifier](https://grid402.online/api/v1/verify): `GET /api/v1/verify` — Free secp256k1 oracle signature verification (Free)
 
 ## Machine Discovery and Developer Endpoints
 
 - [Agents Quickstart](https://grid402.online/agents): Machine-friendly onboarding, promo activation, and x402 payment header examples
-- [MCP Endpoint](https://grid402.online/mcp): Remote HTTP JSON-RPC 2.0 MCP server exposing 27 tools
+- [MCP Endpoint](https://grid402.online/mcp): Remote HTTP JSON-RPC 2.0 MCP server exposing 30 tools
 - [OpenAPI 3.1 Spec](https://grid402.online/openapi.json): Full machine-readable API contract
 - [AI Plugin Manifest](https://grid402.online/.well-known/ai-plugin.json): Agent plugin metadata
 - [Full LLM Documentation](https://grid402.online/llms-full.txt): Extended technical specification and integration reference

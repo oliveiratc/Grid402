@@ -904,6 +904,21 @@ function grid402_bazaar_service_metadata(?string $serviceName): array {
             'tags' => ['email-verification', 'b2b', 'deliverability', 'dns', 'anti-fraud', 'x402'],
             'output_example' => ['deliverable' => true, 'score' => 95, 'mx_valid' => true, 'spf_present' => true, 'dmarc_present' => true, 'disposable' => false, '_oracle_proof' => $oracleProofSample],
         ],
+        'token-safety' => [
+            'description' => 'Multi-chain token and smart contract safety audit across Base, Ethereum, Polygon, Arbitrum, and Solana returning deterministic 0-100 risk score, honeypot/tax flags, DEX liquidity and ECDSA proof.',
+            'tags' => ['token-safety', 'defi', 'security', 'honeypot', 'base', 'solana', 'x402'],
+            'output_example' => ['chain' => 'base', 'address' => '0x833589fcd6edb6e08f4c7c32d4f71b54bda02913', 'safety_score' => 95, 'verdict' => 'SAFE', 'flags' => ['is_honeypot' => false, 'is_mintable' => false], '_oracle_proof' => $oracleProofSample],
+        ],
+        'prediction-markets' => [
+            'description' => 'Normalized prediction markets oracle aggregating Polymarket Gamma and Kalshi public APIs with 0-100% outcome probabilities, 24h volume, liquidity and signed oracle proof.',
+            'tags' => ['prediction-markets', 'polymarket', 'kalshi', 'probabilities', 'forecasting', 'x402'],
+            'output_example' => ['count' => 2, 'markets' => [['source' => 'polymarket', 'title' => 'Sample Market', 'outcomes' => [['name' => 'Yes', 'probability_pct' => 62.5]], 'volume_24h_usd' => 150000]], '_oracle_proof' => $oracleProofSample],
+        ],
+        'batch' => [
+            'description' => 'Multi-service batch execution running 1 to 5 Grid402 data endpoints in a single POST request with exact item-sum x402 pricing, automatic Session Pass refunds for failed items and signed output.',
+            'tags' => ['batch', 'orchestration', 'high-frequency', 'multi-service', 'x402'],
+            'output_example' => ['service' => 'batch', 'batch_summary' => ['total_items' => 2, 'succeeded' => 2, 'failed' => 0, 'credits_charged' => 4], 'results' => [['index' => 0, 'service' => 'dns', 'ok' => true]], '_oracle_proof' => $oracleProofSample],
+        ],
         'domain-audit' => [
             'description' => 'Consolidated domain security and infrastructure audit (authoritative DNS + TLS/SSL certificate + BGP/ASN routing) with risk score in one call.',
             'tags' => ['domain-audit', 'dns', 'ssl', 'asn', 'security', 'network', 'x402'],
@@ -1073,6 +1088,8 @@ function grid402_bazaar_default_query_params(?string $serviceName): array {
         'global-markets' => ['market' => 'US', 'base' => 'USD'],
         'extract' => ['url' => 'https://example.com'],
         'email-verify' => ['email' => 'contato@grid402.online'],
+        'token-safety' => ['chain' => 'base', 'address' => '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'],
+        'prediction-markets' => ['q' => 'bitcoin', 'limit' => '5'],
         default => [],
     };
 }
@@ -1111,8 +1128,38 @@ function grid402_build_bazaar_extension(?array $exampleOutput = null, ?string $s
     ];
     if ($method === 'POST') {
         $inputInfo['bodyType'] = 'json';
-        $inputSchemaProps['bodyType'] = ['type' => 'string', 'enum' => ['json', 'form-data', 'text']];
-        $inputSchemaProps['body'] = ['type' => 'object'];
+        if (strtolower(trim((string) $serviceName)) === 'batch') {
+            $inputInfo['body'] = [
+                'items' => [
+                    ['service' => 'dns', 'params' => ['domain' => 'base.org']],
+                    ['service' => 'forex', 'params' => (object) []],
+                ],
+            ];
+            $inputSchemaProps['bodyType'] = ['type' => 'string', 'enum' => ['json']];
+            $inputSchemaProps['body'] = [
+                'type' => 'object',
+                'required' => ['items'],
+                'properties' => [
+                    'items' => [
+                        'type' => 'array',
+                        'minItems' => 1,
+                        'maxItems' => 5,
+                        'items' => [
+                            'type' => 'object',
+                            'required' => ['service'],
+                            'properties' => [
+                                'id' => ['type' => 'string'],
+                                'service' => ['type' => 'string'],
+                                'params' => ['type' => 'object'],
+                            ],
+                        ],
+                    ],
+                ],
+            ];
+        } else {
+            $inputSchemaProps['bodyType'] = ['type' => 'string', 'enum' => ['json', 'form-data', 'text']];
+            $inputSchemaProps['body'] = ['type' => 'object'];
+        }
     }
     // So declara queryParams no schema quando ha parametros; evita `{}` virar `[]` em round-trips PHP assoc
     if (!empty($querySchemaProps)) {
@@ -1277,7 +1324,7 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
             'description' => 'Test the full response schema for free by sending header X-Payment: demo, or claim 50 free credits with promo code MCPTRY50 at ' . $canonicalBase . '/pass?promo=MCPTRY50.',
         ];
     $actionRequiredText = $isPassEndpoint
-        ? "1) Session Pass via Pix (BRL) or Card (from R$ 4.90 Micro / R$ 12 Starter = 400 credits, <15ms): {$canonicalBase}/pass?tier=starter&method=pix. 2) Pay {$priceDisplay} USDC via x402 v2 PAYMENT-SIGNATURE (gasless via PayAI) or send USDC on-chain and activate via POST {$canonicalBase}/api/v1/pass-emitir {\"txHash\":\"0x...\",\"chain\":\"base\"}. 3) Send your issued token in header X-Payment: pass_g402_<token> across all 25 APIs (or GRID402_SESSION_PASS in grid402-mcp)."
+        ? "1) Session Pass via Pix (BRL) or Card (from R$ 4.90 Micro / R$ 12 Starter = 400 credits, <15ms): {$canonicalBase}/pass?tier=starter&method=pix. 2) Pay {$priceDisplay} USDC via x402 v2 PAYMENT-SIGNATURE (gasless via PayAI) or send USDC on-chain and activate via POST {$canonicalBase}/api/v1/pass-emitir {\"txHash\":\"0x...\",\"chain\":\"base\"}. 3) Send your issued token in header X-Payment: pass_g402_<token> across all 28 APIs (or GRID402_SESSION_PASS in grid402-mcp)."
         : "1) Claim 50 FREE credits (no wallet needed) with promo MCPTRY50 at {$canonicalBase}/pass?promo=MCPTRY50 -> X-Payment: pass_g402_<token>. 2) Sign x402 v2 PAYMENT-SIGNATURE (gasless via PayAI on " . ((function_exists('grid402_is_solana_x402_enabled') && grid402_is_solana_x402_enabled()) ? 'Base/Polygon/Arbitrum/Solana' : 'Base/Polygon/Arbitrum') . ") or send {$priceDisplay} USDC and retry with X-Payment: <tx_hash>. 3) Sub-15ms Session Pass (Pix from R$ 4.90 / Starter R$ 12 or USDC) at {$canonicalBase}/pass, or Credit Card (USD) on RapidAPI. 4) Free Sandbox (" . GRID402_SANDBOX_RATE_LIMIT . " req/day): X-Payment: demo.";
 
     $payload = [
@@ -1311,6 +1358,9 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         $payload['preview'] = $preview;
         if (strtolower(trim((string) $serviceName)) === 'dossier') {
             $payload['teaser_data'] = $preview;
+        }
+        if (strtolower(trim((string) $serviceName)) === 'batch' && is_array($preview) && isset($preview['batch_plan'])) {
+            $payload['batch_plan'] = $preview['batch_plan'];
         }
     }
     if ($lockedFields !== null and !empty($lockedFields)) {
@@ -1773,6 +1823,9 @@ function grid402_notify_telegram_purchase(string $service, float $priceUsdc, str
         'kyb-audit' => 'Auditoria KYB e Compliance (CNPJ + OFAC + LEI)',
         'dossier' => 'Dossie 360 KYB + Veredito IA (CNPJ + Simples + CGU + Score)',
         'market-snapshot' => 'Snapshot Consolidado de Mercado (Forex + Crypto + Indicadores)',
+        'token-safety' => 'Auditoria Token Safety (EVM + Solana)',
+        'prediction-markets' => 'Mercados de Previsao (Polymarket + Kalshi)',
+        'batch' => 'Execucao Multi-Servico em Lote (POST /batch)',
     ];
 
     $displayName = $serviceNames[$cleanSvc] ?? ('Servico ' . strtoupper($service));

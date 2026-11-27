@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Grid402 // Global M2M Open Data & Network Utilities Hub",
-    "version": "3.4.0",
-    "description": "High-performance autonomous M2M public data, web-to-markdown extraction, Zero-PII email deliverability audit, global compliance (GLEIF LEI, OFAC SDN, Web3 AML), cryptographic notarization, world markets (ECB), and network utilities oracle designed for AI agents, crawlers, and automation pipelines. Settled via gasless HTTP x402 v2 (PayAI across Base, Polygon, Arbitrum) or Prepaid Session Passes (<15ms).",
+    "version": "3.7.0",
+    "description": "High-performance autonomous M2M public data, multi-chain token safety audit, normalized prediction markets, multi-service batch orchestration, web-to-markdown extraction, Zero-PII email deliverability audit, global compliance (GLEIF LEI, OFAC SDN, Web3 AML), cryptographic notarization, world markets (ECB), and network utilities oracle designed for AI agents, crawlers, and automation pipelines. Settled via gasless HTTP x402 v2 (PayAI across Base, Polygon, Arbitrum) or Prepaid Session Passes (<15ms).",
     "contact": {
       "name": "Grid402 Support",
       "url": "https://grid402.online",
@@ -1532,6 +1532,192 @@
               "x402": {}
             }
           ]
+        }
+      }
+    },
+    "/api/v1/token-safety": {
+      "get": {
+        "summary": "Multi-Chain Token Security and DEX Liquidity Audit",
+        "description": "Deterministic risk analysis of smart-contract tokens across Base, Ethereum, Polygon, Arbitrum and SPL networks using public GoPlus Security API and DexScreener API (300s Zero-DB cache). Price: 0.0150 USDC (3 credits).",
+        "tags": [
+          "Crypto"
+        ],
+        "security": [
+          {
+            "x402Payment": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "address",
+            "in": "query",
+            "required": true,
+            "description": "Token contract or mint address (EVM 0x... 40 hex chars or SPL Base58)",
+            "schema": {
+              "type": "string",
+              "example": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+            }
+          },
+          {
+            "name": "chain",
+            "in": "query",
+            "required": false,
+            "description": "Optional chain slug (e.g. base, ethereum, polygon, arbitrum). Auto-detected for SPL Base58 mints.",
+            "schema": {
+              "type": "string",
+              "example": "base"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deterministic safety_score (0-100), verdict (SAFE, CAUTION, HIGH_RISK, CRITICAL), honeypot/tax flags, DEX liquidity, legal_disclaimer, _meta and ECDSA _oracle_proof"
+          },
+          "400": {
+            "description": "InvalidTokenAddress or UnsupportedTokenChain"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          },
+          "503": {
+            "description": "TokenSafetyUpstreamUnavailable (pre-charge auto-refund)"
+          }
+        },
+        "x-payment-info": {
+          "price": {
+            "amount": "0.0150",
+            "currency": "USD",
+            "mode": "fixed"
+          },
+          "protocols": [
+            {
+              "x402": {}
+            }
+          ]
+        }
+      }
+    },
+    "/api/v1/prediction-markets": {
+      "get": {
+        "summary": "Normalized Prediction Markets (Polymarket + Kalshi)",
+        "description": "Aggregates public Polymarket Gamma API and Kalshi Public Trade API v2 into normalized implied probabilities (0-100%), 24h volume and liquidity with 120s Zero-DB cache and graceful degradation. Price: 0.0100 USDC (2 credits).",
+        "tags": [
+          "Indicators"
+        ],
+        "security": [
+          {
+            "x402Payment": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Optional search keyword (max 120 chars)",
+            "schema": { "type": "string", "example": "bitcoin" }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["all", "polymarket", "kalshi"] }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "string", "enum": ["active", "closed"] }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer", "minimum": 1, "maximum": 20 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Normalized markets list with probability_pct, volume_24h_usd, liquidity_usd, sources_status, _meta and _oracle_proof"
+          },
+          "400": {
+            "description": "InvalidMarketSource or InvalidMarketStatus"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          },
+          "503": {
+            "description": "PredictionMarketsUnavailable (pre-charge auto-refund when both feeds fail)"
+          }
+        },
+        "x-payment-info": {
+          "price": {
+            "amount": "0.0100",
+            "currency": "USD",
+            "mode": "fixed"
+          },
+          "protocols": [
+            {
+              "x402": {}
+            }
+          ]
+        }
+      }
+    },
+    "/api/v1/batch": {
+      "post": {
+        "summary": "Multi-Service Batch Execution (1 to 5 items)",
+        "description": "Executes 1 to 5 paid Grid402 data services in a single HTTP POST call (max 2 items in sandbox demo mode). Quoted dynamically as the exact sum of item fees, checks Session Pass allowed_endpoints per item pre-debit, and refunds failed sub-items automatically.",
+        "tags": [
+          "Free"
+        ],
+        "security": [
+          {
+            "x402Payment": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["items"],
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 5,
+                    "items": {
+                      "type": "object",
+                      "required": ["service"],
+                      "properties": {
+                        "service": { "type": "string" },
+                        "params": { "type": "object" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Consolidated batch results with batch_summary (succeeded, failed, credits_charged, credits_refunded), _meta and _oracle_proof"
+          },
+          "400": {
+            "description": "EmptyBatchItems, BatchLimitExceeded, SandboxBatchLimitExceeded or BatchServiceBlocked"
+          },
+          "402": {
+            "$ref": "#/components/responses/PaymentRequired"
+          },
+          "403": {
+            "description": "PassEndpointRestricted"
+          },
+          "503": {
+            "description": "BatchAllItemsFailed (full credit refund / settle aborted)"
+          }
         }
       }
     },

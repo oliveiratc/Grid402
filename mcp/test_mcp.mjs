@@ -23,8 +23,8 @@ async function runTests() {
   console.log('=== Testando Servidor MCP Grid402 ===\n');
 
   // 1. Validação de Schemas das Ferramentas
-  console.log('[1/7] Validando registro e schemas das 27 ferramentas MCP...');
-  assert.strictEqual(MCP_TOOLS_DEFINITIONS.length, 27, 'Deve conter exatamente 27 ferramentas registradas');
+  console.log('[1/7] Validando registro e schemas das 30 ferramentas MCP...');
+  assert.strictEqual(MCP_TOOLS_DEFINITIONS.length, 30, 'Deve conter exatamente 30 ferramentas registradas');
 
   const toolNames = MCP_TOOLS_DEFINITIONS.map(t => t.name);
   const expectedTools = [
@@ -52,6 +52,9 @@ async function runTests() {
     'grid402_global_markets',
     'grid402_extract',
     'grid402_email_verify',
+    'grid402_token_safety',
+    'grid402_prediction_markets',
+    'grid402_batch',
     'grid402_pass',
     'grid402_pass_balance',
     'grid402_verify',
@@ -64,7 +67,7 @@ async function runTests() {
     const def = MCP_TOOLS_DEFINITIONS.find(t => t.name === paidTool);
     assert.ok(def?.inputSchema?.properties?.payment_tx_hash, `Ferramenta ${paidTool} deve expor payment_tx_hash no inputSchema`);
   }
-  console.log('  ✓ Todas as 27 ferramentas MCP validadas com sucesso!');
+  console.log('  ✓ Todas as 30 ferramentas MCP validadas com sucesso!');
 
   // 2. Teste de Consulta Gratuita (summary)
   console.log('\n[2/5] Testando consulta à ferramenta gratuita grid402_summary...');
@@ -273,12 +276,12 @@ async function runTests() {
     }) + '\n');
   });
 
-  assert.strictEqual(rpcResult.init?.result?.serverInfo?.version, '2.0.0', 'Versao MCP initialize deve ser 2.0.0');
+  assert.strictEqual(rpcResult.init?.result?.serverInfo?.version, '2.1.0', 'Versao MCP initialize deve ser 2.1.0');
   assert.ok(typeof rpcResult.init?.result?.instructions === 'string' && rpcResult.init.result.instructions.includes('GRID402_SESSION_PASS'), 'Handshake initialize deve retornar instructions com orientacoes de Session Pass e sandbox');
   assert.ok(rpcResult.init.result.instructions.includes('GRID402_X402_GASLESS'), 'Instructions deve documentar GRID402_X402_GASLESS');
   assert.ok(rpcResult.init.result.instructions.includes('demo'), 'Instructions deve mencionar modo sandbox demo');
-  assert.strictEqual(rpcResult.list?.result?.tools?.length, 27, 'tools/list via stdio deve expor exatamente 27 ferramentas');
-  console.log('  ✓ Handshake stdio retornou version=2.0.0, instructions nativas e 27 ferramentas!');
+  assert.strictEqual(rpcResult.list?.result?.tools?.length, 30, 'tools/list via stdio deve expor exatamente 30 ferramentas');
+  console.log('  ✓ Handshake stdio retornou version=2.1.0, instructions nativas e 30 ferramentas!');
 
   console.log('\n=== Todos os testes do MCP Server Grid402 foram APROVADOS com 100% de sucesso! ===');
 }

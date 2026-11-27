@@ -34,7 +34,7 @@ try {
     $x402Path = __DIR__ . '/../public_html/.well-known/x402.json';
     $x402Data = json_decode((string) file_get_contents($x402Path), true);
     $resources = is_array($x402Data['resources'] ?? null) ? $x402Data['resources'] : [];
-    t_assert('x402.json contem 24 recursos', count($resources) === 24, 'Contagem: ' . count($resources));
+    t_assert('x402.json contem 27 recursos', count($resources) === 27, 'Contagem: ' . count($resources));
 
     $acceptCount = 0;
     $allHaveTimeout = true;
@@ -50,7 +50,7 @@ try {
             }
         }
     }
-    t_assert('Todos os 72 accepts[] EVM (24 recursos x 3 redes default V-05) em x402.json possuem maxTimeoutSeconds === 300', $acceptCount === 72 && $allHaveTimeout, "Accepts={$acceptCount}");
+    t_assert('Todos os 81 accepts[] EVM (27 recursos x 3 redes default V-05) em x402.json possuem maxTimeoutSeconds === 300', $acceptCount === 81 && $allHaveTimeout, "Accepts={$acceptCount}");
 
     // Verifica que com GRID402_SOLANA_X402_ENABLED=true, grid402_build_accepts emite 4 redes (incluindo Solana) com maxTimeoutSeconds === 300
     $solFlagCmd = sprintf(

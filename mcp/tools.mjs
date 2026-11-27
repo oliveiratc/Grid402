@@ -442,6 +442,94 @@ export const MCP_TOOLS_DEFINITIONS = [
     },
   },
   {
+    name: 'grid402_token_safety',
+    description: 'Multi-Chain token security & DEX liquidity audit across Base, Ethereum, Polygon, Arbitrum and Solana via public GoPlus Security + DexScreener APIs, returning deterministic score (0-100), verdict (SAFE/CAUTION/HIGH_RISK/CRITICAL), honeypot/tax flags and signed proof (0.0150 USDC / 3 credits).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        address: {
+          type: 'string',
+          description: 'Token contract/mint address (EVM 0x... 40 hex chars or Solana Base58).',
+        },
+        chain: {
+          type: 'string',
+          description: 'Optional chain: base, ethereum, polygon, arbitrum, or solana (auto-detected for Solana Base58).',
+        },
+        payment_tx_hash: {
+          type: 'string',
+          description: 'Optional USDC tx hash, Session Pass token (pass_g402_...), or "demo".',
+        },
+      },
+      required: ['address'],
+    },
+  },
+  {
+    name: 'grid402_prediction_markets',
+    description: 'Normalized public prediction market odds (0-100% implied probability), 24h volume and liquidity aggregated from Polymarket Gamma and Kalshi Public Trade API v2 with graceful degradation (0.0100 USDC / 2 credits).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        q: {
+          type: 'string',
+          description: 'Optional keyword search filter (e.g. "bitcoin", "fed", "election").',
+        },
+        source: {
+          type: 'string',
+          description: 'Market source filter: all (default), polymarket, or kalshi.',
+        },
+        status: {
+          type: 'string',
+          description: 'Market status filter: active (default) or closed.',
+        },
+        limit: {
+          type: 'integer',
+          description: 'Maximum normalized markets to return (1 to 20, default 10).',
+        },
+        payment_tx_hash: {
+          type: 'string',
+          description: 'Optional USDC tx hash, Session Pass token (pass_g402_...), or "demo".',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'grid402_batch',
+    description: 'Execute 1 to 5 paid Grid402 data services in a single HTTP POST call (max 2 items in sandbox/demo). Dynamically priced as the exact sum of item fees, with automatic Session Pass partial refund on sub-item failures.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        items: {
+          type: 'array',
+          description: 'List of 1 to 5 sub-requests: [{"service":"dns","params":{"domain":"base.org"}}]. Recursive/admin services (batch, pass, verify, summary) are blocked.',
+          items: {
+            type: 'object',
+            properties: {
+              service: {
+                type: 'string',
+                description: 'Paid data service slug (e.g. dns, token-safety, prediction-markets, cnpj, extract, email-verify).',
+              },
+              params: {
+                type: 'object',
+                description: 'Query/parameters object passed to the sub-service.',
+              },
+            },
+            required: ['service'],
+          },
+        },
+        idempotency_key: {
+          type: 'string',
+          description: 'Optional Idempotency-Key header for safe retries without duplicate billing (300s TTL).',
+        },
+        payment_tx_hash: {
+          type: 'string',
+          description: 'Optional USDC tx hash, Session Pass token (pass_g402_...), or "demo".',
+        },
+      },
+      required: ['items'],
+    },
+  },
+  {
     name: 'grid402_pass',
     description: 'Issue an x402 prepaid Session Pass (Starter 2 USDC = 400 credits/180d, Pro 5 USDC = 1,200 credits/180d, Fleet 20 USDC = 6,000 credits/365d; 1 credit = 0.0050 USDC) or check pass status.',
     inputSchema: {
@@ -633,6 +721,23 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
       path = '/api/v1/email-verify';
       if (params.email) queryParams.set('email', params.email);
       break;
+    case 'token-safety':
+    case 'token_safety':
+      path = '/api/v1/token-safety';
+      if (params.address) queryParams.set('address', params.address);
+      if (params.chain) queryParams.set('chain', params.chain);
+      break;
+    case 'prediction-markets':
+    case 'prediction_markets':
+      path = '/api/v1/prediction-markets';
+      if (params.q) queryParams.set('q', params.q);
+      if (params.source) queryParams.set('source', params.source);
+      if (params.status) queryParams.set('status', params.status);
+      if (params.limit !== undefined && params.limit !== null) queryParams.set('limit', String(params.limit));
+      break;
+    case 'batch':
+      path = '/api/v1/batch';
+      break;
     case 'pass':
       path = '/api/v1/pass';
       if (params.status) queryParams.set('status', params.status);
@@ -657,7 +762,7 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'User-Agent': 'Grid402-MCP-Server/2.0.0',
+        'User-Agent': 'Grid402-MCP-Server/2.1.0',
       },
       body: postPayload,
     });
@@ -666,12 +771,17 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
 
   const queryString = queryParams.toString();
   const url = `${endpoint}${path}${queryString ? '?' + queryString : ''}`;
+  const isBatchPost = service === 'batch';
+  const batchBodyStr = isBatchPost ? JSON.stringify({ items: Array.isArray(params.items) ? params.items : [] }) : undefined;
 
   const headers = {
     'Accept': 'application/json',
-    'User-Agent': 'Grid402-MCP-Server/2.0.0',
+    'User-Agent': 'Grid402-MCP-Server/2.1.0',
     'X-Grid402-Channel': 'mcp',
   };
+  if (isBatchPost) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (params.idempotency_key) {
     headers['Idempotency-Key'] = String(params.idempotency_key);
@@ -708,7 +818,8 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
   }
 
   // 1. Primeira tentativa de requisição
-  const response = await fetch(url, { headers });
+  const fetchInit = isBatchPost ? { method: 'POST', headers, body: batchBodyStr } : { headers };
+  const response = await fetch(url, fetchInit);
 
   if (response.status === 200) {
     const data = await response.json();
@@ -761,7 +872,8 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
         if (paymentResult.network && paymentResult.network !== 'base') {
           headers['X-Payment-Network'] = paymentResult.network;
         }
-        const retryResponse = await fetch(url, { headers });
+        const retryFetchInit = isBatchPost ? { method: 'POST', headers, body: batchBodyStr } : { headers };
+        const retryResponse = await fetch(url, retryFetchInit);
 
         if (retryResponse.status === 200) {
           const data = await retryResponse.json();

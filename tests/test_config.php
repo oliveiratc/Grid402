@@ -16,7 +16,7 @@ assert(defined('GRID402_TELEGRAM_BOT_TOKEN'), 'GRID402_TELEGRAM_BOT_TOKEN deve e
 assert(defined('GRID402_TELEGRAM_CHAT_ID'), 'GRID402_TELEGRAM_CHAT_ID deve estar definida');
 
 $services = grid402_get_services();
-assert(count($services) === 25, 'Deve conter exatamente 25 micro-servicos');
+assert(count($services) === 28, 'Deve conter exatamente 28 micro-servicos');
 
 $keys = array_keys($services);
 assert(in_array('forex', $keys, true), 'Deve conter servico forex');
@@ -42,6 +42,9 @@ assert(in_array('notarize', $keys, true), 'Deve conter servico notarize');
 assert(in_array('global-markets', $keys, true), 'Deve conter servico global-markets');
 assert(in_array('extract', $keys, true), 'Deve conter servico extract');
 assert(in_array('email-verify', $keys, true), 'Deve conter servico email-verify');
+assert(in_array('token-safety', $keys, true), 'Deve conter servico token-safety');
+assert(in_array('prediction-markets', $keys, true), 'Deve conter servico prediction-markets');
+assert(in_array('batch', $keys, true), 'Deve conter servico batch');
 assert(in_array('pass', $keys, true), 'Deve conter servico pass');
 assert(in_array('verify', $keys, true), 'Deve conter servico verify');
 

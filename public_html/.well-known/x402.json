@@ -2,7 +2,7 @@
     "x402Version": 2,
     "name": "Grid402 Network Utilities",
     "alias": "grid402",
-    "description": "24 paid M2M open data, web extraction, email verification, global sanctions screening, Brazilian KYB/compliance and network utility endpoints under HTTP 402 x402 v2 (Base, Polygon and Arbitrum USDC) plus free cryptographic verification.",
+    "description": "27 paid M2M open data, token safety, prediction markets, multi-service batch execution, web extraction, email verification, global sanctions screening, Brazilian KYB/compliance and network utility endpoints under HTTP 402 x402 v2 (Base, Polygon and Arbitrum USDC) plus free cryptographic verification.",
     "website": "https://grid402.online",
     "network": "eip155:8453",
     "networks": [
@@ -1008,6 +1008,138 @@
             "type": "http",
             "method": "GET",
             "description": "Zero-PII B2B email deliverability and risk audit checking RFC syntax, authoritative DNS MX, SPF, DMARC, disposable domains and role-based addresses with 0-100 score.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/token-safety",
+            "type": "http",
+            "method": "GET",
+            "description": "Multi-chain token and smart contract safety audit across Base, Ethereum, Polygon, Arbitrum, and Solana returning deterministic 0-100 risk score, honeypot/tax flags, DEX liquidity and ECDSA proof.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "15000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "15000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "15000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/prediction-markets",
+            "type": "http",
+            "method": "GET",
+            "description": "Normalized prediction markets oracle aggregating Polymarket Gamma and Kalshi public APIs with 0-100% outcome probabilities, 24h volume, liquidity and signed oracle proof.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/batch",
+            "type": "http",
+            "method": "POST",
+            "description": "Multi-service batch execution running 1 to 5 Grid402 data endpoints in a single POST request with exact item-sum x402 pricing, automatic Session Pass refunds for failed items and signed output.",
             "accepts": [
                 {
                     "scheme": "exact",

@@ -6,6 +6,13 @@ Todas as mudanças relevantes de arquitetura, catálogo de serviços, segurança
 
 ## [Unreleased]
 
+### Adicionado (Fase 2 — `token-safety`, `prediction-markets` e `POST /api/v1/batch`)
+- **Novos Micro-Serviços de Alto Valor M2M (`28` serviços operantes / `30` tools MCP `v2.1.0`):**
+  - `GET /api/v1/token-safety` (`0.0150 USDC` / `3 cr`): Auditoria de segurança de contratos e liquidez DEX multi-chain (Base, Ethereum, Polygon, Arbitrum e Solana com auto-detecção Base58) via fontes 100% públicas GoPlus Security API + DexScreener API, cache Zero-DB de 300s, score determinístico `0..100`, veredito (`SAFE`, `CAUTION`, `HIGH_RISK`, `CRITICAL`), `legal_disclaimer` e assinatura `_meta` + `_oracle_proof`.
+  - `GET /api/v1/prediction-markets` (`0.0100 USDC` / `2 cr`): Agregador normalizado da Polymarket Gamma API + Kalshi Public Trade API v2 com probabilidades `0–100%`, cache Zero-DB de 120s, degradação graciosa em falha parcial e HTTP 503 pré-cobrança em falha total.
+  - `POST /api/v1/batch` (soma dinâmica exata de `1..5` sub-requisições em produção; máximo `2` em sandbox `demo`): bloqueia recursão e rotas administrativas (`batch`, `pass`, `pass-emitir`, `pass-balance`, `pass-limits`, `pass-statement`, `verify`, `summary`), valida `allowed_endpoints` por sub-serviço antes de debitar Session Pass, suporta `Idempotency-Key` e estorna automaticamente os créditos de sub-itens com falha (ou aborta `/settle` quando 100% falham).
+  - **Paridade completa de catálogo e descoberta:** Atualizados `config.php`, `x402.php`, `collector.php`, `index.php`, `i18n.js?v=3.7.0`, `catalog.php`, `trust.php`, `admin.php`, `admin_cockpit_view.php`, `well_known_x402.php`, `.well-known/x402.json` (`27` recursos pagos, `batch` como `POST`), `mcp.php` + `mcp/` (`grid402-mcp@2.1.0`, `30 tools`), `.well-known/mcp*.json`, `.well-known/ai-agent.json`, `pricing.json`, `openapi.json`, `llms.txt`, `llms-full.txt` e `README.md`.
+
 ### Alterado
 - **Passo 3 — Rebalanceamento da Tabela de Créditos (`/cnpj`, `/lei` → `2 cr`; `/kyb-audit` → `5 cr`; `/ofac` mantido em `4 cr`):**
   - **Gateway, Catálogo e Telemetria (`public_html/config.php`, `index.php`, `admin.php`, `metrics.php`, `catalog.php`, `agents.php`, `mcp.php`, `seo_landing.php`, `services/pass_repository.php`, `i18n.js?v=3.4.3`):** Reduzidos `/api/v1/cnpj` e `/api/v1/lei` de `0.0200 USDC` (`4 cr`) para **`0.0100 USDC` (`2 cr`)** (`R$ 0,038` a `R$ 0,060`/CNPJ no Pass; margem >83% pós-PayAI), mantido `/api/v1/ofac` em **`0.0200 USDC` (`4 cr`)** e ajustado o bundle composto `/api/v1/kyb-audit` (CNPJ + OFAC + LEI) para **`0.0250 USDC` (`5 cr`)**, eliminando canibalização interna (37,5% de desconto sobre comprar os 3 separados = `8 cr`).

@@ -270,7 +270,25 @@ Resposta de verificacao:
 - Exemplo: `/api/v1/email-verify?email=contato@grid402.online`
 - Descricao: Valida sintaxe RFC, registros DNS MX, politicas SPF e DMARC, dominios descartaveis (disposable), provedores gratuitos e enderecos role-based retornando `deliverability_score` (0 a 100) e `verdict` (`VALID`, `RISKY`, `INVALID`). Estritamente Zero-PII: nunca persiste o e-mail bruto em disco.
 
-### 26. Session Pass Pre-Pago Multi-Chain (5 Redes EVM) e Spend Controls
+### 26. Auditoria de Seguranca de Tokens Multi-Chain (Token Safety)
+- Rota: `GET /api/v1/token-safety` (parametros query: `address` e `chain` opcional para auto-deteccao Base58)
+- Tarifa: 0.0150 USDC (3 creditos)
+- Exemplo: `/api/v1/token-safety?address=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` (com `chain=base`)
+- Descricao: Analise deterministica de seguranca e liquidez DEX nas redes Base, Ethereum, Polygon, Arbitrum e contratos SPL via fontes 100% publicas GoPlus Security API e DexScreener API (cache Zero-DB 300s). Retorna `safety_score` (0..100), `verdict` (`SAFE`, `CAUTION`, `HIGH_RISK`, `CRITICAL`), flags de risco (`is_honeypot`, `is_mintable`, `is_proxy`), taxas (`buy_tax`, `sell_tax`), `legal_disclaimer`, `_meta` e `_oracle_proof`. Falha simultanea das duas fontes retorna HTTP 503 pre-cobranca.
+
+### 27. Mercados de Previsao Normalizados (Polymarket + Kalshi)
+- Rota: `GET /api/v1/prediction-markets` (parametros query opcionais: `q`, `source` = `all|polymarket|kalshi`, `status` = `active|closed`, `limit` = `1..20`)
+- Tarifa: 0.0100 USDC (2 creditos)
+- Exemplo: `/api/v1/prediction-markets?q=bitcoin` (opcionalmente combinando `source`, `status` e `limit`)
+- Descricao: Agrega feeds publicos da Polymarket Gamma API e Kalshi Public Trade API v2 em schema unificado de probabilidades implicitas (`0-100%`), volume 24h e liquidez (cache Zero-DB 120s). Suporta degradacao graciosa quando apenas uma fonte responde (`200` com `sources_status`), e retorna HTTP 503 sem cobranca quando ambas falham.
+
+### 28. Orquestrador Multi-Servico em Lote (POST Batch)
+- Rota: `POST /api/v1/batch`
+- Tarifa: Soma exata dos precos oficiais de 1 a 5 itens em producao (max 2 itens em modo sandbox `X-Payment: demo`)
+- Exemplo de corpo JSON: `{"items":[{"service":"dns","params":{"domain":"base.org"}},{"service":"token-safety","params":{"chain":"base","address":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"}}]}`
+- Descricao: Agrupa sub-requisicoes pagas em um unico POST. Bloqueia recursao e rotas administrativas (`batch`, `pass`, `pass-emitir`, `pass-balance`, `pass-limits`, `pass-statement`, `verify`, `summary`). Verifica `allowed_endpoints` de todos os sub-servicos antes de debitar Session Pass, suporta `Idempotency-Key` e realiza estorno automatico de creditos por cada sub-item que falhar.
+
+### 29. Session Pass Pre-Pago Multi-Chain (5 Redes EVM) e Spend Controls
 - Emissao Multi-Chain: `POST /api/v1/pass-emitir` (`{"txHash": "...", "chain": "base|arbitrum|polygon|optimism|ethereum"}`) ou `GET /api/v1/pass` (Starter 2 USDC = 400 creditos/180d, Pro 5 USDC = 1.000 base + 200 bonus = 1.200 creditos/180d, Fleet 20 USDC = 4.000 base + 2.000 bonus = 6.000 creditos/365d).
 - Redes EVM (`0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`): Base (8453), Arbitrum One (42161), Polygon PoS (137), Optimism (10) e Ethereum Mainnet (1).
 - Consulta Gratuita de Saldo: `GET /api/v1/pass/balance?token=pass_g402_...` (0.0000 USDC)

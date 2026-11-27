@@ -399,15 +399,15 @@ try {
     );
 
     // -----------------------------------------------------------------
-    // 6. Hosted MCP POST /mcp (version 2.0.0 e 27 tools)
+    // 6. Hosted MCP POST /mcp (version 2.1.0 e 30 tools)
     // -----------------------------------------------------------------
-    echo "\n[6/7] Hosted MCP POST /mcp (version 2.0.0 e 27 tools):\n";
+    echo "\n[6/7] Hosted MCP POST /mcp (version 2.1.0 e 30 tools):\n";
     $rMcpInit = $httpCall("{$baseUrl}/mcp", ['Content-Type: application/json'], json_encode([
         'jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => [],
     ]));
     $jMcpInit = json_decode($rMcpInit['body'], true);
-    t_assert('POST /mcp initialize retorna version=2.0.0',
-        $rMcpInit['code'] === 200 && ($jMcpInit['result']['serverInfo']['version'] ?? '') === '2.0.0',
+    t_assert('POST /mcp initialize retorna version=2.1.0',
+        $rMcpInit['code'] === 200 && ($jMcpInit['result']['serverInfo']['version'] ?? '') === '2.1.0',
         $rMcpInit['body']
     );
 
@@ -417,10 +417,13 @@ try {
     $jMcpList = json_decode($rMcpList['body'], true);
     $mcpTools = $jMcpList['result']['tools'] ?? [];
     $mcpNames = array_column($mcpTools, 'name');
-    t_assert('POST /mcp tools/list expõe exatamente 27 ferramentas incluindo extract e email_verify',
-        count($mcpTools) === 27 &&
+    t_assert('POST /mcp tools/list expõe exatamente 30 ferramentas incluindo token_safety, prediction_markets e batch',
+        count($mcpTools) === 30 &&
         in_array('grid402_extract', $mcpNames, true) &&
-        in_array('grid402_email_verify', $mcpNames, true),
+        in_array('grid402_email_verify', $mcpNames, true) &&
+        in_array('grid402_token_safety', $mcpNames, true) &&
+        in_array('grid402_prediction_markets', $mcpNames, true) &&
+        in_array('grid402_batch', $mcpNames, true),
         'Count: ' . count($mcpTools)
     );
 

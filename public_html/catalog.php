@@ -29,7 +29,7 @@ ksort($services);
     <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=2">
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=2">
-    <meta name="description" content="Complete and live catalog of all 25 Grid402 microservices: pricing, limits, examples, and status.">
+    <meta name="description" content="Complete and live catalog of all 28 Grid402 microservices: pricing, limits, examples, and status.">
     <title>Grid402 // Complete Service Catalog</title>
     <style>
         :root { --bg:#060B19; --surface:#0B132B; --border:#1E2C4F; --text:#F8FAFC; --muted:#94A3B8; --primary:#00F0FF; --ok:#10B981; }
@@ -94,7 +94,7 @@ ksort($services);
             <thead><tr><th data-i18n="catalog.th.service">Service &amp; Official Source</th><th data-i18n="catalog.th.category">Category</th><th data-i18n="catalog.th.price">Price USDC</th><th data-i18n="catalog.th.status">Status</th><th data-i18n="catalog.th.example">Example</th></tr></thead>
             <tbody>
             <?php foreach ($services as $id => $svc):
-                $price = isset($svc['price_usdc']) ? $svc['price_usdc'] : ($id === 'dossier' ? '0.0500' : (in_array($id, ['cnpj','lei','sanctions','simples'], true) ? '0.0100' : ($id === 'ofac' ? '0.0200' : ($id === 'kyb-audit' ? '0.0250' : (in_array($id, ['domain-audit','market-snapshot'], true) ? '0.0150' : ($id === 'compliance' ? '0.0300' : ($id === 'pass' ? '2.0000' : ($id === 'verify' ? 'Gratuito' : GRID402_PRICE_DISPLAY))))))));
+                $price = isset($svc['price_usdc']) ? $svc['price_usdc'] : ($id === 'dossier' ? '0.0500' : (in_array($id, ['cnpj','lei','sanctions','simples','prediction-markets'], true) ? '0.0100' : ($id === 'ofac' ? '0.0200' : ($id === 'kyb-audit' ? '0.0250' : (in_array($id, ['domain-audit','market-snapshot','token-safety'], true) ? '0.0150' : ($id === 'compliance' ? '0.0300' : ($id === 'pass' ? '2.0000' : ($id === 'verify' ? 'Gratuito' : GRID402_PRICE_DISPLAY))))))));
                 $status = is_array($summaryServices[$id] ?? null) ? ($summaryServices[$id]['status'] ?? 'UP') : 'UP';
                 if ($status === '—' || $status === '') {
                     $status = 'UP';
@@ -118,9 +118,13 @@ ksort($services);
                 elseif ($id === 'global-markets') $example .= '?market=US&base=USD';
                 elseif ($id === 'extract') $example .= '?url=https://example.com';
                 elseif ($id === 'email-verify') $example .= '?email=contato@grid402.online';
+                elseif ($id === 'token-safety') $example .= '?chain=base&address=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+                elseif ($id === 'prediction-markets') $example .= '?q=bitcoin&limit=5';
                 $priceDisplay = ($price === 'Gratuito') ? 'Free' : (string)$price;
                 if ($id === 'verify') {
                     $curlCmd = 'curl -X POST https://grid402.online/api/v1/verify -H "Content-Type: application/json" -d @oracle_response.json';
+                } elseif ($id === 'batch') {
+                    $curlCmd = 'curl -X POST https://grid402.online/api/v1/batch -H "Content-Type: application/json" -H "X-Payment: $GRID402_SESSION_PASS" -d \'{"items":[{"service":"dns","params":{"domain":"base.org"}},{"service":"token-safety","params":{"chain":"base","address":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"}}]}\'';
                 } elseif ($id === 'pass') {
                     $curlCmd = 'curl -H "PAYMENT-SIGNATURE: $X402_SIGNED_PAYLOAD" https://grid402.online/api/v1/pass';
                 } else {
@@ -148,6 +152,6 @@ ksort($services);
 const input=document.getElementById('filter');
 input.addEventListener('input',()=>{const q=input.value.toLowerCase();document.querySelectorAll('#catalog tbody tr').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none');});
 </script>
-<script src="/assets/js/i18n.js?v=3.6.0"></script>
+<script src="/assets/js/i18n.js?v=3.7.0"></script>
 </body>
 </html>

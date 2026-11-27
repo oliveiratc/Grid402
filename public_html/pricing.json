@@ -30,7 +30,7 @@
       "credits": 0,
       "unit": "call",
       "endpoint": "https://grid402.online/status",
-      "notes": "Free health, 30-day uptime and catalog metadata across all 25 microservices."
+      "notes": "Free health, 30-day uptime and catalog metadata across all 28 microservices."
     },
     {
       "id": "verify",
@@ -175,6 +175,33 @@
       "unit": "call",
       "endpoint": "https://grid402.online/api/v1/email-verify",
       "notes": "RFC syntax, DNS MX, SPF, DMARC, disposable domain and role-based score."
+    },
+    {
+      "id": "batch",
+      "name": "Multi-Service Batch Execution (POST)",
+      "price": 0.005,
+      "credits": 1,
+      "unit": "item_sum",
+      "endpoint": "https://grid402.online/api/v1/batch",
+      "notes": "Execute 1 to 5 paid data calls in a single HTTP POST. Dynamically billed as exact sum of item prices with automatic Session Pass refund per failed sub-item."
+    },
+    {
+      "id": "prediction-markets",
+      "name": "Normalized Prediction Markets (Polymarket + Kalshi)",
+      "price": 0.01,
+      "credits": 2,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/prediction-markets",
+      "notes": "Implied probability (0-100%), 24h volume and liquidity normalized from Polymarket Gamma and Kalshi Trade API v2."
+    },
+    {
+      "id": "token-safety",
+      "name": "Multi-Chain Token Security Audit",
+      "price": 0.015,
+      "credits": 3,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/token-safety",
+      "notes": "GoPlus Security and DexScreener liquidity risk audit across Base, Ethereum, Polygon, Arbitrum and SPL networks (score 0-100 and SAFE/CAUTION/HIGH_RISK/CRITICAL verdict)."
     },
     {
       "id": "cnpj",
