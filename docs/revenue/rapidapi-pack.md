@@ -15,10 +15,13 @@
 
 ## 2. Catálogo de 2 APIs Recomendadas para Listar Separadamente (Maior Descoberta por Busca)
 
-### Listagem A: `Grid402 Web-to-Markdown, Email Verify & Network Utilities` (Público Global)
+### Listagem A: `Grid402 Web-to-Markdown, Token Safety, Predictions & Network Utilities` (Público Global — 18 paths em `rapidapi-global.json`)
 - **Categoria:** Data / Tools
-- **Subtítulo:** SSRF-hardened URL-to-Markdown for LLMs, Zero-PII B2B Email Verifier (MX/SPF/DMARC), DNS/SSL/ASN Audits & ECDSA Notarization.
-- **Endpoints incluídos:**
+- **Subtítulo:** SSRF-hardened URL-to-Markdown, Multi-chain Token Safety (GoPlus + DexScreener), Polymarket+Kalshi Odds, Multi-Service Batch, Zero-PII Email Verifier & Network Audits.
+- **Destaques e novos endpoints (Fase 2 + principais globais):**
+  - `GET /api/v1/token-safety?address=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913&chain=base` *(0.0150 USDC / 3 cr)*
+  - `GET /api/v1/prediction-markets?q=fed&limit=5` *(0.0100 USDC / 2 cr)*
+  - `POST /api/v1/batch` *(soma dinâmica exata dos 1–5 itens)*
   - `GET /api/v1/extract?url=https://example.com&max_chars=12000` *(custo interno Grid402: 0.0050 USDC / 1 cr)*
   - `GET /api/v1/email-verify?email=contato@grid402.online` *(custo interno: 0.0050 USDC / 1 cr)*
   - `GET /api/v1/domain-audit?domain=base.org` *(0.0150 USDC / 3 cr)*
@@ -27,8 +30,9 @@
   - `GET /api/v1/asn?ip=1.1.1.1` *(0.0050 USDC / 1 cr)*
   - `GET /api/v1/notarize?content=hello` *(0.0050 USDC / 1 cr)*
   - `GET /api/v1/global-markets?market=US&base=USD` *(0.0050 USDC / 1 cr)*
+  - *(Demais rotas incluídas em `docs/revenue/openapi/rapidapi-global.json`: `ofac`, `lei`, `web3-aml`, `weather`, `forex`, `crypto`, `pass-emitir`.)*
 
-### Listagem B: `Brazil KYB, CNPJ, CGU Sanctions & ANBIMA Workdays API` (Público Brasil & LatAm Fintech)
+### Listagem B: `Brazil KYB, CNPJ, CGU Sanctions & ANBIMA Workdays API` (Público Brasil & LatAm Fintech — 10 paths em `rapidapi-brazil-kyb.json`)
 - **Categoria:** Business / Finance
 - **Subtítulo:** Verified Receita Federal CNPJ, Simples/MEI, CGU CEIS/CNEP Sanctions, KYB 360 AI Dossier & ANBIMA Workdays — Zero-PII (LGPD) with ECDSA Oracle Proof.
 - **Endpoints incluídos:**
@@ -70,6 +74,10 @@ Além das cotas no RapidAPI Studio, o gateway Grid402 (`public_html/config.php` 
 
 > **Dica de conversão cruzada:** Na descrição da API na RapidAPI, inclua o aviso: *"Need pay-per-call crypto settlement (Base, Polygon, Arbitrum, Solana) or Pix (R$ 12 = 400 credits) with zero monthly retainer? Visit https://grid402.online/pass"*.
 
-## 4. Importação Rápida via OpenAPI 3.1
-- Importe diretamente `https://grid402.online/openapi.json` no RapidAPI Studio para gerar todos os schemas, descrições e exemplos automaticamente.
-- Antes de publicar, rode pelo menos 1 teste de **200 OK** em cada rota no painel RapidAPI para ganhar o selo de **100% Test Coverage / Popularity Score inicial**.
+## 4. Importação Rápida via OpenAPI 3.0.3 (Specs Regeneradas para a Fase 2)
+- Use os arquivos OpenAPI 3.0.3 prontos e validados em `docs/revenue/openapi/` ao importar ou atualizar as APIs no RapidAPI Provider Studio:
+  - **Listagem A (Global):** `docs/revenue/openapi/rapidapi-global.json` (`18` paths, inclui `token-safety`, `prediction-markets` e `POST /batch`)
+  - **Listagem B (Brasil KYB):** `docs/revenue/openapi/rapidapi-brazil-kyb.json` (`10` paths)
+  - **Catálogo Completo (All-in-One):** `docs/revenue/openapi/rapidapi-all.json` (`28` paths)
+- Alternativamente, você pode importar a spec OpenAPI 3.1 geral em `https://grid402.online/openapi.json` (ou regenerar os arquivos locais com `node scripts/generate_rapidapi_openapi.mjs`).
+- Antes de publicar/atualizar, rode pelo menos 1 teste de **200 OK** em cada nova rota no painel RapidAPI para manter o selo de **100% Test Coverage**.
