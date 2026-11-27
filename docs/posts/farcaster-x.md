@@ -1,44 +1,40 @@
-# Cast 1 — /base (Dual-Facilitator Coinbase CDP + PayAI + 4-Block Sanctions + Transient Extract)
-> Major upgrade live on **Grid402** ⚡ Verifiable public-data & network utilities oracle for AI agents, powered by HTTP x402 v2.
+# Cast 1 — /base (Phase 2: Token Safety, Prediction Markets & Batch + 28 APIs / 30 MCP Tools)
+> Phase 2 is LIVE on **Grid402** (`https://grid402.online`) — now **28 live M2M APIs** & **30 MCP tools (`v2.1.0`)** ⚡
 >
-> • **Dual-Facilitator on Base:** **Coinbase CDP** primary (CDP Bazaar v2 compliant) + safe pre-settle **PayAI** fallback (anti-double-charge state machine on `/settle`)
-> • **Gasless Multi-Chain:** Base, Polygon, Arbitrum & **Solana (SPL USDC)** via dynamic `/.well-known/x402.json` + direct 6-chain transfers
-> • **4-Block Official Sanctions (`/api/v1/ofac`):** US OFAC SDN, UN, EU FSFi & UK OFSI across EVM/Solana/BTC/Tron — fail-closed (`503` pre-charge) + `dataset_sha256` + ECDSA `_oracle_proof`
-> • **100% Transient `/api/v1/extract`:** 0 bytes on disk, honors `robots.txt`, `noai`, `Content-Signal` & paywall blocks
-> • **Lower KYB prices & boosted Passes:** `/cnpj` & `/lei` cut 50% (`0.0100 USDC`), Pro Pass **1,200 cr** (5 USDC · 180d), Fleet **6,000 cr** (20 USDC · 365d), auto-refund on errors
+> • `GET /api/v1/token-safety` ($0.0150 USDC): Base, ETH, Polygon, Arbitrum & Solana audit (GoPlus + DexScreener) with honeypot/tax/liquidity checks, 0–100 score & deterministic verdict (`SAFE` / `CAUTION` / `HIGH_RISK` / `CRITICAL`)
+> • `GET /api/v1/prediction-markets` ($0.0100 USDC): normalized Polymarket + Kalshi aggregator with 0–100% probabilities, 24h volume & liquidity
+> • `POST /api/v1/batch`: run 1–5 endpoints in ONE x402 settlement or Session Pass call (exact sum pricing, auto-refund on failed sub-items, `Idempotency-Key`)
 >
-> 25 live APIs · 27 MCP tools (`v2.0.0`, mcprush Grade A). Try free (3 req/day or `MCPTRY50`):
-> `curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/ofac?target=0x8589427373d6d84e98730d7795d8f6f8731fda16"`
-> https://grid402.online
+> Dual-Facilitator Coinbase CDP + PayAI across Base, Polygon, Arbitrum & Solana SPL USDC.
+> Try free (3 req/day or `MCPTRY50`): `curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/token-safety?chain=base&address=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"`
 
-# Cast 2 — /ai-agents (MCP + Fail-Closed Compliance + Transient RAG)
-> Production AI agents need three guarantees: reliable x402 settlement, real sanctions coverage, and zero-disk RAG extraction.
+# Cast 2 — /ai-agents (MCP v2.1.0 — 30 Tools + Batch + Fail-Closed Compliance)
+> Autonomous AI agents shouldn't sign 5 separate payments for 1 decision.
 >
-> **Grid402 v2.0.0** (25 APIs, 27 MCP tools — Grade A on mcprush, verified on Glama & x402scan) just shipped:
-> • Dual-Facilitator Coinbase CDP + PayAI (Base, Polygon, Arbitrum, Solana SPL)
-> • 4-block official sanctions (OFAC SDN, UN, EU FSFi, UK OFSI) for EVM/Solana/BTC/Tron — fail-closed + ECDSA `_oracle_proof`
-> • 100% transient `/extract` honoring `robots.txt`, `X-Robots-Tag: noai`, `Content-Signal` & paywalls
-> • Auto-refund on any `HTTP != 200` + free 300s `Idempotency-Key` retries
+> **Grid402 MCP v2.1.0** (30 tools, 28 live APIs — Grade A on mcprush, Glama & x402scan verified) just shipped Phase 2:
+> • `grid402_batch` (`POST /api/v1/batch`): 1–5 endpoints in 1 call & 1 x402 settlement, with auto-refund per failed sub-item
+> • `grid402_token_safety`: GoPlus + DexScreener audit across Base, ETH, Polygon, Arbitrum & Solana
+> • `grid402_prediction_markets`: unified Polymarket + Kalshi v2 probabilities
+> • Plus 4-block OFAC/UN/EU/UK sanctions (fail-closed) & 100% transient `/extract`
 >
 > `npx -y grid402-mcp` · Remote MCP: `https://grid402.online/mcp`
-> `curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/dossier?cnpj=00000000000191"`
 
-# Cast 3 — /solana (Native SPL USDC Gasless x402 + Multi-Asset AML)
-> Solana AI agents can now pay gaslessly in **SPL USDC** on **Grid402** ⚡
+# Cast 3 — /solana (Solana SPL USDC x402 + Token Safety Base58 + Batch)
+> Solana AI & DeFi agents can now run **Token Safety**, **Prediction Markets**, and **Multi-Service Batches** natively in **SPL USDC** on **Grid402** ⚡
 >
-> 25 verifiable data & network APIs: 4-block OFAC/UN/EU/UK sanctions (screens Solana, EVM, BTC & Tron wallets), KYB Dossier 360 + AI Verdict, GLEIF LEI, 100% transient `/extract`, ECB FX, DNS/SSL/ASN & ECDSA notarization.
+> 28 live APIs · 30 MCP tools (`v2.1.0`):
+> • `/api/v1/token-safety` ($0.0150): auto-detects Base58 Solana tokens + EVM chains (GoPlus + DexScreener)
+> • `/api/v1/prediction-markets` ($0.0100): Polymarket + Kalshi normalized
+> • `POST /api/v1/batch`: 1–5 calls in 1 payment + 4-block OFAC/UN/EU/UK sanctions + 100% transient `/extract`
 >
-> Dynamic `/.well-known/x402.json` discovery OR `<15ms` Session Passes (Pro: 1,200 credits / 5 USDC / 180d) at https://grid402.online/pass.
->
-> Free sandbox (3 req/day): `curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/ofac?target=0x8589427373d6d84e98730d7795d8f6f8731fda16"`
+> Free sandbox: `curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/prediction-markets?q=solana&limit=5"`
 
 # Cast 4 — PT-BR (/brasil /dev)
-> Atualização grande no **Grid402** 🇧🇷⚡
+> Fase 2 no ar no **Grid402** 🇧🇷⚡ Agora são **28 APIs UP** e **30 tools MCP (`v2.1.0`)**:
 >
-> • **Liquidez x402 v2:** Dual-Facilitator **Coinbase CDP + PayAI** na Base + gasless em Base, Polygon, Arbitrum e **Solana (SPL USDC)**, além de Pix/Cartão
-> • **Sanções em 4 Blocos (`/api/v1/ofac`):** OFAC SDN, ONU, UE FSFi e UK OFSI para EVM, Solana, BTC, Tron e empresas — modo *fail-closed* + ECDSA `_oracle_proof`
-> • **`/extract` 100% transiente:** 0 bytes gravados em disco, respeita `robots.txt`, `noai` e bloqueia paywalls pré-cobrança
-> • **Preços e Passes:** `/cnpj` e `/lei` caíram 50% (`0,0100 USDC` / 2 cr); Pro Pass subiu para **1.200 créditos** (R$ 29 / 180d); Fleet **6.000 cr** (R$ 115 / 365d) + estorno automático em falhas
+> • `GET /api/v1/token-safety` (`0,0150 USDC`): auditoria GoPlus + DexScreener em Base, ETH, Polygon, Arbitrum e Solana (`SAFE`/`CAUTION`/`HIGH_RISK`/`CRITICAL`)
+> • `GET /api/v1/prediction-markets` (`0,0100 USDC`): Polymarket + Kalshi unificados (probabilidades `0–100%`)
+> • `POST /api/v1/batch`: até 5 consultas em 1 chamada e 1 liquidação x402 (estorno automático por sub-item falho no Session Pass)
 >
-> Teste grátis (3 req/dia ou cupom `MCPTRY50`): `curl -sL -H "X-Payment: demo" https://grid402.online/api/v1/ofac?target=0x8589427373d6d84e98730d7795d8f6f8731fda16`
-> https://grid402.online
+> Teste grátis (3 req/dia ou `MCPTRY50`): `curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/token-safety?chain=base&address=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"`
+> https://grid402.online/catalog
