@@ -22,19 +22,19 @@ const GRID402_I18N = {
         'nav.contact': 'Contato',
         'nav.terms': 'Termos',
         'nav.privacy': 'Privacidade',
-        'badge.live': 'Base · Polygon · Arbitrum • {count}/{total} Serviços Operantes',
+        'badge.live': 'Base · Polygon · Arbitrum · Solana • {count}/{total} Serviços Operantes',
 
         // Hero
         'hero.tag': 'Hub Global de Micro-Serviços e Oráculo M2M para Agentes de IA',
         'hero.title': 'Grid402: Infraestrutura Global de Dados Públicos e Utilitários M2M para Agentes de IA',
-        'hero.desc': 'Acesse 25 endpoints globais e brasileiros: Extrator Web para Markdown (/extract), Auditor de E-mail Zero-PII (/email-verify), Dossiê 360º KYB com Veredito IA (APPROVED/FLAGGED/REJECTED), identidade corporativa mundial (GLEIF LEI em 200+ países), sanções OFAC SDN + AML Web3, notarização ECDSA, DNS, SSL, BGP/ASN, câmbio ECB/PTAX, Compliance 360, Selic/CDI/IPCA, feriados ANBIMA, CEP e CNPJ em milissegundos sem cadastro ou API keys. Liquidação gasless via PayAI x402 (Base, Polygon e Arbitrum), Cartão USD (RapidAPI) ou Session Pass via Pix a partir de R$ 4,90 (<15ms).',
+        'hero.desc': 'Acesse 25 endpoints globais e brasileiros: Extrator Web para Markdown 100% transiente (/extract), Auditor de E-mail Zero-PII (/email-verify), Dossiê 360º KYB com Veredito IA (APPROVED/FLAGGED/REJECTED), identidade corporativa mundial (GLEIF LEI em 200+ países), sanções oficiais em 4 blocos (OFAC SDN, ONU, UE FSFi e UK OFSI) + AML Web3 multi-ativo, notarização ECDSA, DNS, SSL, BGP/ASN, câmbio ECB/PTAX, Compliance 360, Selic/CDI/IPCA, feriados ANBIMA, CEP e CNPJ em milissegundos sem cadastro ou API keys. Liquidação gasless via Coinbase CDP / PayAI x402 (Base, Polygon, Arbitrum e Solana), Cartão USD (RapidAPI) ou Session Pass via Pix a partir de R$ 4,90 (<15ms).',
         'hero.btn.pix': '⚡ Pix R$ 12 (400 créditos)',
         'hero.btn.dossier': '📄 Gerar Dossiê KYB',
         'hero.btn.topup': '💎 Abastecer Saldo Web3 (Base)',
         'hero.btn.agents': '🤖 Central de Agentes IA',
         'hero.btn.playground': '⚡ Testar Sandbox (3/dia)',
         'hero.btn.catalog': 'Preços e 25 Endpoints →',
-        'hero.subnote': 'Sem cartão, sem API key, sem cadastro. Sandbox: <strong>3 consultas por dia por IP</strong> ou resgate <strong>50 créditos grátis</strong> com <code>MCPTRY50</code>. Produção: x402 gasless (Base, Polygon, Arbitrum), RapidAPI (Cartão USD) ou Pix (a partir de R$ 4,90).',
+        'hero.subnote': 'Sem cartão, sem API key, sem cadastro. Sandbox: <strong>3 consultas por dia por IP</strong> ou resgate <strong>50 créditos grátis</strong> com <code>MCPTRY50</code>. Produção: x402 gasless (Base, Polygon, Arbitrum e Solana), RapidAPI (Cartão USD) ou Pix (a partir de R$ 4,90).',
         'hero.btn.console': 'Console e SDKs',
         'hero.btn.llms': 'Documentação llms.txt',
         'hero.btn.status': 'Resumo Gratuito (JSON)',
@@ -42,7 +42,7 @@ const GRID402_I18N = {
         // Topup Tiers Web3
         'topup.tag': '⚡ Liquidação Instantânea em Lote Multi-Chain (USDC)',
         'topup.title': 'Abasteça seu Saldo Web3 em 1 Clique (Session Passes)',
-        'topup.desc': 'Pague uma única vez em USDC (Base, Arbitrum, Polygon, Optimism ou Ethereum) e receba na hora um token pass_g402_... com saldo de milhares de requisições de alta velocidade (<15ms) sem assinar transações a cada GET.',
+        'topup.desc': 'Pague uma única vez em USDC (Base, Arbitrum, Polygon, Optimism, Ethereum ou Solana) e receba na hora um token pass_g402_... com saldo de milhares de requisições de alta velocidade (<15ms) sem assinar transações a cada GET.',
         'topup.how_to_read': '<strong>Como ler o saldo:</strong> 1 crédito custa <strong>0.0050 USDC</strong> no serviço padrão; rotas de 0.0100 USDC (CNPJ, LEI, Sanções, Simples) consomem 2 créditos, 0.0150 USDC consomem 3 créditos, 0.0200 USDC (OFAC) consomem 4 créditos, 0.0250 USDC (KYB Audit) consomem 5 créditos, 0.0300 USDC consomem 6 créditos e 0.0500 USDC (Dossiê 360º) consomem 10 créditos.',
         'topup.network_bar': '<strong>Rede:</strong> Base Mainnet (8453) • <strong>Moeda:</strong> USDC • <strong>Contrato:</strong> <a href="https://basescan.org/token/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" target="_blank" rel="noopener noreferrer" style="color: #00F0FF; font-family: var(--font-mono); text-decoration: none;">0x8335...2913</a>',
         'topup.starter.tag': 'Starter Pass',
@@ -115,7 +115,7 @@ const GRID402_I18N = {
         'svc.domain-audit.desc': 'Auditoria completa de domínio em 1 chamada: registros DNS, certificado TLS/SSL e roteamento ASN/BGP',
         'svc.kyb-audit.name': 'Auditoria KYB e Compliance (CNPJ + OFAC + LEI)',
         'svc.kyb-audit.category': 'Compliance',
-        'svc.kyb-audit.desc': 'Auditoria completa de entidade em 1 chamada: dados cadastrais CNPJ, triagem OFAC/sanções e registro LEI',
+        'svc.kyb-audit.desc': 'Auditoria completa de entidade em 1 chamada: dados cadastrais CNPJ, triagem em 4 blocos de sanções (OFAC/ONU/UE/UK) e registro LEI',
         'svc.dossier.name': 'Dossiê 360º KYB + Veredito IA',
         'svc.dossier.category': 'Compliance Premium',
         'svc.dossier.desc': 'Dossiê corporativo premium em 1 chamada: Receita Federal + Simples/MEI + Sanções CGU CEIS/CNEP + Veredito IA (APPROVED/FLAGGED/REJECTED)',
@@ -152,9 +152,9 @@ const GRID402_I18N = {
         'svc.lei.name': 'Identidade Corporativa Global (LEI)',
         'svc.lei.category': 'Global (CC0)',
         'svc.lei.desc': 'Consulta oficial de empresas em 200+ jurisdições via GLEIF LEI (ISO 17442, licença CC0 1.0 Universal)',
-        'svc.ofac.name': 'Sanções Globais (OFAC/ONU) e AML Web3',
+        'svc.ofac.name': 'Sanções Globais (4 Blocos) e AML Web3',
         'svc.ofac.category': 'Global Compliance',
-        'svc.ofac.desc': 'Screening em listas OFAC SDN (US Treasury) e ONU + inspeção on-chain de carteiras EVM na Base Mainnet',
+        'svc.ofac.desc': 'Triagem oficial em 4 blocos (US OFAC SDN, ONU, UE FSFi e UK OFSI) para carteiras EVM/Solana/BTC/Tron e entidades + AML Base Mainnet',
         'svc.notarize.name': 'Carimbo do Tempo e Notarização M2M',
         'svc.notarize.category': 'Criptografia',
         'svc.notarize.desc': 'Emite certificado de existência e timestamp UTC assinado com ECDSA secp256k1 para contratos, logs e outputs de agentes',
@@ -163,7 +163,7 @@ const GRID402_I18N = {
         'svc.global-markets.desc': 'Calendário de liquidação de bolsas (US NYSE/Fed, EU TARGET2, UK LSE, BR B3) + 30+ moedas oficiais do Banco Central Europeu',
         'svc.extract.name': 'Extrator Web para Markdown (LLM/RAG)',
         'svc.extract.category': 'IA / Web',
-        'svc.extract.desc': 'Baixa qualquer página pública com proteção SSRF e devolve Markdown limpo, metadados e links absolutos prontos para LLMs',
+        'svc.extract.desc': 'Extração 100% transiente (zero cache em disco) com proteção SSRF e respeito a robots.txt/noai/paywalls, devolvendo Markdown limpo para LLMs',
         'svc.email-verify.name': 'Auditoria de E-mail B2B (MX/SPF/DMARC)',
         'svc.email-verify.category': 'Rede / B2B',
         'svc.email-verify.desc': 'Validação Zero-PII de entregabilidade: sintaxe RFC, DNS MX, SPF, DMARC, domínios descartáveis e score 0–100',
@@ -469,7 +469,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'catalog.pill.pass': 'Session Pass: Starter 400 cr (2 USDC · 180d) · Pro 1.200 cr (5 USDC · 180d) · Fleet 6.000 cr (20 USDC · 365d)',
         'catalog.limits.title': 'Limites e autenticação',
         'catalog.limits.c1.title': 'x402 micropagamento',
-        'catalog.limits.c1.desc': 'Envie <code>PAYMENT-SIGNATURE</code> (Base64, EIP-3009, token facilitador) ou tx hash para a carteira oficial <code>0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90</code>; o serviço responde em milissegundos.',
+        'catalog.limits.c1.desc': 'Envie <code>PAYMENT-SIGNATURE</code> (gasless Coinbase CDP / PayAI x402 v2 em Base, Polygon, Arbitrum e Solana) ou tx hash para a carteira oficial <code>0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90</code>; o serviço responde em milissegundos.',
         'catalog.limits.c2.title': 'Session Pass (1 crédito = 0.0050 USDC)',
         'catalog.limits.c2.desc': 'Compre créditos em <a href="/pass" style="color:var(--primary)">/pass</a>; envie <code>X-Payment: pass_g402_...</code>. Starter (2 USDC = 400 créditos, 180d), Pro (5 USDC = 1.000 base + 200 bônus = 1.200 créditos, 180d), Fleet (20 USDC = 4.000 base + 2.000 bônus = 6.000 créditos, 365d).',
         'catalog.limits.c3.title': 'Sandbox &amp; Idempotência',
@@ -841,19 +841,19 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'nav.contact': 'Contact',
         'nav.terms': 'Terms',
         'nav.privacy': 'Privacy',
-        'badge.live': 'Base · Polygon · Arbitrum • {count}/{total} Services Operational',
+        'badge.live': 'Base · Polygon · Arbitrum · Solana • {count}/{total} Services Operational',
 
         // Hero
         'hero.tag': 'Global Microservices and M2M Oracle Hub for Autonomous AI Agents',
         'hero.title': 'Grid402: Global Open-Data and Network Utilities Infrastructure for AI Agents',
-        'hero.desc': 'Access 25 global and regional endpoints: LLM-ready Web-to-Markdown Extractor (/extract), Zero-PII B2B Email Verifier (/email-verify), KYB 360 AI Dossier (APPROVED/FLAGGED/REJECTED), worldwide corporate identity (GLEIF LEI across 200+ countries), US Treasury OFAC SDN sanctions + Base Web3 AML, ECDSA timestamp notarization, DNS/SSL/BGP audits, ECB FX, Compliance 360, CEP, and CNPJ in milliseconds with zero signup or API keys. Gasless HTTP x402 via PayAI across Base, Polygon, and Arbitrum, RapidAPI USD Card, or Prepaid Session Pass via Pix from R$ 4.90 (<15ms).',
+        'hero.desc': 'Access 25 global and regional endpoints: 100% transient Web-to-Markdown Extractor (/extract), Zero-PII B2B Email Verifier (/email-verify), KYB 360 AI Dossier (APPROVED/FLAGGED/REJECTED), worldwide corporate identity (GLEIF LEI across 200+ countries), 4-block official sanctions (US OFAC SDN, UN, EU FSFi, UK OFSI) + multi-asset Web3 AML, ECDSA timestamp notarization, DNS/SSL/BGP audits, ECB FX, Compliance 360, CEP, and CNPJ in milliseconds with zero signup or API keys. Gasless HTTP x402 via Coinbase CDP / PayAI across Base, Polygon, Arbitrum, and Solana, RapidAPI USD Card, or Prepaid Session Pass via Pix from R$ 4.90 (<15ms).',
         'hero.btn.pix': '⚡ Pix R$ 12 (400 credits)',
         'hero.btn.dossier': '📄 KYB Dossier PDF',
         'hero.btn.topup': '💎 Web3 Top-Up (Base)',
         'hero.btn.agents': '🤖 AI Agents Hub',
         'hero.btn.playground': '⚡ Test Sandbox (3/day)',
         'hero.btn.catalog': 'Pricing and 25 Endpoints →',
-        'hero.subnote': 'No credit card, no API key, no signup. Sandbox: <strong>3 queries per day per IP</strong> or claim <strong>50 free credits</strong> with <code>MCPTRY50</code>. Production: gasless x402 (Base, Polygon, Arbitrum), RapidAPI (USD Card) or Pix (from R$ 4.90).',
+        'hero.subnote': 'No credit card, no API key, no signup. Sandbox: <strong>3 queries per day per IP</strong> or claim <strong>50 free credits</strong> with <code>MCPTRY50</code>. Production: gasless x402 (Base, Polygon, Arbitrum, Solana), RapidAPI (USD Card) or Pix (from R$ 4.90).',
         'hero.btn.console': 'Console and SDKs',
         'hero.btn.llms': 'llms.txt Documentation',
         'hero.btn.status': 'Free Status (JSON)',
@@ -861,7 +861,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         // Topup Tiers Web3
         'topup.tag': '⚡ Instant Multi-Chain Batch Settlement (USDC)',
         'topup.title': '1-Click Web3 Credit Top-Up (Session Passes)',
-        'topup.desc': 'Pay once in USDC (Base, Arbitrum, Polygon, Optimism, or Ethereum) and instantly receive a pass_g402_... token with thousands of high-speed (<15ms) requests without signing transactions on every single GET.',
+        'topup.desc': 'Pay once in USDC (Base, Arbitrum, Polygon, Optimism, Ethereum, or Solana) and instantly receive a pass_g402_... token with thousands of high-speed (<15ms) requests without signing transactions on every single GET.',
         'topup.how_to_read': '<strong>How to read balances:</strong> 1 credit costs <strong>0.0050 USDC</strong> on standard endpoints; 0.0100 USDC (CNPJ, LEI, Sanctions, Simples) = 2 credits, 0.0150 USDC = 3 credits, 0.0200 USDC (OFAC) = 4 credits, 0.0250 USDC (KYB Audit) = 5 credits, 0.0300 USDC = 6 credits, and 0.0500 USDC (KYB 360º Dossier) = 10 credits.',
         'topup.network_bar': '<strong>Network:</strong> Base Mainnet (8453) • <strong>Token:</strong> USDC • <strong>Contract:</strong> <a href="https://basescan.org/token/0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" target="_blank" rel="noopener noreferrer" style="color: #00F0FF; font-family: var(--font-mono); text-decoration: none;">0x8335...2913</a>',
         'topup.starter.tag': 'Starter Pass',
@@ -934,7 +934,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'svc.domain-audit.desc': 'Full domain audit in 1 call: authoritative DNS records, TLS/SSL certificate, and BGP/ASN routing',
         'svc.kyb-audit.name': 'KYB and Compliance Audit (CNPJ + OFAC + LEI)',
         'svc.kyb-audit.category': 'Compliance',
-        'svc.kyb-audit.desc': 'Full corporate entity audit in 1 call: CNPJ registry, OFAC/UN sanctions screening, and GLEIF LEI',
+        'svc.kyb-audit.desc': 'Full corporate entity audit in 1 call: CNPJ registry, 4-block official sanctions screening (OFAC/UN/EU/UK), and GLEIF LEI',
         'svc.dossier.name': 'Dossier 360 KYB + AI Verdict',
         'svc.dossier.category': 'Premium Compliance',
         'svc.dossier.desc': 'Premium corporate dossier in 1 call: Federal Revenue + Simples/MEI + CGU CEIS/CNEP sanctions + AI Verdict (APPROVED/FLAGGED/REJECTED)',
@@ -971,9 +971,9 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'svc.lei.name': 'Global Corporate Identity (GLEIF LEI)',
         'svc.lei.category': 'Global (CC0)',
         'svc.lei.desc': 'Official legal entity lookup across 200+ jurisdictions via GLEIF LEI (ISO 17442, CC0 1.0 Universal license)',
-        'svc.ofac.name': 'Global Sanctions (OFAC/UN) and Web3 AML',
+        'svc.ofac.name': 'Global Sanctions (4-Block) and Web3 AML',
         'svc.ofac.category': 'Global Compliance',
-        'svc.ofac.desc': 'US Treasury OFAC SDN and UN Consolidated screening + live Base Mainnet EVM wallet AML inspection',
+        'svc.ofac.desc': 'Official 4-block screening (US OFAC SDN, UN, EU FSFi, UK OFSI) across EVM/Solana/BTC/Tron wallets and entities + live Base Mainnet AML',
         'svc.notarize.name': 'M2M Timestamp and Notarization',
         'svc.notarize.category': 'Cryptography',
         'svc.notarize.desc': 'Issues a proof-of-existence and UTC timestamp certificate signed with secp256k1 ECDSA for agent logs and contracts',
@@ -982,7 +982,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'svc.global-markets.desc': 'Global exchange settlement calendar (US NYSE/Fed, EU TARGET2, UK LSE, BR B3) + 30+ official ECB reference currencies',
         'svc.extract.name': 'Web-to-Markdown Extractor (LLM/RAG)',
         'svc.extract.category': 'AI / Web',
-        'svc.extract.desc': 'SSRF-hardened webpage fetcher returning LLM-ready clean Markdown, metadata, and absolute links',
+        'svc.extract.desc': '100% transient SSRF-hardened extractor (zero disk cache) honoring robots.txt, noai directives, and paywalls, returning clean LLM Markdown',
         'svc.email-verify.name': 'B2B Email Deliverability Audit',
         'svc.email-verify.category': 'Network / B2B',
         'svc.email-verify.desc': 'Zero-PII email audit: RFC syntax, DNS MX, SPF, DMARC, disposable domain detection, and deliverability score 0–100',
@@ -1288,7 +1288,7 @@ curl "https://grid402.online/api/v1/lei?lei=5493006MHB84DD0ZWV18" \\
         'catalog.pill.pass': 'Session Pass: Starter 400 cr (2 USDC · 180d) · Pro 1,200 cr (5 USDC · 180d) · Fleet 6,000 cr (20 USDC · 365d)',
         'catalog.limits.title': 'Limits and authentication',
         'catalog.limits.c1.title': 'x402 micropayment',
-        'catalog.limits.c1.desc': 'Send <code>PAYMENT-SIGNATURE</code> (Base64, EIP-3009, facilitator token) or tx hash to the official wallet <code>0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90</code>; the service responds in milliseconds.',
+        'catalog.limits.c1.desc': 'Send <code>PAYMENT-SIGNATURE</code> (gasless Coinbase CDP / PayAI x402 v2 across Base, Polygon, Arbitrum, and Solana) or tx hash to the official wallet <code>0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90</code>; the service responds in milliseconds.',
         'catalog.limits.c2.title': 'Session Pass (1 credit = 0.0050 USDC)',
         'catalog.limits.c2.desc': 'Buy credits at <a href="/pass" style="color:var(--primary)">/pass</a>; send <code>X-Payment: pass_g402_...</code>. Starter (2 USDC = 400 credits, 180d), Pro (5 USDC = 1,000 base + 200 bonus = 1,200 credits, 180d), Fleet (20 USDC = 4,000 base + 2,000 bonus = 6,000 credits, 365d).',
         'catalog.limits.c3.title': 'Sandbox &amp; Idempotency',
@@ -1656,7 +1656,7 @@ const playgroundPresets_en = {
     },
     'kyb-audit': {
         name: 'KYB Audit (CNPJ+OFAC+LEI)',
-        desc: 'Full corporate entity audit in 1 call: CNPJ registry, OFAC/UN sanctions screening, and GLEIF LEI.',
+        desc: 'Full corporate entity audit in 1 call: CNPJ registry, 4-block official sanctions screening (OFAC/UN/EU/UK), and GLEIF LEI.',
         params: [
             { key: 'cnpj', label: 'Company CNPJ Number', value: '00000000000191' }
         ]
@@ -1682,7 +1682,7 @@ const playgroundPresets_en = {
     },
     ofac: {
         name: 'OFAC and Web3 AML',
-        desc: 'Global Sanctions (OFAC SDN / UN) + live Base Mainnet EVM wallet AML inspection.',
+        desc: 'Official 4-block sanctions (US OFAC SDN, UN, EU FSFi, UK OFSI) for EVM/Solana/BTC/Tron wallets and entities + live Base Mainnet AML.',
         params: [
             { key: 'target', label: '0x EVM Wallet, LEI, or Entity Name', value: '0x8589427373d6d84e98730d7795d8f6f8731fda16' }
         ]
@@ -1900,9 +1900,11 @@ function setLanguage(lang) {
     const badgeText = document.getElementById('badge-live-text');
     if (badgeText) {
         const count = badgeText.getAttribute('data-i18n-count') || '25';
+        const solOn = badgeText.getAttribute('data-solana-enabled') !== '0';
+        const nets = solOn ? 'Base · Polygon · Arbitrum · Solana' : 'Base · Polygon · Arbitrum';
         badgeText.textContent = (lang === 'en')
-            ? `Base · Polygon · Arbitrum • ${count}/${count} Services Operational`
-            : `Base · Polygon · Arbitrum • ${count}/${count} Serviços Operantes`;
+            ? `${nets} • ${count}/${count} Services Operational`
+            : `${nets} • ${count}/${count} Serviços Operantes`;
     }
 
     // Atualiza presets do playground se a funcao existir

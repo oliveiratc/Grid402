@@ -148,6 +148,6 @@ ksort($services);
 const input=document.getElementById('filter');
 input.addEventListener('input',()=>{const q=input.value.toLowerCase();document.querySelectorAll('#catalog tbody tr').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none');});
 </script>
-<script src="/assets/js/i18n.js?v=3.4.3"></script>
+<script src="/assets/js/i18n.js?v=3.6.0"></script>
 </body>
 </html>

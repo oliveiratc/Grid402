@@ -382,7 +382,7 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
         </footer>
     </div>
     <script src="/assets/js/pass_storage.js?v=3.5.0"></script>
-    <script src="/assets/js/i18n.js?v=3.5.0"></script>
+    <script src="/assets/js/i18n.js?v=3.6.0"></script>
 </body>
 </html>
     <?php
@@ -3667,7 +3667,8 @@ grid402_log_public_visit('/');
                 </a>
                 <div class="badge-live">
                     <span class="badge-pulse"></span>
-                    <span data-i18n-count="<?php echo count($servicesCatalog); ?>" id="badge-live-text">Base · Polygon · Arbitrum • <?php echo count($servicesCatalog); ?>/<?php echo count($servicesCatalog); ?> Services Operational</span>
+                    <?php $heroNetsPipe = (function_exists('grid402_is_solana_public_enabled') && grid402_is_solana_public_enabled()) ? 'Base · Polygon · Arbitrum · Solana' : 'Base · Polygon · Arbitrum'; ?>
+                    <span data-i18n-count="<?php echo count($servicesCatalog); ?>" data-solana-enabled="<?php echo (function_exists('grid402_is_solana_public_enabled') && grid402_is_solana_public_enabled()) ? '1' : '0'; ?>" id="badge-live-text"><?php echo $heroNetsPipe; ?> • <?php echo count($servicesCatalog); ?>/<?php echo count($servicesCatalog); ?> Services Operational</span>
                 </div>
             </div>
         </div>
@@ -3675,7 +3676,7 @@ grid402_log_public_visit('/');
         <section class="hero">
             <div class="hero-tag" data-i18n="hero.tag">Global Microservices and M2M Oracle Hub for Autonomous AI Agents</div>
             <h1 data-i18n="hero.title">Grid402: Global Open-Data and Network Utilities Infrastructure for AI Agents</h1>
-            <p data-i18n="hero.desc">Access 25 global and regional endpoints: LLM-ready Web-to-Markdown Extractor (/extract), Zero-PII B2B Email Verifier (/email-verify), KYB 360 AI Dossier (APPROVED/FLAGGED/REJECTED), worldwide corporate identity (GLEIF LEI across 200+ countries), US Treasury OFAC SDN sanctions + Base Web3 AML, ECDSA timestamp notarization, DNS/SSL/BGP audits, ECB FX, Compliance 360, CEP, and CNPJ in milliseconds with zero signup or API keys. Gasless HTTP x402 via PayAI across Base, Polygon, and Arbitrum — or Prepaid Session Pass via Pix from R$ 4.90 / Credit Card USD on RapidAPI (&lt;15ms).</p>
+            <p data-i18n="hero.desc">Access 25 global and regional endpoints: 100% transient Web-to-Markdown Extractor (/extract), Zero-PII B2B Email Verifier (/email-verify), KYB 360 AI Dossier (APPROVED/FLAGGED/REJECTED), worldwide corporate identity (GLEIF LEI across 200+ countries), 4-block official sanctions (US OFAC SDN, UN, EU FSFi, UK OFSI) + multi-asset Web3 AML, ECDSA timestamp notarization, DNS/SSL/BGP audits, ECB FX, Compliance 360, CEP, and CNPJ in milliseconds with zero signup or API keys. Gasless HTTP x402 via Coinbase CDP / PayAI across Base, Polygon, Arbitrum, and Solana — or Prepaid Session Pass via Pix from R$ 4.90 / Credit Card USD on RapidAPI (&lt;15ms).</p>
             <div class="cta-group">
                 <a href="/pass?tier=starter&amp;method=pix" class="btn btn-primary" style="background: linear-gradient(135deg, #059669 0%, #10B981 100%); color: #04120D; font-weight: 800; box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35);" data-i18n="hero.btn.pix">⚡ Pix R$ 12 (400 créditos)</a>
                 <a href="/dossie-kyb" class="btn btn-primary" style="background: linear-gradient(135deg, #0052FF 0%, #00F0FF 100%); font-weight: 800; box-shadow: 0 4px 15px rgba(0, 82, 255, 0.4);" data-i18n="hero.btn.dossier">📄 Gerar Dossiê KYB</a>
@@ -3684,7 +3685,7 @@ grid402_log_public_visit('/');
                 <a href="/agents" class="btn btn-outline" data-i18n="hero.btn.agents">🤖 AI Agents Hub</a>
             </div>
             <p style="margin-top: .7rem; font-size: .82rem; color: var(--text-muted);" data-i18n-html="hero.subnote">
-                No credit card, no API key, no signup. Sandbox: <strong>3 queries per day per IP</strong> or claim <strong>50 free credits</strong> with <code>MCPTRY50</code>. Production: gasless x402 (Base, Polygon, Arbitrum), RapidAPI (USD Card) or Pix (from R$ 4.90).
+                No credit card, no API key, no signup. Sandbox: <strong>3 queries per day per IP</strong> or claim <strong>50 free credits</strong> with <code>MCPTRY50</code>. Production: gasless x402 (Base, Polygon, Arbitrum, Solana), RapidAPI (USD Card) or Pix (from R$ 4.90).
             </p>
         </section>
 
@@ -7082,6 +7083,6 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
         }
     </script>
     <script src="/assets/js/pass_storage.js?v=3.5.0"></script>
-    <script src="/assets/js/i18n.js?v=3.5.0"></script>
+    <script src="/assets/js/i18n.js?v=3.6.0"></script>
 </body>
 </html>
