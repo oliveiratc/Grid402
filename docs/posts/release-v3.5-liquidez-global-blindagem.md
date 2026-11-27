@@ -19,39 +19,35 @@
 
 Acabamos de colocar em produção uma nova fase do **Grid402** — nossa infraestrutura de dados públicos verificáveis e utilitários M2M para agentes de IA e automações B2B.
 
-Quem coloca agentes autônomos em produção esbarra sempre nos mesmos três muros: **liquidez de pagamento**, **confiabilidade dos dados de compliance** e **risco jurídico ao extrair conteúdo da web**.
+Quem coloca agentes autônomos em produção esbarra nos mesmos três muros: **liquidez de pagamento**, **confiabilidade no compliance** e **risco jurídico ao extrair conteúdo da web**.
 
 Nessa atualização, resolvemos os três:
 
 **1. Liquidez Global x402 v2: Coinbase CDP + PayAI + Solana**
-Passamos a operar com roteamento **Dual-Facilitator** na rede Base (**Coinbase CDP** como primário com conformidade CDP Bazaar v2 + fallback automático pré-liquidação para **PayAI**, garantindo que nenhum erro ambíguo no `/settle` gere dupla cobrança). A liquidação gasless já cobre **Base, Polygon, Arbitrum e Solana (SPL USDC)** — além de transferência direta em 6 redes, **Pix/Cartão** e **RapidAPI (Cartão USD)**. Tudo sem cadastro, sem API key e sem mensalidade.
+Operamos agora com roteamento **Dual-Facilitator** na Base (**Coinbase CDP** primário com conformidade CDP Bazaar v2 + fallback pré-liquidação para **PayAI**, evitando dupla cobrança no `/settle`) e liquidação gasless em **Base, Polygon, Arbitrum e Solana (SPL USDC)** — além de transferência em 6 redes, **Pix/Cartão** e **RapidAPI (Cartão USD)**. Sem cadastro, sem API key e sem mensalidade.
 
-**2. Sanções Globais em 4 Blocos Oficiais + AML Web3 Multi-Ativo**
-Nosso `/api/v1/ofac` (e o bundle `/api/v1/kyb-audit`) agora consulta diariamente os cadastros oficiais completos de **OFAC SDN (EUA), ONU, União Europeia (EU FSFi) e Reino Unido (UK OFSI)** em índice Zero-DB particionado (`<= 30 ms`), cobrindo carteiras **EVM, Solana, Bitcoin, Tron** e entidades/aliases.
-Tudo com governança *fail-closed* (retorna `HTTP 503` antes de cobrar se o índice não estiver íntegro — zero falso `CLEAR`) e assinatura ECDSA secp256k1 (`_oracle_proof`) cobrindo `dataset_sha256`, `last_synced_at` e `freshness_status`.
+**2. Sanções Globais em 4 Blocos + AML Web3 Multi-Ativo**
+O `/api/v1/ofac` (e `/api/v1/kyb-audit`) agora consulta diariamente os cadastros oficiais completos de **OFAC SDN (EUA), ONU, UE (FSFi) e Reino Unido (UK OFSI)** em índice Zero-DB (`<= 30 ms`), cobrindo carteiras **EVM, Solana, Bitcoin, Tron** e empresas.
+Opera em modo *fail-closed* (`HTTP 503` pré-cobrança se indisponível — zero falso `CLEAR`) com assinatura ECDSA (`_oracle_proof`) cobrindo `dataset_sha256` e `freshness_status`.
 
 **3. Extrator Web-to-Markdown 100% Transiente (`/api/v1/extract`)**
-Para pipelines de RAG e agentes web operarem com tranquilidade jurídica:
-• **0 bytes** de conteúdo de terceiros gravados em disco (`transient_only: true`);
-• Respeito estrito a `robots.txt`, `X-Robots-Tag` (`noai`, `noimageai`, `noindex`), `Content-Signal` e meta tags anti-AI;
-• Bloqueio automático de paywalls e HTTP `401/403` antes da cobrança;
-• Blindagem SSRF + DNS rebinding com Markdown limpo por `0,0050 USDC` (1 crédito).
+• **0 bytes** de conteúdo de terceiros em disco (`transient_only: true`);
+• Respeita `robots.txt`, `X-Robots-Tag` (`noai`), `Content-Signal` e meta tags anti-AI;
+• Bloqueia paywalls e HTTP `401/403` pré-cobrança;
+• Proteção SSRF/DNS rebinding por `0,0050 USDC` (1 crédito).
 
-**4. Preços menores, Pro Pass turbinado e garantias pró-cliente**
-• `/api/v1/cnpj` e `/api/v1/lei` caíram 50% → **`0,0100 USDC`** (2 créditos);
-• Bundle `/api/v1/kyb-audit` (CNPJ + Sanções 4 blocos + LEI) → **`0,0250 USDC`** (5 créditos);
-• **Pro Pass** subiu para **1.200 créditos** (`1.000 base + 200 bônus`, R$ 29 / 5 USDC) e a validade foi estendida para **180 dias** (Starter/Pro) e **365 dias** (Fleet — 6.000 créditos);
-• Estorno automático em qualquer erro (`HTTP != 200`), retentativa grátis por 300s com `Idempotency-Key` e Spend Controls (`daily_credit_limit` e `allowed_endpoints`).
+**4. Preços menores, Pro Pass turbinado e garantias**
+• `/cnpj` e `/lei` caíram 50% → **`0,0100 USDC`** (2 cr);
+• `/kyb-audit` (CNPJ + Sanções 4 blocos + LEI) → **`0,0250 USDC`** (5 cr);
+• **Pro Pass:** subiu para **1.200 créditos** (R$ 29 / 5 USDC · 180d) e **Fleet** para **6.000 créditos** (R$ 115 / 20 USDC · 365d);
+• Estorno automático em falhas (`HTTP != 200`), retentativa grátis por 300s (`Idempotency-Key`) e Spend Controls.
 
-Hoje são **25 micro-serviços em produção** (incluindo o **Dossiê 360º KYB + Veredito IA**) e **27 ferramentas MCP (`v2.0.0`, Nota A no mcprush)** prontas para Claude Desktop, Cursor, n8n, LangChain, CrewAI e Coinbase AgentKit.
+São **25 micro-serviços UP** (incl. **Dossiê 360º KYB + Veredito IA**) e **27 tools MCP (`v2.0.0`, Nota A no mcprush)**.
 
-Teste em 10 segundos no terminal, sem cartão e sem cadastro (Sandbox 3 req/dia ou cupom `MCPTRY50` com 50 créditos grátis):
+Teste em 10s no terminal (Sandbox 3 req/dia ou cupom `MCPTRY50` com 50 cr grátis):
+`curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/ofac?target=0x8589427373d6d84e98730d7795d8f6f8731fda16"`
 
-```bash
-curl -sL -H "X-Payment: demo" "https://grid402.online/api/v1/ofac?target=0x8589427373d6d84e98730d7795d8f6f8731fda16"
-```
-
-Links do portal, catálogo, Trust Center, MCP e GitHub no primeiro comentário. Na sua stack de agentes hoje, o que mais trava o go-live: pagamento M2M, compliance ou extração de dados?
+Links no 1º comentário. Na sua stack de agentes, o que mais trava o go-live hoje?
 
 #AgentesDeIA #InteligenciaArtificial #MCP #Compliance #KYB #Web3 #Fintech #APIs
 
