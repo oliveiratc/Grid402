@@ -17,6 +17,7 @@ require_once __DIR__ . '/logger.php';
 require_once __DIR__ . '/growth.php';
 require_once __DIR__ . '/services/forex.php';
 require_once __DIR__ . '/services/crypto.php';
+require_once __DIR__ . '/services/sanctions_index.php';
 
 // 1. Verificação de Autorização
 $isCli = (php_sapi_name() === 'cli');
@@ -280,7 +281,7 @@ $servicesSummary = [
         'price_usdc' => '0.0100',
     ],
     'ofac' => [
-        'name' => 'Sanções Globais (OFAC/ONU) e AML Web3',
+        'name' => 'Sanções Globais (OFAC/ONU/UE/UK) e AML Web3',
         'status' => 'UP',
         'endpoint' => '/api/v1/ofac',
         'category' => 'Global Compliance',
@@ -350,6 +351,7 @@ foreach ($catalogDefs as $svcId => $def) {
 $totalDurationMs = round((microtime(true) - $startTime) * 1000, 2);
 $uptimeHistory = grid402_record_uptime_snapshot($upCount, count($servicesSummary), $totalDurationMs);
 
+$sanctionsSummary = function_exists('grid402_sanctions_index_summary') ? grid402_sanctions_index_summary() : ['available' => false, 'freshness_status' => 'MISSING'];
 $summaryPayload = [
     'protocol' => 'x402',
     'hub' => 'Grid402',
@@ -362,6 +364,7 @@ $summaryPayload = [
     'timestamp' => $isoTimestamp,
     'execution_time_ms' => $totalDurationMs,
     'uptime_30d' => $uptimeHistory,
+    'sanctions_index' => $sanctionsSummary,
     'services' => $servicesSummary,
     'notice' => 'Consultas detalhadas e sob demanda requerem micropagamento a partir de US$ ' . GRID402_PRICE_DISPLAY . ' em USDC na Base via cabeçalho X-Payment (ou Session Pass pré-pago: 1 crédito = 0.0050 USDC). Consulte https://grid402.online/llms.txt',
 ];

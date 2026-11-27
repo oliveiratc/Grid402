@@ -1849,8 +1849,8 @@ if ($isValidApiAction) {
             $cnpjVal = (string) ($_GET['cnpj'] ?? '');
             $nameVal = (string) ($_GET['name'] ?? '');
             $leiVal = (string) ($_GET['lei'] ?? '');
-            $addrVal = (string) ($_GET['address'] ?? '');
-            $result = grid402_service_kyb_audit($cnpjVal, $nameVal, $leiVal, $addrVal);
+            $addrVal = (string) ($_GET['address'] ?? $_GET['target'] ?? '');
+            $result = grid402_service_kyb_audit($cnpjVal, $nameVal, $leiVal, $addrVal, !empty($validation['sandbox']));
             break;
         case 'dossier':
             $cnpjVal = (string) ($_GET['cnpj'] ?? $_GET['code'] ?? '00000000000191');
@@ -1897,11 +1897,11 @@ if ($isValidApiAction) {
         case 'ofac':
             $addrVal = (string) ($_GET['address'] ?? $_GET['target'] ?? '');
             $nameVal = (string) ($_GET['name'] ?? '');
-            if ($addrVal !== '' && !preg_match('/^0x[a-fA-F0-9]{40}$/', trim($addrVal)) && $nameVal === '') {
+            if ($addrVal !== '' && $nameVal === '' && function_exists('grid402_ofac_detect_address_type') && grid402_ofac_detect_address_type($addrVal) === null && !str_starts_with(strtolower(trim($addrVal)), '0x')) {
                 $nameVal = $addrVal;
                 $addrVal = '';
             }
-            $result = grid402_service_ofac($addrVal, $nameVal);
+            $result = grid402_service_ofac($addrVal, $nameVal, !empty($validation['sandbox']));
             break;
         case 'notarize':
             $dataVal = (string) ($_GET['data'] ?? $_GET['content'] ?? '');

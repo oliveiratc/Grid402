@@ -875,9 +875,9 @@ function grid402_bazaar_service_metadata(?string $serviceName): array {
 
     $catalog = [
         'ofac' => [
-            'description' => 'Screen EVM wallet addresses, entities and individuals against US Treasury OFAC SDN, UN Consolidated Sanctions and Base AML risk with ECDSA oracle proof.',
+            'description' => 'Screen multi-asset crypto addresses (EVM, Solana, Bitcoin, Tron) and entities against US OFAC SDN, UN, EU FSFi, and UK OFSI sanctions lists with Base AML and ECDSA proof.',
             'tags' => ['ofac', 'sanctions', 'aml', 'compliance', 'kyb', 'base', 'x402'],
-            'output_example' => ['target' => '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90', 'is_sanctioned' => false, 'risk_level' => 'LOW', 'lists_screened' => ['OFAC_SDN', 'UN_CONSOLIDATED', 'BASE_ONCHAIN'], '_oracle_proof' => $oracleProofSample],
+            'output_example' => ['target' => '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90', 'sanctioned' => false, 'risk_level' => 'LOW', 'lists_checked' => ['US Treasury OFAC SDN', 'UN Security Council Consolidated', 'EU FSFi', 'UK OFSI'], '_oracle_proof' => $oracleProofSample],
         ],
         'dossier' => [
             'description' => 'Full 360-degree Brazil KYB corporate dossier (Receita Federal CNPJ, Simples Nacional/MEI, CGU CEIS/CNEP sanctions) with deterministic AI verdict (APPROVED, FLAGGED, REJECTED) and ECDSA proof.',
@@ -895,9 +895,9 @@ function grid402_bazaar_service_metadata(?string $serviceName): array {
             'output_example' => ['cnpj' => '00000000000191', 'compliance_score' => 100, 'status' => 'APPROVED', 'sanctions_count' => 0, '_oracle_proof' => $oracleProofSample],
         ],
         'extract' => [
-            'description' => 'SSRF-hardened web page URL to clean LLM-ready Markdown extractor for RAG and AI agents, returning title, metadata, clean Markdown body and absolute links.',
+            'description' => 'Transient SSRF-hardened web URL to clean LLM-ready Markdown extractor respecting robots.txt, X-Robots-Tag, Content-Signal, and paywall blocks.',
             'tags' => ['web-scraping', 'markdown', 'rag', 'llm', 'extractor', 'x402'],
-            'output_example' => ['url' => 'https://example.com', 'title' => 'Example Domain', 'markdown' => '# Example Domain...', 'char_count' => 1420, '_oracle_proof' => $oracleProofSample],
+            'output_example' => ['url' => 'https://example.com', 'title' => 'Example Domain', 'markdown' => '# Example Domain...', 'transient_only' => true, 'cached' => false, '_oracle_proof' => $oracleProofSample],
         ],
         'email-verify' => [
             'description' => 'Zero-PII B2B email deliverability and risk audit checking RFC syntax, authoritative DNS MX, SPF, DMARC, disposable domains and role-based addresses with 0-100 score.',
@@ -1006,11 +1006,26 @@ function grid402_bazaar_service_metadata(?string $serviceName): array {
 }
 
 /**
+ * Sanitiza e limita descricoes Bazaar a <= 500 caracteres tecnicos (CDP Bazaar policy).
+ */
+function grid402_sanitize_bazaar_description(string $description): string {
+    $clean = preg_replace('/[\r\n\t]+/', ' ', $description) ?? $description;
+    $clean = trim((string) (preg_replace('/\s{2,}/', ' ', $clean) ?? $clean));
+    if (strlen($clean) <= 500) {
+        return $clean;
+    }
+    return rtrim(substr($clean, 0, 497)) . '...';
+}
+
+/**
  * Constroi o objeto canônico `resource` para respostas 402 e payloads x402 v2 (Bazaar).
  */
 function grid402_build_resource_info(?string $serviceName = null, ?string $priceDisplay = null, ?string $fullUrl = null, ?string $customDescription = null): array {
     $priceDisplay = $priceDisplay ?? GRID402_PRICE_DISPLAY;
     $canonicalBase = defined('GRID402_CANONICAL_DOMAIN') ? rtrim(GRID402_CANONICAL_DOMAIN, '/') : 'https://grid402.online';
+    if (!str_starts_with(strtolower($canonicalBase), 'https://')) {
+        $canonicalBase = 'https://grid402.online';
+    }
 
     if ($fullUrl === null || $fullUrl === '') {
         $host = $_SERVER['HTTP_HOST'] ?? (defined('GRID402_CANONICAL_HOST') ? GRID402_CANONICAL_HOST : 'grid402.online');
@@ -1021,6 +1036,8 @@ function grid402_build_resource_info(?string $serviceName = null, ?string $price
         $fullUrl = ($resourceBase !== '') ? ($resourceBase . $reqUri) : ($proto . '://' . $host . $reqUri);
     } elseif (str_starts_with($fullUrl, '/')) {
         $fullUrl = $canonicalBase . $fullUrl;
+    } elseif (!preg_match('#^https?://#i', $fullUrl)) {
+        $fullUrl = $canonicalBase . '/' . ltrim($fullUrl, '/');
     }
 
     $meta = grid402_bazaar_service_metadata($serviceName);
@@ -1029,6 +1046,7 @@ function grid402_build_resource_info(?string $serviceName = null, ?string $price
         : ($meta['description'] ?? ($serviceName
             ? "Access to Grid402 '{$serviceName}' API ({$priceDisplay} USDC via HTTP x402)."
             : 'Verifiable public data query via HTTP x402 protocol.'));
+    $msg = grid402_sanitize_bazaar_description($msg);
 
     return [
         'url' => $fullUrl,

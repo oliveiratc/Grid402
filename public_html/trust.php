@@ -6,12 +6,17 @@
 
 declare(strict_types=1);
 
-define('GRID402_EXEC', true);
+if (!defined('GRID402_EXEC')) {
+    define('GRID402_EXEC', true);
+}
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/metrics.php';
+require_once __DIR__ . '/services/sanctions_index.php';
 
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, HEAD, OPTIONS');
+if (!headers_sent()) {
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, HEAD, OPTIONS');
+}
 
 $catalogServices = grid402_get_utility_services();
 $summaryRaw = @file_get_contents(GRID402_FILE_FREE);
@@ -41,6 +46,7 @@ $error5xx = (int)($statusCounts['500'] ?? 0) + (int)($statusCounts['502'] ?? 0) 
 $availabilityHttp = $total > 0 ? round((($total - $error5xx) / $total) * 100, 2) : 100.0;
 $error4xx = (int)($statusCounts['402'] ?? 0) + (int)($statusCounts['403'] ?? 0);
 $checkedAt = $summary['timestamp'] ?? gmdate('Y-m-d\TH:i:s\Z');
+$sanctionsSummary = function_exists('grid402_sanctions_index_summary') ? grid402_sanctions_index_summary() : ['available' => false, 'freshness_status' => 'MISSING'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -212,6 +218,15 @@ $checkedAt = $summary['timestamp'] ?? gmdate('Y-m-d\TH:i:s\Z');
         <li><strong>Non-Custodial M2M Key Management &amp; Spend Controls:</strong> Grid402 never stores or requests client private keys or seed phrases. Autonomous agents using <code>GRID402_PRIVATE_KEY</code> should use dedicated low-balance operational wallets or Session Passes (<code>pass_g402_...</code>) constrained by <code>daily_credit_limit</code> and <code>allowed_endpoints</code>; request logs (<code>requests.jsonl</code> + <code>X-Request-Id</code>) never record full payment tokens or raw IPs.</li>
         <li><strong>Credit Decision Disclaimer:</strong> Grid402 provides verifiable public technical data and does not grant credit, provide legal advice, or approve onboarding.</li>
     </ul>
+
+    <h2>7. Global Sanctions Index Integrity &amp; Transient Web Extraction Policy</h2>
+    <div class="card">
+        <ul>
+            <li><strong>4-Block Official Sanctions Index (<code>/api/v1/ofac</code> &amp; <code>/api/v1/kyb-audit</code>):</strong> US Treasury OFAC SDN (<code>sdn_advanced.xml</code>, 17 U.S.C. § 105), UN Security Council Consolidated, European Union FSFi, and UK HM Treasury OFSI (OGL v3.0).</li>
+            <li><strong>Live Index Telemetry:</strong> Status <code><?php echo htmlspecialchars((string) ($sanctionsSummary['freshness_status'] ?? 'MISSING')); ?></code> · Last Sync: <code><?php echo htmlspecialchars((string) ($sanctionsSummary['last_synced_at'] ?? 'not-synced')); ?></code> · Entities: <code><?php echo (int) ($sanctionsSummary['total_entities'] ?? 0); ?></code> · Crypto Addresses: <code><?php echo (int) ($sanctionsSummary['total_addresses'] ?? 0); ?></code><?php if (!empty($sanctionsSummary['dataset_sha256'])): ?> · SHA-256: <code><?php echo htmlspecialchars(substr((string) $sanctionsSummary['dataset_sha256'], 0, 16)); ?>...</code><?php endif; ?>. Paid calls operate strictly <em>fail-closed</em> (HTTP 503 before debit) if the official index is missing.</li>
+            <li><strong>Transient Web-to-Markdown Policy (<code>/api/v1/extract</code>):</strong> 100% transient execution (zero third-party text or Markdown cached on disk), enforcing SSRF protection, <code>robots.txt</code> (RFC 9309), <code>X-Robots-Tag</code>, <code>Content-Signal</code>, HTML anti-AI meta directives, and HTTP 401/403/paywall blocking.</li>
+        </ul>
+    </div>
 </div>
 <script src="/assets/js/i18n.js?v=3.4.0"></script>
 </body>

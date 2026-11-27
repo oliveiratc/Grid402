@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Script de Empacotamento para Deploy na Hostinger (Grid402)
 #>
@@ -47,6 +47,7 @@ if (Test-Path "$publicHtml\private_data\.htaccess") {
 }
 
 Remove-Item -Path "$tempStage\private_data\*.json", "$tempStage\private_data\*.jsonl", "$tempStage\private_data\*.lock" -Force -ErrorAction SilentlyContinue
+Get-ChildItem -Path "$tempStage\private_data" -Directory -Filter "sanctions_index*" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
 # Segredos de env nao devem ir no pacote de deploy (sao configurados no .env da raiz do host)
 Remove-Item -Path "$tempStage\private_data\.env" -Force -ErrorAction SilentlyContinue
 

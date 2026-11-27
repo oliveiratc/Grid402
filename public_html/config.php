@@ -706,6 +706,25 @@ define('GRID402_FACILITATOR_URL', rtrim($grid402FacilitatorUrlEnv, '/'));
 define('GRID402_FACILITATOR_VERIFY_PATH', $grid402FacilitatorVerifyPath);
 define('GRID402_FACILITATOR_SETTLE_PATH', $grid402FacilitatorSettlePath);
 
+// Roteamento Dual-Facilitator (Coinbase CDP na Base quando configurado + PayAI fallback / demais redes)
+$grid402FacilitatorRouting = strtolower(trim((string) grid402_env('GRID402_FACILITATOR_ROUTING', 'auto')));
+if (!in_array($grid402FacilitatorRouting, ['auto', 'single'], true)) {
+    $grid402FacilitatorRouting = 'auto';
+}
+define('GRID402_FACILITATOR_ROUTING', $grid402FacilitatorRouting);
+unset($grid402FacilitatorRouting);
+define('GRID402_CDP_FACILITATOR_URL', rtrim((string) grid402_env('GRID402_CDP_FACILITATOR_URL', 'https://api.cdp.coinbase.com/platform'), '/'));
+define('GRID402_CDP_VERIFY_PATH', '/' . ltrim((string) grid402_env('GRID402_CDP_VERIFY_PATH', '/v2/x402/verify'), '/'));
+define('GRID402_CDP_SETTLE_PATH', '/' . ltrim((string) grid402_env('GRID402_CDP_SETTLE_PATH', '/v2/x402/settle'), '/'));
+define('GRID402_PAYAI_FACILITATOR_URL', rtrim((string) grid402_env('GRID402_PAYAI_FACILITATOR_URL', 'https://facilitator.payai.network'), '/'));
+define('GRID402_PAYAI_VERIFY_PATH', '/' . ltrim((string) grid402_env('GRID402_PAYAI_VERIFY_PATH', '/verify'), '/'));
+define('GRID402_PAYAI_SETTLE_PATH', '/' . ltrim((string) grid402_env('GRID402_PAYAI_SETTLE_PATH', '/settle'), '/'));
+
+// Indice oficial particionado de sancoes (Zero-DB JSON) e prontidao Solana
+define('GRID402_SANCTIONS_INDEX_DIR', rtrim((string) grid402_env('GRID402_SANCTIONS_INDEX_DIR', GRID402_PRIVATE_DIR . '/sanctions_index'), '/\\'));
+define('GRID402_SANCTIONS_STALE_HOURS', max(1, (int) grid402_env('GRID402_SANCTIONS_STALE_HOURS', 72)));
+define('GRID402_SOLANA_RPC_URL', trim((string) grid402_env('GRID402_SOLANA_RPC_URL', '')));
+
 // 5. Catálogo Oficial dos 25 Micro-Serviços Core de Dados Públicos e Rede
 function grid402_get_utility_services(): array {
     return [
@@ -909,14 +928,14 @@ function grid402_get_utility_services(): array {
         ],
         'ofac' => [
             'id' => 'ofac',
-            'name' => 'Global Sanctions (OFAC/UN) and Web3 AML',
-            'description' => 'US Treasury OFAC SDN and UN Consolidated screening + live Base Mainnet EVM wallet AML inspection',
+            'name' => 'Global Sanctions (OFAC/UN/EU/UK) and Web3 AML',
+            'description' => 'Multi-asset crypto and entity screening across US OFAC SDN, UN, EU FSFi, and UK OFSI + Base RPC AML inspection',
             'endpoint' => '/api/v1/ofac',
             'category' => 'Global Compliance',
             'type' => 'on_demand',
             'price_usdc' => '0.0200',
-            'upstream_source' => 'US Treasury OFAC SDN + UN Consolidated Sanctions + Base Mainnet RPC',
-            'cache_ttl_sec' => 21600,
+            'upstream_source' => 'US Treasury OFAC SDN + UN Consolidated + EU FSFi + UK OFSI + Base Mainnet RPC',
+            'cache_ttl_sec' => 86400,
         ],
         'notarize' => [
             'id' => 'notarize',
@@ -943,13 +962,13 @@ function grid402_get_utility_services(): array {
         'extract' => [
             'id' => 'extract',
             'name' => 'Web Page to Clean Markdown Extractor',
-            'description' => 'Fetches public HTTP/HTTPS pages with SSRF protection and extracts clean LLM-ready Markdown, metadata, word count, and links',
+            'description' => 'Transient SSRF-hardened page-to-Markdown extractor respecting robots.txt, X-Robots-Tag, Content-Signal, and paywalls',
             'endpoint' => '/api/v1/extract',
             'category' => 'AI Utilities',
             'type' => 'on_demand',
             'price_usdc' => '0.0050',
-            'upstream_source' => 'Grid402 SSRF-Hardened HTTP Fetcher + Deterministic HTML-to-Markdown Engine',
-            'cache_ttl_sec' => 600,
+            'upstream_source' => 'Grid402 Transient SSRF-Hardened Fetcher (robots.txt + Anti-AI Directives)',
+            'cache_ttl_sec' => 0,
         ],
         'email-verify' => [
             'id' => 'email-verify',

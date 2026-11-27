@@ -3,7 +3,7 @@ Options -Indexes
 ServerSignature Off
 
 # Proteção de arquivos sensíveis e módulos internos PHP
-<FilesMatch "^\.(env|git)|(config|x402|facilitator|metrics|logger)\.php$|\.(json|log|sh|sql|bak|tmp)$">
+<FilesMatch "^\.(env|git)|^(config|x402|facilitator|metrics|logger)\.php$|\.(json|log|sh|sql|bak|tmp)$">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>
@@ -113,7 +113,7 @@ ServerSignature Off
     RewriteRule ^workdays/?$ index.php?api=workdays [QSA,L]
 
     # Manifestos well-known e Hosted MCP (streamable HTTP) publico e anonimo — /mcp
-    RewriteRule ^\.well-known/x402/?$ .well-known/x402.json [L]
+    RewriteRule ^\.well-known/x402(?:\.json)?/?$ well_known_x402.php [L]
     RewriteRule ^mcp/\.well-known/glama\.json$ .well-known/glama.json [L]
     RewriteRule ^mcp/?$ mcp.php [QSA,L]
 

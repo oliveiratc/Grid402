@@ -1,7 +1,7 @@
 <?php
 /**
  * Grid402 - Micro-serviço Composto de Auditoria KYB & Compliance
- * Consolida CNPJ + Sanções/OFAC + LEI em uma única chamada paga via x402.
+ * Consolida CNPJ + Sanções Globais (OFAC/ONU/UE/UK) + LEI em uma única chamada paga via x402.
  */
 
 declare(strict_types=1);
@@ -14,14 +14,14 @@ require_once __DIR__ . '/cnpj.php';
 require_once __DIR__ . '/ofac.php';
 require_once __DIR__ . '/lei.php';
 
-function grid402_service_kyb_audit(string $cnpj = '', string $entityName = '', string $leiCode = '', string $evmAddress = ''): array {
+function grid402_service_kyb_audit(string $cnpj = '', string $entityName = '', string $leiCode = '', string $cryptoAddress = '', bool $isSandbox = false): array {
     $cleanCnpj = preg_replace('/\D+/', '', $cnpj);
     $cleanName = trim($entityName);
     $cleanLei = strtoupper(trim($leiCode));
-    $cleanAddress = strtolower(trim($evmAddress));
+    $cleanAddress = trim($cryptoAddress);
 
-    if ($cleanName !== '' && preg_match('/^0x[a-f0-9]{40}$/i', $cleanName) && $cleanAddress === '') {
-        $cleanAddress = strtolower($cleanName);
+    if ($cleanName !== '' && $cleanAddress === '' && grid402_ofac_detect_address_type($cleanName) !== null) {
+        $cleanAddress = $cleanName;
         $cleanName = '';
     }
 
@@ -35,8 +35,20 @@ function grid402_service_kyb_audit(string $cnpj = '', string $entityName = '', s
     }
 
     $ofacData = ($cleanAddress !== '' || $cleanName !== '')
-        ? grid402_service_ofac($cleanAddress, $cleanName)
+        ? grid402_service_ofac($cleanAddress, $cleanName, $isSandbox)
         : null;
+
+    // Propagacao fail-closed obrigatoria: nunca mascarar indisponibilidade do indice oficial como CLEAR
+    if (is_array($ofacData) && !empty($ofacData['error']) && ((int) ($ofacData['code'] ?? 0) === 503)) {
+        return [
+            'error' => true,
+            'code' => 503,
+            'error_code' => (string) ($ofacData['error_code'] ?? 'SanctionsIndexUnavailable'),
+            'service' => 'kyb-audit',
+            'message' => (string) ($ofacData['message'] ?? 'Official sanctions index unavailable for KYB audit.'),
+        ];
+    }
+
     $leiData = $cleanLei !== '' ? grid402_service_lei($cleanLei) : null;
 
     return [

@@ -17,7 +17,10 @@ require_once __DIR__ . '/../config.php';
 const GRID402_EXTRACT_MAX_BYTES = 1048576; // 1 MB
 const GRID402_EXTRACT_TIMEOUT_SEC = 5;
 const GRID402_EXTRACT_MAX_REDIRECTS = 3;
-const GRID402_EXTRACT_CACHE_TTL = 600;
+const GRID402_EXTRACT_ROBOTS_TIMEOUT_SEC = 2;
+const GRID402_EXTRACT_ROBOTS_MAX_BYTES = 262144; // 256 KB
+const GRID402_EXTRACT_ROBOTS_CACHE_TTL = 3600; // Apenas diretivas robots.txt (zero conteudo de paginas)
+const GRID402_EXTRACT_BOT_NAME = 'Grid402-Extract-Bot';
 
 /**
  * Verifica se um endereço IPv4 ou IPv6 é estritamente público (não privado, reservado, loopback ou metadata).
@@ -413,6 +416,8 @@ function grid402_extract_fetch_url(string $url, ?callable $dnsResolver = null): 
         $overflow = false;
         $location = '';
         $contentType = '';
+        $xRobotsTags = [];
+        $contentSignals = [];
 
         $ch = curl_init($currentUrl);
         curl_setopt_array($ch, [
@@ -426,12 +431,22 @@ function grid402_extract_fetch_url(string $url, ?callable $dnsResolver = null): 
             CURLOPT_SSL_VERIFYHOST => 2,
             CURLOPT_ENCODING => '',
             CURLOPT_RESOLVE => [$resolveEntry],
-            CURLOPT_HEADERFUNCTION => static function ($curl, string $headerLine) use (&$location, &$contentType): int {
+            CURLOPT_HEADERFUNCTION => static function ($curl, string $headerLine) use (&$location, &$contentType, &$xRobotsTags, &$contentSignals): int {
                 $len = strlen($headerLine);
                 if (stripos($headerLine, 'location:') === 0) {
                     $location = trim(substr($headerLine, 9));
                 } elseif (stripos($headerLine, 'content-type:') === 0) {
                     $contentType = trim(substr($headerLine, 13));
+                } elseif (stripos($headerLine, 'x-robots-tag:') === 0) {
+                    $val = trim(substr($headerLine, 13));
+                    if ($val !== '') {
+                        $xRobotsTags[] = $val;
+                    }
+                } elseif (stripos($headerLine, 'content-signal:') === 0) {
+                    $val = trim(substr($headerLine, 15));
+                    if ($val !== '') {
+                        $contentSignals[] = $val;
+                    }
                 }
                 return $len;
             },
@@ -483,6 +498,8 @@ function grid402_extract_fetch_url(string $url, ?callable $dnsResolver = null): 
             'final_url' => $currentUrl,
             'http_status' => $httpCode,
             'content_type' => $contentType,
+            'x_robots_tag' => $xRobotsTags,
+            'content_signal' => $contentSignals,
             'body' => $body,
             'bytes_downloaded' => strlen($body),
             'size_capped' => $overflow,
@@ -498,6 +515,337 @@ function grid402_extract_fetch_url(string $url, ?callable $dnsResolver = null): 
 }
 
 /**
+ * Faz parse de um robots.txt seguindo precedencia RFC 9309 para grupos User-agent.
+ *
+ * @return array<string, array<int, array{type: string, pattern: string}>>
+ */
+function grid402_extract_parse_robots_txt(string $content): array {
+    $groups = [];
+    $currentAgents = [];
+    $sawRuleInGroup = false;
+
+    $lines = preg_split('/\r\n|\r|\n/', $content) ?: [];
+    foreach ($lines as $line) {
+        $commentPos = strpos($line, '#');
+        if ($commentPos !== false) {
+            $line = substr($line, 0, $commentPos);
+        }
+        $line = trim($line);
+        if ($line === '' || !str_contains($line, ':')) {
+            continue;
+        }
+        [$field, $value] = explode(':', $line, 2);
+        $fieldLower = strtolower(trim($field));
+        $valTrim = trim($value);
+
+        if ($fieldLower === 'user-agent') {
+            $ua = strtolower($valTrim);
+            if ($sawRuleInGroup || empty($currentAgents)) {
+                $currentAgents = [$ua];
+                $sawRuleInGroup = false;
+            } else {
+                $currentAgents[] = $ua;
+            }
+            if (!isset($groups[$ua])) {
+                $groups[$ua] = [];
+            }
+        } elseif ($fieldLower === 'allow' || $fieldLower === 'disallow') {
+            if (empty($currentAgents)) {
+                continue;
+            }
+            $sawRuleInGroup = true;
+            if ($fieldLower === 'disallow' && $valTrim === '') {
+                continue;
+            }
+            foreach ($currentAgents as $ua) {
+                $groups[$ua][] = ['type' => $fieldLower, 'pattern' => $valTrim];
+            }
+        }
+    }
+
+    return $groups;
+}
+
+function grid402_extract_robots_pattern_matches(string $pattern, string $targetPath): bool {
+    if ($pattern === '') {
+        return false;
+    }
+    $endAnchored = str_ends_with($pattern, '$');
+    $core = $endAnchored ? substr($pattern, 0, -1) : $pattern;
+    $parts = explode('*', $core);
+    $escaped = array_map(static fn(string $p): string => preg_quote($p, '#'), $parts);
+    $regex = '#^' . implode('.*', $escaped) . ($endAnchored ? '$' : '') . '#';
+    return preg_match($regex, $targetPath) === 1;
+}
+
+/**
+ * Avalia regras parsed de robots.txt para um path (RFC 9309: grupo especifico > *, longest match, Allow > Disallow em empate).
+ */
+function grid402_extract_robots_is_allowed(array $parsedGroups, string $targetPath, string $botName = GRID402_EXTRACT_BOT_NAME): bool {
+    $botLower = strtolower($botName);
+    $rules = null;
+    if (isset($parsedGroups[$botLower])) {
+        $rules = $parsedGroups[$botLower];
+    } elseif (isset($parsedGroups['*'])) {
+        $rules = $parsedGroups['*'];
+    }
+    if (empty($rules)) {
+        return true;
+    }
+
+    $bestLen = -1;
+    $bestType = 'allow';
+    foreach ($rules as $rule) {
+        $pat = (string) ($rule['pattern'] ?? '');
+        $type = (string) ($rule['type'] ?? 'allow');
+        if (!grid402_extract_robots_pattern_matches($pat, $targetPath)) {
+            continue;
+        }
+        $len = strlen($pat);
+        if ($len > $bestLen || ($len === $bestLen && $type === 'allow')) {
+            $bestLen = $len;
+            $bestType = $type;
+        }
+    }
+
+    return $bestType !== 'disallow';
+}
+
+/**
+ * Busca e valida /robots.txt da origem sob guarda anti-SSRF (cache leve exclusivo de diretivas por host).
+ *
+ * @return array<string, mixed>
+ */
+function grid402_extract_check_robots(
+    string $scheme,
+    string $host,
+    int $port,
+    string $requestPath,
+    ?callable $dnsResolver = null,
+    ?callable $robotsFetcher = null
+): array {
+    $defaultPort = ($scheme === 'https') ? 443 : 80;
+    $portSuffix = ($port !== $defaultPort) ? (':' . $port) : '';
+    $robotsUrl = "{$scheme}://{$host}{$portSuffix}/robots.txt";
+
+    $urlCheck = grid402_extract_validate_public_url($robotsUrl, $dnsResolver);
+    if (empty($urlCheck['ok'])) {
+        return [
+            'allowed' => false,
+            'code' => (int) ($urlCheck['code'] ?? 400),
+            'error' => (string) ($urlCheck['error'] ?? 'BlockedTargetAddress'),
+            'message' => (string) ($urlCheck['message'] ?? 'Origem invalida para consulta de robots.txt.'),
+        ];
+    }
+
+    $cacheKey = hash('sha256', strtolower("{$scheme}://{$host}:{$port}"));
+    $cacheFile = GRID402_PRIVATE_DIR . '/robots_cache_' . substr($cacheKey, 0, 20) . '.json';
+    $cachedEntry = null;
+
+    if ($robotsFetcher === null && is_file($cacheFile) && is_readable($cacheFile)) {
+        $rawCache = @file_get_contents($cacheFile);
+        $decodedCache = is_string($rawCache) ? @json_decode($rawCache, true) : null;
+        if (is_array($decodedCache) && isset($decodedCache['cached_at']) && (time() - (int) $decodedCache['cached_at']) < GRID402_EXTRACT_ROBOTS_CACHE_TTL) {
+            $cachedEntry = $decodedCache;
+        }
+    }
+
+    if ($cachedEntry !== null) {
+        $robotsStatus = (int) ($cachedEntry['http_status'] ?? 200);
+        $groups = is_array($cachedEntry['groups'] ?? null) ? $cachedEntry['groups'] : [];
+    } else {
+        if ($robotsFetcher !== null) {
+            $fetchedRobots = $robotsFetcher($robotsUrl);
+            $robotsStatus = (int) ($fetchedRobots['http_status'] ?? 200);
+            $robotsBody = (string) ($fetchedRobots['body'] ?? '');
+            $fetchOk = !isset($fetchedRobots['ok']) || !empty($fetchedRobots['ok']);
+        } else {
+            $ip = (string) $urlCheck['ip'];
+            $resolveEntry = (str_contains($ip, ':')) ? "{$host}:{$port}:[{$ip}]" : "{$host}:{$port}:{$ip}";
+            $robotsBody = '';
+            $robotsOverflow = false;
+            $ch = curl_init($robotsUrl);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => false,
+                CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_CONNECTTIMEOUT => 1,
+                CURLOPT_TIMEOUT => GRID402_EXTRACT_ROBOTS_TIMEOUT_SEC,
+                CURLOPT_USERAGENT => 'Grid402-Extract-Bot/1.0 (+https://grid402.online/api/v1/extract)',
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_SSL_VERIFYHOST => 2,
+                CURLOPT_ENCODING => '',
+                CURLOPT_RESOLVE => [$resolveEntry],
+                CURLOPT_WRITEFUNCTION => static function ($curl, string $chunk) use (&$robotsBody, &$robotsOverflow): int {
+                    $len = strlen($chunk);
+                    if (strlen($robotsBody) + $len > GRID402_EXTRACT_ROBOTS_MAX_BYTES) {
+                        $robotsOverflow = true;
+                        return 0;
+                    }
+                    $robotsBody .= $chunk;
+                    return $len;
+                },
+            ]);
+            curl_exec($ch);
+            $robotsStatus = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            $fetchOk = ($robotsStatus > 0) || $robotsOverflow;
+        }
+
+        if (!$fetchOk || $robotsStatus === 429 || $robotsStatus >= 500) {
+            return [
+                'allowed' => false,
+                'code' => 503,
+                'error' => 'RobotsUnavailable',
+                'message' => 'Nao foi possivel verificar robots.txt do host de destino com seguranca (HTTP ' . $robotsStatus . ').',
+            ];
+        }
+
+        $groups = ($robotsStatus === 200 && trim($robotsBody) !== '')
+            ? grid402_extract_parse_robots_txt($robotsBody)
+            : [];
+
+        if ($robotsFetcher === null && function_exists('grid402_atomic_write')) {
+            grid402_atomic_write($cacheFile, [
+                'cached_at' => time(),
+                'http_status' => $robotsStatus,
+                'groups' => $groups,
+            ]);
+        }
+    }
+
+    if (in_array($robotsStatus, [404, 410], true)) {
+        return ['allowed' => true, 'robots_status' => $robotsStatus];
+    }
+    if (in_array($robotsStatus, [401, 403], true)) {
+        return [
+            'allowed' => false,
+            'code' => 403,
+            'error' => 'RobotsDisallowed',
+            'message' => 'Acesso bloqueado pelas diretivas de robots.txt do host (HTTP ' . $robotsStatus . ').',
+        ];
+    }
+
+    if (!grid402_extract_robots_is_allowed($groups, $requestPath, GRID402_EXTRACT_BOT_NAME)) {
+        return [
+            'allowed' => false,
+            'code' => 403,
+            'error' => 'RobotsDisallowed',
+            'message' => 'Extracao bloqueada pelo arquivo robots.txt do host para o caminho solicitado.',
+        ];
+    }
+
+    return ['allowed' => true, 'robots_status' => $robotsStatus];
+}
+
+/**
+ * Inspeciona status HTTP, cabecalhos anti-AI e HTML por diretivas restritivas ou paywall.
+ *
+ * @return array{code: int, error: string, message: string}|null
+ */
+function grid402_extract_inspect_compliance(int $httpStatus, array $xRobotsTags, array $contentSignals, string $body): ?array {
+    if (in_array($httpStatus, [401, 402, 403, 407], true)) {
+        return [
+            'code' => 403,
+            'error' => 'OriginAccessDenied',
+            'message' => "A origem retornou HTTP {$httpStatus} (acesso restrito, autenticacao ou pagamento exigido).",
+        ];
+    }
+
+    $blockedDirectives = ['noai', 'noimageai', 'noindex', 'none'];
+    foreach ($xRobotsTags as $hdrVal) {
+        $lowerHdr = strtolower((string) $hdrVal);
+        // Suporta formato "botname: noai" ou "noai, nofollow"
+        $applies = true;
+        if (str_contains($lowerHdr, ':')) {
+            [$targetBot, $rulePart] = explode(':', $lowerHdr, 2);
+            $targetBot = trim($targetBot);
+            $applies = ($targetBot === '*' || $targetBot === 'all' || str_contains($targetBot, 'grid402'));
+            $checkStr = $rulePart;
+        } else {
+            $checkStr = $lowerHdr;
+        }
+        if ($applies) {
+            foreach ($blockedDirectives as $dir) {
+                if (preg_match('/\b' . $dir . '\b/', $checkStr) === 1) {
+                    return [
+                        'code' => 403,
+                        'error' => 'DirectiveDisallowed',
+                        'message' => "Extracao bloqueada pelo cabecalho X-Robots-Tag ({$dir}).",
+                    ];
+                }
+            }
+        }
+    }
+
+    foreach ($contentSignals as $sigVal) {
+        $lowerSig = strtolower((string) $sigVal);
+        if (preg_match('/\b(?:ai-input|ai-train)\s*=\s*no\b/', $lowerSig) === 1) {
+            return [
+                'code' => 403,
+                'error' => 'DirectiveDisallowed',
+                'message' => 'Extracao bloqueada pela diretiva HTTP Content-Signal (ai-input=no / ai-train=no).',
+            ];
+        }
+    }
+
+    if (trim($body) !== '' && class_exists('DOMDocument')) {
+        $prevErr = libxml_use_internal_errors(true);
+        $dom = new DOMDocument();
+        $cleanHtml = preg_match('//u', $body) === 1 ? $body : utf8_encode($body);
+        @$dom->loadHTML('<?xml encoding="utf-8" ?>' . $cleanHtml, LIBXML_NOERROR | LIBXML_NOWARNING | LIBXML_NONET);
+        libxml_clear_errors();
+        libxml_use_internal_errors($prevErr);
+
+        foreach ($dom->getElementsByTagName('meta') as $meta) {
+            if (!($meta instanceof DOMElement)) {
+                continue;
+            }
+            $name = strtolower(trim($meta->getAttribute('name')));
+            $prop = strtolower(trim($meta->getAttribute('property')));
+            $content = strtolower(trim($meta->getAttribute('content')));
+
+            if (in_array($name, ['robots', 'googlebot', 'bingbot', 'gptbot', 'ccbot', 'grid402-extract-bot'], true)) {
+                foreach ($blockedDirectives as $dir) {
+                    if (preg_match('/\b' . $dir . '\b/', $content) === 1) {
+                        return [
+                            'code' => 403,
+                            'error' => 'DirectiveDisallowed',
+                            'message' => "Extracao bloqueada pela meta tag {$name} ({$dir}).",
+                        ];
+                    }
+                }
+            }
+
+            if ($name === 'paywall' && in_array($content, ['true', '1', 'yes', 'locked', 'metered'], true)) {
+                return [
+                    'code' => 403,
+                    'error' => 'PaywallDetected',
+                    'message' => 'Conteudo protegido por paywall detectado na pagina de destino.',
+                ];
+            }
+            if (($prop === 'article:content_tier' || $name === 'article:content_tier') && in_array($content, ['locked', 'metered', 'subscriber'], true)) {
+                return [
+                    'code' => 403,
+                    'error' => 'PaywallDetected',
+                    'message' => 'Conteudo protegido por assinatura/paywall detectado (content_tier=' . $content . ').',
+                ];
+            }
+        }
+    }
+
+    // Sinais estruturais de paywall em JSON-LD Schema.org
+    if (preg_match('/"isAccessibleForFree"\s*:\s*(?:false|"false"|0)\b/i', $body) === 1) {
+        return [
+            'code' => 403,
+            'error' => 'PaywallDetected',
+            'message' => 'Conteudo marcado com isAccessibleForFree=false (paywall) na pagina de destino.',
+        ];
+    }
+
+    return null;
+}
+
+/**
  * Amostra gratuita (teaser) exibida no desafio HTTP 402.
  */
 function grid402_teaser_extract(string $url): array {
@@ -507,7 +855,8 @@ function grid402_teaser_extract(string $url): array {
         'preview' => [
             'target_url' => $clean,
             'host' => strtolower($host),
-            'output_format' => 'LLM-ready Clean Markdown + Metadata + Links',
+            'output_format' => 'Transient LLM-ready Clean Markdown + Metadata + Links',
+            'policy' => '100% transient (zero disk content cache) + robots.txt / X-Robots-Tag / Content-Signal / paywall guard',
             'ssrf_protection' => 'Strict DNS pre-resolution + 1 MB cap + max 3 redirects',
         ],
         'locked_fields' => ['title', 'description', 'markdown', 'word_count', 'links', '_oracle_proof'],
@@ -515,9 +864,15 @@ function grid402_teaser_extract(string $url): array {
 }
 
 /**
- * Servico principal: GET /api/v1/extract?url=...
+ * Servico principal: GET /api/v1/extract?url=... (100% transiente, sem gravacao de texto em disco).
  */
-function grid402_service_extract(string $url, int $maxChars = 12000, ?callable $httpFetcher = null, ?callable $dnsResolver = null): array {
+function grid402_service_extract(
+    string $url,
+    int $maxChars = 12000,
+    ?callable $httpFetcher = null,
+    ?callable $dnsResolver = null,
+    ?callable $robotsFetcher = null
+): array {
     $check = grid402_extract_validate_public_url($url, $dnsResolver);
     if (!$check['ok']) {
         return [
@@ -531,16 +886,34 @@ function grid402_service_extract(string $url, int $maxChars = 12000, ?callable $
     }
 
     $normalizedUrl = (string) $check['url'];
-    $cacheKey = hash('sha256', $normalizedUrl . '|' . $maxChars);
-    $cacheFile = GRID402_PRIVATE_DIR . '/extract_' . substr($cacheKey, 0, 20) . '.json';
+    $parsedUrl = @parse_url($normalizedUrl);
+    $reqPath = (string) ($parsedUrl['path'] ?? '/');
+    if ($reqPath === '') {
+        $reqPath = '/';
+    }
+    if (!empty($parsedUrl['query'])) {
+        $reqPath .= '?' . $parsedUrl['query'];
+    }
 
-    if ($httpFetcher === null && is_file($cacheFile)) {
-        $rawCache = @file_get_contents($cacheFile);
-        $cached = $rawCache ? @json_decode($rawCache, true) : null;
-        if (is_array($cached) && isset($cached['_cached_at']) && (time() - (int) $cached['_cached_at']) < GRID402_EXTRACT_CACHE_TTL) {
-            unset($cached['_cached_at']);
-            $cached['cached'] = true;
-            return $cached;
+    // Checagem obrigatoria de robots.txt (em testes legados com apenas $httpMock sem $robotsFetcher, mantem isolamento offline)
+    if ($robotsFetcher !== null || $httpFetcher === null) {
+        $robotsCheck = grid402_extract_check_robots(
+            (string) $check['scheme'],
+            (string) $check['host'],
+            (int) $check['port'],
+            $reqPath,
+            $dnsResolver,
+            $robotsFetcher
+        );
+        if (empty($robotsCheck['allowed'])) {
+            return [
+                'success' => false,
+                'status' => 'error',
+                'service' => 'extract',
+                'error' => (string) ($robotsCheck['error'] ?? 'RobotsDisallowed'),
+                'message' => (string) ($robotsCheck['message'] ?? 'Extracao bloqueada por robots.txt.'),
+                'code' => (int) ($robotsCheck['code'] ?? 403),
+            ];
         }
     }
 
@@ -560,8 +933,44 @@ function grid402_service_extract(string $url, int $maxChars = 12000, ?callable $
     }
 
     $finalUrl = (string) ($fetched['final_url'] ?? $normalizedUrl);
+    $httpStatus = (int) ($fetched['http_status'] ?? 200);
     $contentType = (string) ($fetched['content_type'] ?? 'text/html');
     $rawBody = (string) ($fetched['body'] ?? '');
+
+    // Normaliza headers vindos tanto do cURL real quanto de mocks em testes
+    $xRobotsTags = is_array($fetched['x_robots_tag'] ?? null)
+        ? $fetched['x_robots_tag']
+        : (is_string($fetched['x_robots_tag'] ?? null) ? [$fetched['x_robots_tag']] : []);
+    $contentSignals = is_array($fetched['content_signal'] ?? null)
+        ? $fetched['content_signal']
+        : (is_string($fetched['content_signal'] ?? null) ? [$fetched['content_signal']] : []);
+    if (is_array($fetched['headers'] ?? null)) {
+        foreach ($fetched['headers'] as $hk => $hv) {
+            $hkLower = strtolower((string) $hk);
+            $vals = is_array($hv) ? $hv : [$hv];
+            if ($hkLower === 'x-robots-tag') {
+                foreach ($vals as $v) {
+                    $xRobotsTags[] = (string) $v;
+                }
+            } elseif ($hkLower === 'content-signal') {
+                foreach ($vals as $v) {
+                    $contentSignals[] = (string) $v;
+                }
+            }
+        }
+    }
+
+    $complianceBlock = grid402_extract_inspect_compliance($httpStatus, $xRobotsTags, $contentSignals, $rawBody);
+    if ($complianceBlock !== null) {
+        return [
+            'success' => false,
+            'status' => 'error',
+            'service' => 'extract',
+            'error' => $complianceBlock['error'],
+            'message' => $complianceBlock['message'],
+            'code' => $complianceBlock['code'],
+        ];
+    }
 
     if (stripos($contentType, 'text/plain') !== false || stripos($contentType, 'application/json') !== false) {
         $trimmed = strlen($rawBody) > $maxChars ? (substr($rawBody, 0, $maxChars) . "\n\n...[truncated]") : $rawBody;
@@ -582,13 +991,13 @@ function grid402_service_extract(string $url, int $maxChars = 12000, ?callable $
         $parsed = grid402_extract_html_to_markdown($rawBody, $finalUrl, $maxChars);
     }
 
-    $response = [
+    return [
         'success' => true,
         'status' => 'success',
         'service' => 'extract',
         'url' => $normalizedUrl,
         'final_url' => $finalUrl,
-        'http_status' => (int) ($fetched['http_status'] ?? 200),
+        'http_status' => $httpStatus,
         'content_type' => $contentType,
         'bytes_downloaded' => (int) ($fetched['bytes_downloaded'] ?? strlen($rawBody)),
         'title' => $parsed['title'],
@@ -604,13 +1013,7 @@ function grid402_service_extract(string $url, int $maxChars = 12000, ?callable $
         'tariff_usdc' => GRID402_PRICE_DISPLAY,
         'timestamp' => gmdate('Y-m-d\TH:i:s\Z'),
         'cached' => false,
+        'transient_only' => true,
+        'legal_disclaimer' => 'Transient technical transformation of publicly accessible web content respecting robots.txt and crawl directives. Grid402 stores zero third-party page content on disk and grants no copyright license.',
     ];
-
-    if ($httpFetcher === null && function_exists('grid402_atomic_write')) {
-        $toStore = $response;
-        $toStore['_cached_at'] = time();
-        grid402_atomic_write($cacheFile, $toStore);
-    }
-
-    return $response;
 }

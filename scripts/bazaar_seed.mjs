@@ -18,6 +18,7 @@
  */
 
 import { ethers } from 'ethers';
+import readline from 'node:readline/promises';
 
 const BASE_URL = (process.env.GRID402_BASE_URL || 'https://grid402.online').replace(/\/+$/, '');
 const PAY_TO = '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90';
@@ -213,9 +214,25 @@ async function main() {
     return;
   }
 
-  const pk = (process.env.GRID402_BUYER_PRIVATE_KEY || '').trim();
+  let pk = (process.env.GRID402_BUYER_PRIVATE_KEY || '').trim();
+  if (!pk || (!pk.startsWith('0x') && pk.length !== 64) || (pk.startsWith('0x') && pk.length !== 66)) {
+    if (process.stdin.isTTY) {
+      const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+      try {
+        const answer = await rl.question('\nCole a chave privada da carteira compradora (0x...): ');
+        pk = answer.trim();
+      } finally {
+        rl.close();
+      }
+    }
+  }
+
+  if (!pk.startsWith('0x') && pk.length === 64) {
+    pk = '0x' + pk;
+  }
+
   if (!pk.startsWith('0x') || pk.length !== 66) {
-    console.error('\nERRO: defina GRID402_BUYER_PRIVATE_KEY (0x + 64 hex) para executar com --execute.');
+    console.error('\nERRO: chave privada invalida (deve conter 64 caracteres hexadecimais).');
     process.exit(1);
   }
 

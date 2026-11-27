@@ -895,18 +895,126 @@ function grid402_facilitator_log_error(string $endpoint, int $httpStatus, string
 }
 
 /**
- * Decide como o facilitador sera autenticado:
- * 'override' (transporte de teste), 'cdp' (credenciais CDP) ou
- * 'public' (facilitador publico sem auth, ex.: x402.org testnet / PayAI / Mogami).
+ * Verifica se ha credenciais Coinbase CDP configuradas (ou override de testes).
  */
-function grid402_facilitator_auth_mode(): string {
+function grid402_cdp_credentials_configured(): bool {
+    $override = $GLOBALS['grid402_cdp_credentials_override'] ?? null;
+    if (is_array($override)) {
+        return trim((string) ($override['key_id'] ?? '')) !== ''
+            && trim((string) ($override['key_secret'] ?? '')) !== '';
+    }
+    return GRID402_CDP_API_KEY_ID !== '' && GRID402_CDP_API_KEY_SECRET !== '';
+}
+
+/**
+ * Decide como um perfil de facilitador sera autenticado:
+ * 'override' (transporte de teste), 'cdp' (credenciais CDP) ou 'public' (PayAI / x402.org).
+ */
+function grid402_facilitator_auth_mode(?array $profile = null): string {
     if (is_callable($GLOBALS['grid402_facilitator_transport'] ?? null)) {
         return 'override';
     }
-    if (GRID402_CDP_API_KEY_ID !== '' && GRID402_CDP_API_KEY_SECRET !== '') {
+    if (is_array($profile) && !empty($profile['auth_mode'])) {
+        return (string) $profile['auth_mode'];
+    }
+    if (grid402_cdp_credentials_configured()) {
         return 'cdp';
     }
     return 'public';
+}
+
+/**
+ * Resolve a lista ordenada de facilitadores elegiveis para uma rede CAIP-2.
+ * Em producao com routing=auto:
+ * - Base Mainnet (eip155:8453): CDP primario (quando configurado) com fallback PayAI apenas pre-settle.
+ * - Polygon, Arbitrum e Solana: PayAI diretamente.
+ *
+ * @return array<int, array<string, string>>
+ */
+function grid402_resolve_facilitator_candidates(string $networkV2): array {
+    $routingOverride = $GLOBALS['grid402_facilitator_routing_override'] ?? null;
+    $routing = is_string($routingOverride) && in_array($routingOverride, ['auto', 'single'], true)
+        ? $routingOverride
+        : (defined('GRID402_FACILITATOR_ROUTING') ? (string) GRID402_FACILITATOR_ROUTING : 'auto');
+
+    $cdpUrl = defined('GRID402_CDP_FACILITATOR_URL') ? (string) GRID402_CDP_FACILITATOR_URL : 'https://api.cdp.coinbase.com/platform';
+    $cdpVerify = defined('GRID402_CDP_VERIFY_PATH') ? (string) GRID402_CDP_VERIFY_PATH : '/v2/x402/verify';
+    $cdpSettle = defined('GRID402_CDP_SETTLE_PATH') ? (string) GRID402_CDP_SETTLE_PATH : '/v2/x402/settle';
+
+    $payaiUrl = defined('GRID402_PAYAI_FACILITATOR_URL') ? (string) GRID402_PAYAI_FACILITATOR_URL : 'https://facilitator.payai.network';
+    $payaiVerify = defined('GRID402_PAYAI_VERIFY_PATH') ? (string) GRID402_PAYAI_VERIFY_PATH : '/verify';
+    $payaiSettle = defined('GRID402_PAYAI_SETTLE_PATH') ? (string) GRID402_PAYAI_SETTLE_PATH : '/settle';
+
+    $configuredUrl = rtrim((string) GRID402_FACILITATOR_URL, '/');
+    $isCustomUrl = !in_array($configuredUrl, [
+        rtrim($payaiUrl, '/'),
+        rtrim($cdpUrl, '/'),
+        'https://facilitator.payai.network',
+        'https://api.cdp.coinbase.com/platform',
+    ], true);
+
+    if (GRID402_X402_NETWORK === 'base-sepolia' || $routing === 'single' || $isCustomUrl) {
+        $singleName = str_contains($configuredUrl, 'api.cdp.coinbase.com') ? 'cdp' : (str_contains($configuredUrl, 'payai.network') ? 'payai' : 'custom');
+        return [[
+            'name' => $singleName,
+            'base_url' => $configuredUrl,
+            'verify_path' => (string) GRID402_FACILITATOR_VERIFY_PATH,
+            'settle_path' => (string) GRID402_FACILITATOR_SETTLE_PATH,
+            'auth_mode' => ($singleName === 'cdp' && grid402_cdp_credentials_configured()) ? 'cdp' : 'public',
+        ]];
+    }
+
+    $cdpProfile = [
+        'name' => 'cdp',
+        'base_url' => $cdpUrl,
+        'verify_path' => $cdpVerify,
+        'settle_path' => $cdpSettle,
+        'auth_mode' => 'cdp',
+    ];
+    $hasCdp = grid402_cdp_credentials_configured();
+    $explicitPayaiVerify = function_exists('grid402_env') ? (string) grid402_env('GRID402_PAYAI_VERIFY_PATH', '') : '';
+    $explicitPayaiSettle = function_exists('grid402_env') ? (string) grid402_env('GRID402_PAYAI_SETTLE_PATH', '') : '';
+    $payaiProfile = [
+        'name' => 'payai',
+        'base_url' => $payaiUrl,
+        'verify_path' => (!$hasCdp && $explicitPayaiVerify === '') ? (string) GRID402_FACILITATOR_VERIFY_PATH : $payaiVerify,
+        'settle_path' => (!$hasCdp && $explicitPayaiSettle === '') ? (string) GRID402_FACILITATOR_SETTLE_PATH : $payaiSettle,
+        'auth_mode' => 'public',
+    ];
+
+    $net = strtolower(trim($networkV2));
+    if ($net === 'eip155:8453' && $hasCdp) {
+        return [$cdpProfile, $payaiProfile];
+    }
+
+    return [$payaiProfile];
+}
+
+/**
+ * Mapa publico seguro dos facilitadores ativos por rede (sem segredos).
+ *
+ * @return array<string, array<string, mixed>>
+ */
+function grid402_facilitator_active_map(): array {
+    $networks = ['eip155:8453', 'eip155:137', 'eip155:42161'];
+    if (grid402_is_solana_x402_enabled()) {
+        $networks[] = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
+    }
+    if (GRID402_X402_NETWORK === 'base-sepolia') {
+        $networks = ['eip155:84532'];
+    }
+    $map = [];
+    foreach ($networks as $net) {
+        $cands = grid402_resolve_facilitator_candidates($net);
+        $primary = $cands[0];
+        $map[$net] = [
+            'primary' => $primary['name'],
+            'url' => $primary['base_url'],
+            'fallback' => isset($cands[1]) ? $cands[1]['name'] : null,
+            'fallback_url' => isset($cands[1]) ? $cands[1]['base_url'] : null,
+        ];
+    }
+    return $map;
 }
 
 /**
@@ -914,20 +1022,24 @@ function grid402_facilitator_auth_mode(): string {
  * ['ok' => bool, 'unavailable' => bool, 'http_status' => int, 'data' => array, 'error' => string, 'infra_error' => string]
  * `unavailable` = timeout, falha de rede, HTTP 5xx, HTTP 401/403/408/429 ou erro de infra/quota do PayAI (ex.: free_tier_exhausted).
  */
-function grid402_facilitator_call(string $endpoint, array $body, int $timeout): array {
-    $baseUrl = GRID402_FACILITATOR_URL;
-    $url = $baseUrl . $endpoint;
+function grid402_facilitator_call(string $endpoint, array $body, int $timeout, ?array $profile = null): array {
+    $baseUrl = is_array($profile) && !empty($profile['base_url']) ? rtrim((string) $profile['base_url'], '/') : GRID402_FACILITATOR_URL;
+    $epPath = '/' . ltrim($endpoint, '/');
+    $url = $baseUrl . $epPath;
     $parts = parse_url($url);
     $host = (string) ($parts['host'] ?? '');
     $path = (string) ($parts['path'] ?? '');
 
     $headers = ['Content-Type: application/json', 'Accept: application/json'];
-    $authMode = grid402_facilitator_auth_mode();
+    $authMode = grid402_facilitator_auth_mode($profile);
 
     if ($authMode === 'cdp') {
-        $jwt = grid402_cdp_build_jwt(GRID402_CDP_API_KEY_ID, GRID402_CDP_API_KEY_SECRET, 'POST', $host, $path);
+        $credOverride = $GLOBALS['grid402_cdp_credentials_override'] ?? null;
+        $keyId = is_array($credOverride) ? (string) ($credOverride['key_id'] ?? '') : GRID402_CDP_API_KEY_ID;
+        $keySecret = is_array($credOverride) ? (string) ($credOverride['key_secret'] ?? '') : GRID402_CDP_API_KEY_SECRET;
+        $jwt = grid402_cdp_build_jwt($keyId, $keySecret, 'POST', $host, $path);
         if (!$jwt['ok']) {
-            grid402_facilitator_log_error($endpoint, 0, 'cdp_jwt_error', (string) $jwt['error']);
+            grid402_facilitator_log_error($epPath, 0, 'cdp_jwt_error', (string) $jwt['error']);
             return ['ok' => false, 'unavailable' => true, 'http_status' => 0, 'data' => [], 'error' => $jwt['error'], 'infra_error' => 'cdp_jwt_error'];
         }
         $headers[] = 'Authorization: Bearer ' . $jwt['token'];
@@ -1312,9 +1424,37 @@ function grid402_verify_exact_payment(string $rawProof, int $requiredRawUnits, ?
         'retry_after' => 30,
     ];
 
-    // 1) Verificacao
-    $verify = grid402_facilitator_call(GRID402_FACILITATOR_VERIFY_PATH, $requestBody, GRID402_FACILITATOR_VERIFY_TIMEOUT);
-    if ($verify['unavailable']) {
+    // 1) Verificacao com suporte Dual-Facilitator e fallback seguro pre-settle
+    $candidates = grid402_resolve_facilitator_candidates($netSpec['v2']);
+    $verify = null;
+    $chosenProfile = $candidates[0] ?? [
+        'name' => 'default',
+        'base_url' => GRID402_FACILITATOR_URL,
+        'verify_path' => GRID402_FACILITATOR_VERIFY_PATH,
+        'settle_path' => GRID402_FACILITATOR_SETTLE_PATH,
+        'auth_mode' => grid402_facilitator_auth_mode(),
+    ];
+
+    foreach ($candidates as $idx => $candidateProfile) {
+        $verifyPath = (string) ($candidateProfile['verify_path'] ?? GRID402_FACILITATOR_VERIFY_PATH);
+        $attempt = grid402_facilitator_call($verifyPath, $requestBody, GRID402_FACILITATOR_VERIFY_TIMEOUT, $candidateProfile);
+        $verify = $attempt;
+        $chosenProfile = $candidateProfile;
+
+        if (!empty($attempt['unavailable'])) {
+            $hasNext = isset($candidates[$idx + 1]);
+            if ($hasNext) {
+                $nextName = (string) ($candidates[$idx + 1]['name'] ?? 'fallback');
+                grid402_facilitator_log_error($verifyPath, (int) ($attempt['http_status'] ?? 0), 'fallback_verify', 'Fallback de ' . ($candidateProfile['name'] ?? 'primary') . ' para ' . $nextName);
+                continue;
+            }
+            break;
+        }
+        // Resposta conclusiva (valida ou rejeicao por merito do cliente): nunca aciona fallback
+        break;
+    }
+
+    if (!is_array($verify) || !empty($verify['unavailable'])) {
         grid402_release_nonce($nonceKey);
         return $unavailable();
     }
@@ -1326,6 +1466,7 @@ function grid402_verify_exact_payment(string $rawProof, int $requiredRawUnits, ?
             'code' => 402,
             'category' => 'payment_rejected',
             'reason' => 'O facilitador rejeitou a autorizacao: ' . substr($why, 0, 200),
+            'facilitator' => (string) ($chosenProfile['name'] ?? 'default'),
         ];
     }
 
@@ -1350,6 +1491,7 @@ function grid402_verify_exact_payment(string $rawProof, int $requiredRawUnits, ?
             'source' => 'facilitator_verify_only',
             'payer' => $payerAddress,
             'network' => $netSpec['v2'],
+            'facilitator' => (string) ($chosenProfile['name'] ?? 'default'),
             'reason' => 'Autorizacao verificada pelo facilitador (modo verify_only: nao liquidada, nao faturada).',
             'code' => 200,
         ];
@@ -1363,6 +1505,7 @@ function grid402_verify_exact_payment(string $rawProof, int $requiredRawUnits, ?
         'payer' => $payerAddress,
         'raw_amount' => $rawPaidUnits,
         'network' => $netSpec['v2'],
+        'facilitator' => (string) ($chosenProfile['name'] ?? 'default'),
         'needs_settle' => true,
         '_settle_ctx' => [
             'nonce_key' => $nonceKey,
@@ -1371,6 +1514,7 @@ function grid402_verify_exact_payment(string $rawProof, int $requiredRawUnits, ?
             'net_v2' => $netSpec['v2'],
             'payer' => $payerAddress,
             'raw_amount' => $rawPaidUnits,
+            'facilitator' => $chosenProfile,
         ],
         'reason' => 'Autorizacao x402 verificada; aguardando liquidacao.',
         'code' => 200,
@@ -1379,6 +1523,7 @@ function grid402_verify_exact_payment(string $rawProof, int $requiredRawUnits, ?
 
 /**
  * Etapa 2 do pagamento x402 padrao: liquida via /settle uma autorizacao previamente verificada.
+ * INVIOLAVEL: nunca realiza fallback para outro facilitador no /settle para impedir dupla cobranca.
  */
 function grid402_settle_exact_payment(array $verified): array {
     if (empty($verified['needs_settle']) || !is_array($verified['_settle_ctx'] ?? null)) {
@@ -1392,9 +1537,14 @@ function grid402_settle_exact_payment(array $verified): array {
     $netV2 = (string) ($ctx['net_v2'] ?? GRID402_X402_NETWORK_V2);
     $payerAddress = (string) ($ctx['payer'] ?? '');
     $rawPaidUnits = (int) ($ctx['raw_amount'] ?? 0);
+    $chosenProfile = is_array($ctx['facilitator'] ?? null) ? $ctx['facilitator'] : null;
+    $settlePath = is_array($chosenProfile) && !empty($chosenProfile['settle_path'])
+        ? (string) $chosenProfile['settle_path']
+        : GRID402_FACILITATOR_SETTLE_PATH;
+    $facilitatorName = is_array($chosenProfile) ? (string) ($chosenProfile['name'] ?? 'default') : 'default';
 
-    // 2) Liquidacao (sem retentativa automatica para nao liquidar duas vezes)
-    $settle = grid402_facilitator_call(GRID402_FACILITATOR_SETTLE_PATH, $requestBody, GRID402_FACILITATOR_SETTLE_TIMEOUT);
+    // 2) Liquidacao (sem retentativa e sem fallback para nunca liquidar duas vezes)
+    $settle = grid402_facilitator_call($settlePath, $requestBody, GRID402_FACILITATOR_SETTLE_TIMEOUT, $chosenProfile);
     if ($settle['unavailable']) {
         if ($nonceKey !== '') {
             grid402_set_nonce_state($nonceKey, 'pending');
@@ -1403,6 +1553,7 @@ function grid402_settle_exact_payment(array $verified): array {
             'valid' => false,
             'code' => 503,
             'category' => 'facilitator_unavailable',
+            'facilitator' => $facilitatorName,
             'reason' => 'Liquidacao sem confirmacao do facilitador. Nao reenvie esta autorizacao; aguarde e consulte o saldo antes de tentar novamente.',
             'retry_after' => 30,
         ];
@@ -1416,6 +1567,7 @@ function grid402_settle_exact_payment(array $verified): array {
             'valid' => false,
             'code' => 402,
             'category' => 'payment_rejected',
+            'facilitator' => $facilitatorName,
             'reason' => 'O facilitador nao concluiu a liquidacao: ' . substr($why, 0, 200),
         ];
     }
@@ -1426,7 +1578,7 @@ function grid402_settle_exact_payment(array $verified): array {
             grid402_set_nonce_state($nonceKey, 'pending');
         }
         grid402_facilitator_log_error(
-            GRID402_FACILITATOR_SETTLE_PATH,
+            $settlePath,
             (int) ($settle['http_status'] ?? 200),
             'empty_settlement_transaction',
             'Facilitator returned success=true with empty transaction hash'
@@ -1435,6 +1587,7 @@ function grid402_settle_exact_payment(array $verified): array {
             'valid' => false,
             'code' => 503,
             'category' => 'facilitator_unavailable',
+            'facilitator' => $facilitatorName,
             'reason' => 'O facilitador retornou sucesso sem hash de transacao (transaction vazio). Aguarde antes de tentar novamente.',
             'retry_after' => 30,
         ];
@@ -1465,6 +1618,7 @@ function grid402_settle_exact_payment(array $verified): array {
         'valid' => true,
         'sandbox' => false,
         'source' => 'facilitator',
+        'facilitator' => $facilitatorName,
         'payer' => $payerAddress,
         'settlement_tx' => $settlementTx,
         'lock_key' => $txLockKey,

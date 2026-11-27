@@ -53,15 +53,18 @@ GRID402_TELEGRAM_CHAT_ID=seu_chat_id_telegram
 
 ---
 
-### Passo 2.3: Configurar a Tarefa Cron (Coleta Autônoma)
+### Passo 2.3: Configurar a Tarefa Cron (Coleta Autônoma e Índice de Sanções)
 1. No hPanel, vá em **Avançado ➔ Tarefas Cron** (Cron Jobs).
 2. Selecione o tipo de cron: **Comum (Custom)**.
-3. Escolha o intervalo: **A cada 2 minutos** (`*/2 * * * *`) ou **A cada 5 minutos** (`*/5 * * * *`).
-4. No campo **Comando a executar**, insira o caminho completo do PHP da Hostinger seguido do `collector.php`:
+3. Configure o coletor de telemetria a cada 2 minutos (`*/2 * * * *`):
 ```bash
-/usr/bin/php /home/u123456789/public_html/collector.php
+/usr/bin/php /home/u637629962/domains/grid402.online/public_html/collector.php >/dev/null 2>&1
 ```
-*(Substitua `u123456789` pelo nome de usuário da sua conta Hostinger, visível no topo do Gerenciador de Arquivos)*.
+4. Configure o sincronizador diário de sanções (OFAC / ONU / UE / UK FCDO), por exemplo `15 3 * * *`:
+```bash
+/usr/bin/php /home/u637629962/domains/grid402.online/public_html/sync_sanctions.php >/dev/null 2>&1
+```
+*(Substitua `u637629962` pelo nome de usuário da sua conta Hostinger, visível no topo do Gerenciador de Arquivos)*.
 5. Clique em **Salvar**.
 
 ---

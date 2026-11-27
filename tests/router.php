@@ -11,9 +11,11 @@ if ($uri === '/robots.txt') {
     return true;
 }
 
-if ($uri === '/.well-known/x402' || $uri === '/.well-known/x402/') {
-    header('Content-Type: application/json; charset=utf-8');
-    readfile(__DIR__ . '/../public_html/.well-known/x402.json');
+if ($uri === '/.well-known/x402' || $uri === '/.well-known/x402/' || $uri === '/.well-known/x402.json') {
+    if (!defined('GRID402_X402_MANIFEST_FORCE_EMIT')) {
+        define('GRID402_X402_MANIFEST_FORCE_EMIT', true);
+    }
+    require __DIR__ . '/../public_html/well_known_x402.php';
     return true;
 }
 

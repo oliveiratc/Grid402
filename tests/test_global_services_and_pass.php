@@ -53,14 +53,14 @@ assert_true(stripos((string) ($leiRes['license'] ?? ''), 'CC0') !== false, 'Lice
 $leiPreview = grid402_preview_lei('5493006MHB84DD0ZWV18');
 assert_true(isset($leiPreview['lei'], $leiPreview['jurisdiction']), 'Teaser preview do LEI retorna lei e jurisdiction');
 
-// 2. Teste OFAC SDN & Web3 AML
-$ofacSanctioned = grid402_service_ofac('0x8589427373d6d84e98730d7795d8f6f8731fda16');
+// 2. Teste OFAC SDN & Web3 AML (modo sandbox sem indice sincronizado local)
+$ofacSanctioned = grid402_service_ofac('0x8589427373d6d84e98730d7795d8f6f8731fda16', '', true);
 assert_true(($ofacSanctioned['status'] ?? '') === 'UP', 'OFAC Lookup em carteira sancionada retorna status=UP');
 assert_true(($ofacSanctioned['sanctioned'] ?? false) === true, 'Carteira Tornado Cash (0x8589...da16) marcada como sanctioned=true');
 assert_true(($ofacSanctioned['risk_level'] ?? '') === 'CRITICAL', 'Carteira sancionada recebe risk_level=CRITICAL');
 assert_true(($ofacSanctioned['compliance_decision'] ?? '') === 'BLOCK_TRANSACTION', 'Carteira sancionada recebe compliance_decision=BLOCK_TRANSACTION');
 
-$ofacClean = grid402_service_ofac('0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90');
+$ofacClean = grid402_service_ofac('0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90', '', true);
 assert_true(($ofacClean['status'] ?? '') === 'UP', 'OFAC Lookup em carteira limpa na Base retorna status=UP');
 assert_true(($ofacClean['sanctioned'] ?? true) === false, 'Carteira limpa marcada como sanctioned=false');
 assert_true(($ofacClean['risk_level'] ?? '') === 'LOW', 'Carteira limpa recebe risk_level=LOW');
