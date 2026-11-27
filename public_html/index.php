@@ -67,7 +67,7 @@ function grid402_log_public_visit(string $path): void {
     if (!in_array($method, ['GET', 'HEAD'], true)) {
         return;
     }
-    grid402_record_page_visit($path, grid402_get_trusted_client_ip(), (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''));
+    grid402_record_page_visit($path, grid402_get_trusted_client_ip(), (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), (string) ($_SERVER['HTTP_ACCEPT'] ?? ''));
 }
 
 // Leitura de cabeçalhos e rotas
@@ -119,7 +119,6 @@ $isRootOnlyRequest = ($requestPath === '/' || $requestPath === '/index.php') && 
 if ($isRootOnlyRequest && (str_contains($acceptHeader, 'text/markdown') || str_contains($acceptHeader, 'text/x-markdown') || (isset($_GET['format']) && $_GET['format'] === 'markdown'))) {
     header('Content-Type: text/markdown; charset=utf-8');
     header('Vary: Accept, User-Agent');
-    grid402_log_public_visit('/llms.txt');
     readfile(__DIR__ . '/llms.txt');
     exit;
 }
@@ -653,8 +652,52 @@ if (str_starts_with($requestPath, '/api/v1/pass/mp-')) {
             $mpLogEvent['price_usdc'] = $mpPriceUsdc;
         }
         grid402_log_request($mpLogEvent);
+        $mpRespCode = (int) ($res['code'] ?? 200);
+        if (empty($res['ok']) && $mpRespCode >= 500) {
+            $mpErrTxt = trim((string) ($res['error'] ?? 'MercadoPagoError') . ': ' . (string) ($res['message'] ?? ''));
+            if (function_exists('grid402_record_telemetry')) {
+                grid402_record_telemetry('pass-mp', $mpRespCode, false, null, null, 0.0, 'error', [
+                    'payment_source' => 'mercadopago',
+                    'failure_category' => 'mercadopago_gateway_error',
+                ]);
+            }
+            if (function_exists('grid402_record_payment_failure')) {
+                grid402_record_payment_failure([
+                    'service' => 'pass-mp',
+                    'status' => $mpRespCode,
+                    'payment_source' => 'mercadopago',
+                    'failure_category' => 'mercadopago_gateway_error',
+                    'error' => $mpErrTxt,
+                ]);
+            }
+        }
     }
     echo json_encode($res, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
+}
+
+// 1.3c. Registro verificado de conexao de carteira Web3 (RF14)
+if ($requestPath === '/api/v1/growth/wallet-connect' || $apiParam === 'wallet-connect') {
+    grid402_emit_api_cors_headers();
+    $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    if ($method !== 'POST') {
+        http_response_code(405);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok' => false, 'error' => 'MethodNotAllowed', 'message' => 'Use POST with {"address":"0x..."}.'], JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+    $rawBody = $rawRequestBody !== '' ? $rawRequestBody : (string) @file_get_contents('php://input');
+    $jsonBody = @json_decode($rawBody, true);
+    $input = is_array($jsonBody) ? $jsonBody : $_POST;
+    $res = grid402_growth_record_wallet_connect((string) ($input['address'] ?? ''), grid402_get_trusted_client_ip());
+    $code = (int) ($res['code'] ?? 200);
+    if ($code === 429 && !empty($res['retry_after'])) {
+        header('Retry-After: ' . (int) $res['retry_after']);
+    }
+    http_response_code($code);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store');
+    echo json_encode($res, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
 }
 
@@ -1422,7 +1465,7 @@ if ($isValidApiAction) {
             $proofForLog,
             null,
             (float) $servicePriceDisplay,
-            null,
+            $isSandboxRateLimited ? 'rate_limited_429' : null,
             ['failure_category' => $failureCategory]
         );
         http_response_code($statusCode);
@@ -1546,6 +1589,16 @@ if ($isValidApiAction) {
             'error' => $errCodeLabel . ': ' . (string) ($valResult['reason'] ?? ''),
             'proof_diag' => $proofDiag,
         ]);
+        if (!$isSandboxRateLimited && function_exists('grid402_record_payment_failure')) {
+            grid402_record_payment_failure([
+                'service' => $serviceLabel,
+                'status' => $statusCode,
+                'payment_source' => $logPaySource,
+                'failure_category' => $failureCategory,
+                'error' => $errCodeLabel . ': ' . (string) ($valResult['reason'] ?? ''),
+                'proof_diag' => $proofDiag,
+            ]);
+        }
         echo json_encode($errPayload, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         exit;
     };
@@ -5847,6 +5900,21 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             return WEB3_PRICING_TABLE[serviceSlug] || { amountRaw: 5000, priceUsdc: '0.0050' };
         }
 
+        function notifyWalletConnected(addr) {
+            try {
+                const clean = String(addr || '').trim().toLowerCase();
+                if (!/^0x[a-f0-9]{40}$/.test(clean) || clean === '0x0000000000000000000000000000000000000000') return;
+                const k = 'g402_wc_' + clean;
+                if (window.sessionStorage && window.sessionStorage.getItem(k) === '1') return;
+                if (window.sessionStorage) window.sessionStorage.setItem(k, '1');
+                fetch('/api/v1/growth/wallet-connect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ address: clean })
+                }).catch(() => {});
+            } catch (e) {}
+        }
+
         async function payPlaygroundWithWeb3(customProvider = null, customBtnId = null) {
             const btn = document.getElementById(customBtnId || 'btn-playground-web3-pay');
             const statusBadge = document.getElementById('playground-http-status');
@@ -5876,6 +5944,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     throw new Error('Nenhuma conta conectada.');
                 }
                 const userAddress = accounts[0];
+                notifyWalletConnected(userAddress);
 
                 if (btn) btn.textContent = 'Mudando para rede Base...';
                 try {
@@ -6298,6 +6367,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     throw new Error('Nenhuma conta foi conectada.');
                 }
                 const userAddress = accounts[0];
+                notifyWalletConnected(userAddress);
 
                 // 2. Garante que está na rede Base Mainnet (Chain ID 8453 = 0x2105)
                 if (btn) btn.textContent = 'Verificando rede Base...';
@@ -6457,6 +6527,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     throw new Error('Nenhuma conta foi conectada.');
                 }
                 const userAddress = accounts[0];
+                notifyWalletConnected(userAddress);
 
                 // 2. Garantir rede EVM selecionada (Base, Arbitrum, Polygon, Optimism ou Ethereum)
                 if (statusTitle) statusTitle.textContent = '2/3 Verificando rede ' + netCfg.display_name + '...';

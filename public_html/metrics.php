@@ -82,6 +82,7 @@ function grid402_default_metrics(): array {
         'version' => '1.0.0',
         'updated_at' => gmdate('Y-m-d\TH:i:s\Z'),
         'total_requests' => 0,
+        'total_crawler_requests' => 0,
         'total_paid_requests' => 0,
         'total_sandbox_requests' => 0,
         'total_page_views' => 0,
@@ -131,6 +132,7 @@ function grid402_default_metrics(): array {
             'solana_spl' => 0,
             'rapidapi' => 0,
             'mcp' => 0,
+            'mcp_sandbox' => 0,
             'promo_pass' => 0,
             'sandbox' => 0,
             'unknown' => 0,
@@ -142,6 +144,7 @@ function grid402_default_metrics(): array {
             'replay' => 0,
             'facilitator_unavailable' => 0,
             'facilitator_disabled' => 0,
+            'mercadopago_gateway_error' => 0,
             'sandbox_rate_limited' => 0,
             'unknown' => 0,
         ],
@@ -158,6 +161,7 @@ function grid402_normalize_metrics(array $metrics): array {
     $metrics['version'] = $metrics['version'] ?? '1.0.0';
     $metrics['updated_at'] = $metrics['updated_at'] ?? gmdate('Y-m-d\TH:i:s\Z');
     $metrics['total_requests'] = (int)($metrics['total_requests'] ?? 0);
+    $metrics['total_crawler_requests'] = (int)($metrics['total_crawler_requests'] ?? 0);
     $metrics['total_paid_requests'] = (int)($metrics['total_paid_requests'] ?? 0);
     $metrics['total_sandbox_requests'] = (int)($metrics['total_sandbox_requests'] ?? 0);
     $metrics['total_page_views'] = (int)($metrics['total_page_views'] ?? 0);
@@ -198,12 +202,14 @@ function grid402_normalize_metrics(array $metrics): array {
         }
         $stats = array_merge([
             'requests' => 0,
+            'crawler_requests' => 0,
             'page_views' => 0,
             'bot_views' => 0,
             'paid' => 0,
             'usdc' => 0.0,
         ], $stats);
         $stats['requests'] = (int)$stats['requests'];
+        $stats['crawler_requests'] = (int)$stats['crawler_requests'];
         $stats['page_views'] = (int)$stats['page_views'];
         $stats['bot_views'] = (int)$stats['bot_views'];
         $stats['paid'] = (int)$stats['paid'];
@@ -274,7 +280,9 @@ function grid402_record_telemetry(
             $reqProof = isset($_SERVER['HTTP_X_PAYMENT']) ? strtolower(trim((string)$_SERVER['HTTP_X_PAYMENT'])) : '';
             if ($isPaid) {
                 $eventTrafficType = 'paid';
-            } elseif ($cleanTx === 'demo' || $reqProof === 'demo') {
+            } elseif ($statusCode === 429) {
+                $eventTrafficType = 'rate_limited_429';
+            } elseif ($statusCode < 400 && ($cleanTx === 'demo' || $cleanTx === 'sandbox' || $reqProof === 'demo' || $reqProof === 'sandbox')) {
                 $eventTrafficType = 'sandbox';
             } elseif ($statusCode === 402) {
                 $eventTrafficType = 'challenge_402';
@@ -283,6 +291,8 @@ function grid402_record_telemetry(
             } else {
                 $eventTrafficType = 'free';
             }
+        } elseif ($statusCode === 429 && strtolower(trim((string) $eventTrafficType)) === 'sandbox') {
+            $eventTrafficType = 'rate_limited_429';
         }
 
         // 0. Metadados de origem do pagamento e categoria de falha
@@ -311,9 +321,17 @@ function grid402_record_telemetry(
             $settlementTx = $cleanTx;
         }
 
+        // Bloqueios HTTP 429 de cota sandbox/mcp_sandbox nunca incrementam payment_sources['sandbox'] nem total_sandbox_requests
+        if ($statusCode === 429 && ($failureCategory === 'sandbox_rate_limited' || $eventTrafficType === 'rate_limited_429')) {
+            $eventTrafficType = 'rate_limited_429';
+            if ($paymentSource === 'sandbox' || $paymentSource === 'mcp_sandbox' || $paymentSource === null) {
+                $paymentSource = null;
+            }
+        }
+
         // Inferencia para provas legadas que nao enviam metadados
-        if ($paymentSource === null) {
-            if ($eventTrafficType === 'sandbox' || $cleanTx === 'demo') {
+        if ($paymentSource === null && $eventTrafficType !== 'rate_limited_429') {
+            if ($statusCode < 400 && ($eventTrafficType === 'sandbox' || $cleanTx === 'demo' || $cleanTx === 'sandbox')) {
                 $paymentSource = 'sandbox';
             } elseif ($isPaid) {
                 if (str_starts_with($cleanTx, 'pass_g402_')) {
@@ -336,6 +354,7 @@ function grid402_record_telemetry(
             'solana_spl' => 0,
             'rapidapi' => 0,
             'mcp' => 0,
+            'mcp_sandbox' => 0,
             'promo_pass' => 0,
             'sandbox' => 0,
             'unknown' => 0,
@@ -347,6 +366,7 @@ function grid402_record_telemetry(
             'replay' => 0,
             'facilitator_unavailable' => 0,
             'facilitator_disabled' => 0,
+            'mercadopago_gateway_error' => 0,
             'sandbox_rate_limited' => 0,
             'unknown' => 0,
         ];
@@ -367,19 +387,25 @@ function grid402_record_telemetry(
             }
         }
 
-        // Somente pagamentos liquidados faturam: sandbox, promo_* e verify_only nao contam como pagos
+        // Somente pagamentos liquidados faturam: sandbox, mcp_sandbox, promo_* e verify_only nao contam como pagos
         $isPromoPayment = ($paymentSource === 'promo_pass')
             || ($paymentSource !== null && str_starts_with($paymentSource, 'promo_'))
             || !empty($meta['is_promo'])
             || str_starts_with($cleanTx, 'promo:')
             || (isset($meta['tier']) && is_string($meta['tier']) && str_starts_with(strtolower(trim($meta['tier'])), 'promo_'));
-        $nonBillableSources = ['sandbox', 'facilitator_verify_only', 'promo_pass'];
+        $nonBillableSources = ['sandbox', 'mcp_sandbox', 'facilitator_verify_only', 'promo_pass'];
         $isBillablePaid = $isPaid && !$isPromoPayment && !in_array($paymentSource, $nonBillableSources, true);
 
         // 1. Contadores gerais (exclusivamente chamadas de API)
         $metrics['version'] = '1.0.0';
         $metrics['updated_at'] = $now;
         $metrics['total_requests'] = ((int)($metrics['total_requests'] ?? 0)) + 1;
+
+        $reqUa = isset($meta['user_agent']) ? (string) $meta['user_agent'] : (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
+        $isCrawlerApiReq = grid402_is_directory_crawler_request($reqUa, $svc, $statusCode, $txHash, array_merge($meta, ['is_paid' => $isBillablePaid]));
+        if ($isCrawlerApiReq) {
+            $metrics['total_crawler_requests'] = ((int)($metrics['total_crawler_requests'] ?? 0)) + 1;
+        }
 
         if (!isset($metrics['status_counts'])) {
             $metrics['status_counts'] = [];
@@ -398,8 +424,8 @@ function grid402_record_telemetry(
             $metrics['service_revenue_usdc'] = [];
         }
 
-        // 1.1 Contador separado de consultas sandbox/demo (nao geram receita)
-        if ($eventTrafficType === 'sandbox') {
+        // 1.1 Contador separado de consultas sandbox/demo efetivas (HTTP 200; nunca 429)
+        if ($statusCode < 400 && ($eventTrafficType === 'sandbox' || $paymentSource === 'sandbox' || $paymentSource === 'mcp_sandbox')) {
             $metrics['total_sandbox_requests'] = ((int)($metrics['total_sandbox_requests'] ?? 0)) + 1;
         }
 
@@ -430,9 +456,12 @@ function grid402_record_telemetry(
             $metrics['daily'] = [];
         }
         if (!isset($metrics['daily'][$today])) {
-            $metrics['daily'][$today] = ['requests' => 0, 'page_views' => 0, 'paid' => 0, 'usdc' => 0.0];
+            $metrics['daily'][$today] = ['requests' => 0, 'crawler_requests' => 0, 'page_views' => 0, 'paid' => 0, 'usdc' => 0.0];
         }
         $metrics['daily'][$today]['requests'] = ((int)$metrics['daily'][$today]['requests']) + 1;
+        if ($isCrawlerApiReq) {
+            $metrics['daily'][$today]['crawler_requests'] = ((int)($metrics['daily'][$today]['crawler_requests'] ?? 0)) + 1;
+        }
         if ($isBillablePaid) {
             $metrics['daily'][$today]['paid'] = ((int)$metrics['daily'][$today]['paid']) + 1;
             $metrics['daily'][$today]['usdc'] = round(((float)$metrics['daily'][$today]['usdc']) + $effectivePrice, 4);
@@ -462,6 +491,7 @@ function grid402_record_telemetry(
             'settlement_tx' => $settlementTx,
             'payment_source' => $paymentSource,
             'failure_category' => $failureCategory,
+            'is_crawler' => $isCrawlerApiReq,
             'ip_masked' => $maskedIp,
         ];
 
@@ -613,15 +643,68 @@ function grid402_is_bot_user_agent(?string $ua): bool {
         return PHP_SAPI !== 'cli';
     }
     return preg_match(
-        '/bot|crawler|spider|slurp|curl|wget|python|lighthouse|uptimerobot|pingdom|headless|googlebot|bingbot|gptbot|claudebot|bytespider|ahrefs|semrush|mj12bot|yandex/i',
+        '/bot|crawler|spider|slurp|curl|wget|python|lighthouse|uptimerobot|pingdom|headless|googlebot|bingbot|gptbot|claudebot|claude-web|chatgpt-user|oai-searchbot|perplexitybot|meta-externalagent|bytespider|ahrefs|semrush|mj12bot|yandex|go-http-client|undici|node-fetch|axios|httpx|aiohttp|scrapy|java\/|okhttp|guzzle|playwright|puppeteer/i',
         $clean
     ) === 1;
 }
 
-function grid402_record_page_visit(?string $path = null, ?string $ip = null, ?string $ua = null): void {
+/**
+ * Classifica se uma requisicao de API pertence a crawler/scanner de diretórios x402 (RF12).
+ */
+function grid402_is_directory_crawler_request(?string $ua, string $service, int $statusCode, ?string $txHash = null, array $meta = []): bool {
+    if (!empty($meta['is_crawler'])) {
+        return true;
+    }
+    if (!empty($meta['is_paid'])) {
+        return false;
+    }
+    $src = strtolower(trim((string) ($meta['payment_source'] ?? '')));
+    if (in_array($src, ['pass', 'rapidapi', 'mcp', 'facilitator', 'web3_topup', 'mercadopago', 'tx_hash', 'sandbox', 'mcp_sandbox'], true)) {
+        return false;
+    }
+    $svcClean = strtolower(trim($service));
+    $cleanProof = strtolower(trim((string) $txHash));
+    $isChallengeOrStatus = ($statusCode === 402 && $cleanProof === '') || ($svcClean === 'summary' && $statusCode === 200);
+    if (!$isChallengeOrStatus) {
+        return false;
+    }
+    return grid402_is_bot_user_agent($ua);
+}
+
+/**
+ * Detecta se a visita vem de sessao administrativa autenticada de /admin (cookie marcador ou sessao ativa).
+ */
+function grid402_is_admin_authenticated_visit(): bool {
+    if (($_COOKIE['g402_admin_auth'] ?? '') === '1') {
+        return true;
+    }
+    return session_status() === PHP_SESSION_ACTIVE && !empty($_SESSION['admin_logged_in']);
+}
+
+/**
+ * Detecta negociacao de conteudo Markdown (Accept: text/markdown sem text/html prioritario).
+ */
+function grid402_is_markdown_negotiation(?string $accept = null): bool {
+    $raw = strtolower(trim((string) ($accept ?? ($_SERVER['HTTP_ACCEPT'] ?? ''))));
+    if ($raw === '' || !str_contains($raw, 'text/markdown')) {
+        return false;
+    }
+    $htmlPos = strpos($raw, 'text/html');
+    $mdPos = strpos($raw, 'text/markdown');
+    if ($htmlPos !== false && $mdPos !== false && $htmlPos < $mdPos) {
+        return false;
+    }
+    return true;
+}
+
+function grid402_record_page_visit(?string $path = null, ?string $ip = null, ?string $ua = null, ?string $accept = null): void {
     // Ignora requisicoes HEAD (healthchecks, crawlers e probes HTTP)
     $reqMethod = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
     if ($reqMethod === 'HEAD') {
+        return;
+    }
+    // RF12: Ignora visitas com sessao administrativa ativa ou negociacao Accept: text/markdown
+    if (grid402_is_admin_authenticated_visit() || grid402_is_markdown_negotiation($accept)) {
         return;
     }
 
@@ -1040,6 +1123,8 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
         'error_5xx_count' => $error5xx,
         'challenge_402_count' => (int)($statusCounts['402'] ?? 0),
         'total_bot_views' => (int)($metrics['total_bot_views'] ?? 0),
+        'total_crawler_requests' => (int)($metrics['total_crawler_requests'] ?? 0),
+        'real_api_requests' => max(0, $totalRequests - (int)($metrics['total_crawler_requests'] ?? 0)),
         'sandbox_rate' => $sandboxRate,
         'latency_p50_ms' => $latencyP50,
         'latency_p95_ms' => $latencyP95,

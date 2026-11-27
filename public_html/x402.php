@@ -1291,7 +1291,9 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
 
     if ($preview !== null and !empty($preview)) {
         $payload['preview'] = $preview;
-        $payload['teaser_data'] = $preview;
+        if (strtolower(trim((string) $serviceName)) === 'dossier') {
+            $payload['teaser_data'] = $preview;
+        }
     }
     if ($lockedFields !== null and !empty($lockedFields)) {
         $payload['locked_fields'] = $lockedFields;

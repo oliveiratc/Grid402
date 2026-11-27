@@ -82,7 +82,21 @@ function grid402_get_request_log_path(): string {
 }
 
 /**
- * Sanitiza strings para garantir ausencia de tokens `pass_g402_...` ou tx hashes longos nos logs.
+ * Retorna o caminho ativo para o ring buffer dedicado de falhas reais de pagamento.
+ */
+function grid402_get_payment_failures_path(): string {
+    $envPath = (string) grid402_env('GRID402_FILE_PAYMENT_FAILURES', '');
+    if ($envPath !== '') {
+        return $envPath;
+    }
+    if (defined('GRID402_FILE_PAYMENT_FAILURES')) {
+        return GRID402_FILE_PAYMENT_FAILURES;
+    }
+    return GRID402_PRIVATE_DIR . '/payment_failures.json';
+}
+
+/**
+ * Sanitiza strings para garantir ausencia de tokens `pass_g402_...`, tokens MP ou tx hashes longos nos logs.
  */
 function grid402_sanitize_log_text(?string $value, int $maxLen = 180): ?string {
     if ($value === null) {
@@ -93,6 +107,9 @@ function grid402_sanitize_log_text(?string $value, int $maxLen = 180): ?string {
         return null;
     }
     $clean = preg_replace('/pass_g402_[a-zA-Z0-9_-]+/i', 'pass_g402_[REDACTED]', $clean) ?? $clean;
+    $clean = preg_replace('/(?:APP_USR|TEST)-[a-zA-Z0-9_-]{8,}/i', '[MP_TOKEN_REDACTED]', $clean) ?? $clean;
+    $clean = preg_replace('/Bearer\s+[a-zA-Z0-9._-]{10,}/i', 'Bearer [REDACTED]', $clean) ?? $clean;
+    $clean = preg_replace('/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/', '[EMAIL_REDACTED]', $clean) ?? $clean;
     $clean = preg_replace('/0x[a-fA-F0-9]{20,}/', '0x[REDACTED]', $clean) ?? $clean;
     if (strlen($clean) > $maxLen) {
         $clean = substr($clean, 0, $maxLen);
@@ -218,6 +235,7 @@ function grid402_log_request(array $event): bool {
         'web3_topup',
         'solana_spl',
         'mcp',
+        'mcp_sandbox',
         'unknown',
     ];
     $rawSource = strtolower(trim((string) ($event['payment_source'] ?? 'none')));
@@ -281,16 +299,166 @@ function grid402_log_request(array $event): bool {
 }
 
 /**
- * Le os registros recentes de falhas reais de pagamento no requests.jsonl (e rotacionado .1 se necessario),
- * sem desafios 402 vazios nem PII.
+ * Avalia se um evento representa falha real de pagamento (ignorando 402 vazios, probes gratuitos e 429 sandbox).
+ */
+function grid402_is_noise_payment_failure(int $status, string $svc, string $src, string $err, string $failureCategory = ''): bool {
+    $allowedFailureStatuses = [400, 402, 403, 429, 500, 502, 503, 504];
+    if (!in_array($status, $allowedFailureStatuses, true)) {
+        return true;
+    }
+    $errTrim = trim($err);
+    if ($errTrim === '' || $errTrim === 'PaymentRequired') {
+        return true;
+    }
+    $svcLow = strtolower(trim($svc));
+    $srcLow = strtolower(trim($src));
+    $failCatLow = strtolower(trim($failureCategory));
+    if ($srcLow === 'free' && in_array($svcLow, ['pass-balance', 'pass-statement', 'pass-limits', 'verify', 'summary'], true)) {
+        return true;
+    }
+    if ($svcLow === 'pass-emitir' && $status === 400 && $errTrim === 'InvalidTxHash') {
+        return true;
+    }
+    if ($status === 429 && (
+        $failCatLow === 'sandbox_rate_limited'
+        || (in_array($srcLow, ['sandbox', 'mcp_sandbox', 'unknown', ''], true) && (str_starts_with($errTrim, 'SandboxRateLimitExceeded') || str_starts_with($errTrim, 'sandbox_rate_limited')))
+    )) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Grava falha real de pagamento em ring buffer dedicado `payment_failures.json` (ate 500 eventos Zero-PII) sob flock(LOCK_EX).
+ */
+function grid402_record_payment_failure(array $event): bool {
+    $status = (int) ($event['status'] ?? 402);
+    $svc = strtolower(trim((string) ($event['service'] ?? 'unknown')));
+    $src = strtolower(trim((string) ($event['payment_source'] ?? 'unknown')));
+    $errRaw = (string) ($event['error'] ?? '');
+    $failCatRaw = (string) ($event['failure_category'] ?? '');
+
+    if (grid402_is_noise_payment_failure($status, $svc, $src, $errRaw, $failCatRaw)) {
+        return false;
+    }
+
+    $rawIp = (string) ($event['ip'] ?? (function_exists('grid402_get_trusted_client_ip') ? grid402_get_trusted_client_ip() : ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1')));
+    $ipSecret = defined('GRID402_CRON_SECRET') ? GRID402_CRON_SECRET : 'grid402_ip_salt';
+    $ipHmac = (string) ($event['ip_hmac'] ?? substr(hash_hmac('sha256', trim($rawIp), $ipSecret), 0, 12));
+
+    $sanitizedError = grid402_sanitize_log_text($errRaw, 200) ?? '';
+    if ($sanitizedError === '') {
+        return false;
+    }
+
+    $record = [
+        'ts' => (string) ($event['ts'] ?? gmdate('Y-m-d\TH:i:s\Z')),
+        'request_id' => (string) ($event['request_id'] ?? grid402_get_request_id()),
+        'service' => $svc !== '' ? $svc : 'unknown',
+        'status' => $status,
+        'payment_source' => $src !== '' ? $src : 'unknown',
+        'failure_category' => strtolower(trim((string) ($event['failure_category'] ?? 'unknown'))),
+        'error' => $sanitizedError,
+        'proof_diag' => grid402_sanitize_log_text(isset($event['proof_diag']) ? (string) $event['proof_diag'] : null, 180) ?? '',
+        'ip_hmac' => $ipHmac,
+    ];
+
+    $path = grid402_get_payment_failures_path();
+    $dir = dirname($path);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+    }
+
+    $fp = @fopen($path, 'c+');
+    if (!$fp) {
+        return false;
+    }
+
+    $ok = false;
+    if (flock($fp, LOCK_EX)) {
+        $items = grid402_read_locked_json($fp, []);
+        if (!is_array($items)) {
+            $items = [];
+        }
+        $items[] = $record;
+        if (count($items) > 500) {
+            $items = array_values(array_slice($items, -500));
+        }
+        ftruncate($fp, 0);
+        rewind($fp);
+        $written = fwrite($fp, (string) json_encode($items, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
+        fflush($fp);
+        flock($fp, LOCK_UN);
+        $ok = ($written !== false);
+    }
+    fclose($fp);
+
+    return $ok;
+}
+
+/**
+ * Le os registros recentes de falhas reais de pagamento priorizando o ring buffer `payment_failures.json`
+ * (imune a rajadas 402 > 256 KB) com fallback retrocompativel para `requests.jsonl` e `.1`.
  *
  * @return array<int, array<string, mixed>>
  */
 function grid402_read_recent_payment_failures(int $limit = 25): array {
     $limit = max(1, min(100, $limit));
+    $failures = [];
+    $seenIds = [];
+
+    // 1. Fonte primaria dedicada: payment_failures.json (ate 500 falhas reais preservadas)
+    $dedicatedPath = grid402_get_payment_failures_path();
+    if (is_file($dedicatedPath) && is_readable($dedicatedPath)) {
+        $fpDed = @fopen($dedicatedPath, 'rb');
+        if ($fpDed) {
+            $rawDed = '';
+            if (flock($fpDed, LOCK_SH)) {
+                $rawDed = (string) stream_get_contents($fpDed);
+                flock($fpDed, LOCK_UN);
+            }
+            fclose($fpDed);
+            $items = $rawDed !== '' ? @json_decode($rawDed, true) : null;
+            if (is_array($items)) {
+                for ($i = count($items) - 1; $i >= 0; $i--) {
+                    $entry = $items[$i];
+                    if (!is_array($entry)) {
+                        continue;
+                    }
+                    $status = (int) ($entry['status'] ?? 0);
+                    $svc = (string) ($entry['service'] ?? '');
+                    $src = (string) ($entry['payment_source'] ?? 'unknown');
+                    $err = (string) ($entry['error'] ?? '');
+                    $failCat = (string) ($entry['failure_category'] ?? '');
+                    if (grid402_is_noise_payment_failure($status, $svc, $src, $err, $failCat)) {
+                        continue;
+                    }
+                    $reqId = (string) ($entry['request_id'] ?? '');
+                    if ($reqId !== '') {
+                        $seenIds["{$reqId}|" . strtolower(trim($svc)) . "|{$status}"] = true;
+                    }
+                    $failures[] = [
+                        'ts' => (string) ($entry['ts'] ?? ''),
+                        'request_id' => $reqId,
+                        'service' => $svc,
+                        'status' => $status,
+                        'payment_source' => $src !== '' ? $src : 'unknown',
+                        'failure_category' => (string) ($entry['failure_category'] ?? ''),
+                        'error' => grid402_sanitize_log_text($err, 200) ?? '',
+                        'proof_diag' => grid402_sanitize_log_text(isset($entry['proof_diag']) ? (string) $entry['proof_diag'] : null, 180) ?? '',
+                        'ip_hmac' => (string) ($entry['ip_hmac'] ?? ''),
+                    ];
+                    if (count($failures) >= $limit) {
+                        return $failures;
+                    }
+                }
+            }
+        }
+    }
+
+    // 2. Fallback complementar: tail de requests.jsonl e rotacionado .1
     $logFile = grid402_get_request_log_path();
     $candidateFiles = [$logFile, $logFile . '.1'];
-    $allowedFailureStatuses = [400, 402, 403, 429, 500, 502, 503, 504];
 
     $readTailLines = static function (string $filePath): array {
         if (!is_file($filePath) || !is_readable($filePath)) {
@@ -325,7 +493,6 @@ function grid402_read_recent_payment_failures(int $limit = 25): array {
         return preg_split('/\r?\n/', trim($rawTail)) ?: [];
     };
 
-    $failures = [];
     foreach ($candidateFiles as $filePath) {
         if (count($failures) >= $limit) {
             break;
@@ -340,35 +507,25 @@ function grid402_read_recent_payment_failures(int $limit = 25): array {
             if (!is_array($entry)) {
                 continue;
             }
+            $reqId = (string) ($entry['request_id'] ?? '');
             $status = (int) ($entry['status'] ?? 0);
-            if (!in_array($status, $allowedFailureStatuses, true)) {
-                continue;
-            }
             $err = trim((string) ($entry['error'] ?? ''));
-            if ($err === '' || $err === 'PaymentRequired') {
-                continue;
-            }
             $svc = strtolower(trim((string) ($entry['service'] ?? '')));
             $src = strtolower(trim((string) ($entry['payment_source'] ?? 'unknown')));
-            // Ignora probes de scanners em rotas gratuitas de consulta (pass-balance, pass-statement, pass-limits, verify) sem token válido
-            if ($src === 'free' && in_array($svc, ['pass-balance', 'pass-statement', 'pass-limits', 'verify', 'summary'], true)) {
+            $failCat = strtolower(trim((string) ($entry['failure_category'] ?? '')));
+            if ($reqId !== '' && isset($seenIds["{$reqId}|{$svc}|{$status}"])) {
                 continue;
             }
-            // Ignora probes GET vazios de scanners em pass-emitir sem hash de transação real
-            if ($svc === 'pass-emitir' && $status === 400 && $err === 'InvalidTxHash') {
-                continue;
-            }
-            // Ignora bloqueios esperados de cota gratuita de sandbox (429) para nao ofuscar falhas reais de pagamento
-            if ($status === 429 && $src === 'sandbox' && str_starts_with($err, 'SandboxRateLimitExceeded')) {
+            if (grid402_is_noise_payment_failure($status, $svc, $src, $err, $failCat)) {
                 continue;
             }
             $failures[] = [
                 'ts' => (string) ($entry['ts'] ?? ''),
-                'request_id' => (string) ($entry['request_id'] ?? ''),
+                'request_id' => $reqId,
                 'service' => (string) ($entry['service'] ?? ''),
                 'status' => $status,
                 'payment_source' => (string) ($entry['payment_source'] ?? 'unknown'),
-                'error' => grid402_sanitize_log_text($err, 180) ?? '',
+                'error' => grid402_sanitize_log_text($err, 200) ?? '',
                 'proof_diag' => grid402_sanitize_log_text(isset($entry['proof_diag']) ? (string) $entry['proof_diag'] : null, 180) ?? '',
                 'ip_hmac' => (string) ($entry['ip_hmac'] ?? ''),
             ];

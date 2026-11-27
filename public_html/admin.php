@@ -17,6 +17,7 @@ require_once __DIR__ . '/growth.php';
 require_once __DIR__ . '/facilitator.php';
 require_once __DIR__ . '/x402.php';
 require_once __DIR__ . '/services/forex.php';
+require_once __DIR__ . '/services/mercadopago.php';
 require_once __DIR__ . '/services/admin_insights.php';
 require_once __DIR__ . '/includes/admin_auth_guard.php';
 
@@ -48,6 +49,8 @@ function grid402_admin_runtime_status(): array {
     $multiChainCount = function_exists('grid402_build_accepts')
         ? count(grid402_build_accepts(defined('GRID402_USDC_REQUIRED_RAW') ? (int) GRID402_USDC_REQUIRED_RAW : 5000))
         : 1;
+    $mpToken = function_exists('grid402_mp_access_token') ? grid402_mp_access_token() : '';
+    $mpSandbox = function_exists('grid402_mp_is_sandbox') ? grid402_mp_is_sandbox() : false;
 
     return [
         'facilitator' => [
@@ -64,6 +67,10 @@ function grid402_admin_runtime_status(): array {
         ],
         'telegram' => $tg,
         'rapidapi' => $rapid,
+        'mercadopago' => [
+            'configured' => ($mpToken !== ''),
+            'sandbox' => $mpSandbox,
+        ],
     ];
 }
 
@@ -396,6 +403,7 @@ if ($action === 'cancel_recovery') {
 
 // 2. Ações de Logout e Reset de Segurança
 if ($action === 'logout') {
+    grid402_set_admin_auth_marker_cookie(false);
     $_SESSION = [];
     if (ini_get("session.use_cookies")) {
         $params = session_get_cookie_params();
@@ -1283,6 +1291,7 @@ $paymentSourceLabels = [
     'mercadopago' => 'Pix / Cartão (Mercado Pago)',
     'rapidapi' => 'RapidAPI Hub',
     'mcp' => 'MCP Server (/mcp e stdio)',
+    'mcp_sandbox' => 'MCP Auto-Trial (1/dia)',
     'solana_spl' => 'Solana SPL (USDC)',
     'evm_base' => 'Base EVM (On-Chain)',
     'evm_polygon' => 'Polygon EVM (On-Chain)',
@@ -1302,6 +1311,7 @@ $failureCategoryLabels = [
     'replay' => 'Replay (já usado)',
     'facilitator_unavailable' => 'Facilitador indisponível',
     'facilitator_disabled' => 'Facilitador desativado',
+    'mercadopago_gateway_error' => 'Falha gateway Mercado Pago',
     'sandbox_rate_limited' => 'Cota sandbox atingida (429)',
     'unknown' => 'Outros',
 ];
@@ -1605,6 +1615,8 @@ if ($apiParam === 'stats') {
         'status' => 'success',
         'server_time' => gmdate('Y-m-d\TH:i:s\Z'),
         'total_requests' => (int)($metrics['total_requests'] ?? 0),
+        'real_api_requests' => (int)($analytics['real_api_requests'] ?? 0),
+        'total_crawler_requests' => (int)($metrics['total_crawler_requests'] ?? 0),
         'total_page_views' => $totalPageViews,
         'today_page_views' => $todayPageViews,
         'total_bot_views' => (int)($metrics['total_bot_views'] ?? 0),
@@ -1631,6 +1643,7 @@ if ($apiParam === 'stats') {
         'collector_status' => $runtimeStatus['collector'],
         'telegram_status' => $runtimeStatus['telegram'],
         'rapidapi_status' => $runtimeStatus['rapidapi'],
+        'mercadopago_status' => $runtimeStatus['mercadopago'],
         'oracle_configured' => $oracleConfigured,
         'status_counts' => $metrics['status_counts'] ?? [],
         'service_counts' => $metrics['service_counts'] ?? [],

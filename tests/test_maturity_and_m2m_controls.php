@@ -73,9 +73,9 @@ check('Mercado Pago Pix Fleet emite 6.000 créditos e 365 dias', ($mpPackages['f
 $llmsTxt = (string) file_get_contents($projectRoot . '/public_html/llms.txt');
 $readmeMd = (string) file_get_contents($projectRoot . '/README.md');
 check('llms.txt documenta 400 / 1.200 / 6.000 créditos',
-    (str_contains($llmsTxt, '400 creditos') || str_contains($llmsTxt, '400 créditos')) &&
-    (str_contains($llmsTxt, '1.200 creditos') || str_contains($llmsTxt, '1.200 créditos')) &&
-    (str_contains($llmsTxt, '6.000 creditos') || str_contains($llmsTxt, '6.000 créditos'))
+    (str_contains($llmsTxt, '400 creditos') || str_contains($llmsTxt, '400 créditos') || str_contains($llmsTxt, '400 credits')) &&
+    (str_contains($llmsTxt, '1.200 creditos') || str_contains($llmsTxt, '1.200 créditos') || str_contains($llmsTxt, '1,200 credits')) &&
+    (str_contains($llmsTxt, '6.000 creditos') || str_contains($llmsTxt, '6.000 créditos') || str_contains($llmsTxt, '6,000 credits'))
 );
 check('README.md documenta 400 / 1.200 / 6.000 créditos',
     (str_contains($readmeMd, '400 créditos') || str_contains($readmeMd, '400 credits')) &&

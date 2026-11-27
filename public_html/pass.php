@@ -415,6 +415,13 @@ async function connectAndPayWeb3Pass(btn) {
             throw new Error('No wallet account was connected.');
         }
         const fromAddr = accounts[0];
+        try {
+            const wcClean = String(fromAddr || '').trim().toLowerCase();
+            if (/^0x[a-f0-9]{40}$/.test(wcClean) && (!window.sessionStorage || window.sessionStorage.getItem('g402_wc_' + wcClean) !== '1')) {
+                if (window.sessionStorage) window.sessionStorage.setItem('g402_wc_' + wcClean, '1');
+                fetch('/api/v1/growth/wallet-connect', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address: wcClean }) }).catch(() => {});
+            }
+        } catch (wcErr) {}
 
         if (statusEl) statusEl.textContent = '2/3 Switching network to ' + cfg.display_name + '...';
         try {

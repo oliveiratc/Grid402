@@ -59,6 +59,22 @@ if (!function_exists('grid402_admin_idle_timeout_sec')) {
         }
     }
 
+    function grid402_set_admin_auth_marker_cookie(bool $active): void {
+        $_COOKIE['g402_admin_auth'] = $active ? '1' : '';
+        if (PHP_SAPI !== 'cli' && !headers_sent()) {
+            $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                || (($_SERVER['SERVER_PORT'] ?? 80) == 443)
+                || (strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https');
+            @setcookie('g402_admin_auth', $active ? '1' : '', [
+                'expires' => $active ? (time() + grid402_admin_idle_timeout_sec()) : (time() - 3600),
+                'path' => '/',
+                'secure' => $isHttps,
+                'httponly' => true,
+                'samesite' => 'Lax',
+            ]);
+        }
+    }
+
     function grid402_establish_admin_session(string $username): void {
         $now = time();
         session_regenerate_id(true);
@@ -69,6 +85,7 @@ if (!function_exists('grid402_admin_idle_timeout_sec')) {
         $_SESSION['admin_last_activity'] = $now;
         $_SESSION['admin_fingerprint'] = grid402_admin_session_fingerprint();
         $_SESSION['admin_csrf_token'] = bin2hex(random_bytes(32));
+        grid402_set_admin_auth_marker_cookie(true);
     }
 
     function grid402_invalidate_admin_session_state(): void {
@@ -81,6 +98,7 @@ if (!function_exists('grid402_admin_idle_timeout_sec')) {
             $_SESSION['admin_2fa_pending'],
             $_SESSION['admin_recovery_pending']
         );
+        grid402_set_admin_auth_marker_cookie(false);
     }
 
     function grid402_verify_active_admin_session(bool $touchActivity = true): array {
@@ -108,6 +126,7 @@ if (!function_exists('grid402_admin_idle_timeout_sec')) {
 
         if ($touchActivity || $lastAct === 0) {
             $_SESSION['admin_last_activity'] = $now;
+            grid402_set_admin_auth_marker_cookie(true);
         }
 
         return [

@@ -944,6 +944,8 @@ try {
     $rotBase = $storageDir . DIRECTORY_SEPARATOR . 'rot_test.jsonl';
     putenv('GRID402_FILE_REQUEST_LOGS=' . $rotBase);
     $_ENV['GRID402_FILE_REQUEST_LOGS'] = $rotBase;
+    putenv('GRID402_FILE_PAYMENT_FAILURES=' . $rotBase . '.failures.json');
+    $_ENV['GRID402_FILE_PAYMENT_FAILURES'] = $rotBase . '.failures.json';
     file_put_contents($rotBase . '.1', json_encode([
         'ts' => gmdate('Y-m-d\TH:i:s\Z', time() - 60),
         'request_id' => 'g402_rot1',

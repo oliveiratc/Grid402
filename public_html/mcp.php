@@ -618,6 +618,8 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
         $failCode = (int)($val['code'] ?? 402);
         $failCategory = (string)($val['category'] ?? 'payment_rejected');
         $failSource = (string)($val['source'] ?? ($proofIsPayload ? 'facilitator' : 'unknown'));
+        $failReason = (string)($val['reason'] ?? 'payment_rejected');
+        $failType = ($failCode === 429 || $failCategory === 'sandbox_rate_limited') ? 'rate_limited_429' : null;
         grid402_record_telemetry(
             $service,
             $failCode,
@@ -625,7 +627,7 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
             $proofIsPayload ? null : $effectiveProof,
             $clientIp,
             $priceUsdcFloat,
-            null,
+            $failType,
             ['failure_category' => $failCategory]
         );
         if (function_exists('grid402_log_request')) {
@@ -634,7 +636,18 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
                 'status' => $failCode,
                 'payment_source' => $failSource !== '' ? $failSource : 'unknown',
                 'price_usdc' => $priceUsdcFloat,
-                'error' => $failCategory . ': ' . (string)($val['reason'] ?? 'payment_rejected'),
+                'error' => $failCategory . ': ' . $failReason,
+                'method' => 'POST',
+                'ip' => $clientIp,
+            ]);
+        }
+        if ($failType !== 'rate_limited_429' && function_exists('grid402_record_payment_failure')) {
+            grid402_record_payment_failure([
+                'service' => $service,
+                'status' => $failCode,
+                'failure_category' => $failCategory,
+                'payment_source' => $failSource !== '' ? $failSource : 'unknown',
+                'error' => $failCategory . ': ' . $failReason,
                 'method' => 'POST',
                 'ip' => $clientIp,
             ]);

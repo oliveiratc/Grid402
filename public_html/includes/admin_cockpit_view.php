@@ -751,9 +751,9 @@ $pricingLookup = [
                         <div class="kpi-sub" id="kpi-paid-reqs"><?php echo number_format($totalChallenges402, 0, ',', '.'); ?> desafios 402 • <?php echo number_format($sandboxReqs, 0, ',', '.'); ?> sandbox</div>
                     </div>
                     <div class="kpi-card">
-                        <div class="kpi-title">Chamadas de API (Bruto)</div>
-                        <div class="kpi-value" id="kpi-total-reqs"><?php echo number_format($totalReqs, 0, ',', '.'); ?></div>
-                        <div class="kpi-sub">Exclui HTML/bots · inclui 402, sandbox e /status</div>
+                        <div class="kpi-title">Chamadas API Reais</div>
+                        <div class="kpi-value" id="kpi-total-reqs"><?php echo number_format((int) ($analytics['real_api_requests'] ?? $totalReqs), 0, ',', '.'); ?></div>
+                        <div class="kpi-sub" id="kpi-total-reqs-sub">Bruto: <?php echo number_format($totalReqs, 0, ',', '.'); ?> · <?php echo number_format((int) ($metrics['total_crawler_requests'] ?? 0), 0, ',', '.'); ?> crawlers x402</div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-title">Page Views HTML (Humanos)</div>
@@ -763,7 +763,7 @@ $pricingLookup = [
                     <div class="kpi-card">
                         <div class="kpi-title">Wallets Conectadas</div>
                         <div class="kpi-value" id="growth-wallets"><?php echo number_format((int) ($growthMetrics['wallets_connected'] ?? 0), 0, ',', '.'); ?></div>
-                        <div class="kpi-sub" id="growth-paying-sub"><?php echo (int) ($growthMetrics['wallets_paying'] ?? 0); ?> pagantes • retenção <?php echo number_format((float) ($growthMetrics['wallet_retention'] ?? 0.0), 1, ',', '.'); ?>%</div>
+                        <div class="kpi-sub" id="growth-paying-sub"><?php echo (int) ($growthMetrics['wallets_paying'] ?? 0); ?> pagantes • <?php echo (int) ($growthMetrics['identified_profiles'] ?? 0); ?> perfis M2M • retenção <?php echo number_format((float) ($growthMetrics['wallet_retention'] ?? 0.0), 1, ',', '.'); ?>%</div>
                     </div>
                     <div class="kpi-card">
                         <div class="kpi-title">Conversão 1ª Compra</div>
@@ -954,6 +954,7 @@ $pricingLookup = [
                         <span>Origem dos Pagamentos</span>
                         <a href="/admin?api=export_csv&amp;scope=paid" class="btn-outline" style="font-size: 0.72rem; padding: 0.28rem 0.6rem;">📥 CSV Pagas (Histórico)</a>
                     </div>
+                    <div class="panel-subtitle" style="margin: -0.35rem 0 0.65rem;">RapidAPI Hub fatura em USD na plataforma externa (US$ 0,00 no cofre local)</div>
                     <div id="payment-source-bars-container">
                         <?php
                         $sourceCounts = $metrics['payment_sources'] ?? [];
@@ -1072,30 +1073,44 @@ $pricingLookup = [
                         $totalRequests = (int) ($metrics['total_requests'] ?? 0);
                         $statusSum = array_sum(array_map('intval', $statusCounts));
                         $residual = $totalRequests - $statusSum;
+                        $displayStatusCounts = $statusCounts;
                         if ($residual > 0) {
-                            $statusCounts['outros'] = (int) (($statusCounts['outros'] ?? 0) + $residual);
+                            $displayStatusCounts['outros'] = (int) (($displayStatusCounts['outros'] ?? 0) + $residual);
                         }
-                        $totalStatus = array_sum($statusCounts) ?: 1;
+                        $status400 = (int) ($displayStatusCounts['400'] ?? 0);
+                        if ($status400 > 0) {
+                            $invalidProof400 = min($status400, (int) ($metrics['failure_categories']['invalid_proof'] ?? 0));
+                            $badRequest400 = max(0, $status400 - $invalidProof400);
+                            unset($displayStatusCounts['400']);
+                            if ($invalidProof400 > 0) {
+                                $displayStatusCounts['400_proof'] = $invalidProof400;
+                            }
+                            if ($badRequest400 > 0) {
+                                $displayStatusCounts['400_param'] = $badRequest400;
+                            }
+                        }
+                        $totalStatus = array_sum(array_map('intval', $displayStatusCounts)) ?: 1;
                         $statuses = [
                             '200' => ['label' => '200 OK', 'color' => '#10B981'],
                             '402' => ['label' => '402 Desafio', 'color' => '#F59E0B'],
                             '403' => ['label' => '403 Replay', 'color' => '#EF4444'],
-                            '400' => ['label' => '400 Prova inválida', 'color' => '#F97316'],
+                            '400_proof' => ['label' => '400 Prova inválida', 'color' => '#F97316'],
+                            '400_param' => ['label' => '400 Parâmetro inválido', 'color' => '#FB923C'],
                             '429' => ['label' => '429 Limite sandbox', 'color' => '#A855F7'],
                         ];
-                        foreach (array_keys($statusCounts) as $extraCode) {
+                        foreach (array_keys($displayStatusCounts) as $extraCode) {
                             if (!isset($statuses[(string) $extraCode])) {
                                 $statuses[(string) $extraCode] = [
-                                    'label' => ($extraCode === 'outros' ? 'Outros' : $extraCode . ' Outros'),
+                                    'label' => ($extraCode === 'outros' ? 'Histórico pré-24/11 (sem status)' : $extraCode . ' Outros'),
                                     'color' => '#64748B',
                                 ];
                             }
                         }
                         foreach ($statuses as $code => $info):
-                            if (!isset($statusCounts[$code]) && !in_array((string) $code, ['200', '402', '403'], true)) {
+                            if (!isset($displayStatusCounts[$code]) && !in_array((string) $code, ['200', '402', '403'], true)) {
                                 continue;
                             }
-                            $cnt = (int) ($statusCounts[$code] ?? 0);
+                            $cnt = (int) ($displayStatusCounts[$code] ?? 0);
                             $pct = round(($cnt / $totalStatus) * 100);
                         ?>
                         <div class="bar-row">
@@ -1133,8 +1148,8 @@ $pricingLookup = [
 
             <div id="payment-failures-panel" class="panel">
                 <div class="panel-title">
-                    <span>Diagnóstico Real de Falhas de Pagamento (requests.jsonl · Zero-PII)</span>
-                    <span class="panel-subtitle">Últimas 25 falhas reais (exclui 402 vazios e 429 sandbox)</span>
+                    <span>Diagnóstico Real de Falhas de Pagamento (payment_failures.json · Zero-PII)</span>
+                    <span class="panel-subtitle">Últimas 25 de até 500 falhas reais (exclui 402 vazios e 429 sandbox)</span>
                 </div>
                 <div class="table-wrap">
                     <table>
@@ -1979,7 +1994,7 @@ $pricingLookup = [
             if (!gm) return;
             const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
             setText('growth-wallets', Number(gm.wallets_connected || 0).toLocaleString('pt-BR'));
-            setText('growth-paying-sub', `${Number(gm.wallets_paying || 0)} pagantes • retenção ${Number(gm.wallet_retention || 0).toFixed(1).replace('.', ',')}%`);
+            setText('growth-paying-sub', `${Number(gm.wallets_paying || 0)} pagantes • ${Number(gm.identified_profiles || 0)} perfis M2M • retenção ${Number(gm.wallet_retention || 0).toFixed(1).replace('.', ',')}%`);
             setText('growth-conversion', Number(gm.conversion_first_payment || 0).toFixed(1) + '%');
             setText('growth-conversion-2', Number(gm.conversion_second_payment || 0).toFixed(1) + '%');
             setText('growth-revenue-wallet', 'US$ ' + Number(gm.revenue_per_wallet_usdc || 0).toFixed(4));
@@ -2023,7 +2038,8 @@ $pricingLookup = [
                 setTxt('kpi-today-brl', '≈ R$ ' + Number(data.today_revenue_brl || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + ' hoje');
                 const reqs402 = Number(data.status_counts?.['402'] || 0);
                 const paid = Number(data.total_paid_requests || 0);
-                setTxt('kpi-total-reqs', Number(data.total_requests || 0).toLocaleString('pt-BR'));
+                setTxt('kpi-total-reqs', Number(data.real_api_requests ?? data.total_requests ?? 0).toLocaleString('pt-BR'));
+                setTxt('kpi-total-reqs-sub', 'Bruto: ' + Number(data.total_requests || 0).toLocaleString('pt-BR') + ' · ' + Number(data.total_crawler_requests || 0).toLocaleString('pt-BR') + ' crawlers x402');
                 setTxt('kpi-paid-main', paid.toLocaleString('pt-BR'));
                 setTxt('kpi-total-visits', Number(data.total_page_views || 0).toLocaleString('pt-BR'));
                 setTxt('kpi-today-visits', Number(data.today_page_views || 0).toLocaleString('pt-BR') + ' hoje · ' + Number(data.total_bot_views || 0).toLocaleString('pt-BR') + ' bots filtrados');

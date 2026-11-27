@@ -234,7 +234,7 @@ define('GRID402_SOLANA_USDC_MINT', trim((string) grid402_env('GRID402_SOLANA_USD
 define('GRID402_PAYAI_SOLANA_FEE_PAYER', trim((string) grid402_env('GRID402_PAYAI_SOLANA_FEE_PAYER', 'CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww')));
 define('GRID402_CRON_SECRET', (string) grid402_env('GRID402_CRON_SECRET', 'grid402_secret_token_change_me'));
 define('GRID402_RAPIDAPI_PROXY_SECRET', trim((string) grid402_env('GRID402_RAPIDAPI_PROXY_SECRET', '')));
-define('GRID402_RAPIDAPI_DOSSIER_DAILY_CAP', max(0, (int) grid402_env('GRID402_RAPIDAPI_DOSSIER_DAILY_CAP', 0)));
+define('GRID402_RAPIDAPI_DOSSIER_DAILY_CAP', max(0, (int) grid402_env('GRID402_RAPIDAPI_DOSSIER_DAILY_CAP', 15)));
 define('GRID402_RAPIDAPI_BLOCKED_ENDPOINTS', trim((string) grid402_env('GRID402_RAPIDAPI_BLOCKED_ENDPOINTS', '')));
 
 /**
@@ -506,7 +506,7 @@ function grid402_check_rapidapi_endpoint_guard(string $endpointId): array {
                 'consumed' => false,
                 'http_status' => 429,
                 'error' => 'RapidApiEndpointCapExceeded',
-                'reason' => "Daily RapidAPI safety cap ({$dossierCap}/day) reached for /api/v1/dossier. Use a Grid402 Session Pass (Pix R$ 12 = 40 dossiers or USDC) or x402 for unrestricted volume.",
+                'reason' => "Daily RapidAPI safety cap ({$dossierCap}/day) reached for /api/v1/dossier. Use a Grid402 Session Pass (Micro R$ 4.90 = 5 dossiers, Starter R$ 12.00 = 40 dossiers Pix, or USDC), MEGA plan, or x402 for unrestricted volume.",
                 'daily_cap' => $dossierCap,
                 'used_today' => $usedToday,
                 'retry_after' => $secondsUntilReset,
@@ -653,6 +653,7 @@ define('GRID402_FILE_ADMIN_AUTH', GRID402_PRIVATE_DIR . '/admin_auth.json');
 define('GRID402_FILE_CNPJ', GRID402_PRIVATE_DIR . '/cnpj_cache.json');
 define('GRID402_FILE_SANDBOX_RATES', (string) grid402_env('GRID402_FILE_SANDBOX_RATES', GRID402_PRIVATE_DIR . '/sandbox_rates.json'));
 define('GRID402_FILE_REQUEST_LOGS', (string) grid402_env('GRID402_FILE_REQUEST_LOGS', GRID402_PRIVATE_DIR . '/requests.jsonl'));
+define('GRID402_FILE_PAYMENT_FAILURES', (string) grid402_env('GRID402_FILE_PAYMENT_FAILURES', GRID402_PRIVATE_DIR . '/payment_failures.json'));
 define('GRID402_FILE_INDICATORS', GRID402_PRIVATE_DIR . '/indicators_cache.json');
 define('GRID402_FILE_HOLIDAYS', GRID402_PRIVATE_DIR . '/holidays_cache.json');
 define('GRID402_FILE_WORKDAYS', GRID402_PRIVATE_DIR . '/workdays_cache.json');

@@ -6,17 +6,19 @@ Define os artefatos de descoberta autônoma M2M, governança institucional (`/tr
 ## Requirements
 
 ### Requirement: Arquivos de Descoberta para LLMs
-O servidor SHALL disponibilizar arquivos de texto puro `llms.txt` e `llms-full.txt` na raiz publica, formatados segundo a especificacao llmstxt.org, contendo explicacao sucinta e completa dos 25 servicos das APIs, precificacao unificada em USDC na Base (`0.0050 a 0.0500 USDC`), matematica exata do Session Pass (`2 USDC = 400 creditos/180d`, `5 USDC = 1.200 creditos/180d`, `20 USDC = 6.000 creditos/365d`), fluxo HTTP 402 e apontando exclusivamente para o dominio canonico `https://grid402.online`.
+O servidor SHALL disponibilizar `public_html/llms.txt` integralmente em inglês e `public_html/llms-full.txt` na raiz pública, formatados segundo llmstxt.org, documentando os 25 serviços, preços em USDC (`0.0050` a `0.0500`), Session Pass (`micro`, `starter`, `pro`, `fleet`), cupom `MCPTRY50`, `/mcp` com auto-trial, RapidAPI USD e `/dossie-kyb` sem Solana ativa e sem `&`.
 
 #### Scenario: Requisicao com sucesso de llms.txt
-- GIVEN o servidor web em producao
-- WHEN um agente de IA efetua um GET em `/llms.txt`
-- THEN o servidor SHALL retornar status HTTP 200, Content-Type `text/plain`, cabecalho `Access-Control-Allow-Origin: *`, listagem dos 25 servicos, tabela de Session Pass (`2 USDC = 400 creditos/180d`, `5 USDC = 1.200 creditos/180d`, `20 USDC = 6.000 creditos/365d`) e todas as URLs apontando para `https://grid402.online`.
+- **GIVEN** o servidor web em produção com `GRID402_SOLANA_X402_ENABLED=false`
+- **WHEN** um agente de IA efetua `GET /llms.txt`
+- **THEN** o servidor SHALL retornar HTTP `200`, `Content-Type: text/plain` e cabeçalho `Access-Control-Allow-Origin: *`
+- **AND** o documento SHALL estar redigido em inglês, conter `MCPTRY50`, `/mcp` (27 tools + auto-trial diário), `Micro` (R$ 4.90 / 50 credits) e tabelas `Starter/Pro/Fleet`, RapidAPI USD, `/dossie-kyb` e URLs sob `https://grid402.online`
+- **AND** o conteúdo SHALL NOT conter o caractere `&` nem anunciar Solana como rede ativa.
 
 #### Scenario: Requisicao com sucesso de llms-full.txt
-- GIVEN o servidor web em producao
-- WHEN um agente de IA efetua um GET em `/llms-full.txt`
-- THEN o servidor SHALL retornar status HTTP 200, Content-Type `text/plain` com documentacao tecnica e endpoints sob `https://grid402.online`.
+- **GIVEN** o servidor web em produção
+- **WHEN** um agente de IA efetua `GET /llms-full.txt`
+- **THEN** o servidor SHALL retornar status HTTP `200`, `Content-Type: text/plain` com documentação técnica e endpoints sob `https://grid402.online` sem o caractere `&`.
 
 ### Requirement: Manifestos Padronizados de Agentes e MCP
 O servidor SHALL expor manifestos JSON padronizados sob `/.well-known/mcp.json` e `/.well-known/mcp/server-card.json` para descoberta automática por clientes MCP e diretórios externos (como Glama e Smithery), listando todas as 24 ferramentas disponíveis com endpoints apontando para `https://grid402.online`.

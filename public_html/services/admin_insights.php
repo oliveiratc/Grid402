@@ -164,9 +164,10 @@ function grid402_admin_operational_health(
     $col = is_array($runtimeStatus['collector'] ?? null) ? $runtimeStatus['collector'] : [];
     $tg = is_array($runtimeStatus['telegram'] ?? null) ? $runtimeStatus['telegram'] : [];
     $rapid = is_array($runtimeStatus['rapidapi'] ?? null) ? $runtimeStatus['rapidapi'] : [];
+    $mp = is_array($runtimeStatus['mercadopago'] ?? null) ? $runtimeStatus['mercadopago'] : null;
     $tgLast = is_array($tg['last_status'] ?? null) ? $tg['last_status'] : null;
 
-    return [
+    $health = [
         'services_up' => $servicesUp,
         'services_total' => $servicesTotal,
         'uptime_30d_pct' => round($uptime30dPct, 2),
@@ -188,6 +189,12 @@ function grid402_admin_operational_health(
         'telegram_last_ok' => $tgLast !== null ? (bool) ($tgLast['ok'] ?? false) : null,
         'telegram_last_timestamp' => $tgLast !== null ? (string) ($tgLast['timestamp'] ?? '') : '',
     ];
+    if ($mp !== null) {
+        $health['mercadopago_configured'] = (bool) ($mp['configured'] ?? false);
+        $health['mercadopago_sandbox'] = (bool) ($mp['sandbox'] ?? false);
+    }
+
+    return $health;
 }
 
 /**
@@ -314,6 +321,33 @@ function grid402_admin_evaluate_alerts(
             'title' => count($lowTraction) . ' serviço(s) com baixa tração paga (< 30 pagas)',
             'detail' => "Serviços abaixo de 30 consultas pagas reais (402/sandbox/bots excluídos): {$preview}{$suffix}.",
             'action' => 'Acompanhe a indexação SEO, descoberta MCP e conversão na aba Audiência e Funil.',
+        ];
+    }
+
+    // 8. [HIGH] Erros 5xx no gateway Mercado Pago
+    $mpGatewayErrors = (int) ($metrics['failure_categories']['mercadopago_gateway_error'] ?? 0);
+    if ($mpGatewayErrors > 0) {
+        $alerts[] = [
+            'id' => 'mercadopago_gateway_error',
+            'severity' => 'high',
+            'title' => 'Erros 5xx no gateway Mercado Pago',
+            'detail' => "{$mpGatewayErrors} falha(s) de gateway registrada(s) no checkout Pix/Cartão.",
+            'action' => 'Verifique MP_ACCESS_TOKEN, payment_failures.json e disponibilidade da API Mercado Pago.',
+        ];
+    }
+
+    // 9. [MEDIUM] Mercado Pago sem token em produção
+    if (
+        array_key_exists('mercadopago_configured', $operationalHealth)
+        && $operationalHealth['mercadopago_configured'] === false
+        && empty($operationalHealth['mercadopago_sandbox'])
+    ) {
+        $alerts[] = [
+            'id' => 'mercadopago_unconfigured',
+            'severity' => 'medium',
+            'title' => 'Mercado Pago sem MP_ACCESS_TOKEN configurado',
+            'detail' => 'O checkout Pix/Cartão do Session Pass está sem credencial de produção ativa.',
+            'action' => 'Configure MP_ACCESS_TOKEN (ou MP_SANDBOX_MODE=1 em staging) no .env da Hostinger.',
         ];
     }
 

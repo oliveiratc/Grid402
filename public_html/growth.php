@@ -243,6 +243,20 @@ function grid402_growth_update(callable $mutator): array {
 }
 
 /**
+ * Valida se o identificador corresponde a um endereco de carteira Web3 real (EVM ou Solana Base58).
+ */
+function grid402_is_valid_web3_wallet_address(?string $addr): bool {
+    $clean = trim((string) $addr);
+    if ($clean === '') {
+        return false;
+    }
+    if (preg_match('/^0x[a-fA-F0-9]{40}$/', $clean) === 1) {
+        return strtolower($clean) !== '0x0000000000000000000000000000000000000000';
+    }
+    return preg_match('/^[1-9A-HJ-NP-Za-km-z]{32,44}$/', $clean) === 1;
+}
+
+/**
  * Incrementa contadores e mantém estado de funil por carteira.
  */
 function grid402_growth_event(string $type, array $context = []): array {
@@ -263,6 +277,7 @@ function grid402_growth_event(string $type, array $context = []): array {
         $isRapidApiProxy = ($rawPayerLower === 'rapidapi_proxy')
             || (strtolower(trim((string)($context['type'] ?? ''))) === 'rapidapi');
         $isMpChannel = str_starts_with($rawPayerLower, 'mp_');
+        $isValidWalletPayer = !$isRapidApiProxy && !$isMpChannel && grid402_is_valid_web3_wallet_address($context['payer'] ?? null);
         if (!isset($data['profiles'][$actor]) || !is_array($data['profiles'][$actor])) {
             $data['profiles'][$actor] = [
                 'actor_id' => $actor,
@@ -271,7 +286,9 @@ function grid402_growth_event(string $type, array $context = []): array {
                 'last_seen_at' => $now,
                 'first_paid_at' => null,
                 'second_paid_at' => null,
-                'wallet_last4' => (!$isRapidApiProxy && !$isMpChannel && isset($context['payer']) && trim((string)$context['payer']) !== '')
+                'wallet_verified' => false,
+                'wallet_verified_at' => null,
+                'wallet_last4' => $isValidWalletPayer
                     ? substr(strtolower((string)$context['payer']), -4)
                     : null,
                 'services' => [],
@@ -300,7 +317,7 @@ function grid402_growth_event(string $type, array $context = []): array {
         }
 
         $service = grid402_growth_clean_text(isset($context['service']) ? (string)$context['service'] : 'unknown', 80);
-        if ($type !== 'sandbox_rate_limited') {
+        if ($type !== 'sandbox_rate_limited' && $type !== 'wallet_connect') {
             $p['services'][$service] = (int)($p['services'][$service] ?? 0) + 1;
         }
 
@@ -308,7 +325,19 @@ function grid402_growth_event(string $type, array $context = []): array {
         $amount = max(0.0, (float)($context['amount_usdc'] ?? 0.0));
         $eventAmount = 0.0;
 
-        if ($type === 'challenge_402') {
+        if ($isValidWalletPayer && ($type === 'wallet_connect' || $type === 'pass_purchase' || $isPaid)) {
+            $p['wallet_verified'] = true;
+            if (empty($p['wallet_verified_at'])) {
+                $p['wallet_verified_at'] = $now;
+            }
+            if (empty($p['wallet_last4'])) {
+                $p['wallet_last4'] = substr(strtolower((string)$context['payer']), -4);
+            }
+        }
+
+        if ($type === 'wallet_connect') {
+            // Conexao real de carteira EVM verificada (eth_requestAccounts)
+        } elseif ($type === 'challenge_402') {
             $p['challenges_402'] = (int)($p['challenges_402'] ?? 0) + 1;
         } elseif ($type === 'sandbox_rate_limited') {
             $p['sandbox_rate_limited'] = (int)($p['sandbox_rate_limited'] ?? 0) + 1;
@@ -565,6 +594,100 @@ function grid402_growth_issue_pending_reward(string $rewardId): array {
 }
 
 /**
+ * Registra conexao real de carteira EVM verificada no front-end (eth_requestAccounts) com deduplicacao e rate-limit Zero-PII (RF14).
+ */
+function grid402_growth_record_wallet_connect(string $address, ?string $ip = null): array {
+    $cleanAddr = strtolower(trim($address));
+    if (preg_match('/^0x[a-f0-9]{40}$/', $cleanAddr) !== 1 || $cleanAddr === '0x0000000000000000000000000000000000000000') {
+        return [
+            'ok' => false,
+            'code' => 400,
+            'error' => 'InvalidWalletAddress',
+            'message' => 'Provide a valid non-zero EVM wallet address (0x + 40 hex chars).',
+        ];
+    }
+
+    $actor = grid402_growth_actor_id($cleanAddr, null, $ip);
+    $existing = grid402_growth_read();
+    if (!empty($existing['profiles'][$actor]['wallet_verified'])) {
+        return [
+            'ok' => true,
+            'code' => 200,
+            'already_connected' => true,
+            'actor_id' => $actor,
+        ];
+    }
+
+    $clientIp = $ip ?? (function_exists('grid402_get_trusted_client_ip') ? grid402_get_trusted_client_ip() : (string) ($_SERVER['REMOTE_ADDR'] ?? '127.0.0.1'));
+    $ipHmac = substr(hash_hmac('sha256', trim($clientIp), grid402_growth_secret()), 0, 16);
+    $rateFile = GRID402_PRIVATE_DIR . '/wallet_connect_rates.json';
+    $dir = dirname($rateFile);
+    if (!is_dir($dir)) {
+        @mkdir($dir, 0775, true);
+    }
+
+    $hourlyLimit = max(1, (int) grid402_env('GRID402_WALLET_CONNECT_HOURLY_LIMIT', 10));
+    $windowSec = 3600;
+    $now = time();
+    $allowed = true;
+    $retryAfter = $windowSec;
+
+    $fp = @fopen($rateFile, 'c+');
+    if ($fp) {
+        if (flock($fp, LOCK_EX)) {
+            $rates = grid402_read_locked_json($fp, []);
+            $cleaned = [];
+            foreach ($rates as $k => $entry) {
+                $start = (int) ($entry['window_start'] ?? 0);
+                if ($start > 0 && ($now - $start) < $windowSec) {
+                    $cleaned[$k] = $entry;
+                }
+            }
+            $curr = $cleaned[$ipHmac] ?? ['window_start' => $now, 'count' => 0];
+            if (($now - (int) $curr['window_start']) >= $windowSec) {
+                $curr = ['window_start' => $now, 'count' => 0];
+            }
+            if ((int) $curr['count'] >= $hourlyLimit) {
+                $allowed = false;
+                $retryAfter = max(1, $windowSec - ($now - (int) $curr['window_start']));
+            } else {
+                $curr['count'] = (int) $curr['count'] + 1;
+                $cleaned[$ipHmac] = $curr;
+                ftruncate($fp, 0);
+                rewind($fp);
+                fwrite($fp, (string) json_encode($cleaned, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+                fflush($fp);
+            }
+            flock($fp, LOCK_UN);
+        }
+        fclose($fp);
+    }
+
+    if (!$allowed) {
+        return [
+            'ok' => false,
+            'code' => 429,
+            'error' => 'WalletConnectRateLimited',
+            'message' => 'Too many distinct wallet registrations from this IP.',
+            'retry_after' => $retryAfter,
+        ];
+    }
+
+    grid402_growth_event('wallet_connect', [
+        'payer' => $cleanAddr,
+        'ip' => $clientIp,
+        'service' => 'wallet-connect',
+    ]);
+
+    return [
+        'ok' => true,
+        'code' => 200,
+        'already_connected' => false,
+        'actor_id' => $actor,
+    ];
+}
+
+/**
  * Indicadores agregados para dashboard e crescimento.
  */
 function grid402_growth_metrics(): array {
@@ -573,6 +696,7 @@ function grid402_growth_metrics(): array {
     $cfg = $data['config'];
 
     $walletsConnected = 0;
+    $identifiedProfiles = 0;
     $walletsPaying = 0;
     $walletsSecondPayment = 0;
     $rapidapiPaidRequests = 0;
@@ -607,7 +731,20 @@ function grid402_growth_metrics(): array {
             continue;
         }
 
-        $walletsConnected++;
+        $identifiedProfiles++;
+
+        // RF14: conta como Wallet Conectada apenas conexoes Web3 reais ou pagadores on-chain verificados
+        $walletLast4 = (string) ($p['wallet_last4'] ?? '');
+        $isVerifiedWallet = !empty($p['wallet_verified'])
+            || (($p['channel'] ?? '') === 'web3' && $paidRequests > 0 && $walletLast4 !== '' && preg_match('/^[a-f0-9]{4}$/i', $walletLast4) === 1);
+
+        if ($isVerifiedWallet) {
+            $walletsConnected++;
+            $verifiedDay = grid402_metrics_day_of((string) ($p['wallet_verified_at'] ?? $p['first_seen_at'] ?? 'now'));
+            $newByDay[$verifiedDay] = (int)($newByDay[$verifiedDay] ?? 0) + 1;
+            $activeDays[grid402_metrics_day_of((string)($p['last_seen_at'] ?? 'now'))] = true;
+        }
+
         if ($paidRequests > 0) {
             $walletsPaying++;
         }
@@ -617,19 +754,18 @@ function grid402_growth_metrics(): array {
         if ($paidRequests >= 3) {
             $recurrent++;
         }
-        $day = grid402_metrics_day_of((string)($p['first_seen_at'] ?? 'now'));
-        $newByDay[$day] = (int)($newByDay[$day] ?? 0) + 1;
-        $activeDays[grid402_metrics_day_of((string)($p['last_seen_at'] ?? 'now'))] = true;
     }
 
-    $conversion = $walletsConnected > 0 ? round(($walletsPaying / $walletsConnected) * 100, 1) : 0.0;
+    $convDenom = $walletsConnected > 0 ? max($walletsConnected, $walletsPaying) : $identifiedProfiles;
+    $conversion = $convDenom > 0 ? round(($walletsPaying / $convDenom) * 100, 1) : 0.0;
     $second = $walletsPaying > 0 ? round(($walletsSecondPayment / $walletsPaying) * 100, 1) : 0.0;
-    $revenuePerWallet = $walletsConnected > 0 ? round($revenue / $walletsConnected, 8) : 0.0;
+    $revenuePerWallet = $walletsConnected > 0 ? round($revenue / $walletsConnected, 8) : ($identifiedProfiles > 0 ? round($revenue / $identifiedProfiles, 8) : 0.0);
     $revenuePerAgent = $walletsPaying > 0 ? round($revenue / $walletsPaying, 8) : 0.0;
 
     return [
         'wallets_connected' => $walletsConnected,
         'unique_wallets' => $walletsConnected,
+        'identified_profiles' => $identifiedProfiles,
         'new_wallets_by_day' => $newByDay,
         'active_wallets_14d' => count($activeDays),
         'wallets_paying' => $walletsPaying,
@@ -637,7 +773,7 @@ function grid402_growth_metrics(): array {
         'conversion_first_payment' => $conversion,
         'conversion_second_payment' => $second,
         'wallet_retention' => $walletsPaying > 0 ? round(($recurrent / $walletsPaying) * 100, 1) : 0.0,
-        'agent_activation_rate' => $walletsPaying > 0 ? round(($walletsPaying / max(1, $walletsConnected)) * 100, 1) : 0.0,
+        'agent_activation_rate' => $walletsPaying > 0 ? round(($walletsPaying / max(1, max($walletsConnected, $identifiedProfiles))) * 100, 1) : 0.0,
         'revenue_per_wallet_usdc' => $revenuePerWallet,
         'revenue_per_agent_usdc' => $revenuePerAgent,
         'paid_revenue_usdc' => round($revenue, 8),
