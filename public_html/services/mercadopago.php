@@ -61,6 +61,14 @@ function grid402_mp_packages(): array {
             'credits' => 6000,
             'ttl_days' => 365,
         ],
+        'finance_pack' => [
+            'tier' => 'finance_pack',
+            'label' => 'Passe Financeiro & Automação',
+            'amount_brl' => 29.90,
+            'raw_usdc_units' => 5000000, // 5 USDC equiv. -> 10.000 creditos dedicados
+            'credits' => 10000,
+            'ttl_days' => 365,
+        ],
     ];
 }
 

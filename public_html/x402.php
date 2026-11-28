@@ -1357,6 +1357,8 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         'sandbox_test' => $sandboxTestBlock,
         'action_required' => $actionRequiredText,
         'fiat_and_card_checkout' => $fiatAndCardCheckout,
+        'quick_pix_pass_url' => $canonicalBase . '/pass?tier=micro&method=pix&ref=http402',
+        'quick_pix_price_brl' => 4.90,
         'conversion' => $conversionInfo,
         'docs' => $canonicalBase . '/llms.txt',
     ];

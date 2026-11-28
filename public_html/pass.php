@@ -238,6 +238,8 @@ $promoCampaign = (is_array($promoStatus) && !empty($promoStatus['ok'])) ? $promo
                         Best entry value: 8x more credits than Micro for only R$ 12 (R$ 0,30 per KYB Dossier; 1 credit = 0.0050 USDC). Valid for 180 days.
                     <?php elseif ($tier === 'pro'): ?>
                         For autonomous AI agents and continuous automation pipelines (1,000 base + 200 bonus = 1,200 credits; 16.7% off). Valid for 180 days.
+                    <?php elseif ($tier === 'finance_pack'): ?>
+                        Dedicated volume pack for financial automations: 10,000 calls for Forex, Workdays, Holidays & Economic Indicators. Valid for 365 days.
                     <?php else: ?>
                         Agent fleets, corporate ERP systems, and high demand (4,000 base + 2,000 bonus = 6,000 credits; 33.3% off). Valid for 365 days.
                     <?php endif; ?>
@@ -721,7 +723,8 @@ async function pollOrderStatus(orderId, paymentId = null) {
 
 function startPolling(orderId) {
     if (mpPollTimer) clearInterval(mpPollTimer);
-    mpPollTimer = setInterval(() => pollOrderStatus(orderId), 3000);
+    // Polling rápido a cada 2000ms para ativação instantânea do Pix
+    mpPollTimer = setInterval(() => pollOrderStatus(orderId), 2000);
 }
 
 async function startMpPix(tier, btn) {

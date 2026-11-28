@@ -744,7 +744,7 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
                 $('btn-sandbox-approve').style.display = 'inline-flex';
             }
             if (pollInterval) clearInterval(pollInterval);
-            pollInterval = setInterval(checkPixStatus, 3000);
+            pollInterval = setInterval(checkPixStatus, 2000);
         } catch (_) {
             showAlert('Erro de rede ao criar cobrança Pix. Tente novamente.');
         } finally {
