@@ -376,7 +376,8 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
         <div class="no-print" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.75rem;margin-bottom:1rem;">
             <div id="credits-after-badge" style="font-size:.88rem;color:#6EE7B7;font-weight:600;"></div>
             <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
-                <button type="button" id="btn-print-pdf" class="btn btn-pix">🖨️ Imprimir / Salvar PDF (A4)</button>
+                <button type="button" id="btn-download-pdf" class="btn btn-pix">⬇️ Baixar PDF Oficial (A4)</button>
+                <button type="button" id="btn-print-pdf" class="btn btn-outline">🖨️ Imprimir (Navegador)</button>
                 <button type="button" id="btn-download-json" class="btn btn-outline">⬇️ Baixar JSON Assinado</button>
             </div>
         </div>
@@ -564,7 +565,7 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
         hideAlert();
         lastDossierPayload = SAMPLE_REAL_DOSSIER;
         renderFullReport(SAMPLE_REAL_DOSSIER, null);
-        $('credits-after-badge').textContent = '👁️ AMOSTRA REAL ILUSTRATIVA (Banco do Brasil) — Teste o botão "Imprimir / Salvar PDF (A4)" ao lado ou desbloqueie seu CNPJ acima por R$ 4,90 ou R$ 12.';
+        $('credits-after-badge').textContent = '👁️ AMOSTRA REAL ILUSTRATIVA (Banco do Brasil) — Teste o botão "Baixar PDF Oficial (A4)" ao lado ou desbloqueie seu CNPJ acima por R$ 4,90 ou R$ 12.';
     }
 
     async function loadPreview(cnpjDigits) {
@@ -873,6 +874,48 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
         });
         await checkPixStatus();
     });
+
+    if ($('btn-download-pdf')) {
+        $('btn-download-pdf').addEventListener('click', async () => {
+            if (!lastDossierPayload) return;
+            const btn = $('btn-download-pdf');
+            const orig = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = '⏳ Gerando PDF (A4)...';
+            try {
+                const res = await fetch('/api/v1/dossier/pdf', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/pdf' },
+                    body: JSON.stringify({ dossier: lastDossierPayload })
+                });
+                if (!res.ok) {
+                    let errMsg = 'Falha ao gerar PDF (' + res.status + '). Utilize o botão "Imprimir (Navegador)" ao lado.';
+                    try {
+                        const errData = await res.json();
+                        if (errData && errData.message) errMsg = errData.message + ' Use "Imprimir (Navegador)" como alternativa.';
+                    } catch (_) {}
+                    showAlert(errMsg);
+                    return;
+                }
+                const blob = await res.blob();
+                const cnpjSlug = onlyDigits(lastDossierPayload.cnpj_raw || lastDossierPayload.cnpj || $('cnpj-input').value || 'kyb') || 'kyb';
+                const fileName = 'dossie-kyb-' + cnpjSlug + (lastDossierPayload.is_sample_demo ? '-amostra' : '') + '.pdf';
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = fileName;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 1500);
+            } catch (_) {
+                showAlert('Erro de conexão ao gerar PDF. Utilize o botão "Imprimir (Navegador)" ao lado.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = orig;
+            }
+        });
+    }
 
     $('btn-print-pdf').addEventListener('click', () => window.print());
 

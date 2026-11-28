@@ -1706,7 +1706,10 @@ if ($apiParam === 'stats') {
         'country_revenue' => $analytics['country_revenue'] ?? [],
         'recent_pulse' => grid402_admin_recent_pulse($metrics),
         'recent_events' => $metrics['recent_events'] ?? [],
-        'recent_payment_failures' => function_exists('grid402_read_recent_payment_failures') ? grid402_read_recent_payment_failures(25) : [],
+        'recent_payment_failures' => ($pfListStats = (function_exists('grid402_read_recent_payment_failures') ? grid402_read_recent_payment_failures(50) : [])),
+        'payment_failures_summary' => function_exists('grid402_summarize_payment_failures')
+            ? grid402_summarize_payment_failures($pfListStats)
+            : ['total' => count($pfListStats), 'payer_failure' => count($pfListStats), 'compliance_probe' => 0],
         'today_vs_yesterday' => $todayVsYesterday,
         'operational_health' => $operationalHealth,
         'alerts' => $alertsBundle['alerts'],
@@ -2003,7 +2006,10 @@ $topConsumers = $analytics['top_consumers'] ?? [];
 $serviceRevenue = $analytics['service_revenue'] ?? [];
 $countryRevenue = $analytics['country_revenue'] ?? [];
 $recentPulse = grid402_admin_recent_pulse($metrics);
-$recentPaymentFailures = function_exists('grid402_read_recent_payment_failures') ? grid402_read_recent_payment_failures(25) : [];
+$recentPaymentFailures = function_exists('grid402_read_recent_payment_failures') ? grid402_read_recent_payment_failures(50) : [];
+$paymentFailuresSummary = function_exists('grid402_summarize_payment_failures')
+    ? grid402_summarize_payment_failures($recentPaymentFailures)
+    : ['total' => count($recentPaymentFailures), 'payer_failure' => count($recentPaymentFailures), 'compliance_probe' => 0];
 
 $totalPageViews = (int)($metrics['total_page_views'] ?? 0);
 $todayPageViews = (int)($metrics['daily'][$today]['page_views'] ?? 0);

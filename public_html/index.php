@@ -743,6 +743,59 @@ if ($requestPath === '/api/v1/pass/promo-status' || $requestPath === '/api/v1/pa
     exit;
 }
 
+// 1.3c. Exportacao Binaria PDF 1.4 de Dossie 360 KYB (POST /api/v1/dossier/pdf — Zero-PII & Anti-Forjamento)
+if ($requestPath === '/api/v1/dossier/pdf') {
+    grid402_emit_api_cors_headers();
+    $method = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
+    if ($method === 'OPTIONS') {
+        http_response_code(204);
+        exit;
+    }
+    if ($method !== 'POST') {
+        http_response_code(405);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok' => false, 'code' => 405, 'error' => 'MethodNotAllowed', 'message' => 'Use POST /api/v1/dossier/pdf com JSON do dossie assinado.'], JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
+    require_once __DIR__ . '/services/dossier_pdf.php';
+    $rawBody = $rawRequestBody !== '' ? $rawRequestBody : (string) @file_get_contents('php://input');
+    $decoded = @json_decode($rawBody, true);
+    $dossierPayload = is_array($decoded['dossier'] ?? null) ? $decoded['dossier'] : (is_array($decoded) ? $decoded : null);
+
+    if (!is_array($dossierPayload)) {
+        http_response_code(400);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok' => false, 'code' => 400, 'error' => 'InvalidJSON', 'message' => 'Envie um payload JSON valido do Dossie 360 KYB.'], JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
+    $validatedPdf = grid402_dossier_pdf_validate_payload($dossierPayload);
+    if (empty($validatedPdf['ok'])) {
+        $errCode = (int) ($validatedPdf['code'] ?? 403);
+        http_response_code($errCode);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode($validatedPdf, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+    $pdfBinary = grid402_dossier_pdf_render($validatedPdf['dossier'], !empty($validatedPdf['is_sample']));
+    $cnpjDigits = preg_replace('/\D/', '', (string) ($validatedPdf['dossier']['cnpj_raw'] ?? $validatedPdf['dossier']['cnpj'] ?? ($validatedPdf['dossier']['cnpj_data']['cnpj'] ?? 'kyb')));
+    if ($cnpjDigits === '') {
+        $cnpjDigits = 'kyb';
+    }
+    $fileSuffix = !empty($validatedPdf['is_sample']) ? ($cnpjDigits . '-amostra') : $cnpjDigits;
+
+    http_response_code(200);
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: attachment; filename="dossie-kyb-' . $fileSuffix . '.pdf"');
+    header('Content-Length: ' . strlen($pdfBinary));
+    header('Cache-Control: no-store, no-cache, must-revalidate');
+    header('X-Content-Type-Options: nosniff');
+    echo $pdfBinary;
+    exit;
+}
+
 // 2. Classificação de Rotas
 $isStatusRoute = ($requestPath === '/status' || $requestPath === '/api/v1/summary' || $requestPath === '/telemetry');
 $isHomeRoute = ($requestPath === '/' || $requestPath === '/index.php');
@@ -1754,8 +1807,8 @@ if ($isValidApiAction) {
                 'token' => 'USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)',
                 'recipient' => GRID402_WALLET_ADDRESS,
                 'checkout_url' => $passCanonicalBase . '/pass',
+                'pix_micro_url' => $passCanonicalBase . '/pass?tier=micro&method=pix',
                 'pix_starter_url' => $passCanonicalBase . '/pass?tier=starter&method=pix',
-                'promo_free_50_url' => $passCanonicalBase . '/pass?promo=MCPTRY50',
                 'web3_activate_endpoint' => 'POST /api/v1/pass-emitir {"txHash":"0x...","chain":"base"}',
                 'usage_header' => 'X-Payment: pass_g402_<your_token>',
                 'usage_example_curl' => 'curl -s -H "X-Payment: pass_g402_<your_token>" "https://grid402.online/api/v1/forex"',
@@ -1850,6 +1903,8 @@ if ($isValidApiAction) {
             $errPayload['accepts'] = $prBundle['accepts'];
             $errPayload['extensions'] = ['bazaar' => $prBundle['bazaar']];
             $errPayload['price_usdc'] = $servicePriceDisplay;
+            $errPayload['required_usdc'] = $servicePriceDisplay;
+            $errPayload['required_raw_units'] = (int) $servicePriceRaw;
             $errPayload['recipient_wallet'] = GRID402_WALLET_ADDRESS;
         }
         if ($statusCode === 429) {
@@ -1865,15 +1920,7 @@ if ($isValidApiAction) {
                 ? ['base', 'arbitrum', 'polygon', 'optimism', 'ethereum', 'solana']
                 : ['base', 'arbitrum', 'polygon', 'optimism', 'ethereum'];
             $chainsLabel = $solanaOn ? 'Base/Polygon/Arbitrum/Solana' : 'Base/Polygon/Arbitrum';
-            $errPayload['promo_code'] = (string) ($valResult['promo_code'] ?? 'MCPTRY50');
-            $errPayload['promo_url'] = (string) ($valResult['promo_url'] ?? 'https://grid402.online/pass?promo=MCPTRY50');
             $errPayload['upgrade_to_production'] = [
-                'free_promo' => [
-                    'code' => 'MCPTRY50',
-                    'credits' => 50,
-                    'redeem_url' => 'https://grid402.online/pass?promo=MCPTRY50',
-                    'description' => 'Unlock 50 free credits immediately (no wallet or signup needed) and send X-Payment: pass_g402_<token>.',
-                ],
                 'session_pass_url' => $upgradeSessionUrl,
                 'pix_micro_url' => 'https://grid402.online/pass?tier=micro&method=pix',
                 'pix_starter_url' => 'https://grid402.online/pass?tier=starter&method=pix',
@@ -1881,9 +1928,8 @@ if ($isValidApiAction) {
                 'pix_pro_url' => 'https://grid402.online/pass?tier=pro&method=pix',
                 'starter_tier' => 'Micro R$ 4.90 (50 credits / 5 KYB dossiers) | Starter 2.0000 USDC or R$ 12.00 (Pix/Card) = 400 credits (180d)',
                 'how_to_continue' => [
-                    'free_promo_50_credits' => 'Claim 50 free credits using code MCPTRY50 at https://grid402.online/pass?promo=MCPTRY50 (no wallet required) and retry with X-Payment: pass_g402_<token>',
                     'x402_gasless' => 'Sign the x402 v2 challenge in accepts[] and retry with header PAYMENT-SIGNATURE: <base64_payload>',
-                    'x402_onchain' => "Send {$servicePriceDisplay} USDC to " . GRID402_WALLET_ADDRESS . " on {$chainsLabel} and retry with X-Payment: <tx_hash>",
+                    'x402_onchain' => "Send {$servicePriceDisplay} USDC ({$servicePriceRaw} raw units) to " . GRID402_WALLET_ADDRESS . " on {$chainsLabel} and retry with X-Payment: <tx_hash>",
                     'session_pass_no_wallet' => 'Get a prepaid token at https://grid402.online/pass (Pix/Card or EVM USDC) and retry with X-Payment: pass_g402_<token>',
                     'rapidapi_credit_card_usd' => 'Subscribe with international Credit Card (USD) at https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities',
                 ],
@@ -2637,10 +2683,8 @@ if ($isValidApiAction) {
             'quota_remaining_this_hour' => $remQuota,
             'quota_limit_per_hour' => $limQuota,
             'window_seconds' => defined('GRID402_SANDBOX_WINDOW_SECONDS') ? GRID402_SANDBOX_WINDOW_SECONDS : 86400,
-            'message' => "Sandbox query executed ({$remQuota}/{$limQuota} remaining today). Unlock 50 FREE credits with code MCPTRY50 at https://grid402.online/pass?promo=MCPTRY50, or switch to production (<15ms) via Pix/Card (from R$ 4.90), RapidAPI (USD Card) or Multi-Chain EVM USDC (Base, Polygon, Arbitrum).",
+            'message' => "Sandbox query executed ({$remQuota}/{$limQuota} remaining today). Switch to production (<15ms) via Pix/Card (from R$ 4.90), Session Pass at https://grid402.online/pass, RapidAPI (USD Card) or Multi-Chain EVM USDC (Base, Polygon, Arbitrum).",
             'upgrade_to_production' => [
-                'free_promo_code' => 'MCPTRY50',
-                'free_promo_url' => 'https://grid402.online/pass?promo=MCPTRY50',
                 'session_pass_pix_and_multichain_url' => 'https://grid402.online/pass?tier=starter&method=pix',
                 'micro_tier' => 'R$ 4,90 (Pix/Cartão) = 50 créditos (5 Dossiês KYB, 90 dias)',
                 'starter_tier' => 'R$ 12,00 (Pix/Cartão) ou 2.0000 USDC = 400 créditos (180 dias)',
@@ -2704,6 +2748,11 @@ $servicesCatalog = grid402_get_utility_services();
 
 $usdRate = $services['forex']['usd_brl'] ?? 5.50;
 $btcPrice = $services['crypto']['btc_usd'] ?? 75000.0;
+if (is_file(__DIR__ . '/services/promo_pass.php')) {
+    require_once __DIR__ . '/services/promo_pass.php';
+}
+$homePromoStatus = function_exists('grid402_promo_get_status') ? grid402_promo_get_status('MCPTRY50') : ['ok' => false];
+$homePromoActive = !empty($homePromoStatus['ok']) && !empty($homePromoStatus['campaign']['active']);
 grid402_log_public_visit('/');
 ?>
 <!DOCTYPE html>
@@ -4555,24 +4604,56 @@ grid402_log_public_visit('/');
                         </div>
                     </div>
 
-                    <!-- Card Dedicado de Limite Sandbox (HTTP 429 — Sem Loop de 402) -->
-                    <div id="playground-rate-limit-card" style="display: none; margin-bottom: 0.85rem; padding: 1rem 1.1rem; border-radius: 10px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(0, 82, 255, 0.16)); border: 1px solid rgba(245, 158, 11, 0.55);">
-                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
-                            <strong style="color: #FCD34D; font-size: 0.92rem;">⏱️ Daily Free Sandbox Quota Reached (HTTP 429)</strong>
-                            <span style="font-size: 0.76rem; color: #34D399; font-weight: 700;">50 Free Credits Available</span>
+                    <!-- Card Dedicado de Limite Sandbox (HTTP 429 — Checkout Pix Inline + Sem Loop de 402) -->
+                    <div id="playground-rate-limit-card" style="display: none; margin-bottom: 0.85rem; padding: 1.05rem 1.15rem; border-radius: 10px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.14), rgba(0, 82, 255, 0.16)); border: 1px solid rgba(245, 158, 11, 0.55);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.45rem;">
+                            <strong style="color: #FCD34D; font-size: 0.94rem;">⏱️ Limite Gratuito Diário Atingido (HTTP 429 · 3/dia)</strong>
+                            <span style="font-size: 0.76rem; color: #34D399; font-weight: 700;">⚡ Pix Instantâneo a partir de R$ 4,90</span>
                         </div>
-                        <p id="playground-rate-limit-msg" style="margin: 0 0 0.75rem; font-size: 0.84rem; color: #E2E8F0; line-height: 1.5;">
-                            You hit the 3/day sandbox limit. Claim <strong>50 FREE credits</strong> right now (no wallet or signup needed) with code <code>MCPTRY50</code>, use an existing Session Pass, or pay via Pix / USD Card.
+                        <p id="playground-rate-limit-msg" style="margin: 0 0 0.75rem; font-size: 0.83rem; color: #E2E8F0; line-height: 1.5;">
+                            Desbloqueie agora mesmo sem sair desta tela via <strong>Pix</strong> (ativação automática em segundos) ou escolha outro método de produção abaixo.
                         </p>
+
+                        <!-- Checkout Pix Inline -->
+                        <div id="pg-rl-pix-checkout" style="padding: 0.85rem; border-radius: 8px; background: rgba(6, 11, 25, 0.72); border: 1px solid rgba(16, 185, 129, 0.35); margin-bottom: 0.75rem;">
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.65rem;">
+                                <button type="button" class="btn-sm pg-rl-tier-btn" data-pg-tier="micro" onclick="selectPlaygroundPixTier('micro')" style="padding: 0.48rem 0.8rem; border-radius: 7px; border: 1.5px solid #10B981; background: rgba(16, 185, 129, 0.14); color: #F8FAFC; font-weight: 700; font-size: 0.78rem; cursor: pointer;">
+                                    🇧🇷 Micro · R$ 4,90 (50 cr / 5 dossiês)
+                                </button>
+                                <button type="button" class="btn-sm pg-rl-tier-btn" data-pg-tier="starter" onclick="selectPlaygroundPixTier('starter')" style="padding: 0.48rem 0.8rem; border-radius: 7px; border: 1px solid rgba(148, 163, 184, 0.4); background: transparent; color: #CBD5E1; font-weight: 600; font-size: 0.78rem; cursor: pointer;">
+                                    🇧🇷 Starter · R$ 12,00 (400 cr / melhor custo)
+                                </button>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                                <input type="email" id="pg-rl-pix-email" placeholder="Seu e-mail para recibo Pix (obrigatório)" aria-label="E-mail para recibo Pix" style="flex: 1 1 210px; min-width: 190px; padding: 0.5rem 0.75rem; border-radius: 7px; border: 1px solid rgba(148, 163, 184, 0.4); background: rgba(11, 19, 43, 0.9); color: #F8FAFC; font-size: 0.82rem;">
+                                <button type="button" id="btn-pg-rl-gen-pix" onclick="startPlaygroundInlinePix()" class="btn-sm" style="background: linear-gradient(135deg, #059669, #10B981); color: #04120D; font-weight: 800; padding: 0.54rem 0.95rem; border-radius: 7px; border: none; cursor: pointer;">
+                                    ⚡ Gerar QR Code Pix (R$ 4,90)
+                                </button>
+                            </div>
+                            <div id="pg-rl-feedback" style="display: none; margin-top: 0.55rem; font-size: 0.8rem; line-height: 1.45;"></div>
+                            <div id="pg-rl-pix-qr-box" style="display: none; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid rgba(148, 163, 184, 0.25);">
+                                <div style="display: flex; gap: 0.85rem; align-items: center; flex-wrap: wrap;">
+                                    <img id="pg-rl-pix-qr-img" alt="QR Code Pix Grid402" style="width: 148px; height: 148px; background: #fff; border-radius: 8px; padding: 6px;">
+                                    <div style="flex: 1 1 220px;">
+                                        <div id="pg-rl-pix-status" style="font-size: 0.8rem; font-weight: 700; color: #FCD34D; margin-bottom: 0.45rem;">⏳ Aguardando confirmação do Pix...</div>
+                                        <input type="text" id="pg-rl-pix-code" readonly aria-label="Código Pix Copia e Cola" style="width: 100%; box-sizing: border-box; padding: 0.42rem 0.6rem; border-radius: 6px; border: 1px solid rgba(148, 163, 184, 0.35); background: #060B19; color: #E2E8F0; font-family: var(--font-mono); font-size: 0.74rem; margin-bottom: 0.45rem;">
+                                        <button type="button" id="btn-pg-rl-copy-pix" onclick="copyPlaygroundInlinePixCode()" class="btn-sm btn-outline" style="padding: 0.4rem 0.75rem; font-size: 0.76rem;">📋 Copiar Código Pix</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div style="display: flex; gap: 0.55rem; flex-wrap: wrap;">
-                            <a href="/pass?promo=MCPTRY50" class="btn-sm" style="text-decoration:none; background: linear-gradient(135deg, #059669, #10B981); color: #04120D; font-weight: 800; padding: 0.52rem 0.95rem; border-radius: 7px;">
-                                🎁 Claim 50 Free Credits (MCPTRY50)
-                            </a>
-                            <button type="button" class="btn-sm btn-primary" onclick="setPlaygroundMode('pass')" style="padding: 0.52rem 0.9rem; font-size: 0.8rem; font-weight: 700;">
-                                🔑 Switch to Session Pass Mode
+<?php if ($homePromoActive): ?>
+                            <button type="button" id="btn-pg-rl-claim-promo" onclick="claimPlaygroundInlinePromo()" class="btn-sm" style="background: rgba(16, 185, 129, 0.16); border: 1px solid rgba(16, 185, 129, 0.55); color: #6EE7B7; font-weight: 700; padding: 0.5rem 0.9rem; border-radius: 7px; cursor: pointer;">
+                                🎁 Resgatar 50 Créditos Grátis (MCPTRY50)
+                            </button>
+<?php endif; ?>
+                            <button type="button" class="btn-sm btn-primary" onclick="setPlaygroundMode('pass')" style="padding: 0.5rem 0.9rem; font-size: 0.8rem; font-weight: 700;">
+                                🔑 Já tenho Session Pass
                             </button>
                             <a href="/pass" class="btn-sm btn-outline" style="text-decoration:none; border-color: rgba(0, 240, 255, 0.45); color: #00F0FF; font-weight: 700; padding: 0.5rem 0.85rem; border-radius: 7px;">
-                                ⚡ Buy Pass (Pix R$ 4.90+ / USDC)
+                                🌐 Outros Planos (USDC / Pro / Fleet)
                             </a>
                             <a href="https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities" target="_blank" rel="noopener noreferrer" class="btn-sm btn-outline" style="text-decoration:none; border-color: rgba(148, 163, 184, 0.45); color: #E2E8F0; font-weight: 700; padding: 0.5rem 0.85rem; border-radius: 7px;">
                                 💳 Credit Card (USD)
@@ -5725,8 +5806,8 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                         rateLimitCard.style.display = 'block';
                     }
                     renderNonProofState(isEn
-                        ? 'Daily free sandbox quota reached (429). Claim 50 free credits with MCPTRY50 or use a Session Pass.'
-                        : 'Cota diária gratuita do Sandbox atingida (429). Resgate 50 créditos grátis com MCPTRY50 ou use um Session Pass.');
+                        ? 'Daily free sandbox quota reached (429). Unlock via inline Pix or use a Session Pass.'
+                        : 'Cota diária gratuita do Sandbox atingida (429). Desbloqueie via Pix inline ou use um Session Pass.');
                 } else if (response.status === 402) {
                     if (statusBadge) {
                         statusBadge.textContent = 'HTTP 402 Payment Required';
@@ -5931,6 +6012,176 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
         function unlockPlaygroundViaSandbox() {
             setPlaygroundMode('sandbox');
             runPlaygroundQuery();
+        }
+
+        // --- Checkout Pix Inline & Resgate Condicional no Card 429 do Playground ---
+        let pgInlinePixTier = 'micro';
+        let pgInlinePixOrderId = null;
+        let pgInlinePixPollTimer = null;
+
+        function selectPlaygroundPixTier(tier) {
+            pgInlinePixTier = (tier === 'starter') ? 'starter' : 'micro';
+            document.querySelectorAll('.pg-rl-tier-btn').forEach((btn) => {
+                const isAct = btn.getAttribute('data-pg-tier') === pgInlinePixTier;
+                btn.style.border = isAct ? '1.5px solid #10B981' : '1px solid rgba(148, 163, 184, 0.4)';
+                btn.style.background = isAct ? 'rgba(16, 185, 129, 0.14)' : 'transparent';
+                btn.style.color = isAct ? '#F8FAFC' : '#CBD5E1';
+                btn.style.fontWeight = isAct ? '700' : '600';
+            });
+            const genBtn = document.getElementById('btn-pg-rl-gen-pix');
+            if (genBtn) {
+                genBtn.textContent = pgInlinePixTier === 'starter'
+                    ? '⚡ Gerar QR Code Pix (R$ 12,00)'
+                    : '⚡ Gerar QR Code Pix (R$ 4,90)';
+            }
+        }
+
+        function showPlaygroundRlFeedback(msg, isOk) {
+            const box = document.getElementById('pg-rl-feedback');
+            if (!box) return;
+            box.style.display = 'block';
+            box.style.color = isOk ? '#34D399' : '#FCA5A5';
+            box.textContent = msg;
+        }
+
+        function activatePlaygroundPassAndRetry(token) {
+            const cleanTok = String(token || '').trim();
+            if (!cleanTok.startsWith('pass_g402_')) return;
+            if (pgInlinePixPollTimer) {
+                clearInterval(pgInlinePixPollTimer);
+                pgInlinePixPollTimer = null;
+            }
+            if (window.Grid402PassStorage) {
+                window.Grid402PassStorage.save(cleanTok);
+            } else {
+                try {
+                    localStorage.setItem('grid402_active_pass_token', cleanTok);
+                    document.cookie = 'g402_pass_token=' + encodeURIComponent(cleanTok) + '; path=/; SameSite=Lax';
+                } catch (_) {}
+            }
+            const passInp = document.getElementById('playground-pass-token-input');
+            if (passInp) passInp.value = cleanTok;
+            const qrBox = document.getElementById('pg-rl-pix-qr-box');
+            if (qrBox) qrBox.style.display = 'none';
+            const rlCard = document.getElementById('playground-rate-limit-card');
+            if (rlCard) rlCard.style.display = 'none';
+            setPlaygroundMode('pass');
+            runPlaygroundQuery();
+        }
+
+        async function startPlaygroundInlinePix() {
+            const emailInp = document.getElementById('pg-rl-pix-email');
+            const email = emailInp ? emailInp.value.trim() : '';
+            if (!email || !email.includes('@')) {
+                showPlaygroundRlFeedback('Informe um e-mail válido para emissão do recibo Pix.', false);
+                if (emailInp) emailInp.focus();
+                return;
+            }
+            const btn = document.getElementById('btn-pg-rl-gen-pix');
+            const origText = btn ? btn.textContent : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Gerando QR Code...';
+            }
+            try {
+                const res = await fetch('/api/v1/pass/mp-pix', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ tier: pgInlinePixTier, email: email })
+                });
+                const data = await res.json();
+                if (!res.ok || !data.ok) {
+                    showPlaygroundRlFeedback(data.message || data.error || ('Falha ao gerar Pix (HTTP ' + res.status + ').'), false);
+                    return;
+                }
+                pgInlinePixOrderId = data.order_id;
+                const qrBox = document.getElementById('pg-rl-pix-qr-box');
+                const qrImg = document.getElementById('pg-rl-pix-qr-img');
+                const pixCodeInp = document.getElementById('pg-rl-pix-code');
+                const pixSt = document.getElementById('pg-rl-pix-status');
+                const mime = (data.qr_mime && String(data.qr_mime).startsWith('image/')) ? data.qr_mime : 'image/png';
+                if (qrImg && data.qr_code_base64) {
+                    qrImg.src = 'data:' + mime + ';base64,' + data.qr_code_base64;
+                }
+                if (pixCodeInp) pixCodeInp.value = data.qr_code || '';
+                if (pixSt) {
+                    pixSt.style.color = '#FCD34D';
+                    pixSt.textContent = '⏳ Aguardando pagamento Pix... (após pagar, sua consulta roda automaticamente)';
+                }
+                if (qrBox) qrBox.style.display = 'block';
+                showPlaygroundRlFeedback('QR Code Pix gerado! Escaneie no app do banco ou copie o código.', true);
+
+                if (pgInlinePixPollTimer) clearInterval(pgInlinePixPollTimer);
+                pgInlinePixPollTimer = setInterval(() => {
+                    pollPlaygroundInlinePix(pgInlinePixOrderId);
+                }, 3500);
+            } catch (_) {
+                showPlaygroundRlFeedback('Erro de conexão ao gerar Pix.', false);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = origText;
+                }
+            }
+        }
+
+        async function pollPlaygroundInlinePix(orderId) {
+            if (!orderId) return;
+            try {
+                const res = await fetch('/api/v1/pass/mp-status?order_id=' + encodeURIComponent(orderId), { cache: 'no-store' });
+                const data = await res.json();
+                if (data && data.status === 'approved' && data.pass_token) {
+                    const pixSt = document.getElementById('pg-rl-pix-status');
+                    if (pixSt) {
+                        pixSt.style.color = '#34D399';
+                        pixSt.textContent = '✅ Pix aprovado! Ativando Session Pass e reexecutando consulta...';
+                    }
+                    activatePlaygroundPassAndRetry(data.pass_token);
+                }
+            } catch (_) {}
+        }
+
+        async function copyPlaygroundInlinePixCode() {
+            const inp = document.getElementById('pg-rl-pix-code');
+            const btn = document.getElementById('btn-pg-rl-copy-pix');
+            if (!inp || !inp.value) return;
+            try {
+                await navigator.clipboard.writeText(inp.value);
+                if (btn) {
+                    btn.textContent = '✓ Copiado!';
+                    setTimeout(() => { btn.textContent = '📋 Copiar Código Pix'; }, 2000);
+                }
+            } catch (_) {}
+        }
+
+        async function claimPlaygroundInlinePromo() {
+            const btn = document.getElementById('btn-pg-rl-claim-promo');
+            const origText = btn ? btn.textContent : '';
+            if (btn) {
+                btn.disabled = true;
+                btn.textContent = 'Resgatando 50 créditos...';
+            }
+            try {
+                const res = await fetch('/api/v1/pass/promo-claim', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify({ code: 'MCPTRY50' })
+                });
+                const data = await res.json();
+                if (res.ok && data && data.pass_token) {
+                    showPlaygroundRlFeedback('🎁 Cupom MCPTRY50 ativado! Executando sua consulta agora...', true);
+                    activatePlaygroundPassAndRetry(data.pass_token);
+                } else {
+                    showPlaygroundRlFeedback(data.message || data.error || 'Não foi possível resgatar o cupom neste IP.', false);
+                }
+            } catch (_) {
+                showPlaygroundRlFeedback('Erro de conexão ao resgatar cupom.', false);
+            } finally {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = origText;
+                }
+            }
         }
 
         // --- Descoberta de carteiras (EIP-6963 + injeção legada) ---

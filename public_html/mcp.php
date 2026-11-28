@@ -280,6 +280,8 @@ function mcp_accepts_unpaid(string $service, ?int $requiredRawUnits = null, ?str
         'service' => $service,
         'price_usdc' => $price,
         'price_raw_units' => $rawUnits,
+        'required_usdc' => $price,
+        'required_raw_units' => $rawUnits,
         'x402Version' => 2,
         'resource' => $resource,
         'accepts' => grid402_build_accepts($rawUnits),
@@ -290,12 +292,6 @@ function mcp_accepts_unpaid(string $service, ?int $requiredRawUnits = null, ?str
         'token' => 'USDC',
         'token_contract' => GRID402_USDC_CONTRACT,
         'fiat_and_card_checkout' => [
-            'free_promo' => [
-                'code' => 'MCPTRY50',
-                'credits' => 50,
-                'redeem_url' => $domain . '/pass?promo=MCPTRY50',
-                'description' => 'Claim 50 FREE credits (no wallet or signup needed) and send X-Payment: pass_g402_<token>.',
-            ],
             'pix_brl' => $domain . '/pass?tier=starter&method=pix (Micro R$ 4.90 = 50 cr | Starter R$ 12 = 400 cr, <15ms)',
             'session_pass_url' => $domain . '/pass',
             'rapidapi_credit_card_usd' => [
@@ -304,7 +300,7 @@ function mcp_accepts_unpaid(string $service, ?int $requiredRawUnits = null, ?str
                 'brazil_kyb_cnpj_anbima' => 'https://rapidapi.com/oliveiratc/api/brazil-kyb-cnpj-cgu-sanctions-anbima-workdays-api',
             ],
         ],
-        'hint' => 'Claim 50 FREE credits with code MCPTRY50 at ' . $domain . '/pass?promo=MCPTRY50 (no wallet needed), send signed x402 v2 payment in params._meta["x402/payment"] or header PAYMENT-SIGNATURE, pass a prepaid Session Pass token (' . $domain . '/pass), or subscribe with Credit Card (USD) on RapidAPI.',
+        'hint' => 'Send signed x402 v2 payment in params._meta["x402/payment"] or header PAYMENT-SIGNATURE, use a prepaid Session Pass token from ' . $domain . '/pass (Pix BRL or EVM USDC), or subscribe with Credit Card (USD) on RapidAPI.',
     ];
     if ($reason !== null && $reason !== '') {
         $payload['reason'] = $reason;
@@ -322,6 +318,8 @@ function mcp_payment_required_result($id, string $service, int $rawCost, ?string
         'service' => $service,
         'price_usdc' => $unpaid['price_usdc'],
         'price_raw_units' => $unpaid['price_raw_units'],
+        'required_usdc' => $unpaid['price_usdc'],
+        'required_raw_units' => $unpaid['price_raw_units'],
         'payTo' => $unpaid['payTo'],
         'fiat_and_card_checkout' => $unpaid['fiat_and_card_checkout'],
     ];
@@ -345,13 +343,12 @@ function mcp_payment_required_result($id, string $service, int $rawCost, ?string
 
     $solanaOn = function_exists('grid402_is_solana_x402_enabled') && grid402_is_solana_x402_enabled();
     $chainsText = $solanaOn ? 'Base, Polygon, Arbitrum, Solana' : 'Base, Polygon, Arbitrum';
-    $humanMessage = "Payment Required for Grid402 tool '{$service}' ({$unpaid['price_usdc']} USDC / {$credits} credit(s)).\n"
+    $humanMessage = "Payment Required for Grid402 tool '{$service}' ({$unpaid['price_usdc']} USDC / {$rawCost} raw units / {$credits} credit(s)).\n"
         . $reasonLine
         . "How to unlock immediately:\n"
-        . "1) FREE 50 Credits Promo (no wallet or signup required): redeem code MCPTRY50 at {$domain}/pass?promo=MCPTRY50 and pass your token via header `X-Payment: pass_g402_...` or argument `payment_tx_hash`.\n"
-        . "2) Prepaid Session Pass via Pix/Card BRL (from R$ 4.90 = 50 cr | Starter R$ 12 = 400 cr, <15ms) or EVM USDC: {$domain}/pass (Pix plans: {$domain}/pass?tier=starter&method=pix)\n"
+        . "1) Autonomous x402 v2 Gasless / Multi-Chain USDC ({$chainsText}): send signed x402 payload in `params._meta[\"x402/payment\"]` or header `PAYMENT-SIGNATURE`, or pay {$unpaid['price_usdc']} USDC ({$rawCost} raw units) to {$unpaid['payTo']} and pass the txHash.\n"
+        . "2) Prepaid Session Pass via Pix/Card BRL (from R$ 4.90 = 50 cr | Starter R$ 12 = 400 cr, <15ms) or EVM USDC: {$domain}/pass (Pix plans: {$domain}/pass?tier=starter&method=pix) -> `X-Payment: pass_g402_...`\n"
         . "3) RapidAPI Hub (International Credit Card in USD): https://rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities\n"
-        . "4) Autonomous x402 v2 Gasless / Multi-Chain USDC ({$chainsText}): send signed x402 payload in `params._meta[\"x402/payment\"]` or header `PAYMENT-SIGNATURE`, or pay {$unpaid['price_usdc']} USDC ({$rawCost} raw units) to {$unpaid['payTo']} and pass the txHash.\n"
         . $sandboxLine
         . "\nMachine-readable x402 v2 challenge:\n"
         . json_encode($unpaid, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
@@ -688,7 +685,7 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
                 ]);
             }
             $trialExhaustedReason = ($service !== 'pass')
-                ? 'Daily free MCP auto-trial (1/day per IP) already used. Claim 50 FREE credits (no wallet needed) with promo code MCPTRY50 at ' . mcp_canonical_domain() . '/pass?promo=MCPTRY50.'
+                ? 'Daily free MCP auto-trial (1/day per IP) already used. Continue with x402 v2 USDC, prepaid Session Pass (' . mcp_canonical_domain() . '/pass), or RapidAPI USD.'
                 : null;
             mcp_payment_required_result($responseId, $service, $rawCost, $trialExhaustedReason);
         }
@@ -1121,9 +1118,8 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
                 'mode' => 'mcp_sandbox',
                 'quota_limit_per_day' => MCP_AUTO_TRIAL_DAILY_LIMIT,
                 'quota_remaining_today' => (int) ($validation['remaining'] ?? 0),
-                'promo_code' => 'MCPTRY50',
-                'promo_url' => mcp_canonical_domain() . '/pass?promo=MCPTRY50',
-                'message' => 'Free daily MCP auto-trial used (1/day per IP). Unlock 50 FREE credits (no wallet needed) with code MCPTRY50 at ' . mcp_canonical_domain() . '/pass?promo=MCPTRY50, or continue via Session Pass / x402 v2 / RapidAPI USD.',
+                'upgrade_url' => mcp_canonical_domain() . '/pass',
+                'message' => 'Free daily MCP auto-trial used (1/day per IP). For ongoing production queries, continue via x402 v2 USDC, prepaid Session Pass at ' . mcp_canonical_domain() . '/pass, or RapidAPI USD.',
             ];
         }
         $result = grid402_attach_provenance_meta($result, $service);

@@ -342,6 +342,104 @@ function grid402_is_noise_payment_failure(int $status, string $svc, string $src,
 }
 
 /**
+ * Identifica padrões óbvios de provas sintéticas geradas por suítes/scanners de conformidade.
+ */
+function grid402_is_synthetic_probe_failure(string $error, string $proofDiag = ''): bool {
+    $haystack = strtolower($error . ' ' . $proofDiag);
+    if (preg_match('/0x(?:1{16,}|a{16,}|0{16,}|f{16,}|deadbeef)/i', $haystack) === 1) {
+        return true;
+    }
+    if (str_contains($haystack, 'compliance_probe') || str_contains($haystack, 'synthetic_probe')) {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Classifica uma lista de falhas de pagamento separando probes sintéticos de conformidade (`compliance_probe`)
+ * de falhas isoladas de pagadores reais (`payer_failure`), preservando a ordem original do array.
+ *
+ * @param array<int, array<string, mixed>> $records
+ * @return array<int, array<string, mixed>>
+ */
+function grid402_classify_payment_failures(array $records, int $burstWindowSec = 15, int $burstThreshold = 3): array {
+    if (empty($records)) {
+        return [];
+    }
+    $burstMarks = [];
+    $byIp = [];
+
+    foreach ($records as $idx => $rec) {
+        if (!is_array($rec)) {
+            continue;
+        }
+        $existingOrigin = strtolower(trim((string) ($rec['failure_origin'] ?? '')));
+        if ($existingOrigin === 'compliance_probe' || grid402_is_synthetic_probe_failure((string) ($rec['error'] ?? ''), (string) ($rec['proof_diag'] ?? ''))) {
+            $burstMarks[$idx] = 'compliance_probe';
+        }
+        $ipHmac = trim((string) ($rec['ip_hmac'] ?? ''));
+        $tsEpoch = @strtotime((string) ($rec['ts'] ?? ''));
+        if ($ipHmac !== '' && $tsEpoch !== false) {
+            $byIp[$ipHmac][] = ['idx' => $idx, 'ts' => (int) $tsEpoch];
+        }
+    }
+
+    foreach ($byIp as $entries) {
+        if (count($entries) < $burstThreshold) {
+            continue;
+        }
+        usort($entries, static fn(array $a, array $b): int => $a['ts'] <=> $b['ts']);
+        $n = count($entries);
+        $left = 0;
+        for ($right = 0; $right < $n; $right++) {
+            while (($entries[$right]['ts'] - $entries[$left]['ts']) > $burstWindowSec) {
+                $left++;
+            }
+            if (($right - $left + 1) >= $burstThreshold) {
+                for ($k = $left; $k <= $right; $k++) {
+                    $burstMarks[$entries[$k]['idx']] = 'compliance_probe';
+                }
+            }
+        }
+    }
+
+    foreach ($records as $idx => $rec) {
+        if (!is_array($rec)) {
+            continue;
+        }
+        $records[$idx]['failure_origin'] = $burstMarks[$idx] ?? 'payer_failure';
+    }
+
+    return $records;
+}
+
+/**
+ * Consolida totais por origem de falha (`payer_failure` vs `compliance_probe`).
+ *
+ * @param array<int, array<string, mixed>> $records
+ * @return array{total: int, payer_failure: int, compliance_probe: int}
+ */
+function grid402_summarize_payment_failures(array $records): array {
+    $payer = 0;
+    $probe = 0;
+    foreach ($records as $rec) {
+        if (!is_array($rec)) {
+            continue;
+        }
+        if (($rec['failure_origin'] ?? 'payer_failure') === 'compliance_probe') {
+            $probe++;
+        } else {
+            $payer++;
+        }
+    }
+    return [
+        'total' => $payer + $probe,
+        'payer_failure' => $payer,
+        'compliance_probe' => $probe,
+    ];
+}
+
+/**
  * Grava falha real de pagamento em ring buffer dedicado `payment_failures.json` (ate 500 eventos Zero-PII) sob flock(LOCK_EX).
  */
 function grid402_record_payment_failure(array $event): bool {
@@ -363,6 +461,11 @@ function grid402_record_payment_failure(array $event): bool {
     if ($sanitizedError === '') {
         return false;
     }
+    $proofDiagSanitized = grid402_sanitize_log_text(isset($event['proof_diag']) ? (string) $event['proof_diag'] : null, 180) ?? '';
+    $explicitOrigin = strtolower(trim((string) ($event['failure_origin'] ?? '')));
+    $initialOrigin = ($explicitOrigin === 'compliance_probe' || grid402_is_synthetic_probe_failure($sanitizedError, $proofDiagSanitized))
+        ? 'compliance_probe'
+        : 'payer_failure';
 
     $record = [
         'ts' => (string) ($event['ts'] ?? gmdate('Y-m-d\TH:i:s\Z')),
@@ -371,8 +474,9 @@ function grid402_record_payment_failure(array $event): bool {
         'status' => $status,
         'payment_source' => $src !== '' ? $src : 'unknown',
         'failure_category' => strtolower(trim((string) ($event['failure_category'] ?? 'unknown'))),
+        'failure_origin' => $initialOrigin,
         'error' => $sanitizedError,
-        'proof_diag' => grid402_sanitize_log_text(isset($event['proof_diag']) ? (string) $event['proof_diag'] : null, 180) ?? '',
+        'proof_diag' => $proofDiagSanitized,
         'ip_hmac' => $ipHmac,
     ];
 
@@ -397,6 +501,11 @@ function grid402_record_payment_failure(array $event): bool {
         if (count($items) > 500) {
             $items = array_values(array_slice($items, -500));
         }
+        $tailStart = max(0, count($items) - 25);
+        $tailSlice = array_slice($items, $tailStart);
+        $classifiedTail = grid402_classify_payment_failures($tailSlice);
+        array_splice($items, $tailStart, count($tailSlice), $classifiedTail);
+
         ftruncate($fp, 0);
         rewind($fp);
         $written = fwrite($fp, (string) json_encode($items, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
@@ -457,12 +566,13 @@ function grid402_read_recent_payment_failures(int $limit = 25): array {
                         'status' => $status,
                         'payment_source' => $src !== '' ? $src : 'unknown',
                         'failure_category' => (string) ($entry['failure_category'] ?? ''),
+                        'failure_origin' => (string) ($entry['failure_origin'] ?? ''),
                         'error' => grid402_sanitize_log_text($err, 200) ?? '',
                         'proof_diag' => grid402_sanitize_log_text(isset($entry['proof_diag']) ? (string) $entry['proof_diag'] : null, 180) ?? '',
                         'ip_hmac' => (string) ($entry['ip_hmac'] ?? ''),
                     ];
                     if (count($failures) >= $limit) {
-                        return $failures;
+                        return grid402_classify_payment_failures($failures);
                     }
                 }
             }
@@ -548,5 +658,5 @@ function grid402_read_recent_payment_failures(int $limit = 25): array {
         }
     }
 
-    return $failures;
+    return grid402_classify_payment_failures($failures);
 }

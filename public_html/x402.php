@@ -489,13 +489,11 @@ function grid402_validate_payment(
                 'valid' => false,
                 'sandbox' => true,
                 'category' => 'sandbox_rate_limited',
-                'reason' => "Free sandbox quota of {$rate['limit']} requests {$periodLabel} reached for this IP. Unlock 50 FREE credits immediately (no wallet needed) using promo code MCPTRY50 at https://grid402.online/pass?promo=MCPTRY50, or continue with x402 v2 USDC (Base/Polygon/Arbitrum), a prepaid Session Pass (from R$ 4.90 Pix or $2.00 USDC) at https://grid402.online/pass, or RapidAPI (USD Credit Card).",
+                'reason' => "Free sandbox quota of {$rate['limit']} requests {$periodLabel} reached for this IP. Continue immediately with x402 v2 USDC (Base/Polygon/Arbitrum), a prepaid Session Pass (from R$ 4.90 Pix or $2.00 USDC, <15ms) at https://grid402.online/pass, or RapidAPI (USD Credit Card).",
                 'code' => 429,
                 'retry_after' => $rate['retry_after'],
                 'remaining' => 0,
                 'upgrade_url' => 'https://grid402.online/pass',
-                'promo_code' => 'MCPTRY50',
-                'promo_url' => 'https://grid402.online/pass?promo=MCPTRY50',
             ];
         }
 
@@ -1289,12 +1287,6 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
     }
     $canonicalBase = defined('GRID402_CANONICAL_DOMAIN') ? GRID402_CANONICAL_DOMAIN : 'https://grid402.online';
     $fiatAndCardCheckout = [
-        'free_promo' => [
-            'code' => 'MCPTRY50',
-            'credits' => 50,
-            'redeem_url' => $canonicalBase . '/pass?promo=MCPTRY50',
-            'description' => 'Claim 50 free credits (no wallet or signup required) and send X-Payment: pass_g402_<token>.',
-        ],
         'pix_instant_brl' => [
             'micro_url' => $canonicalBase . '/pass?tier=micro&method=pix',
             'starter_url' => $canonicalBase . '/pass?tier=starter&method=pix',
@@ -1311,11 +1303,6 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         ],
     ];
     $conversionInfo = [
-        'free_promo' => [
-            'code' => 'MCPTRY50',
-            'credits' => 50,
-            'redeem_url' => $canonicalBase . '/pass?promo=MCPTRY50',
-        ],
         'starter_promo' => [
             'enabled' => (bool)($growthCfgForAds['starter_promo_enabled'] ?? false),
             'credits' => (int)($growthCfgForAds['starter_promo_credits'] ?? 10),
@@ -1339,11 +1326,11 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         : [
             'header' => 'X-Payment: demo',
             'rate_limit' => GRID402_SANDBOX_RATE_LIMIT . ' req/day per IP',
-            'description' => 'Test the full response schema for free by sending header X-Payment: demo, or claim 50 free credits with promo code MCPTRY50 at ' . $canonicalBase . '/pass?promo=MCPTRY50.',
+            'description' => 'Test the full response schema for free by sending header X-Payment: demo (' . GRID402_SANDBOX_RATE_LIMIT . ' req/day per IP). For production traffic, pay via x402 v2, Session Pass at ' . $canonicalBase . '/pass, or RapidAPI.',
         ];
     $actionRequiredText = $isPassEndpoint
         ? "1) Session Pass via Pix (BRL) or Card (from R$ 4.90 Micro / R$ 12 Starter = 400 credits, <15ms): {$canonicalBase}/pass?tier=starter&method=pix. 2) Pay {$priceDisplay} USDC via x402 v2 PAYMENT-SIGNATURE (gasless via PayAI) or send USDC on-chain and activate via POST {$canonicalBase}/api/v1/pass-emitir {\"txHash\":\"0x...\",\"chain\":\"base\"}. 3) Send your issued token in header X-Payment: pass_g402_<token> across all 31 APIs (or GRID402_SESSION_PASS in grid402-mcp)."
-        : "1) Claim 50 FREE credits (no wallet needed) with promo MCPTRY50 at {$canonicalBase}/pass?promo=MCPTRY50 -> X-Payment: pass_g402_<token>. 2) Sign x402 v2 PAYMENT-SIGNATURE (gasless via PayAI on " . ((function_exists('grid402_is_solana_x402_enabled') && grid402_is_solana_x402_enabled()) ? 'Base/Polygon/Arbitrum/Solana' : 'Base/Polygon/Arbitrum') . ") or send {$priceDisplay} USDC and retry with X-Payment: <tx_hash>. 3) Sub-15ms Session Pass (Pix from R$ 4.90 / Starter R$ 12 or USDC) at {$canonicalBase}/pass, or Credit Card (USD) on RapidAPI. 4) Free Sandbox (" . GRID402_SANDBOX_RATE_LIMIT . " req/day): X-Payment: demo.";
+        : "1) Sign x402 v2 PAYMENT-SIGNATURE (gasless on " . ((function_exists('grid402_is_solana_x402_enabled') && grid402_is_solana_x402_enabled()) ? 'Base/Polygon/Arbitrum/Solana' : 'Base/Polygon/Arbitrum') . ") or send {$priceDisplay} USDC ({$priceRawUnits} raw units) and retry with X-Payment: <tx_hash>. 2) Sub-15ms Session Pass (Pix from R$ 4.90 / Starter R$ 12 or USDC) at {$canonicalBase}/pass -> X-Payment: pass_g402_<token>. 3) Credit Card (USD) on RapidAPI. 4) Free Sandbox (" . GRID402_SANDBOX_RATE_LIMIT . " req/day): X-Payment: demo.";
 
     $payload = [
         'x402Version' => 2,
@@ -1359,6 +1346,8 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
         'token_contract' => GRID402_X402_USDC_CONTRACT,
         'price_usdc' => $priceDisplay,
         'price_raw_units' => $priceRawUnits,
+        'required_usdc' => $priceDisplay,
+        'required_raw_units' => (int) $priceRawUnits,
         'credits_cost' => max(1, (int) ceil($priceRawUnits / 5000)),
         'recipient_wallet' => GRID402_WALLET_ADDRESS,
         'supported_networks' => grid402_supported_networks_public_summary(),

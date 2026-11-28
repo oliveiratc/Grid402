@@ -383,14 +383,20 @@ try {
         ($firstSbBody['sandbox_info']['quota_limit_per_day'] ?? -1) === 3
     );
     $pixStarter429 = (string) ($fourthSbBody['upgrade_to_production']['pix_instant_starter_url'] ?? '');
-    t_assert('4ª chamada sandbox retorna Retry-After, PAYMENT-REQUIRED, x402 v2 accepts, retry_after_seconds, MCPTRY50 e upgrade_to_production com how_to_continue',
+    $fourthSbJson = json_encode($fourthSbBody);
+    t_assert('4ª chamada sandbox retorna Retry-After, PAYMENT-REQUIRED, x402 v2 accepts, required_raw_units/usdc e upgrade_to_production pago sem MCPTRY50',
         stripos($fourthSbHdrs ?? '', 'Retry-After:') !== false &&
         stripos($fourthSbHdrs ?? '', 'PAYMENT-REQUIRED:') !== false &&
         (int) ($fourthSbBody['x402Version'] ?? 0) === 2 &&
         !empty($fourthSbBody['accepts']) &&
+        (int) ($fourthSbBody['required_raw_units'] ?? 0) > 0 &&
+        !empty($fourthSbBody['required_usdc']) &&
         (int) ($fourthSbBody['retry_after_seconds'] ?? 0) > 0 &&
         str_contains((string) ($fourthSbBody['message'] ?? ''), 'Free sandbox quota') &&
-        ($fourthSbBody['promo_code'] ?? '') === 'MCPTRY50' &&
+        !array_key_exists('promo_code', $fourthSbBody) &&
+        !array_key_exists('promo_url', $fourthSbBody) &&
+        !str_contains($fourthSbJson ?: '', 'MCPTRY50') &&
+        !str_contains($fourthSbJson ?: '', 'promo-claim') &&
         !empty($fourthSbBody['upgrade_to_production']['how_to_continue']['session_pass_no_wallet']) &&
         str_contains((string) ($fourthSbBody['upgrade_to_production']['session_pass_url'] ?? ''), '/pass') &&
         str_contains($pixStarter429, 'method=pix') &&

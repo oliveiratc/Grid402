@@ -138,10 +138,12 @@ try {
     $mcpTrialJson = json_decode($mcpAutoTrial['body'], true) ?: [];
     $mcpTrialPayload = json_decode((string) ($mcpTrialJson['result']['content'][0]['text'] ?? ''), true) ?: [];
     rev_check(
-        'MCP 1a chamada sem pagamento concede auto-trial 1/dia (mcp_sandbox) com _trial_notice MCPTRY50',
+        'MCP 1a chamada sem pagamento concede auto-trial 1/dia (mcp_sandbox) com _trial_notice pago sem MCPTRY50',
         empty($mcpTrialJson['result']['isError']) &&
         !empty($mcpTrialPayload['sandbox']) &&
-        ($mcpTrialPayload['_trial_notice']['mode'] ?? '') === 'mcp_sandbox',
+        ($mcpTrialPayload['_trial_notice']['mode'] ?? '') === 'mcp_sandbox' &&
+        !str_contains($mcpAutoTrial['body'], 'MCPTRY50') &&
+        !str_contains($mcpAutoTrial['body'], 'promo-claim'),
         'body=' . substr($mcpAutoTrial['body'], 0, 220)
     );
 

@@ -286,18 +286,23 @@ if ($ready) {
         'OPTIONS /api/v1/* retorna 204 com X-Payment-Signature, Payment e X-Grid402-Channel'
     );
 
-    // 5b) Sandbox 1a chamada OK -> 2a chamada 429 promovendo MCPTRY50 sem Solana
+    // 5b) Sandbox 1a chamada OK -> 2a chamada 429 com required_raw_units/accepts e canais pagos (sem MCPTRY50 e sem Solana)
     $sb1 = g402_http('GET', "{$base}/index.php?api=holidays&year=2026", ['X-Payment: demo']);
     $sb2 = g402_http('GET', "{$base}/index.php?api=holidays&year=2026", ['X-Payment: demo']);
     g402_assert($sb1['status'] === 200 && $sb2['status'] === 429, 'Cota sandbox (1/dia) retorna 200 na 1a e 429 na 2a chamada');
     $j429 = is_array($sb2['json']) ? $sb2['json'] : [];
     $chains429 = $j429['upgrade_to_production']['supported_chains'] ?? [];
     g402_assert(
-        ($j429['promo_code'] ?? '') === 'MCPTRY50'
-        && str_contains((string) ($j429['promo_url'] ?? ''), '/pass?promo=MCPTRY50')
+        (int) ($j429['required_raw_units'] ?? 0) > 0
+        && !empty($j429['required_usdc'])
+        && !empty($j429['accepts'])
+        && !array_key_exists('promo_code', $j429)
+        && !array_key_exists('promo_url', $j429)
+        && !str_contains($sb2['body'], 'MCPTRY50')
+        && !str_contains($sb2['body'], 'promo-claim')
         && !empty($j429['upgrade_to_production']['rapidapi_credit_card_usd']['all_25_apis_url'])
         && !in_array('solana', $chains429, true),
-        'Resposta HTTP 429 promove MCPTRY50, RapidAPI USD e omite Solana'
+        'Resposta HTTP 429 expoe required_raw_units/accepts, RapidAPI USD e /pass sem MCPTRY50 e sem Solana'
     );
 
     // 5c) Preflight OPTIONS em /mcp.php
@@ -330,7 +335,7 @@ if ($ready) {
     ]));
     g402_assert(!empty($mcpPass['json']['result']['isError']), '/mcp nunca libera auto-trial para grid402_pass');
 
-    // 5f) /mcp 1a chamada sem credencial em grid402_holidays recebe auto-trial 1/dia com _trial_notice
+    // 5f) /mcp 1a chamada sem credencial em grid402_holidays recebe auto-trial 1/dia com _trial_notice pago sem MCPTRY50
     $mcpTrial1 = g402_http('POST', "{$base}/mcp.php", ['Content-Type: application/json'], json_encode([
         'jsonrpc' => '2.0',
         'id' => 3,
@@ -343,12 +348,14 @@ if ($ready) {
         empty($mcpTrial1['json']['result']['isError'])
         && !empty($t1Payload['sandbox'])
         && ($t1Payload['_trial_notice']['mode'] ?? '') === 'mcp_sandbox'
-        && ($t1Payload['_trial_notice']['promo_code'] ?? '') === 'MCPTRY50'
+        && !array_key_exists('promo_code', $t1Payload['_trial_notice'] ?? [])
+        && !str_contains($t1Text, 'MCPTRY50')
+        && !str_contains($t1Text, 'promo-claim')
         && !empty($t1Payload['_oracle_proof']),
-        '/mcp concede 1 auto-trial diario (mcp_sandbox) com _trial_notice MCPTRY50 e _oracle_proof'
+        '/mcp concede 1 auto-trial diario (mcp_sandbox) sem MCPTRY50/promo-claim e com _oracle_proof'
     );
 
-    // 5g) /mcp 2a chamada sem credencial no mesmo dia bloqueia promovendo MCPTRY50 sem Solana
+    // 5g) /mcp 2a chamada sem credencial no mesmo dia bloqueia com required_raw_units/accepts e canais pagos (sem MCPTRY50 e sem Solana)
     $mcpTrial2 = g402_http('POST', "{$base}/mcp.php", ['Content-Type: application/json'], json_encode([
         'jsonrpc' => '2.0',
         'id' => 4,
@@ -356,15 +363,19 @@ if ($ready) {
         'params' => ['name' => 'grid402_holidays', 'arguments' => ['year' => 2026]],
     ]));
     $t2Text = (string) ($mcpTrial2['json']['result']['content'][0]['text'] ?? '');
-    $t2Accepts = $mcpTrial2['json']['result']['_meta']['x402/error']['accepts'] ?? [];
+    $t2Err = $mcpTrial2['json']['result']['_meta']['x402/error'] ?? [];
+    $t2Accepts = $t2Err['accepts'] ?? [];
     $t2Nets = array_column($t2Accepts, 'network');
     g402_assert(
         !empty($mcpTrial2['json']['result']['isError'])
-        && str_contains($t2Text, 'MCPTRY50')
-        && str_contains($t2Text, '/pass?promo=MCPTRY50')
+        && (int) ($t2Err['required_raw_units'] ?? 0) > 0
+        && !empty($t2Err['required_usdc'])
+        && !str_contains($t2Text, 'MCPTRY50')
+        && !str_contains($t2Text, 'promo-claim')
+        && str_contains($t2Text, '/pass')
         && str_contains($t2Text, 'rapidapi.com/oliveiratc/api/grid402-open-data-kyb-ai-utilities')
         && !in_array('solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp', $t2Nets, true),
-        '/mcp 2a chamada sem prova promove MCPTRY50 e RapidAPI USD em ingles sem Solana'
+        '/mcp 2a chamada sem prova expoe required_raw_units, /pass e RapidAPI USD em ingles sem MCPTRY50 e sem Solana'
     );
 
     // 5h) Alias de header X-Payment-Signature reconhecido no /mcp (prova invalida gera motivo de validacao, nao challenge vazio)

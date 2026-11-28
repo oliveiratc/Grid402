@@ -1327,7 +1327,19 @@ $x402scanMaskAddr = static function (?string $addr): string {
             <div id="payment-failures-panel" class="panel">
                 <div class="panel-title">
                     <span>Diagnóstico Real de Falhas de Pagamento (payment_failures.json · Zero-PII)</span>
-                    <span class="panel-subtitle">Últimas 25 de até 500 falhas reais (exclui 402 vazios e 429 sandbox)</span>
+                    <span class="panel-subtitle">Últimas 50 de até 500 falhas reais (separa rajadas sintéticas de pagadores reais)</span>
+                </div>
+                <?php
+                $pfSumTotal = (int) ($paymentFailuresSummary['total'] ?? count($recentPaymentFailures));
+                $pfSumPayer = (int) ($paymentFailuresSummary['payer_failure'] ?? 0);
+                $pfSumProbe = (int) ($paymentFailuresSummary['compliance_probe'] ?? 0);
+                ?>
+                <div class="feed-toolbar" style="margin-bottom: 0.75rem;">
+                    <div class="filter-group">
+                        <button type="button" class="filter-btn active" id="pf-filter-btn-all" onclick="setPaymentFailureFilter('all')">Todos (<span id="pf-count-all"><?php echo $pfSumTotal; ?></span>)</button>
+                        <button type="button" class="filter-btn" id="pf-filter-btn-payer" onclick="setPaymentFailureFilter('payer_failure')">💳 Pagadores Reais (<span id="pf-count-payer"><?php echo $pfSumPayer; ?></span>)</button>
+                        <button type="button" class="filter-btn" id="pf-filter-btn-probe" onclick="setPaymentFailureFilter('compliance_probe')">🤖 Probes Conformidade (<span id="pf-count-probe"><?php echo $pfSumProbe; ?></span>)</button>
+                    </div>
                 </div>
                 <div class="table-wrap">
                     <table>
@@ -1336,7 +1348,7 @@ $x402scanMaskAddr = static function (?string $addr): string {
                                 <th>Horário (BRT · UTC)</th>
                                 <th>Serviço</th>
                                 <th>HTTP</th>
-                                <th>Origem</th>
+                                <th>Origem / Classe</th>
                                 <th>Motivo Exato (Sanitizado)</th>
                             </tr>
                         </thead>
@@ -1348,8 +1360,9 @@ $x402scanMaskAddr = static function (?string $addr): string {
                             <?php else: ?>
                                 <?php foreach ($recentPaymentFailures as $pf):
                                     $pfDualTs = grid402_admin_format_brt_utc((string) ($pf['ts'] ?? ''), false);
+                                    $pfOrigin = (($pf['failure_origin'] ?? 'payer_failure') === 'compliance_probe') ? 'compliance_probe' : 'payer_failure';
                                 ?>
-                                <tr>
+                                <tr class="pf-row" data-failure-origin="<?php echo $pfOrigin; ?>">
                                     <td style="white-space: nowrap;">
                                         <div><?php echo htmlspecialchars($pfDualTs['brt'], ENT_QUOTES, 'UTF-8'); ?></div>
                                         <?php if ($pfDualTs['utc'] !== ''): ?>
@@ -1358,7 +1371,14 @@ $x402scanMaskAddr = static function (?string $addr): string {
                                     </td>
                                     <td><strong><?php echo htmlspecialchars((string) ($pf['service'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong></td>
                                     <td><span class="tag-status status-<?php echo (int) ($pf['status'] ?? 402); ?>">HTTP <?php echo (int) ($pf['status'] ?? 402); ?></span></td>
-                                    <td><?php echo htmlspecialchars((string) ($pf['payment_source'] ?? 'unknown'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td>
+                                        <div><?php echo htmlspecialchars((string) ($pf['payment_source'] ?? 'unknown'), ENT_QUOTES, 'UTF-8'); ?></div>
+                                        <?php if ($pfOrigin === 'compliance_probe'): ?>
+                                        <span class="tag-status" style="margin-top: 0.25rem; display: inline-block; background: rgba(148,163,184,0.16); color: #CBD5E1; border: 1px solid rgba(148,163,184,0.35);">Probe Conformidade</span>
+                                        <?php else: ?>
+                                        <span class="tag-status" style="margin-top: 0.25rem; display: inline-block; background: rgba(245,158,11,0.16); color: #FCD34D; border: 1px solid rgba(245,158,11,0.4);">Pagador Real</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td style="font-family: var(--font-mono); font-size: 0.78rem; color: #FCA5A5; word-break: break-word;">
                                         <div><?php echo htmlspecialchars((string) ($pf['error'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></div>
                                         <?php if (!empty($pf['proof_diag'])): ?>
@@ -2174,9 +2194,37 @@ $x402scanMaskAddr = static function (?string $addr): string {
             return { brt: brtDate + ' ' + brtTime + ' BRT', utc: raw };
         }
 
-        function renderRecentPaymentFailures(failures) {
+        let currentPaymentFailureFilter = 'all';
+
+        function setPaymentFailureFilter(filter) {
+            currentPaymentFailureFilter = filter;
+            document.querySelectorAll('#payment-failures-panel .filter-btn').forEach(b => b.classList.remove('active'));
+            const btnId = filter === 'payer_failure' ? 'pf-filter-btn-payer' : (filter === 'compliance_probe' ? 'pf-filter-btn-probe' : 'pf-filter-btn-all');
+            const activeBtn = document.getElementById(btnId);
+            if (activeBtn) activeBtn.classList.add('active');
+            applyPaymentFailureFilter();
+        }
+
+        function applyPaymentFailureFilter() {
+            document.querySelectorAll('#payment-failures-tbody .pf-row').forEach(r => {
+                const origin = r.getAttribute('data-failure-origin') || 'payer_failure';
+                r.style.display = (currentPaymentFailureFilter === 'all' || origin === currentPaymentFailureFilter) ? '' : 'none';
+            });
+        }
+
+        function renderRecentPaymentFailures(failures, summary) {
             const tbody = document.getElementById('payment-failures-tbody');
             if (!tbody || !Array.isArray(failures)) return;
+            const sum = summary || {
+                total: failures.length,
+                payer_failure: failures.filter(f => (f.failure_origin || 'payer_failure') !== 'compliance_probe').length,
+                compliance_probe: failures.filter(f => f.failure_origin === 'compliance_probe').length,
+            };
+            const setPfTxt = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = String(Number(v || 0)); };
+            setPfTxt('pf-count-all', sum.total);
+            setPfTxt('pf-count-payer', sum.payer_failure);
+            setPfTxt('pf-count-probe', sum.compliance_probe);
+
             if (failures.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--ok); padding: 1.25rem;">Nenhuma falha real de pagamento registrada recentemente.</td></tr>';
                 return;
@@ -2185,11 +2233,15 @@ $x402scanMaskAddr = static function (?string $addr): string {
             failures.forEach(pf => {
                 const dualTs = formatBrtUtcTimestamp(pf.ts || '', false);
                 const st = Number(pf.status || 402);
-                html += `<tr>
+                const origin = pf.failure_origin === 'compliance_probe' ? 'compliance_probe' : 'payer_failure';
+                const originBadge = origin === 'compliance_probe'
+                    ? '<span class="tag-status" style="margin-top: 0.25rem; display: inline-block; background: rgba(148,163,184,0.16); color: #CBD5E1; border: 1px solid rgba(148,163,184,0.35);">Probe Conformidade</span>'
+                    : '<span class="tag-status" style="margin-top: 0.25rem; display: inline-block; background: rgba(245,158,11,0.16); color: #FCD34D; border: 1px solid rgba(245,158,11,0.4);">Pagador Real</span>';
+                html += `<tr class="pf-row" data-failure-origin="${origin}">
                     <td style="white-space: nowrap;"><div>${safeHtmlText(dualTs.brt)}</div>${dualTs.utc ? `<div style="font-size: 0.7rem; color: var(--text-muted);">${safeHtmlText(dualTs.utc)}</div>` : ''}</td>
                     <td><strong>${safeHtmlText(pf.service || '')}</strong></td>
                     <td><span class="tag-status status-${st}">HTTP ${st}</span></td>
-                    <td>${safeHtmlText(pf.payment_source || 'unknown')}</td>
+                    <td><div>${safeHtmlText(pf.payment_source || 'unknown')}</div>${originBadge}</td>
                     <td style="font-family: var(--font-mono); font-size: 0.78rem; color: #FCA5A5; word-break: break-word;">
                         <div>${safeHtmlText(pf.error || '')}</div>
                         ${pf.proof_diag ? `<div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.25rem;">${safeHtmlText(pf.proof_diag)}</div>` : ''}
@@ -2197,6 +2249,7 @@ $x402scanMaskAddr = static function (?string $addr): string {
                 </tr>`;
             });
             tbody.innerHTML = html;
+            applyPaymentFailureFilter();
         }
 
         function setFeedFilter(filter) {
@@ -2489,7 +2542,7 @@ $x402scanMaskAddr = static function (?string $addr): string {
                 renderBreakdownBars('payment-source-bars-container', 'data-source-key', data.payment_sources, data.payment_source_labels, false);
                 renderBreakdownBars('failure-bars-container', 'data-failure-key', data.failure_categories, data.failure_category_labels, true);
 
-                if (Array.isArray(data.recent_payment_failures)) renderRecentPaymentFailures(data.recent_payment_failures);
+                if (Array.isArray(data.recent_payment_failures)) renderRecentPaymentFailures(data.recent_payment_failures, data.payment_failures_summary);
 
                 const tbody = document.getElementById('recent-events-tbody');
                 const events = data.recent_events || [];
