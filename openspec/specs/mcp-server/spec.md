@@ -229,3 +229,10 @@ Os servidores MCP (`mcp/index.mjs`, `mcp/tools.mjs` e `public_html/mcp.php`) SHA
 - **GIVEN** um cliente MCP invocando `grid402_sec_company`, `grid402_vuln_audit` ou `grid402_chain_telemetry`
 - **WHEN** a ferramenta consulta o gateway Grid402 (em modo sandbox/pago ou sem credencial)
 - **THEN** o servidor MCP SHALL retornar o payload JSON preservando `_meta` e `_oracle_proof` em caso de HTTP `200`, ou desafio `402` formatado caso não haja meio de pagamento configurado.
+
+### Requirement: MCP tool execution shall respect sandbox mode and schema boundary
+O servidor MCP SHALL validar argumentos estritamente contra o esquema de entrada e SHALL bloquear auto-liquidação on-chain com fundos reais quando o modo sandbox estiver ativado.
+
+#### Scenario: Chamada de ferramenta com parametros nao declarados e sandbox ativo
+- **WHEN** uma ferramenta MCP é invocada com argumentos extras ou `GRID402_SANDBOX=true`
+- **THEN** o servidor ignora propriedades não declaradas e não dispara liquidação em mainnet

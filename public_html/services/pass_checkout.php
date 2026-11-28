@@ -80,33 +80,23 @@ function grid402_emitir_passe_por_tx(string $txHash, ?string $network = null): a
                 $existingUsdc .= ' USDC';
             }
             $existingTier = (string) ($existingPass['tier'] ?? 'standard');
+            // IDOR Protection: não expor o pass_token em texto claro no retorno idempotente para evitar roubo de terceiros
             return [
-                'ok' => true,
+                'ok' => false,
                 'idempotent' => true,
-                'error' => null,
-                'message' => "Passe de sessão já emitido anteriormente via {$netCfg['display_name']} (retorno idempotente).",
-                'code' => 200,
+                'status' => 'already_issued',
+                'error' => 'PassAlreadyIssued',
+                'message' => "Passe de sessão já emitido anteriormente para esta transação. Por segurança, o token de acesso não é reexibido.",
+                'code' => 409,
                 'network' => $netCfg['display_name'],
                 'network_slug' => $slug,
                 'chain_id' => $netCfg['chain_id'],
-                'payer' => '',
                 'tx_hash' => $cleanTx,
                 'explorer_url' => grid402_explorer_tx_url($slug, $cleanTx),
-                'raw_usdc_units' => 0,
-                'usdc_deposited' => $existingUsdc,
                 'tier' => $existingTier,
-                'pass_token' => $existingPass['pass_token'],
                 'mode' => $existingPass['mode'] ?? 'production',
-                'credits_total' => (int) ($existingPass['credits_total'] ?? 0),
-                'credits_remaining' => (int) ($existingPass['credits_remaining'] ?? 0),
                 'issued_at' => $existingPass['issued_at'] ?? null,
                 'expires_at' => $existingPass['expires_at'] ?? null,
-                'ttl_days' => ($existingTier === 'fleet') ? 365 : 180,
-                'usage_instructions' => [
-                    'header' => 'X-Payment: ' . $existingPass['pass_token'],
-                    'check_balance_url' => GRID402_CANONICAL_DOMAIN . '/api/v1/pass/balance',
-                    'check_statement_url' => GRID402_CANONICAL_DOMAIN . '/api/v1/pass/statement',
-                ],
             ];
         }
 

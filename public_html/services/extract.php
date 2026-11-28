@@ -519,7 +519,16 @@ function grid402_extract_fetch_url(string $url, ?callable $dnsResolver = null): 
  *
  * @return array<string, array<int, array{type: string, pattern: string}>>
  */
+// Limites de segurança: previnem DoS com robots.txt malicioso de muitas regras
+if (!defined('GRID402_ROBOTS_MAX_RULES_PER_AGENT')) {
+    define('GRID402_ROBOTS_MAX_RULES_PER_AGENT', 500);
+}
+if (!defined('GRID402_ROBOTS_MAX_AGENTS')) {
+    define('GRID402_ROBOTS_MAX_AGENTS', 100);
+}
+
 function grid402_extract_parse_robots_txt(string $content): array {
+
     $groups = [];
     $currentAgents = [];
     $sawRuleInGroup = false;
@@ -539,6 +548,10 @@ function grid402_extract_parse_robots_txt(string $content): array {
         $valTrim = trim($value);
 
         if ($fieldLower === 'user-agent') {
+            // Limite de user-agents distintos para evitar mapa gigante em memória
+            if (count($groups) >= GRID402_ROBOTS_MAX_AGENTS) {
+                continue;
+            }
             $ua = strtolower($valTrim);
             if ($sawRuleInGroup || empty($currentAgents)) {
                 $currentAgents = [$ua];
@@ -558,6 +571,10 @@ function grid402_extract_parse_robots_txt(string $content): array {
                 continue;
             }
             foreach ($currentAgents as $ua) {
+                // Limite de regras por user-agent para evitar loop exaustivo na avaliação
+                if (isset($groups[$ua]) && count($groups[$ua]) >= GRID402_ROBOTS_MAX_RULES_PER_AGENT) {
+                    continue;
+                }
                 $groups[$ua][] = ['type' => $fieldLower, 'pattern' => $valTrim];
             }
         }

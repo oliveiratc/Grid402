@@ -102,7 +102,8 @@ $badWh = grid402_mp_handle_webhook(
 );
 t_assert('Assinatura HMAC invalida retorna 401', $badWh['ok'] === false && $badWh['code'] === 401);
 
-$ts = '1700000000';
+$nowTs = time();
+$ts = (string) $nowTs;
 $reqId = 'req-2';
 $dataId = '99887766';
 $sig = hash_hmac('sha256', "id:{$dataId};request-id:{$reqId};ts:{$ts};", $secret);
@@ -111,7 +112,11 @@ $okWh = grid402_mp_handle_webhook(
     json_encode(['type' => 'payment', 'data' => ['id' => $dataId]]),
     []
 );
-t_assert('Webhook valido aprova e emite pass_g402_...', $okWh['ok'] === true && $okWh['status'] === 'approved' && str_starts_with((string) $okWh['pass_token'], 'pass_g402_'));
+t_assert('Webhook valido aprova e retorna sucesso', $okWh['ok'] === true && $okWh['status'] === 'approved');
+
+$pollInitial = grid402_mp_get_order_status($pixRes['order_id']);
+$expectedPassToken = $pollInitial['pass_token'] ?? '';
+t_assert('Polling do comprador em mp-status retorna pass_g402_...', str_starts_with((string) $expectedPassToken, 'pass_g402_'));
 
 echo "\n[7] Polling e Webhook repetido (Idempotencia estrita):\n";
 $poll1 = grid402_mp_get_order_status($pixRes['order_id']);
@@ -120,8 +125,8 @@ $wh2 = grid402_mp_handle_webhook(
     json_encode(['type' => 'payment', 'data' => ['id' => $dataId]]),
     []
 );
-t_assert('Polling retorna o mesmo pass_token', ($poll1['pass_token'] ?? '') === $okWh['pass_token']);
-t_assert('Segundo webhook retorna o mesmo token sem duplicar', ($wh2['pass_token'] ?? '') === $okWh['pass_token'] && !empty($wh2['idempotent']));
+t_assert('Polling retorna o mesmo pass_token', ($poll1['pass_token'] ?? '') === $expectedPassToken);
+t_assert('Segundo webhook retorna idempotente', $wh2['ok'] === true && !empty($wh2['idempotent']));
 $passesJson = @json_decode((string) file_get_contents(GRID402_FILE_PASSES), true) ?: [];
 t_assert('Apenas 1 Session Pass emitido no registro', count($passesJson) === 1);
 
@@ -136,7 +141,7 @@ t_assert('Pix em sandbox gera QR SVG simulado', $sbxPix['ok'] === true && $sbxPi
 $sbxApprove = grid402_mp_sandbox_approve($sbxPix['order_id']);
 t_assert('Aprovacao sandbox emite pass_g402_... marcado como sandbox', $sbxApprove['ok'] === true && str_starts_with((string) $sbxApprove['pass_token'], 'pass_g402_') && $sbxApprove['sandbox'] === true);
 
-$prodPassStatus = grid402_get_session_pass_status($okWh['pass_token']);
+$prodPassStatus = grid402_get_session_pass_status($expectedPassToken);
 t_assert('Token Pro de producao possui 1200 creditos em grid402_get_session_pass_status', !empty($prodPassStatus['valid']) && (int) $prodPassStatus['credits_remaining'] === 1200);
 $passStatus = grid402_get_session_pass_status($sbxApprove['pass_token']);
 t_assert('Token emitido em sandbox funciona em grid402_get_session_pass_status (teto 3 creditos Sandbox V-01)', !empty($passStatus['valid']) && (int) $passStatus['credits_remaining'] === 3 && !empty($passStatus['locked_limits']));

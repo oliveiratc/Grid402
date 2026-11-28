@@ -536,6 +536,16 @@ function grid402_record_telemetry(
 
         $maskedIp = grid402_mask_ip($rawIpForGeo);
 
+        $safeTxHash = null;
+        if ($txHash) {
+            $trimmedTx = trim($txHash);
+            if (str_starts_with($trimmedTx, 'pass_g402_')) {
+                $safeTxHash = 'pass_g402_redacted';
+            } else {
+                $safeTxHash = strtolower($trimmedTx);
+            }
+        }
+
         $event = [
             'timestamp' => $now,
             'service' => $svc,
@@ -543,7 +553,7 @@ function grid402_record_telemetry(
             'is_paid' => $isBillablePaid,
             'type' => $eventTrafficType,
             'price_usdc' => $isBillablePaid ? (string)$effectivePrice : '0.0000',
-            'tx_hash' => $txHash ? strtolower(trim($txHash)) : null,
+            'tx_hash' => $safeTxHash,
             'settlement_tx' => $settlementTx,
             'payment_source' => $paymentSource,
             'failure_category' => $failureCategory,

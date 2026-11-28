@@ -23,10 +23,23 @@ require_once __DIR__ . '/services/sanctions_index.php';
 $isCli = (php_sapi_name() === 'cli');
 $isAuthorized = false;
 
+// Fail-closed se o segredo for o padrão e não estivermos em CLI ou bootstrap interno
+if (!$isCli && !defined('GRID402_INTERNAL_BOOTSTRAP')) {
+    if (function_exists('grid402_is_default_secret') && grid402_is_default_secret(GRID402_CRON_SECRET)) {
+        http_response_code(503);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'error' => 'CronSecretDefaultForbidden',
+            'message' => 'O segredo GRID402_CRON_SECRET e o valor default e foi rejeitado em ambiente de producao.',
+        ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+        exit;
+    }
+}
+
 if ($isCli || defined('GRID402_INTERNAL_BOOTSTRAP')) {
     $isAuthorized = true;
 } else {
-    $queryToken = (string) ($_GET['token'] ?? '');
+    // Autenticação aceita exclusivamente via cabeçalho Authorization: Bearer <secret> (descontinua ?token= em GET)
     $headerAuth = (string) ($_SERVER['HTTP_AUTHORIZATION'] ?? '');
     if ($headerAuth === '' && function_exists('apache_request_headers')) {
         $headers = apache_request_headers();
@@ -35,11 +48,10 @@ if ($isCli || defined('GRID402_INTERNAL_BOOTSTRAP')) {
 
     $bearerToken = '';
     if (str_starts_with($headerAuth, 'Bearer ')) {
-        $bearerToken = substr($headerAuth, 7);
+        $bearerToken = trim(substr($headerAuth, 7));
     }
 
-    $providedToken = ($queryToken !== '') ? $queryToken : $bearerToken;
-    if ($providedToken !== '' && hash_equals(GRID402_CRON_SECRET, $providedToken)) {
+    if ($bearerToken !== '' && hash_equals(GRID402_CRON_SECRET, $bearerToken)) {
         $isAuthorized = true;
     }
 }

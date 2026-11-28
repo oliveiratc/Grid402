@@ -681,8 +681,25 @@ export const CHECKOUT_OPTIONS = {
   },
 };
 
-export async function executeGrid402Request(service, params = {}, options = {}) {
+export async function executeGrid402Request(service, rawParams = {}, options = {}) {
+  // Valida e filtra propriedades estritamente contra o schema da ferramenta MCP
+  const toolDef = MCP_TOOLS_DEFINITIONS.find(t => t.name === `grid402_${service}` || t.name === service);
+  const allowedProps = toolDef?.inputSchema?.properties ? Object.keys(toolDef.inputSchema.properties) : null;
+  const params = {};
+  if (allowedProps && Array.isArray(allowedProps)) {
+    for (const key of allowedProps) {
+      if (rawParams && Object.prototype.hasOwnProperty.call(rawParams, key)) {
+        params[key] = rawParams[key];
+      }
+    }
+  } else {
+    Object.assign(params, rawParams || {});
+  }
+
   const endpoint = (options.endpoint || DEFAULT_ENDPOINT).replace(/\/$/, '');
+  if (!endpoint.startsWith('https://') && !endpoint.startsWith('http://127.0.0.1') && !endpoint.startsWith('http://localhost')) {
+    throw new Error(`Endpoint inseguro rejeitado: ${endpoint}. Grid402 requer conexão HTTPS.`);
+  }
   const paymentNetwork = options.network || params.payment_network || process.env.GRID402_PAYMENT_NETWORK || null;
   const solanaPrivateKey = options.solanaPrivateKey || process.env.GRID402_SOLANA_PRIVATE_KEY || null;
   const privateKey = options.privateKey
@@ -922,7 +939,9 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
   }
 
   // 1. Primeira tentativa de requisição
-  const fetchInit = isBatchPost ? { method: 'POST', headers, body: batchBodyStr } : { headers };
+  const fetchInit = isBatchPost
+    ? { method: 'POST', headers, body: batchBodyStr, redirect: 'error' }
+    : { headers, redirect: 'error' };
   const response = await fetch(url, fetchInit);
 
   if (response.status === 200) {
@@ -959,8 +978,13 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
   if (response.status === 402) {
     const challenge = await response.json();
 
-    // Se temos uma chave privada configurada (EVM ou Solana), tenta pagamento Multi-Chain automático
-    if (privateKey) {
+    // Bloqueia auto-liquidação on-chain com fundos reais se estiver em Sandbox, se forneceu payment_tx_hash ou Session Pass
+    const hasExistingSessionPass = Boolean(process.env.GRID402_SESSION_PASS);
+    const hasManualProof = Boolean(params.payment_tx_hash);
+    const allowAutoSettle = privateKey && !isExplicitSandbox && !hasManualProof && !hasExistingSessionPass;
+
+    // Se temos uma chave privada configurada (EVM ou Solana) e não estamos em modo Sandbox ou com passe ativo, tenta pagamento Multi-Chain automático
+    if (allowAutoSettle) {
       try {
         const paymentResult = await settleX402Payment(challenge, privateKey, preferredRpc, {
           network: paymentNetwork,
@@ -976,7 +1000,9 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
         if (paymentResult.network && paymentResult.network !== 'base') {
           headers['X-Payment-Network'] = paymentResult.network;
         }
-        const retryFetchInit = isBatchPost ? { method: 'POST', headers, body: batchBodyStr } : { headers };
+        const retryFetchInit = isBatchPost
+          ? { method: 'POST', headers, body: batchBodyStr, redirect: 'error' }
+          : { headers, redirect: 'error' };
         const retryResponse = await fetch(url, retryFetchInit);
 
         if (retryResponse.status === 200) {

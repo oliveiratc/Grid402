@@ -169,11 +169,7 @@ class Grid402Client:
         self.raise_for_payment = raise_for_payment
 
     def _get_ssl_context(self) -> ssl.SSLContext:
-        ctx = ssl.create_default_context()
-        if "hostingersite.com" in self.base_url:
-            ctx.check_hostname = False
-            ctx.verify_mode = ssl.CERT_NONE
-        return ctx
+        return ssl.create_default_context()
 
     def _request(
         self,

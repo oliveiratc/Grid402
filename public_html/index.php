@@ -600,7 +600,13 @@ if (str_starts_with($requestPath, '/api/v1/pass/mp-')) {
         if (empty($reqHeaders['x-request-id']) && !empty($_SERVER['HTTP_X_REQUEST_ID'])) {
             $reqHeaders['x-request-id'] = $_SERVER['HTTP_X_REQUEST_ID'];
         }
-        $res = grid402_mp_handle_webhook($reqHeaders, $rawBody, $_GET);
+        $webhookRes = grid402_mp_handle_webhook($reqHeaders, $rawBody, $_GET);
+        // Proteção contra vazamento: o webhook deve responder apenas confirmação genérica sem o pass_token
+        if (!empty($webhookRes['ok'])) {
+            $res = ['ok' => true, 'code' => 200, 'message' => 'Webhook processado com sucesso.'];
+        } else {
+            $res = ['ok' => false, 'code' => $webhookRes['code'] ?? 400, 'error' => $webhookRes['error'] ?? 'WebhookFailed', 'message' => $webhookRes['message'] ?? 'Falha ao processar webhook.'];
+        }
     } elseif ($requestPath === '/api/v1/pass/mp-status' && $method === 'GET') {
         $orderId = (string) ($_GET['order_id'] ?? $_GET['mp_order'] ?? '');
         $paymentHint = isset($_GET['payment_id']) ? (string) $_GET['payment_id'] : (isset($_GET['collection_id']) ? (string) $_GET['collection_id'] : null);
@@ -760,6 +766,14 @@ if ($requestPath === '/api/v1/dossier/pdf') {
 
     require_once __DIR__ . '/services/dossier_pdf.php';
     $rawBody = $rawRequestBody !== '' ? $rawRequestBody : (string) @file_get_contents('php://input');
+
+    if (strlen($rawBody) > 131072) { // Teto máximo de 128 KB contra exaustão de memória
+        http_response_code(413);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['ok' => false, 'code' => 413, 'error' => 'PayloadTooLarge', 'message' => 'O payload do dossie excede o limite maximo de 128 KB.'], JSON_UNESCAPED_SLASHES);
+        exit;
+    }
+
     $decoded = @json_decode($rawBody, true);
     $dossierPayload = is_array($decoded['dossier'] ?? null) ? $decoded['dossier'] : (is_array($decoded) ? $decoded : null);
 
@@ -1237,11 +1251,16 @@ if ($isValidApiAction) {
 
         $hasDailyLimitParam = array_key_exists('daily_credit_limit', $_GET) || array_key_exists('daily_credit_limit', $jsonBodyPass);
         $hasAllowedEndpointsParam = array_key_exists('allowed_endpoints', $_GET) || array_key_exists('allowed_endpoints', $jsonBodyPass);
+        $isLimitsMutation = ($apiParam === 'pass-limits' && ($method === 'POST' || $method === 'PATCH'))
+            || (($method === 'POST' || $method === 'PATCH') && ($hasDailyLimitParam || $hasAllowedEndpointsParam));
 
-        if ($apiParam === 'pass-limits' || $hasDailyLimitParam || $hasAllowedEndpointsParam) {
-            $dailyLimitRaw = $_GET['daily_credit_limit'] ?? $jsonBodyPass['daily_credit_limit'] ?? null;
+        if ($apiParam === 'pass-limits' && ($method === 'GET' || $method === 'HEAD')) {
+            // Em GET /pass-limits, apenas consulta sem mutação
+            $passInfo = grid402_get_session_pass_status($tokenQuery);
+        } elseif ($isLimitsMutation) {
+            $dailyLimitRaw = $jsonBodyPass['daily_credit_limit'] ?? $_POST['daily_credit_limit'] ?? null;
             $dailyLimitVal = ($dailyLimitRaw === null || $dailyLimitRaw === '') ? null : (int) $dailyLimitRaw;
-            $allowedRaw = $_GET['allowed_endpoints'] ?? $jsonBodyPass['allowed_endpoints'] ?? null;
+            $allowedRaw = $jsonBodyPass['allowed_endpoints'] ?? $_POST['allowed_endpoints'] ?? null;
             if (is_string($allowedRaw)) {
                 $allowedVal = $allowedRaw !== '' ? array_map('trim', explode(',', $allowedRaw)) : null;
             } elseif (is_array($allowedRaw)) {
@@ -1250,6 +1269,16 @@ if ($isValidApiAction) {
                 $allowedVal = null;
             }
             $passInfo = grid402_update_session_pass_limits($tokenQuery, $dailyLimitVal, $allowedVal);
+        } elseif ($hasDailyLimitParam || $hasAllowedEndpointsParam) {
+            // Rejeita tentativas de mutação de limites via GET
+            http_response_code(405);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'ok' => false,
+                'error' => 'MethodNotAllowed',
+                'message' => 'Mutação de Spend Controls requer requisição POST ou PATCH com payload JSON.',
+            ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            exit;
         } else {
             $passInfo = grid402_get_session_pass_status($tokenQuery);
         }
@@ -2381,7 +2410,8 @@ if ($isValidApiAction) {
                     $emitPaymentFailure($validation);
                 }
             }
-            $rawUnitsPaid = (int) ($validation['raw_amount'] ?? $servicePriceRaw);
+            // Proteção contra inflação: garante que os créditos correspondam estritamente ao preço tabelado do tier liquidado
+            $rawUnitsPaid = (int) ($validation['settled_amount'] ?? $servicePriceRaw);
             $passTxRef = (string) ($validation['lock_key'] ?? $validation['settlement_tx'] ?? ($proofIsPayload ? ('x402_' . bin2hex(random_bytes(8))) : $paymentProof));
             $result = grid402_issue_session_pass($passTxRef, $rawUnitsPaid, false);
             break;

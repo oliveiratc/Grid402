@@ -224,11 +224,32 @@ function grid402_service_workdays(array $params): array {
         $calendarDays = 0;
         $holidaysInProjection = [];
 
+        $maxIterations = 10000;
+        $iterationCount = 0;
+
         while ($accumulated < $needed) {
+            $iterationCount++;
+            if ($iterationCount > $maxIterations) {
+                return [
+                    'success' => false,
+                    'code' => 400,
+                    'error' => 'ProjectionLimitExceeded',
+                    'message' => 'O calculo excedeu o teto maximo de 10.000 iteracoes do calendario.',
+                ];
+            }
+
             $currTs += ($step * 86400);
             $calendarDays++;
             $currDate = gmdate('Y-m-d', $currTs);
             $cCheck = grid402_is_workday($currDate);
+            if (empty($cCheck['valid'])) {
+                return [
+                    'success' => false,
+                    'code' => 400,
+                    'error' => 'InvalidDateParameter',
+                    'message' => 'A projecao ultrapassou o intervalo de datas suportado pelo calendario (1900 a 2100).',
+                ];
+            }
             if (!empty($cCheck['is_workday'])) {
                 $accumulated++;
             } elseif ($cCheck['day_type'] === 'holiday') {

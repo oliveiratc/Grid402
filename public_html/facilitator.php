@@ -1348,8 +1348,8 @@ function grid402_verify_exact_payment(string $rawProof, int $requiredRawUnits, ?
     if ($isSvm) {
         $nonceKey = 'solana:' . hash('sha256', (string) ($decoded['transaction'] ?? ''));
         $payerAddress = '';
-        $decodedSvmAmt = (isset($decoded['amount']) && is_numeric($decoded['amount'])) ? (int) $decoded['amount'] : 0;
-        $rawPaidUnits = ($decodedSvmAmt >= $requiredRawUnits) ? $decodedSvmAmt : $requiredRawUnits;
+        // Proteção contra inflação: no SVM, o valor liquidado é derivado exclusivamente do montante requerido e validado
+        $rawPaidUnits = $requiredRawUnits;
     } else {
         $auth = $decoded['authorization'];
         $nonceToken = ($authType === 'permit2') ? ('permit2:' . $auth['nonce']) : $auth['nonce'];
@@ -1358,7 +1358,8 @@ function grid402_verify_exact_payment(string $rawProof, int $requiredRawUnits, ?
             ? $baseKey
             : ($netSpec['v2'] . ':' . $baseKey);
         $payerAddress = $auth['from'];
-        $rawPaidUnits = (int) $auth['value'];
+        // Em Permit2, value representa o teto autorizado; o valor efetivamente liquidado é $requiredRawUnits
+        $rawPaidUnits = ($authType === 'permit2') ? $requiredRawUnits : (int) $auth['value'];
     }
 
     if (!grid402_claim_nonce($nonceKey)) {

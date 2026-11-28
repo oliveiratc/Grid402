@@ -100,22 +100,32 @@ function grid402_service_sanctions(string $cnpj, bool $bypassCache = false): arr
         ]);
 
         $rawResponse = @file_get_contents($upstreamUrl, false, $ctx);
-        if ($rawResponse !== false) {
-            $parsed = @json_decode($rawResponse, true);
-            if (is_array($parsed)) {
-                if (count($parsed) > 0) {
-                    foreach ($parsed as $item) {
-                        $sanctions[] = [
-                            'cadastro' => $item['cadastro']['nome'] ?? 'CEIS',
-                            'orgao_sancionador' => $item['orgaoSancionador']['nome'] ?? 'Órgão Federal',
-                            'motivo' => $item['tipoSancao']['descricao'] ?? 'Sanção administrativa',
-                            'data_inicio' => $item['dataInicioSancao'] ?? null,
-                            'data_fim' => $item['dataFimSancao'] ?? null,
-                            'situacao' => 'ATIVA'
-                        ];
-                    }
-                    $hasSanctions = count($sanctions) > 0;
+
+        // Fail-closed: erro de upstream NÃO deve ser cacheado como "sem sanções"
+        if ($rawResponse === false) {
+            return [
+                'success' => false,
+                'error' => 'UpstreamUnavailable',
+                'code' => 503,
+                'message' => 'O Portal de Transparência da CGU está temporariamente indisponível. Tente novamente em instantes.',
+                'cnpj' => grid402_format_cnpj($clean),
+            ];
+        }
+
+        $parsed = @json_decode($rawResponse, true);
+        if (is_array($parsed)) {
+            if (count($parsed) > 0) {
+                foreach ($parsed as $item) {
+                    $sanctions[] = [
+                        'cadastro' => $item['cadastro']['nome'] ?? 'CEIS',
+                        'orgao_sancionador' => $item['orgaoSancionador']['nome'] ?? 'Órgão Federal',
+                        'motivo' => $item['tipoSancao']['descricao'] ?? 'Sanção administrativa',
+                        'data_inicio' => $item['dataInicioSancao'] ?? null,
+                        'data_fim' => $item['dataFimSancao'] ?? null,
+                        'situacao' => 'ATIVA'
+                    ];
                 }
+                $hasSanctions = count($sanctions) > 0;
             }
         }
     }

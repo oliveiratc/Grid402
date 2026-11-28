@@ -16,12 +16,7 @@ GRID402_ENDPOINT = os.getenv("GRID402_ENDPOINT", "https://grid402.online").rstri
 AGENT_PRIVATE_KEY = os.getenv("AGENT_PRIVATE_KEY", None)
 
 def get_ssl_context():
-    if "hostingersite.com" in GRID402_ENDPOINT:
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
-        return ctx
-    return None
+    return ssl.create_default_context()
 
 def query_grid402_with_auto_settlement(service_path: str, params: dict = None) -> dict:
     query_str = ("?" + urllib.parse.urlencode(params)) if params else ""

@@ -1,9 +1,14 @@
 # Git ignore para Grid402
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 *.log
 dist/
+
+# Chaves e certificados
+*.pem
+*.key
+id.json
 
 # Node modules
 node_modules/
@@ -20,9 +25,8 @@ python/dist/
 
 # Dados locais e temporários
 grid402_storage/
-public_html/private_data/*.json
-public_html/private_data/*.jsonl*
+public_html/private_data/**
 !public_html/private_data/.htaccess
-public_html/private_data/sanctions_index/
 scripts/bazaar_watch_state.json
+
 

@@ -72,7 +72,19 @@ function grid402_sign_data(array &$data, bool $isSandbox = false): void {
     $dataHash = grid402_compute_data_hash($data);
     $messageToSign = $dataHash . ':' . $timestamp . ':' . ($isSandbox ? 'sandbox' : 'mainnet');
 
-    $privKeyPem = (string)(getenv('GRID402_ORACLE_PRIVATE_KEY') ?: (defined('GRID402_ORACLE_PRIVATE_KEY') && GRID402_ORACLE_PRIVATE_KEY !== '' ? GRID402_ORACLE_PRIVATE_KEY : GRID402_DEFAULT_ORACLE_PRIVKEY));
+    $envPrivKey = (string) (getenv('GRID402_ORACLE_PRIVATE_KEY') ?: (defined('GRID402_ORACLE_PRIVATE_KEY') ? GRID402_ORACLE_PRIVATE_KEY : ''));
+    if ($envPrivKey === '') {
+        // Em ambiente de teste/sandbox local, permite fallback estritamente controlado
+        $isLocalDev = (defined('GRID402_ENV') && GRID402_ENV === 'development') || (defined('GRID402_TESTING') && GRID402_TESTING);
+        if ($isLocalDev || $isSandbox) {
+            $privKeyPem = GRID402_DEFAULT_ORACLE_PRIVKEY;
+        } else {
+            // Em produção sem chave configurada, não assina com chave padrão vazando autenticidade forjada
+            return;
+        }
+    } else {
+        $privKeyPem = $envPrivKey;
+    }
     // .env guarda PEMs em linha unica com \n literal (parser nao suporta multilinha)
     $privKeyPem = (string) str_replace('\\n', "\n", $privKeyPem);
     $oracleWallet = defined('GRID402_ORACLE_WALLET') ? GRID402_ORACLE_WALLET : '0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90';
@@ -140,7 +152,28 @@ function grid402_verify_oracle_proof(array $data, ?string $pubKeyPem = null): ar
         return ['valid' => false, 'error' => 'InvalidSignatureHex'];
     }
 
-    $pubKey = $pubKeyPem ?: ((defined('GRID402_ORACLE_PUBLIC_KEY') && GRID402_ORACLE_PUBLIC_KEY !== '') ? GRID402_ORACLE_PUBLIC_KEY : (getenv('GRID402_ORACLE_PUBLIC_KEY') ?: GRID402_DEFAULT_ORACLE_PUBKEY));
+    $pubKey = $pubKeyPem ?: ((defined('GRID402_ORACLE_PUBLIC_KEY') && GRID402_ORACLE_PUBLIC_KEY !== '') ? GRID402_ORACLE_PUBLIC_KEY : (getenv('GRID402_ORACLE_PUBLIC_KEY') ?: ''));
+    if ($pubKey === '') {
+        // Deriva dinamicamente da chave privada do oráculo se disponível
+        $privKeyForDerive = (string) (getenv('GRID402_ORACLE_PRIVATE_KEY') ?: (defined('GRID402_ORACLE_PRIVATE_KEY') ? GRID402_ORACLE_PRIVATE_KEY : ''));
+        if ($privKeyForDerive !== '') {
+            $pkRes = openssl_pkey_get_private(str_replace('\\n', "\n", $privKeyForDerive));
+            if ($pkRes) {
+                $details = openssl_pkey_get_details($pkRes);
+                if (!empty($details['key'])) {
+                    $pubKey = $details['key'];
+                }
+            }
+        }
+    }
+    if ($pubKey === '') {
+        $isLocalDev = (defined('GRID402_ENV') && GRID402_ENV === 'development') || (defined('GRID402_TESTING') && GRID402_TESTING);
+        if ($isLocalDev || $isSandbox) {
+            $pubKey = GRID402_DEFAULT_ORACLE_PUBKEY;
+        } else {
+            return ['valid' => false, 'error' => 'OraclePublicKeyNotConfigured'];
+        }
+    }
     $pubKey = (string) str_replace('\\n', "\n", (string) $pubKey);
     $res = openssl_verify($messageToSign, $sigBinary, $pubKey, OPENSSL_ALGO_SHA256);
 

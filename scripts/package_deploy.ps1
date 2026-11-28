@@ -38,18 +38,33 @@ if (Test-Path "$publicHtml\.well-known\.htaccess") {
     }
     Copy-Item -Path "$publicHtml\.well-known\.htaccess" -Destination "$wellKnownTarget\.htaccess" -Force
 }
+
+# Allowlist estrita para private_data: apenas .htaccess deve existir no pacote de deploy
+$stagePrivateData = Join-Path $tempStage "private_data"
+if (Test-Path $stagePrivateData) {
+    Remove-Item -Path "$stagePrivateData\*" -Recurse -Force -ErrorAction SilentlyContinue
+} else {
+    New-Item -ItemType Directory -Path $stagePrivateData | Out-Null
+}
 if (Test-Path "$publicHtml\private_data\.htaccess") {
-    $privateTarget = Join-Path $tempStage "private_data"
-    if (-not (Test-Path $privateTarget)) {
-        New-Item -ItemType Directory -Path $privateTarget | Out-Null
-    }
-    Copy-Item -Path "$publicHtml\private_data\.htaccess" -Destination "$privateTarget\.htaccess" -Force
+    Copy-Item -Path "$publicHtml\private_data\.htaccess" -Destination "$stagePrivateData\.htaccess" -Force
 }
 
-Remove-Item -Path "$tempStage\private_data\*.json", "$tempStage\private_data\*.jsonl", "$tempStage\private_data\*.lock" -Force -ErrorAction SilentlyContinue
-Get-ChildItem -Path "$tempStage\private_data" -Directory -Filter "sanctions_index*" -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
-# Segredos de env nao devem ir no pacote de deploy (sao configurados no .env da raiz do host)
-Remove-Item -Path "$tempStage\private_data\.env" -Force -ErrorAction SilentlyContinue
+# Gate de segurança pré-ZIP: abortar se houver qualquer arquivo sensível no staging
+$sensitivePatterns = @("*.env*", "*admin_auth.json*", "*session_passes.json*", "*.key", "*.pem", "*id.json*")
+$foundSensitive = Get-ChildItem -Path $tempStage -Recurse -File -Force | Where-Object {
+    $file = $_
+    foreach ($pat in $sensitivePatterns) {
+        if ($file.Name -like $pat -and $file.Name -ne ".env.example") {
+            return $true
+        }
+    }
+    return $false
+}
+if ($foundSensitive) {
+    Remove-Item $tempStage -Recurse -Force
+    throw "Abortando deploy: arquivos sensíveis detectados no staging: $($foundSensitive.FullName -join ', ')"
+}
 
 # Compactação usando .NET ZipArchive com barras POSIX (/) para total compatibilidade com Linux/Hostinger
 Add-Type -AssemblyName System.IO.Compression

@@ -31,6 +31,55 @@ export const GRID402_SOLANA_RECIPIENT_WALLET = 'CSgJyQTwehb3vF2vbsDMdUuBPdcuvx1v
 export const PAYAI_SOLANA_FEE_PAYER = 'CjNFTjvBhbJJd2B5ePPMHRLx1ELZpa8dwQgGL727eKww';
 export const SOLANA_SPL_TOKEN_PROGRAM_ID = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 export const REQUIRED_RAW_UNITS = 5000n; // 0.0050 USDC (6 casas decimais)
+export const DEFAULT_MAX_TX_USDC = 0.10; // Teto de segurança por transação ($0.10)
+export const DEFAULT_MAX_SESSION_USDC = 1.00; // Teto de segurança por sessão ($1.00)
+
+let sessionSpentRawUnits = 0n;
+
+export function getSessionSpentUsdc() {
+  return Number(sessionSpentRawUnits) / 1e6;
+}
+
+export function resetSessionSpentUsdc() {
+  sessionSpentRawUnits = 0n;
+}
+
+export function validatePaymentSafeguards(rawUnits, networkSlug, recipient, asset) {
+  const net = SUPPORTED_X402_NETWORKS[networkSlug];
+  if (!net) {
+    throw new Error(`Rede de pagamento não suportada: ${networkSlug}`);
+  }
+
+  // 1. Validação estrita de limites
+  const maxTxUsdc = Number(process.env.GRID402_MAX_TX_USDC || DEFAULT_MAX_TX_USDC);
+  const maxSessionUsdc = Number(process.env.GRID402_MAX_SESSION_USDC || DEFAULT_MAX_SESSION_USDC);
+  const txUsdc = Number(rawUnits) / 1e6;
+
+  if (txUsdc > maxTxUsdc) {
+    throw new Error(`Valor da transação (${txUsdc} USDC) excede o teto de segurança configurado de ${maxTxUsdc} USDC.`);
+  }
+
+  const projectedSession = Number(sessionSpentRawUnits + rawUnits) / 1e6;
+  if (projectedSession > maxSessionUsdc) {
+    throw new Error(`Gasto acumulado da sessão (${projectedSession.toFixed(4)} USDC) excederia o teto de ${maxSessionUsdc} USDC.`);
+  }
+
+  // 2. Allowlist canônica de recipient e asset
+  const canonicalRecipient = net.recipient.toLowerCase();
+  const canonicalAsset = net.usdcContract.toLowerCase();
+
+  if (recipient && recipient.toLowerCase() !== canonicalRecipient) {
+    throw new Error(`Destinatário ${recipient} não corresponde à carteira canônica da rede ${net.name} (${canonicalRecipient}).`);
+  }
+
+  if (asset && asset.toLowerCase() !== canonicalAsset) {
+    throw new Error(`Ativo ${asset} não corresponde ao contrato oficial de USDC na rede ${net.name} (${canonicalAsset}).`);
+  }
+}
+
+export function recordPaymentSpent(rawUnits) {
+  sessionSpentRawUnits += rawUnits;
+}
 
 export const SUPPORTED_X402_NETWORKS = {
   base: {
@@ -518,6 +567,8 @@ export async function settleSolanaUsdcPayment(challenge, privateKey, preferredRp
   const mint = solAccept?.asset || USDC_MINT_SOLANA;
   const dynamicFeePayer = solAccept?.extra?.feePayer || challenge?.solana_fee_payer || PAYAI_SOLANA_FEE_PAYER;
 
+  validatePaymentSafeguards(rawUnits, 'solana', recipientOwner, mint);
+
   // 1. Consulta conta SPL USDC do pagador e valida saldo
   const senderAccounts = await callSolanaRpc(
     'getTokenAccountsByOwner',
@@ -587,6 +638,7 @@ export async function settleSolanaUsdcPayment(challenge, privateKey, preferredRp
       mint,
       feePayer: dynamicFeePayer,
     });
+    recordPaymentSpent(rawUnits);
     return {
       txHash: x402Built.signatureBase58,
       paymentHeader: x402Built.payloadBase64,
@@ -620,6 +672,7 @@ export async function settleSolanaUsdcPayment(challenge, privateKey, preferredRp
 
   const confirmedStatus = await waitForSolanaConfirmation(txSignature, preferredRpc);
 
+  recordPaymentSpent(rawUnits);
   return {
     txHash: txSignature,
     paymentHeader: `solana:${txSignature}`,
@@ -793,6 +846,7 @@ export async function settleX402Payment(challenge, privateKey, preferredRpc = nu
 
   if (useGasless && net.eip3009) {
     const eip3009 = await buildEip3009PaymentPayload(challenge, trimmedKey, networkSlug);
+    recordPaymentSpent(rawUnits);
     return {
       txHash: eip3009.nonce,
       paymentHeader: eip3009.payloadBase64,
@@ -812,6 +866,10 @@ export async function settleX402Payment(challenge, privateKey, preferredRpc = nu
       ? (challenge?.token_contract || net.usdcContract)
       : net.usdcContract
   ).toLowerCase();
+
+  validatePaymentSafeguards(rawUnits, networkSlug, recipient, tokenContract);
+
+  const rawUnitsFormatted = (Number(rawUnits) / 1e6).toFixed(4);
 
   const provider = await getEvmProvider(networkSlug, preferredRpc);
   const wallet = new ethers.Wallet(trimmedKey, provider);
@@ -833,6 +891,8 @@ export async function settleX402Payment(challenge, privateKey, preferredRpc = nu
   const tx = await usdc.transfer(recipient, rawUnits);
   const receipt = await tx.wait(1);
   const paymentHeader = networkSlug === 'base' ? receipt.hash : `${networkSlug}:${receipt.hash}`;
+
+  recordPaymentSpent(rawUnits);
 
   return {
     txHash: receipt.hash,

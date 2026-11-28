@@ -496,8 +496,9 @@ function grid402_mp_create_checkout_pro(string $tier, string $email = ''): array
  * - Omite o campo request-id:...; do manifest quando x-request-id estiver ausente/vazio.
  */
 function grid402_mp_verify_webhook_signature(string $xSignature, string $xRequestId, string $dataId, string $secret): bool {
+    // Em produção, a ausência de secret é fail-closed
     if ($secret === '') {
-        return true;
+        return grid402_mp_is_sandbox();
     }
     $normDataId = strtolower(trim($dataId));
     if ($xSignature === '' || $normDataId === '') {
@@ -521,6 +522,12 @@ function grid402_mp_verify_webhook_signature(string $xSignature, string $xReques
     }
 
     if ($ts === '' || $v1 === '') {
+        return false;
+    }
+
+    // Validação temporal: rejeita timestamps com desvio superior a 300 segundos (5 minutos)
+    $tsNum = is_numeric($ts) ? (int) $ts : 0;
+    if ($tsNum > 0 && abs(time() - $tsNum) > 300) {
         return false;
     }
 
@@ -828,6 +835,9 @@ function grid402_mp_handle_webhook(array $headers, string $rawBody, array $query
     $topic = strtolower(trim((string) ($query['type'] ?? $query['topic'] ?? $body['type'] ?? $body['topic'] ?? $body['action'] ?? '')));
 
     $secret = grid402_mp_webhook_secret();
+    if ($secret === '' && !grid402_mp_is_sandbox()) {
+        return ['ok' => false, 'code' => 503, 'error' => 'WebhookSecretNotConfigured', 'message' => 'GRID402_MP_WEBHOOK_SECRET ausente em producao.'];
+    }
     if ($secret !== '') {
         $xSig = $normHeaders['x-signature'] ?? '';
         $xReqId = $normHeaders['x-request-id'] ?? '';

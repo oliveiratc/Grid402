@@ -42,11 +42,15 @@ function grid402_dossier_pdf_validate_payload(array $payload): array {
                 'message' => 'Amostra ilustrativa permitida apenas para o CNPJ de demonstracao oficial (00.000.000/0001-91).',
             ];
         }
+        // Em modo amostra, utiliza estritamente o dossiê oficial gerado server-side para o CNPJ demo,
+        // ignorando quaisquer campos arbitrários injetados pelo cliente
+        require_once __DIR__ . '/dossier.php';
+        $sampleDossier = grid402_service_dossier('00000000000191');
         return [
             'ok' => true,
             'code' => 200,
             'is_sample' => true,
-            'dossier' => $payload,
+            'dossier' => $sampleDossier,
         ];
     }
 
@@ -157,29 +161,48 @@ function grid402_pdf_wrap_lines(string $text, int $maxChars = 84): array {
     $lines = [];
     $current = '';
 
-    $utf8Len = static function (string $s): int {
-        return preg_match_all('/./u', $s) ?: strlen($s);
-    };
+    $maxChars = max(10, $maxChars);
 
     foreach ($words as $word) {
+        $wLen = mb_strlen($word, 'UTF-8');
         if ($current === '') {
-            if ($utf8Len($word) <= $maxChars) {
+            if ($wLen <= $maxChars) {
                 $current = $word;
             } else {
-                while ($utf8Len($word) > $maxChars) {
-                    $chunk = substr($word, 0, $maxChars);
-                    $lines[] = $chunk;
-                    $word = substr($word, strlen($chunk));
+                // Quebra palavras gigantes em tempo linear O(N) com mb_substr
+                $offset = 0;
+                while ($offset < $wLen) {
+                    $chunk = mb_substr($word, $offset, $maxChars, 'UTF-8');
+                    if ($offset + $maxChars < $wLen) {
+                        $lines[] = $chunk;
+                    } else {
+                        $current = $chunk;
+                    }
+                    $offset += $maxChars;
                 }
-                $current = $word;
             }
             continue;
         }
-        if ($utf8Len($current . ' ' . $word) <= $maxChars) {
+
+        $cLen = mb_strlen($current, 'UTF-8');
+        if ($cLen + 1 + $wLen <= $maxChars) {
             $current .= ' ' . $word;
         } else {
             $lines[] = $current;
-            $current = $word;
+            if ($wLen <= $maxChars) {
+                $current = $word;
+            } else {
+                $offset = 0;
+                while ($offset < $wLen) {
+                    $chunk = mb_substr($word, $offset, $maxChars, 'UTF-8');
+                    if ($offset + $maxChars < $wLen) {
+                        $lines[] = $chunk;
+                    } else {
+                        $current = $chunk;
+                    }
+                    $offset += $maxChars;
+                }
+            }
         }
     }
     if ($current !== '') {
