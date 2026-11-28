@@ -85,6 +85,7 @@ jobs:
           php tests/test_x402_payment_hardening.php
           php tests/test_billing_audit_fixes.php
           php tests/test_billing_country_origin.php
+          php tests/test_admin_x402scan.php
 
   test-sdks:
     name: Client SDKs & MCP Server Tests

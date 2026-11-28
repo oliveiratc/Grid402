@@ -96,6 +96,24 @@ $pricingLookup = [
     'forex' => 0.0050, 'crypto' => 0.0050, 'indicators' => 0.0050, 'holidays' => 0.0050, 'workdays' => 0.0050,
     'global-markets' => 0.0050, 'dns' => 0.0050, 'ssl' => 0.0050, 'asn' => 0.0050, 'cep' => 0.0050, 'verify' => 0.0000, 'summary' => 0.0000,
 ];
+
+$x402scan = is_array($x402scanStats ?? null) ? $x402scanStats : [];
+$x402scanStatus = (string) ($x402scan['status'] ?? 'unavailable');
+$x402scanUrl = (string) ($x402scan['server_url'] ?? 'https://www.x402scan.com/server/00294038-51ff-4073-ab29-c59fca221a50');
+$x402scanOrigin = is_array($x402scan['origin'] ?? null) ? $x402scan['origin'] : [];
+$x402scanWallets = is_array($x402scan['wallets'] ?? null) ? $x402scan['wallets'] : [];
+$x402scanWin = is_array($x402scan['windows'] ?? null) ? $x402scan['windows'] : [];
+$x402scanStatusMeta = [
+    'live' => ['label' => 'Ao vivo', 'color' => '#10B981'],
+    'cached' => ['label' => 'Cache 5m', 'color' => '#00F0FF'],
+    'stale_cache' => ['label' => 'Cache anterior · upstream indisponível', 'color' => '#F59E0B'],
+    'unavailable' => ['label' => 'Indisponível', 'color' => '#EF4444'],
+][$x402scanStatus] ?? ['label' => 'Indisponível', 'color' => '#EF4444'];
+$x402scanMaskAddr = static function (?string $addr): string {
+    $a = trim((string) $addr);
+    if ($a === '') return '—';
+    return strlen($a) <= 12 ? $a : (substr($a, 0, 6) . '...' . substr($a, -4));
+};
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -671,6 +689,36 @@ $pricingLookup = [
                 </div>
             </div>
 
+            <!-- Indicador Compacto x402scan (30d) -->
+            <div id="x402scan-summary-card" class="panel" style="padding: 0.95rem 1.15rem; margin-bottom: 1rem;">
+                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem;">
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.7rem;">
+                        <span style="font-weight: 700; color: #fff;">x402scan (Índice Público On-Chain · 30d)</span>
+                        <span id="x402scan-summary-badge" style="font-size: 0.72rem; font-family: var(--font-mono); padding: 0.18rem 0.55rem; border-radius: 999px; border: 1px solid <?php echo htmlspecialchars($x402scanStatusMeta['color'], ENT_QUOTES, 'UTF-8'); ?>; color: <?php echo htmlspecialchars($x402scanStatusMeta['color'], ENT_QUOTES, 'UTF-8'); ?>;">
+                            <?php echo htmlspecialchars($x402scanStatusMeta['label'], ENT_QUOTES, 'UTF-8'); ?><?php echo !empty($x402scanOrigin['has_x402_v2']) ? ' · x402 v2' : ''; ?>
+                        </span>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 1rem;">
+                        <?php
+                        $d30Sum = is_array($x402scanWin['d30'] ?? null) ? $x402scanWin['d30'] : [];
+                        $d30Txs = $d30Sum['transactions'] ?? null;
+                        $d30Vol = $d30Sum['volume_usdc'] ?? null;
+                        $d30Buy = $d30Sum['unique_buyers'] ?? null;
+                        ?>
+                        <span id="x402scan-summary-metrics" style="font-family: var(--font-mono); font-size: 0.85rem; color: #E2E8F0;">
+                            <?php if ($d30Txs !== null): ?>
+                                <strong><?php echo number_format((int) $d30Txs, 0, ',', '.'); ?></strong> txs ·
+                                <strong style="color: #00F0FF;">US$ <?php echo number_format((float) $d30Vol, 4, '.', ''); ?></strong> ·
+                                <strong><?php echo (int) $d30Buy; ?></strong> buyers
+                            <?php else: ?>
+                                Índice x402scan indisponível no momento
+                            <?php endif; ?>
+                        </span>
+                        <a id="x402scan-summary-link" href="<?php echo htmlspecialchars($x402scanUrl, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="btn-outline" style="font-size: 0.74rem; padding: 0.28rem 0.65rem;">Abrir no x402scan ↗</a>
+                    </div>
+                </div>
+            </div>
+
             <!-- Caixa de Pontos de Atenção -->
             <div id="alerts-panel" class="panel">
                 <div class="panel-title">
@@ -966,6 +1014,69 @@ $pricingLookup = [
                     <div class="kpi-title">Session Passes Pagos Ativos</div>
                     <div class="kpi-value" id="kpi-passes-active"><?php echo $paidActivePasses; ?> <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">/ <?php echo $paidIssuedPasses; ?> pagos</span></div>
                     <div class="kpi-sub" id="kpi-wallet-passes"><?php echo number_format($passRemCredits, 0, ',', '.'); ?> cr pagos restantes (<?php echo number_format($passUtilPct, 1, ',', '.'); ?>% usados) · Promo: <?php echo $promoPassesCount; ?> · Sandbox: <?php echo $sandboxPassesCount; ?></div>
+                </div>
+            </div>
+
+            <!-- Painel x402scan — Índice Público On-Chain -->
+            <div id="x402scan-panel" class="panel" style="margin-bottom: 1rem;">
+                <div class="panel-title">
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem;">
+                        <span>x402scan — Índice Público On-Chain</span>
+                        <span id="x402scan-v2-badge" style="font-size: 0.72rem; font-family: var(--font-mono); padding: 0.16rem 0.5rem; border-radius: 999px; background: rgba(0, 240, 255, 0.1); border: 1px solid rgba(0, 240, 255, 0.35); color: #00F0FF;">
+                            <?php echo !empty($x402scanOrigin['has_x402_v2']) ? 'x402 v2 ativo' : 'x402'; ?>
+                        </span>
+                        <span id="x402scan-status-badge" style="font-size: 0.72rem; font-family: var(--font-mono); color: <?php echo htmlspecialchars($x402scanStatusMeta['color'], ENT_QUOTES, 'UTF-8'); ?>;">
+                            <?php echo htmlspecialchars($x402scanStatusMeta['label'], ENT_QUOTES, 'UTF-8'); ?>
+                        </span>
+                    </div>
+                    <a id="x402scan-link" href="<?php echo htmlspecialchars($x402scanUrl, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" class="btn-outline" style="font-size: 0.72rem; padding: 0.28rem 0.65rem;">Ver servidor no x402scan ↗</a>
+                </div>
+                <div class="panel-subtitle" style="margin: -0.35rem 0 0.75rem;">
+                    Contabiliza apenas liquidações x402 on-chain indexadas publicamente pelo x402scan (não inclui compras Pix/Mercado Pago).
+                </div>
+                <div class="table-wrap">
+                    <table style="min-width: 560px;">
+                        <thead>
+                            <tr>
+                                <th>Janela</th>
+                                <th>Transações</th>
+                                <th>Volume (USDC)</th>
+                                <th>Compradores Únicos</th>
+                                <th>Última Liquidação Indexada</th>
+                            </tr>
+                        </thead>
+                        <tbody id="x402scan-tbody">
+                            <?php
+                            $x402WinLabels = [
+                                'd1' => 'Últimas 24h (1d)',
+                                'd7' => 'Últimos 7 dias (7d)',
+                                'd30' => 'Últimos 30 dias (30d)',
+                            ];
+                            foreach ($x402WinLabels as $wKey => $wTitle):
+                                $wRow = is_array($x402scanWin[$wKey] ?? null) ? $x402scanWin[$wKey] : [];
+                                $wTxs = $wRow['transactions'] ?? null;
+                                $wVol = $wRow['volume_usdc'] ?? null;
+                                $wBuy = $wRow['unique_buyers'] ?? null;
+                                $wTs = $wRow['latest_tx_at'] ?? null;
+                            ?>
+                            <tr data-x402scan-win="<?php echo htmlspecialchars($wKey, ENT_QUOTES, 'UTF-8'); ?>">
+                                <td style="font-family: var(--font-sans); font-weight: 600; color: #fff;"><?php echo htmlspecialchars($wTitle, ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td style="font-family: var(--font-mono);"><?php echo $wTxs !== null ? number_format((int) $wTxs, 0, ',', '.') : '—'; ?></td>
+                                <td style="font-family: var(--font-mono); color: #00F0FF; font-weight: 700;"><?php echo $wVol !== null ? ('US$ ' . number_format((float) $wVol, 4, '.', '')) : '—'; ?></td>
+                                <td style="font-family: var(--font-mono);"><?php echo $wBuy !== null ? (int) $wBuy : '—'; ?></td>
+                                <td style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted);"><?php echo $wTs !== null ? htmlspecialchars((string) $wTs, ENT_QUOTES, 'UTF-8') : '—'; ?></td>
+                            </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.5rem; margin-top: 0.65rem; font-size: 0.74rem; font-family: var(--font-mono); color: var(--text-muted);">
+                    <span id="x402scan-wallets-meta">
+                        Carteiras: EVM <?php echo htmlspecialchars($x402scanMaskAddr($x402scanWallets['evm'] ?? null), ENT_QUOTES, 'UTF-8'); ?> · Solana <?php echo htmlspecialchars($x402scanMaskAddr($x402scanWallets['solana'] ?? null), ENT_QUOTES, 'UTF-8'); ?>
+                    </span>
+                    <span id="x402scan-origin-updated">
+                        Atualizado no índice: <?php echo !empty($x402scanOrigin['updated_at']) ? htmlspecialchars((string) $x402scanOrigin['updated_at'], ENT_QUOTES, 'UTF-8') : '—'; ?>
+                    </span>
                 </div>
             </div>
 
@@ -2171,6 +2282,93 @@ $pricingLookup = [
             window.addEventListener(ev, () => { userInteractedSinceLastTouch = true; }, { passive: true });
         });
 
+        function maskX402WalletShort(addr) {
+            const s = String(addr || '').trim();
+            if (!s) return '—';
+            return s.length <= 12 ? s : (s.slice(0, 6) + '...' + s.slice(-4));
+        }
+
+        function renderX402scanPanel(xs) {
+            if (!xs || typeof xs !== 'object') return;
+            const status = String(xs.status || 'unavailable');
+            const metaMap = {
+                live: { label: 'Ao vivo', color: '#10B981' },
+                cached: { label: 'Cache 5m', color: '#00F0FF' },
+                stale_cache: { label: 'Cache anterior · upstream indisponível', color: '#F59E0B' },
+                unavailable: { label: 'Indisponível', color: '#EF4444' },
+            };
+            const stMeta = metaMap[status] || metaMap.unavailable;
+            const origin = xs.origin || {};
+            const hasV2 = Boolean(origin.has_x402_v2);
+            const serverUrl = String(xs.server_url || 'https://www.x402scan.com/server/00294038-51ff-4073-ab29-c59fca221a50');
+
+            const sumBadge = document.getElementById('x402scan-summary-badge');
+            if (sumBadge) {
+                sumBadge.textContent = stMeta.label + (hasV2 ? ' · x402 v2' : '');
+                sumBadge.style.color = stMeta.color;
+                sumBadge.style.borderColor = stMeta.color;
+            }
+            const stBadge = document.getElementById('x402scan-status-badge');
+            if (stBadge) {
+                stBadge.textContent = stMeta.label;
+                stBadge.style.color = stMeta.color;
+            }
+            const v2Badge = document.getElementById('x402scan-v2-badge');
+            if (v2Badge) {
+                v2Badge.textContent = hasV2 ? 'x402 v2 ativo' : 'x402';
+            }
+
+            const sumLink = document.getElementById('x402scan-summary-link');
+            if (sumLink) sumLink.setAttribute('href', serverUrl);
+            const panelLink = document.getElementById('x402scan-link');
+            if (panelLink) panelLink.setAttribute('href', serverUrl);
+
+            const wins = xs.windows || {};
+            const d30 = wins.d30 || {};
+            const sumMetrics = document.getElementById('x402scan-summary-metrics');
+            if (sumMetrics) {
+                if (d30.transactions !== null && d30.transactions !== undefined) {
+                    const txsFmt = Number(d30.transactions).toLocaleString('pt-BR');
+                    const volFmt = Number(d30.volume_usdc || 0).toFixed(4);
+                    const buyFmt = Number(d30.unique_buyers || 0);
+                    sumMetrics.innerHTML = `<strong>${txsFmt}</strong> txs · <strong style="color: #00F0FF;">US$ ${volFmt}</strong> · <strong>${buyFmt}</strong> buyers`;
+                } else {
+                    sumMetrics.textContent = 'Índice x402scan indisponível no momento';
+                }
+            }
+
+            const tbody = document.getElementById('x402scan-tbody');
+            if (tbody) {
+                const winDefs = [
+                    { key: 'd1', label: 'Últimas 24h (1d)' },
+                    { key: 'd7', label: 'Últimos 7 dias (7d)' },
+                    { key: 'd30', label: 'Últimos 30 dias (30d)' },
+                ];
+                tbody.innerHTML = winDefs.map(def => {
+                    const row = wins[def.key] || {};
+                    const hasData = row.transactions !== null && row.transactions !== undefined;
+                    const txsTxt = hasData ? Number(row.transactions).toLocaleString('pt-BR') : '—';
+                    const volTxt = (row.volume_usdc !== null && row.volume_usdc !== undefined)
+                        ? ('US$ ' + Number(row.volume_usdc).toFixed(4))
+                        : '—';
+                    const buyTxt = (row.unique_buyers !== null && row.unique_buyers !== undefined)
+                        ? String(Number(row.unique_buyers))
+                        : '—';
+                    const tsTxt = row.latest_tx_at ? safeHtmlText(String(row.latest_tx_at)) : '—';
+                    return `<tr data-x402scan-win="${def.key}"><td style="font-family: var(--font-sans); font-weight: 600; color: #fff;">${def.label}</td><td style="font-family: var(--font-mono);">${txsTxt}</td><td style="font-family: var(--font-mono); color: #00F0FF; font-weight: 700;">${volTxt}</td><td style="font-family: var(--font-mono);">${buyTxt}</td><td style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted);">${tsTxt}</td></tr>`;
+                }).join('');
+            }
+
+            const wMeta = document.getElementById('x402scan-wallets-meta');
+            if (wMeta && xs.wallets) {
+                wMeta.textContent = `Carteiras: EVM ${maskX402WalletShort(xs.wallets.evm)} · Solana ${maskX402WalletShort(xs.wallets.solana)}`;
+            }
+            const oUpd = document.getElementById('x402scan-origin-updated');
+            if (oUpd) {
+                oUpd.textContent = 'Atualizado no índice: ' + (origin.updated_at ? String(origin.updated_at) : '—');
+            }
+        }
+
         async function fetchLiveStats(isManual = false) {
             try {
                 let statsUrl = '/admin?api=stats';
@@ -2178,6 +2376,9 @@ $pricingLookup = [
                     statsUrl += '&touch=1';
                     userInteractedSinceLastTouch = false;
                     lastSessionTouchAt = Date.now();
+                }
+                if (isManual) {
+                    statsUrl += '&refresh=1';
                 }
                 const res = await fetch(statsUrl, { cache: 'no-store' });
                 if (res.status === 401) { window.location.href = '/admin?expired=idle_timeout'; return; }
@@ -2261,6 +2462,7 @@ $pricingLookup = [
                     }
                 }
                 if (data.telegram_status) renderTelegramStatusBadge(data.telegram_status);
+                if (data.x402scan) renderX402scanPanel(data.x402scan);
 
                 if (data.today_vs_yesterday) renderTodayVsYesterday(data.today_vs_yesterday);
                 if (data.alerts) renderAlerts(data.alerts, data.alerts_summary);

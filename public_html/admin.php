@@ -23,6 +23,9 @@ require_once __DIR__ . '/services/forex.php';
 require_once __DIR__ . '/services/mercadopago.php';
 require_once __DIR__ . '/services/sanctions_index.php';
 require_once __DIR__ . '/services/admin_insights.php';
+if (is_file(__DIR__ . '/services/x402scan.php')) {
+    require_once __DIR__ . '/services/x402scan.php';
+}
 require_once __DIR__ . '/includes/admin_auth_guard.php';
 
 /**
@@ -1614,6 +1617,10 @@ if ($apiParam === 'stats') {
     $todayVsYesterday = grid402_admin_today_vs_yesterday($metrics, $growthMetrics, $usdRate);
     $operationalHealth = grid402_admin_operational_health($metrics, $analytics, $runtimeStatus, $wallet);
     $alertsBundle = grid402_admin_evaluate_alerts($metrics, $analytics, $operationalHealth, $wallet);
+    $forceRefreshX402 = (($_GET['refresh'] ?? '') === '1');
+    $x402scanStats = function_exists('grid402_get_x402scan_stats')
+        ? grid402_get_x402scan_stats($forceRefreshX402)
+        : null;
     try {
         grid402_dispatch_high_severity_alerts($alertsBundle['alerts'], 3600);
     } catch (Throwable $e) {
@@ -1706,6 +1713,7 @@ if ($apiParam === 'stats') {
         'alerts_summary' => $alertsBundle['summary'],
         'paid_requests_per_service' => $growthMetrics['paid_requests_per_service'] ?? [],
         'growth_metrics' => $growthMetrics,
+        'x402scan' => $x402scanStats,
     ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
     exit;
 }
@@ -2009,5 +2017,8 @@ $growthMetrics = function_exists('grid402_growth_metrics') ? grid402_growth_metr
 $todayVsYesterday = grid402_admin_today_vs_yesterday($metrics, $growthMetrics, $usdRate);
 $operationalHealth = grid402_admin_operational_health($metrics, $analytics, $runtimeStatus, $wallet);
 $alertsBundle = grid402_admin_evaluate_alerts($metrics, $analytics, $operationalHealth, $wallet);
+$x402scanStats = function_exists('grid402_get_x402scan_stats')
+    ? grid402_get_x402scan_stats(false)
+    : null;
 
 require __DIR__ . '/includes/admin_cockpit_view.php';
