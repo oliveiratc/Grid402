@@ -20,12 +20,12 @@
 
 - [x] **Fase 2 liquidada on-chain (`ChainID 8453`, `2026-11-27 13:43 UTC`):**
   - `token-safety` (`0.0150 USDC`), `prediction-markets` (`0.0100 USDC`), `POST /batch` (`0.0100 USDC`).
-- [ ] **Seeding Onda 3A no PayAI Bazaar (`0.0200 USDC` total — `sec-company`, `vuln-audit`, `chain-telemetry`):**
+- [x] **Seeding Onda 3A no PayAI Bazaar (`0.0200 USDC` total — `sec-company`, `vuln-audit`, `chain-telemetry`):**
   ```powershell
   $env:GRID402_BUYER_PRIVATE_KEY='0xSUA_CHAVE'
   node scripts/bazaar_seed.mjs --only=sec-company,vuln-audit,chain-telemetry --execute
   ```
-  (Total estimado: `0.0200 USDC` na Base Mainnet, retornando 100% para `0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`.)
+  (Executado on-chain na Base Mainnet em 2026-11-27, retornando `0.0200 USDC` para `0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`; aguardando propagação assíncrona no endpoint `/discovery/resources` do PayAI.)
 
 ## 3. Publicação npm, RapidAPI Studio e Diretórios MCP / x402
 
@@ -37,7 +37,7 @@
 - [x] **Glama.ai (`glama.ai/mcp/connectors/io.github.oliveiratc/grid402`):**
   Health Check `Healthy` (`33 tools`), descrições do conector e profile atualizadas para `31 serviços` / `MCP v2.2.0 (33 tools)` e sync de repositório agendado (`commit 05ea7ec`).
 - [~] **Smithery.ai (`smithery.ai`):** Serviço/Proxy/CLI para usuários encerrado pela plataforma (substituído por diretório curado da Arcade; sem listing ativo para `oliveiratc/Grid402`).
-- [ ] **x402scan (`x402scan.com`):** Subiu de `27` para `28` recursos (`chain-telemetry` listado); re-acionar `registerFromOrigin` após deploy do ajuste bare HTTP `402` para incluir `sec-company` e `vuln-audit` (`30` recursos).
+- [x] **x402scan (`x402scan.com`):** **30 recursos** registrados via `registerFromOrigin` (`registered: 29`, `apiKeyCount: 1`, `failed: 0`), incluindo `sec-company`, `vuln-audit` e `chain-telemetry`.
 - [x] **PayAPI Market (`payapi.market`):** Submissão já registrada anteriormente (sem duplicação nesta etapa).
 - [ ] **Awesome-x402 / Awesome-MCP (PRs no GitHub):** atualizar descrição para 31 serviços, 33 MCP tools (`grid402-mcp@2.2.0`).
 - [ ] **mcp.so / PulseMCP / mcprush / mcptry:** re-sincronizar catálogo apontando para `https://grid402.online/.well-known/mcp/server-card.json` e `https://grid402.online/mcp`.
