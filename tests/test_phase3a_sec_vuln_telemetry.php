@@ -386,8 +386,17 @@ try {
     $passToken = (string) ($passIssue['pass_token'] ?? '');
     t_assert('Session Pass emitido para suite Fase 3A (400 creditos)', $passToken !== '' && ($passIssue['credits_remaining'] ?? 0) === 400);
 
-    $rSec400 = $httpReq('GET', "{$base}/api/v1/sec-company");
-    t_assert('GET /api/v1/sec-company sem ticker/cik retorna HTTP 400 pre-cobranca', $rSec400['code'] === 400);
+    $rSecBare402 = $httpReq('GET', "{$base}/api/v1/sec-company");
+    t_assert('GET /api/v1/sec-company bare (descoberta x402scan sem params/pagamento) retorna HTTP 402 com 10000 raw',
+        $rSecBare402['code'] === 402 && (int) ($rSecBare402['json']['price_raw_units'] ?? 0) === 10000
+    );
+
+    $balBeforeSec400 = (int) (grid402_get_session_pass_status($passToken)['credits_remaining'] ?? -1);
+    $rSec400 = $httpReq('GET', "{$base}/api/v1/sec-company", ['X-Payment: ' . $passToken]);
+    $balAfterSec400 = (int) (grid402_get_session_pass_status($passToken)['credits_remaining'] ?? -2);
+    t_assert('GET /api/v1/sec-company com X-Payment e sem ticker/cik retorna HTTP 400 pre-cobranca sem debitar Session Pass',
+        $rSec400['code'] === 400 && $balBeforeSec400 === $balAfterSec400
+    );
 
     $rSec402 = $httpReq('GET', "{$base}/api/v1/sec-company?ticker=AAPL");
     t_assert('GET /api/v1/sec-company sem X-Payment retorna HTTP 402 com 10000 raw (0.0100 USDC) e preview',
@@ -446,6 +455,11 @@ try {
     // [3] Servidor HTTP E2E: /api/v1/vuln-audit
     // -------------------------------------------------------------------------
     echo "\n[3/5] Testes HTTP E2E de GET /api/v1/vuln-audit:\n";
+
+    $rVulnBare402 = $httpReq('GET', "{$base}/api/v1/vuln-audit");
+    t_assert('GET /api/v1/vuln-audit bare (descoberta x402scan sem params/pagamento) retorna HTTP 402 com 5000 raw',
+        $rVulnBare402['code'] === 402 && (int) ($rVulnBare402['json']['price_raw_units'] ?? 0) === 5000
+    );
 
     $rVuln400 = $httpReq('GET', "{$base}/api/v1/vuln-audit?ecosystem=npm");
     t_assert('GET /api/v1/vuln-audit com query incompleta retorna HTTP 400 pre-cobranca', $rVuln400['code'] === 400);

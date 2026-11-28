@@ -122,13 +122,15 @@ test('Grid402ActionProvider - Auto-liquidacao com Coinbase AgentKit wallet_provi
     }
     // Segunda chamada com o comprovante
     assert.equal(options.headers['X-Payment'], '0xmocked_node_tx_hash_67890');
+    const mockPayload = {
+      razao_social: 'BANCO DO BRASIL SA',
+      cnpj: '00000000000191',
+    };
     return {
       status: 200,
       ok: true,
-      json: async () => ({
-        razao_social: 'BANCO DO BRASIL SA',
-        cnpj: '00000000000191',
-      }),
+      text: async () => JSON.stringify(mockPayload),
+      json: async () => mockPayload,
     };
   };
 
@@ -351,7 +353,6 @@ test('Grid402Client - Metodos de Compliance, Sancoes e Simples Nacional', async 
 test('Grid402Client - Metodos Extract, EmailVerify, Bundles, Global e Session Pass', async () => {
   const client = new Grid402Client({
     sessionPass: 'pass_g402_test_token_123',
-    rapidApiKey: 'rapid_key_abc',
   });
 
   const originalFetch = globalThis.fetch;
@@ -380,7 +381,7 @@ test('Grid402Client - Metodos Extract, EmailVerify, Bundles, Global e Session Pa
 
     assert.equal(recordedCalls.length, 10);
     assert.equal(recordedCalls[0].headers['X-Payment'], 'pass_g402_test_token_123');
-    assert.equal(recordedCalls[0].headers['X-RapidAPI-Key'], 'rapid_key_abc');
+    assert.equal(recordedCalls[0].headers['X-RapidAPI-Key'], undefined);
     assert(recordedCalls[0].url.includes('/api/v1/extract?'));
     assert(recordedCalls[1].url.includes('/api/v1/email-verify?email=dev%40grid402.online'));
     assert(recordedCalls[2].url.includes('/api/v1/domain-audit?domain=base.org'));
@@ -391,6 +392,23 @@ test('Grid402Client - Metodos Extract, EmailVerify, Bundles, Global e Session Pa
     assert(recordedCalls[7].url.includes('/api/v1/notarize?content=contrato-m2m'));
     assert(recordedCalls[8].url.includes('/api/v1/global-markets?market=US&base=USD'));
     assert(recordedCalls[9].url.includes('/api/v1/pass/balance?token=pass_g402_test_token_123'));
+
+    // Modo proxy RapidAPI quando rapidApiKey e informada sem pagamento x402/Pass explicito
+    const rapidCalls = [];
+    globalThis.fetch = async (url, options) => {
+      rapidCalls.push({ url, headers: options.headers });
+      return {
+        status: 200,
+        ok: true,
+        text: async () => JSON.stringify({ status: 'success' }),
+      };
+    };
+    const rapidClient = new Grid402Client({ rapidApiKey: 'rapid_key_abc' });
+    await rapidClient.extract('https://grid402.online', 5000);
+    assert.equal(rapidCalls.length, 1);
+    assert.equal(rapidCalls[0].headers['X-RapidAPI-Key'], 'rapid_key_abc');
+    assert.equal(rapidCalls[0].headers['X-RapidAPI-Host'], 'grid402-open-data-kyb-ai-utilities.p.rapidapi.com');
+    assert(rapidCalls[0].url.startsWith('https://grid402-open-data-kyb-ai-utilities.p.rapidapi.com/api/v1/extract?'));
   } finally {
     globalThis.fetch = originalFetch;
   }

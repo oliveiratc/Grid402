@@ -74,10 +74,17 @@ jobs:
       - name: Run Platform Maturity & M2M Controls Suite
         run: php tests/test_maturity_and_m2m_controls.php
 
-      - name: Run Session Pass Statement & Storage Interface Suite
+      - name: Run Session Pass Statement, Revenue, Bazaar & Phase 1-3A Suites
         run: |
           php tests/test_session_pass_statement.php
           php tests/test_revenue_engine_v4.php
+          php scripts/validate_cdp_bazaar.php
+          php tests/test_phase1_liquidity_and_legal_hardening.php
+          php tests/test_phase2_token_safety_predictions_batch.php
+          php tests/test_phase3a_sec_vuln_telemetry.php
+          php tests/test_x402_payment_hardening.php
+          php tests/test_billing_audit_fixes.php
+          php tests/test_billing_country_origin.php
 
   test-sdks:
     name: Client SDKs & MCP Server Tests
@@ -112,7 +119,7 @@ jobs:
           npm --prefix sdk/node run test:cjs
           node tests/test_sdk_node.mjs
 
-      - name: Test Official MCP Server (27 tools)
+      - name: Test Official MCP Server (33 tools)
         run: |
           npm --prefix mcp ci
           npm --prefix mcp test

@@ -1441,41 +1441,49 @@ if ($isValidApiAction) {
             }
         }
     } elseif ($apiParam === 'sec-company') {
-        $secCheck = grid402_sec_company_validate_input(
-            (string) ($_GET['ticker'] ?? ''),
-            (string) ($_GET['cik'] ?? ''),
-            isset($_GET['limit']) ? (int) $_GET['limit'] : 10,
-            (string) ($_GET['forms'] ?? ''),
-            $_GET['include_facts'] ?? false
-        );
-        if (!$secCheck['ok']) {
-            http_response_code((int) ($secCheck['code'] ?? 400));
-            header('Content-Type: application/json; charset=utf-8');
-            echo json_encode([
-                'success' => false,
-                'error' => $secCheck['error'],
-                'message' => $secCheck['message'],
-                'code' => (int) ($secCheck['code'] ?? 400),
-            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            exit;
+        $hasSecExplicitQuery = array_key_exists('ticker', $_GET) || array_key_exists('cik', $_GET) || array_key_exists('limit', $_GET) || array_key_exists('forms', $_GET) || array_key_exists('include_facts', $_GET);
+        $hasIncomingPayHeader = !empty($_SERVER['HTTP_X_PAYMENT']) || !empty($_SERVER['HTTP_PAYMENT_SIGNATURE']) || !empty($_SERVER['HTTP_X_PAYMENT_SIGNATURE']) || !empty($_SERVER['HTTP_PAYMENT']) || !empty($_SERVER['HTTP_X_SESSION_PASS']) || !empty($_SERVER['HTTP_AUTHORIZATION']) || !empty($_SERVER['HTTP_X_RAPIDAPI_PROXY_SECRET']);
+        if ($hasSecExplicitQuery || $hasIncomingPayHeader) {
+            $secCheck = grid402_sec_company_validate_input(
+                (string) ($_GET['ticker'] ?? ''),
+                (string) ($_GET['cik'] ?? ''),
+                isset($_GET['limit']) ? (int) $_GET['limit'] : 10,
+                (string) ($_GET['forms'] ?? ''),
+                $_GET['include_facts'] ?? false
+            );
+            if (!$secCheck['ok']) {
+                http_response_code((int) ($secCheck['code'] ?? 400));
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'success' => false,
+                    'error' => $secCheck['error'],
+                    'message' => $secCheck['message'],
+                    'code' => (int) ($secCheck['code'] ?? 400),
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                exit;
+            }
         }
     } elseif ($apiParam === 'vuln-audit') {
-        $vaCheck = grid402_vuln_audit_validate_input(
-            (string) ($_GET['ecosystem'] ?? ''),
-            (string) ($_GET['package'] ?? ''),
-            (string) ($_GET['version'] ?? ''),
-            (string) ($_GET['id'] ?? '')
-        );
-        if (!$vaCheck['ok']) {
-            http_response_code((int) ($vaCheck['code'] ?? 400));
-            header('Content-Type: application/json; charset=utf-8');
-            echo json_encode([
-                'success' => false,
-                'error' => $vaCheck['error'],
-                'message' => $vaCheck['message'],
-                'code' => (int) ($vaCheck['code'] ?? 400),
-            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            exit;
+        $hasVulnExplicitQuery = array_key_exists('ecosystem', $_GET) || array_key_exists('package', $_GET) || array_key_exists('version', $_GET) || array_key_exists('id', $_GET);
+        $hasIncomingPayHeader = !empty($_SERVER['HTTP_X_PAYMENT']) || !empty($_SERVER['HTTP_PAYMENT_SIGNATURE']) || !empty($_SERVER['HTTP_X_PAYMENT_SIGNATURE']) || !empty($_SERVER['HTTP_PAYMENT']) || !empty($_SERVER['HTTP_X_SESSION_PASS']) || !empty($_SERVER['HTTP_AUTHORIZATION']) || !empty($_SERVER['HTTP_X_RAPIDAPI_PROXY_SECRET']);
+        if ($hasVulnExplicitQuery || $hasIncomingPayHeader) {
+            $vaCheck = grid402_vuln_audit_validate_input(
+                (string) ($_GET['ecosystem'] ?? ''),
+                (string) ($_GET['package'] ?? ''),
+                (string) ($_GET['version'] ?? ''),
+                (string) ($_GET['id'] ?? '')
+            );
+            if (!$vaCheck['ok']) {
+                http_response_code((int) ($vaCheck['code'] ?? 400));
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'success' => false,
+                    'error' => $vaCheck['error'],
+                    'message' => $vaCheck['message'],
+                    'code' => (int) ($vaCheck['code'] ?? 400),
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                exit;
+            }
         }
     } elseif ($apiParam === 'chain-telemetry') {
         if (array_key_exists('chain', $_GET)) {
