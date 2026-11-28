@@ -1,0 +1,360 @@
+{
+  "schema_version": "1.0",
+  "name": "Grid402",
+  "url": "https://grid402.online",
+  "currency": "USD",
+  "token": "USDC",
+  "payableByAgent": true,
+  "rail": "x402",
+  "payment": {
+    "protocol": "x402",
+    "version": 2,
+    "scheme": "exact",
+    "network": "eip155:8453",
+    "networks": [
+      "eip155:8453",
+      "eip155:137",
+      "eip155:42161"
+    ],
+    "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+    "facilitator": "https://facilitator.payai.network",
+    "sessionPassPortal": "https://grid402.online/pass"
+  },
+  "creditUnitUsd": 0.005,
+  "products": [
+    {
+      "id": "summary",
+      "name": "Hub Operational Status Summary",
+      "price": 0,
+      "credits": 0,
+      "unit": "call",
+      "endpoint": "https://grid402.online/status",
+      "notes": "Free health, 30-day uptime and catalog metadata across all 31 microservices."
+    },
+    {
+      "id": "verify",
+      "name": "Cryptographic Oracle Proof Verifier",
+      "price": 0,
+      "credits": 0,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/verify",
+      "notes": "Free stateless ECDSA secp256k1 signature verification for _oracle_proof payloads."
+    },
+    {
+      "id": "pass-balance",
+      "name": "Session Pass Balance and Spend Controls",
+      "price": 0,
+      "credits": 0,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/pass/balance",
+      "notes": "Free real-time check of remaining credits, expiry and daily Spend Controls."
+    },
+    {
+      "id": "pass-statement",
+      "name": "Session Pass Zero-PII Statement",
+      "price": 0,
+      "credits": 0,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/pass/statement",
+      "notes": "Free Zero-PII usage statement in JSON or CSV (ring buffer of last 200 events)."
+    },
+    {
+      "id": "forex",
+      "name": "Forex and Currencies (PTAX)",
+      "price": 0.005,
+      "credits": 1,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/forex",
+      "notes": "Official USD, EUR and GBP exchange rates against BRL."
+    },
+    {
+      "id": "crypto",
+      "name": "Crypto Tickers",
+      "price": 0.005,
+      "credits": 1,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/crypto",
+      "notes": "Live spot prices for BTC, ETH, SOL, USDC and BASE in USD and BRL."
+    },
+    {
+      "id": "dns",
+      "name": "DNS Records Lookup",
+      "price": 0.005,
+      "credits": 1,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/dns",
+      "notes": "Authoritative resolution of A, AAAA, MX, TXT, NS and CNAME records."
+    },
+    {
+      "id": "ssl",
+      "name": "TLS/SSL Inspector",
+      "price": 0.005,
+      "credits": 1,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/ssl",
+      "notes": "Port 443 X.509 certificate chain, issuer, SANs and expiration audit."
+    },
+    {
+      "id": "asn",
+      "name": "ASN and IP Routing Info",
+      "price": 0.005,
+      "credits": 1,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/asn",
+      "notes": "BGP routing telemetry, ASN number, CIDR block and country."
+    },
+    {
+      "id": "cep",
+      "name": "CEP and Postal Directory",
+      "price": 0.005,
+      "credits": 1,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/cep",
+      "notes": "Brazilian postal address and municipal IBGE code lookup."
+    },
+    {
+      "id": "indicators",
+      "name": "Economic Indicators (Selic, CDI, IPCA)",
+      "price": 0.005,
+      "credits": 1,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/indicators",
+      "notes": "Official Banco Central and IBGE macroeconomic rates."
+    },
+    {
+      "id": "holidays",
+      "name": "Banking Holidays Calendar",
+      "price": 0.005,
+      "credits": 1,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/holidays",
+      "notes": "Official ANBIMA and Febraban national banking holiday calendar."
+    },
+    {
+      "id": "workdays",
+      "name": "ANBIMA Business Days Calculator",
+      "price": 0.005,
+      "credits": 1,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/workdays",
+      "notes": "Business-day interval count and D+N maturity projection."
+    },
+    {
+      "id": "notarize",
+      "name": "M2M Timestamp and Notarization",
+      "price": 0.005,
+      "credits": 1,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/notarize",
+      "notes": "Stateless SHA-256 proof-of-existence and UTC timestamp signed with ECDSA secp256k1."
+    },
+    {
+      "id": "global-markets",
+      "name": "World Markets and 30+ ECB FX Rates",
+      "price": 0.005,
+      "credits": 1,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/global-markets",
+      "notes": "Global settlement calendar (US, EU, UK, BR) and 30+ ECB reference currencies."
+    },
+    {
+      "id": "extract",
+      "name": "Web URL to Clean Markdown Extractor",
+      "price": 0.005,
+      "credits": 1,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/extract",
+      "notes": "SSRF-hardened HTML-to-Markdown extractor with metadata and absolute links."
+    },
+    {
+      "id": "email-verify",
+      "name": "Zero-PII B2B Email Deliverability Audit",
+      "price": 0.005,
+      "credits": 1,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/email-verify",
+      "notes": "RFC syntax, DNS MX, SPF, DMARC, disposable domain and role-based score."
+    },
+    {
+      "id": "batch",
+      "name": "Multi-Service Batch Execution (POST)",
+      "price": 0.005,
+      "credits": 1,
+      "unit": "item_sum",
+      "endpoint": "https://grid402.online/api/v1/batch",
+      "notes": "Execute 1 to 5 paid data calls in a single HTTP POST. Dynamically billed as exact sum of item prices with automatic Session Pass refund per failed sub-item."
+    },
+    {
+      "id": "prediction-markets",
+      "name": "Normalized Prediction Markets (Polymarket + Kalshi)",
+      "price": 0.01,
+      "credits": 2,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/prediction-markets",
+      "notes": "Implied probability (0-100%), 24h volume and liquidity normalized from Polymarket Gamma and Kalshi Trade API v2."
+    },
+    {
+      "id": "token-safety",
+      "name": "Multi-Chain Token Security Audit",
+      "price": 0.015,
+      "credits": 3,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/token-safety",
+      "notes": "GoPlus Security and DexScreener liquidity risk audit across Base, Ethereum, Polygon, Arbitrum and SPL networks (score 0-100 and SAFE/CAUTION/HIGH_RISK/CRITICAL verdict)."
+    },
+    {
+      "id": "sec-company",
+      "name": "SEC EDGAR Company and Filings Lookup",
+      "price": 0.01,
+      "credits": 2,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/sec-company",
+      "notes": "US SEC EDGAR corporate profile (CIK, SIC, exchanges), filtered 10-K/10-Q/8-K filings and optional bounded XBRL financial facts (8 MB guard)."
+    },
+    {
+      "id": "vuln-audit",
+      "name": "Package and CVE Vulnerability Audit",
+      "price": 0.005,
+      "credits": 1,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/vuln-audit",
+      "notes": "Deterministic vulnerability and active-exploitation audit combining OSV.dev and CISA KEV by package or CVE/GHSA ID (CLEAN to CRITICAL_KEV verdict)."
+    },
+    {
+      "id": "chain-telemetry",
+      "name": "Multi-Chain Live Telemetry",
+      "price": 0.005,
+      "credits": 1,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/chain-telemetry",
+      "notes": "Real-time RPC telemetry (block/slot, gas/priority fees, latency) and DeFiLlama TVL across Base, Ethereum, Polygon, Arbitrum and SPL networks."
+    },
+    {
+      "id": "cnpj",
+      "name": "Company Registry (CNPJ)",
+      "price": 0.01,
+      "credits": 2,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/cnpj",
+      "notes": "Receita Federal corporate registry data without partner PII."
+    },
+    {
+      "id": "lei",
+      "name": "Global Corporate Identity (GLEIF LEI)",
+      "price": 0.01,
+      "credits": 2,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/lei",
+      "notes": "ISO 17442 global entity identity across 200+ jurisdictions (CC0 1.0)."
+    },
+    {
+      "id": "sanctions",
+      "name": "Administrative Sanctions (CEIS/CNEP)",
+      "price": 0.01,
+      "credits": 2,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/sanctions",
+      "notes": "CGU federal administrative sanctions and debarment screening."
+    },
+    {
+      "id": "simples",
+      "name": "Simples Nacional and MEI Tax Regime",
+      "price": 0.01,
+      "credits": 2,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/simples",
+      "notes": "Receita Federal Simples Nacional and SIMEI tax classification."
+    },
+    {
+      "id": "domain-audit",
+      "name": "Domain Audit Bundle (DNS + SSL + ASN)",
+      "price": 0.015,
+      "credits": 3,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/domain-audit",
+      "notes": "Composite single-call domain infrastructure and risk score audit."
+    },
+    {
+      "id": "market-snapshot",
+      "name": "Market Snapshot Bundle",
+      "price": 0.015,
+      "credits": 3,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/market-snapshot",
+      "notes": "Composite single-call PTAX FX, spot crypto, BCB indicators and ANBIMA calendar."
+    },
+    {
+      "id": "ofac",
+      "name": "Global Sanctions (OFAC/UN) and Web3 AML",
+      "price": 0.02,
+      "credits": 4,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/ofac",
+      "notes": "US Treasury OFAC SDN, UN sanctions screening and Base Mainnet EVM wallet AML."
+    },
+    {
+      "id": "kyb-audit",
+      "name": "KYB and Compliance Audit Bundle",
+      "price": 0.025,
+      "credits": 5,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/kyb-audit",
+      "notes": "Composite corporate audit: CNPJ + OFAC/UN sanctions + GLEIF LEI."
+    },
+    {
+      "id": "compliance",
+      "name": "Compliance Score 360",
+      "price": 0.03,
+      "credits": 6,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/compliance",
+      "notes": "Consolidated entity integrity score (0-100) across Receita Federal and CGU."
+    },
+    {
+      "id": "dossier",
+      "name": "KYB 360 Dossier and Deterministic AI Verdict",
+      "price": 0.05,
+      "credits": 10,
+      "unit": "call",
+      "endpoint": "https://grid402.online/api/v1/dossier",
+      "notes": "Full KYB 360 dossier with APPROVED, FLAGGED or REJECTED verdict and score 0-100."
+    },
+    {
+      "id": "pass",
+      "name": "x402 Prepaid Session Pass (Starter Default)",
+      "price": 2,
+      "credits": 400,
+      "unit": "pack",
+      "endpoint": "https://grid402.online/api/v1/pass",
+      "notes": "400 prepaid credits valid for 180 days (sub-15ms execution via X-Payment: pass_g402_...)."
+    },
+    {
+      "id": "pass-starter",
+      "name": "Session Pass Starter (400 credits)",
+      "price": 2,
+      "credits": 400,
+      "unit": "pack",
+      "endpoint": "https://grid402.online/api/v1/pass-emitir",
+      "notes": "400 credits valid for 180 days (0.0050 USDC per credit)."
+    },
+    {
+      "id": "pass-pro",
+      "name": "Session Pass Pro (1,200 credits)",
+      "price": 5,
+      "credits": 1200,
+      "unit": "pack",
+      "endpoint": "https://grid402.online/api/v1/pass-emitir",
+      "notes": "1,000 base credits plus 200 bonus credits (+20%), valid for 180 days."
+    },
+    {
+      "id": "pass-fleet",
+      "name": "Session Pass Fleet (6,000 credits)",
+      "price": 20,
+      "credits": 6000,
+      "unit": "pack",
+      "endpoint": "https://grid402.online/api/v1/pass-emitir",
+      "notes": "4,000 base credits plus 2,000 bonus credits (+50%), valid for 365 days."
+    }
+  ]
+}

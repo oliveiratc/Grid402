@@ -1,0 +1,169 @@
+# Grid402 // Hub de Utilitários de Rede e Dados Públicos (LiteSpeed / Apache)
+Options -Indexes
+ServerSignature Off
+
+<IfModule mod_mime.c>
+    AddType application/manifest+json .webmanifest
+</IfModule>
+
+# Proteção de arquivos sensíveis e módulos internos PHP
+<FilesMatch "^\.(env|git)|^(config|x402|facilitator|metrics|logger)\.php$|\.(json|log|sh|sql|bak|tmp)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Exceção explícita para manifestos JSON públicos de descoberta
+<FilesMatch "^(openapi|sitemap|package|pricing|x402|mcp|glama|ai-plugin|ai-agent|agent-card|server-card)\.json$">
+    <IfModule mod_authz_core.c>
+        Require all granted
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Allow from all
+    </IfModule>
+</FilesMatch>
+
+# Cabeçalhos Globais de Segurança e Hardening HTTP
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" env=HTTPS
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cloud.umami.is https://gateway.umami.is; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://cloud.umami.is https://gateway.umami.is https://api-gateway.umami.dev https://mainnet.base.org https://base.llamarpc.com https://1rpc.io/base https://sepolia.base.org https://www.walletlink.org https://*.walletlink.org wss://www.walletlink.org wss://*.walletlink.org; frame-ancestors 'self'; frame-src 'self' https://www.walletlink.org https://*.walletlink.org; base-uri 'self'; form-action 'self';"
+</IfModule>
+
+# CORS amplo isolado para arquivos públicos de descoberta e schemas M2M
+<FilesMatch "\.(json|txt|xml|svg)$">
+    <IfModule mod_headers.c>
+        Header set Access-Control-Allow-Origin "*"
+        Header set Access-Control-Allow-Methods "GET, OPTIONS"
+        Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Payment, x-payment, X-Payment-Network, x-payment-network, X-Session-Pass, x-session-pass, PAYMENT-SIGNATURE, payment-signature, X-Payment-Signature, x-payment-signature, Payment, payment, Idempotency-Key, X-Request-Id, X-RapidAPI-Proxy-Secret, X-RapidAPI-Key, X-RapidAPI-Host"
+        Header set Access-Control-Expose-Headers "WWW-Authenticate, X-Authenticate, X-Accept-Payment, X-Payment-Status, X-Payment-Amount, X-Payment-Network, PAYMENT-REQUIRED, Payment-Required, payment-required, PAYMENT-RESPONSE, X-PAYMENT-RESPONSE, X-Idempotent-Replay, X-Request-Id"
+    </IfModule>
+</FilesMatch>
+
+# Roteamento Amigável do Hub e Oráculo x402
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Bloqueio de acesso HTTP direto a diretorios e modulos internos (HTTP 403)
+    # Permite services/onchain_stats.php apenas para cron autenticado por CRON_SECRET
+    RewriteRule ^includes(/.*)?$ - [F,L]
+    RewriteRule ^private_data(/.*)?$ - [F,L]
+    RewriteRule ^services/(?!onchain_stats\.php$).*$ - [F,L]
+    RewriteRule ^services/?$ - [F,L]
+    RewriteRule ^(config|x402|facilitator|metrics|logger)\.php$ - [F,L]
+
+    # 0. Redirecionamento Canonico de Dominio (301)
+    # Preserva execucao direta de rotas M2M (/api/*, /mcp, /status, manifestos) em www.grid402.online
+    # para nao descartar POST bodies nem cabecalhos X-Payment / PAYMENT-SIGNATURE em clientes HTTP.
+    RewriteCond %{HTTP_HOST} ^orangered-jackal-900744\.hostingersite\.com$ [NC]
+    RewriteRule ^(.*)$ https://grid402.online/$1 [R=301,L]
+
+    RewriteCond %{HTTP_HOST} ^www\.grid402\.online$ [NC]
+    RewriteCond %{REQUEST_URI} !^/(api/|mcp|status|telemetry|workdays|llms|openapi\.json|pricing\.json|\.well-known/) [NC]
+    RewriteRule ^(.*)$ https://grid402.online/$1 [R=301,L]
+
+    RewriteCond %{HTTPS} !=on
+    RewriteCond %{HTTP_HOST} ^(www\.)?grid402\.online$ [NC]
+    RewriteRule ^(.*)$ https://grid402.online/$1 [R=301,L]
+
+    # Handler Dinamico para robots.txt com Content-Signal e Sitemap
+    RewriteRule ^robots\.txt$ robots.php [L]
+
+    # Rotas de Badges SVG
+    RewriteRule ^badge/([a-zA-Z0-9_\-]+)\.svg$ badge.php?target=$1 [QSA,L]
+    RewriteRule ^badge/([a-zA-Z0-9_\-]+)/?$ badge.php?target=$1 [QSA,L]
+
+    # Rotas da API v1
+    RewriteRule ^api/v1/summary/?$ index.php?api=summary [QSA,L]
+    RewriteRule ^api/v1/verify/?$ index.php?api=verify [QSA,L]
+    RewriteRule ^api/v1/forex/?$ index.php?api=forex [QSA,L]
+    RewriteRule ^api/v1/crypto/?$ index.php?api=crypto [QSA,L]
+    RewriteRule ^api/v1/dns/?$ index.php?api=dns [QSA,L]
+    RewriteRule ^api/v1/ssl/?$ index.php?api=ssl [QSA,L]
+    RewriteRule ^api/v1/asn/?$ index.php?api=asn [QSA,L]
+    RewriteRule ^api/v1/domain-audit/?$ index.php?api=domain-audit [QSA,L]
+    RewriteRule ^api/v1/kyb-audit/?$ index.php?api=kyb-audit [QSA,L]
+    RewriteRule ^api/v1/dossier/?$ index.php?api=dossier [QSA,L]
+    RewriteRule ^api/v1/market-snapshot/?$ index.php?api=market-snapshot [QSA,L]
+    # Web3 Top-Up, Spend Controls, Extrato e Checkout Mercado Pago para Session Pass
+    RewriteRule ^api/v1/pass/?$ index.php?api=pass [QSA,L]
+    RewriteRule ^api/v1/pass-emitir/?$ index.php?api=pass-emitir [QSA,L]
+    RewriteRule ^api/v1/pass/(balance|limits|statement)/?$ index.php?api=pass-$1 [QSA,L]
+    RewriteRule ^api/v1/pass/mp-(pix|checkout|webhook|status|sandbox-approve)/?$ index.php [QSA,L]
+    RewriteRule ^api/v1/cep/?$ index.php?api=cep [QSA,L]
+    RewriteRule ^api/v1/cnpj/?$ index.php?api=cnpj [QSA,L]
+    RewriteRule ^api/v1/sanctions/?$ index.php?api=sanctions [QSA,L]
+    RewriteRule ^api/v1/simples/?$ index.php?api=simples [QSA,L]
+    RewriteRule ^api/v1/compliance/?$ index.php?api=compliance [QSA,L]
+    RewriteRule ^api/v1/lei/?$ index.php?api=lei [QSA,L]
+    RewriteRule ^api/v1/ofac/?$ index.php?api=ofac [QSA,L]
+    RewriteRule ^api/v1/notarize/?$ index.php?api=notarize [QSA,L]
+    RewriteRule ^api/v1/global-markets/?$ index.php?api=global-markets [QSA,L]
+    RewriteRule ^api/v1/indicators/?$ index.php?api=indicators [QSA,L]
+    RewriteRule ^api/v1/holidays/?$ index.php?api=holidays [QSA,L]
+    RewriteRule ^api/v1/workdays/?$ index.php?api=workdays [QSA,L]
+    RewriteRule ^api/v1/extract/?$ index.php?api=extract [QSA,L]
+    RewriteRule ^api/v1/email-verify/?$ index.php?api=email-verify [QSA,L]
+    RewriteRule ^workdays/?$ index.php?api=workdays [QSA,L]
+
+    # Manifestos well-known e Hosted MCP (streamable HTTP) publico e anonimo — /mcp
+    RewriteRule ^\.well-known/x402(?:\.json)?/?$ well_known_x402.php [L]
+    RewriteRule ^mcp/\.well-known/glama\.json$ .well-known/glama.json [L]
+    RewriteRule ^mcp/?$ mcp.php [QSA,L]
+
+    # Central de Agentes de IA
+    RewriteRule ^agents/?$ agents.php [QSA,L]
+
+    # Catálogo único e Trust Center
+    RewriteRule ^catalog/?$ catalog.php [QSA,L]
+    RewriteRule ^docs/?$ catalog.php [QSA,L]
+    RewriteRule ^trust/?$ trust.php [QSA,L]
+
+    # Pagina de compra de Session Pass (linkavel na resposta HTTP 402) e Funil Web PT-BR
+    RewriteRule ^pass/?$ pass.php [QSA,L]
+    RewriteRule ^dossie-kyb/?$ dossie_kyb.php [QSA,L]
+    RewriteRule ^api-cnpj/?$ seo_landing.php?slug=api-cnpj [QSA,L]
+    RewriteRule ^api-sancoes-cgu/?$ seo_landing.php?slug=api-sancoes-cgu [QSA,L]
+    RewriteRule ^api-dias-uteis-anbima/?$ seo_landing.php?slug=api-dias-uteis-anbima [QSA,L]
+    RewriteRule ^url-to-markdown-api/?$ seo_landing.php?slug=url-to-markdown-api [QSA,L]
+    RewriteRule ^global-kyb-api/?$ seo_landing.php?slug=global-kyb-api [QSA,L]
+    RewriteRule ^zero-pii-email-verification-api/?$ seo_landing.php?slug=zero-pii-email-verification-api [QSA,L]
+
+    # Web3 Agent Growth Program
+    RewriteRule ^growth/?$ growth_program.php [QSA,L]
+    RewriteRule ^(builder|reputation|builder_reputation)/?$ builder_reputation.php [QSA,L]
+    RewriteRule ^agenthub/?$ /agent-hub [R=301,L]
+    RewriteRule ^agent-hub/?$ agenthub.php [QSA,L]
+    RewriteRule ^payment-dashboard/?$ payment_dashboard.php [QSA,L]
+
+    # Painel Administrativo de Monitoramento e Faturamento
+    RewriteRule ^admin/?$ admin.php [QSA,L]
+    RewriteRule ^dashboard/?$ admin.php [QSA,L]
+    RewriteRule ^growth_admin/?$ growth_admin.php [QSA,L]
+
+    # Rotas Institucionais e Atalhos
+    RewriteRule ^status/?$ index.php?api=summary [QSA,L]
+    RewriteRule ^telemetry/?$ index.php?api=summary [QSA,L]
+    RewriteRule ^about/?$ index.php?page=about [QSA,L]
+    RewriteRule ^contact/?$ index.php?page=contact [QSA,L]
+    RewriteRule ^terms/?$ index.php?page=terms [QSA,L]
+    RewriteRule ^privacy/?$ index.php?page=privacy [QSA,L]
+
+    # Arquivos estáticos existentes (ex: llms.txt, collector.php)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Fallback
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>

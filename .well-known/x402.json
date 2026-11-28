@@ -1,0 +1,1364 @@
+{
+    "x402Version": 2,
+    "name": "Grid402 Network Utilities",
+    "alias": "grid402",
+    "description": "30 paid M2M open data, SEC EDGAR filings, package/CVE vulnerability audit, multi-chain telemetry, token safety, prediction markets, multi-service batch execution, web extraction, email verification, global sanctions screening, Brazilian KYB/compliance and network utility endpoints under HTTP 402 x402 v2 (Base, Polygon and Arbitrum USDC) plus free cryptographic verification.",
+    "website": "https://grid402.online",
+    "network": "eip155:8453",
+    "networks": [
+        "eip155:8453",
+        "eip155:137",
+        "eip155:42161"
+    ],
+    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+    "facilitator": "https://facilitator.payai.network",
+    "facilitators": {
+        "eip155:8453": {
+            "primary": "payai",
+            "url": "https://facilitator.payai.network",
+            "fallback": null,
+            "fallback_url": null
+        },
+        "eip155:137": {
+            "primary": "payai",
+            "url": "https://facilitator.payai.network",
+            "fallback": null,
+            "fallback_url": null
+        },
+        "eip155:42161": {
+            "primary": "payai",
+            "url": "https://facilitator.payai.network",
+            "fallback": null,
+            "fallback_url": null
+        }
+    },
+    "solana_enabled": false,
+    "resources": [
+        {
+            "resource": "https://grid402.online/api/v1/forex",
+            "type": "http",
+            "method": "GET",
+            "description": "Official commercial fiat exchange rates (USD, EUR, GBP to BRL) with daily percentage change and ECDSA oracle proof.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/crypto",
+            "type": "http",
+            "method": "GET",
+            "description": "Real-time cryptocurrency spot prices and 24h changes for BTC, ETH, SOL, USDC and BASE in USD and BRL with signed oracle proof.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/dns",
+            "type": "http",
+            "method": "GET",
+            "description": "Authoritative DNS record resolution returning A, AAAA, MX, TXT, NS and CNAME records with query latency.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/ssl",
+            "type": "http",
+            "method": "GET",
+            "description": "Port 443 TLS/SSL certificate inspector returning issuer, validity dates, SANs, cipher suite and days until expiration.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/asn",
+            "type": "http",
+            "method": "GET",
+            "description": "BGP routing and ASN intelligence returning ASN number, IP prefix, owner organization and country for any IPv4/IPv6 address.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/domain-audit",
+            "type": "http",
+            "method": "GET",
+            "description": "Consolidated domain security and infrastructure audit (authoritative DNS + TLS/SSL certificate + BGP/ASN routing) with risk score in one call.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "15000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "15000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "15000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/kyb-audit",
+            "type": "http",
+            "method": "GET",
+            "description": "Global corporate KYB audit combining Brazil Receita Federal CNPJ, US OFAC/UN sanctions screening and GLEIF ISO 17442 LEI verification in a single signed call.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "25000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "25000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "25000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/dossier",
+            "type": "http",
+            "method": "GET",
+            "description": "Full 360-degree Brazil KYB corporate dossier (Receita Federal CNPJ, Simples Nacional/MEI, CGU CEIS/CNEP sanctions) with deterministic AI verdict (APPROVED, FLAGGED, REJECTED) and ECDSA proof.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "50000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "50000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "50000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/market-snapshot",
+            "type": "http",
+            "method": "GET",
+            "description": "Consolidated financial and macro market snapshot combining commercial Forex (USD/EUR/GBP to BRL), Crypto spot prices, Selic/CDI/IPCA and ANBIMA calendar.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "15000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "15000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "15000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/cep",
+            "type": "http",
+            "method": "GET",
+            "description": "Official Brazil postal code (CEP) lookup returning street, neighborhood, city, state and IBGE municipality code.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/cnpj",
+            "type": "http",
+            "method": "GET",
+            "description": "Official Brazil Receita Federal CNPJ company lookup returning legal name, trade name, active status, CNAE activity codes, address and share capital.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/indicators",
+            "type": "http",
+            "method": "GET",
+            "description": "Official Brazil Central Bank (BCB) and IBGE macroeconomic indicators: Selic target/daily, CDI and 12-month IPCA inflation.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/holidays",
+            "type": "http",
+            "method": "GET",
+            "description": "Official Brazil national and ANBIMA/Febraban banking holidays calendar for any year (1900-2100).",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/workdays",
+            "type": "http",
+            "method": "GET",
+            "description": "ANBIMA banking business-day calculator and D+N settlement maturity projector for Brazilian financial operations.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/sanctions",
+            "type": "http",
+            "method": "GET",
+            "description": "Brazil CGU administrative sanctions lookup (CEIS and CNEP registries) checking whether a CNPJ is debarred or sanctioned.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/simples",
+            "type": "http",
+            "method": "GET",
+            "description": "Brazil Simples Nacional and SIMEI (MEI) tax regime enrollment verification by CNPJ.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/compliance",
+            "type": "http",
+            "method": "GET",
+            "description": "Brazil corporate Compliance 360 risk score (0-100) cross-checking Receita Federal registration status, CGU CEIS/CNEP sanctions and tax profile.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "30000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "30000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "30000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/lei",
+            "type": "http",
+            "method": "GET",
+            "description": "Global Legal Entity Identifier (ISO 17442) corporate identity lookup via official GLEIF registry covering 200+ jurisdictions with ECDSA oracle proof.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/ofac",
+            "type": "http",
+            "method": "GET",
+            "description": "Screen multi-asset crypto addresses (EVM, Solana, Bitcoin, Tron) and entities against US OFAC SDN, UN, EU FSFi, and UK OFSI sanctions lists with Base AML and ECDSA proof.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "20000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "20000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "20000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/notarize",
+            "type": "http",
+            "method": "GET",
+            "description": "M2M cryptographic timestamping and SHA-256 proof-of-existence notarization signed with ECDSA secp256k1.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/global-markets",
+            "type": "http",
+            "method": "GET",
+            "description": "Global exchange settlement calendar (US NYSE/Fed, EU TARGET2, UK LSE, BR B3) and 30+ European Central Bank (ECB) FX reference rates.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/extract",
+            "type": "http",
+            "method": "GET",
+            "description": "Transient SSRF-hardened web URL to clean LLM-ready Markdown extractor respecting robots.txt, X-Robots-Tag, Content-Signal, and paywall blocks.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/email-verify",
+            "type": "http",
+            "method": "GET",
+            "description": "Zero-PII B2B email deliverability and risk audit checking RFC syntax, authoritative DNS MX, SPF, DMARC, disposable domains and role-based addresses with 0-100 score.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/token-safety",
+            "type": "http",
+            "method": "GET",
+            "description": "Multi-chain token and smart contract safety audit across Base, Ethereum, Polygon, Arbitrum, and Solana returning deterministic 0-100 risk score, honeypot/tax flags, DEX liquidity and ECDSA proof.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "15000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "15000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "15000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/prediction-markets",
+            "type": "http",
+            "method": "GET",
+            "description": "Normalized prediction markets oracle aggregating Polymarket Gamma and Kalshi public APIs with 0-100% outcome probabilities, 24h volume, liquidity and signed oracle proof.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/batch",
+            "type": "http",
+            "method": "POST",
+            "description": "Multi-service batch execution running 1 to 5 Grid402 data endpoints in a single POST request with exact item-sum x402 pricing, automatic Session Pass refunds for failed items and signed output.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/sec-company",
+            "type": "http",
+            "method": "GET",
+            "description": "US SEC EDGAR public company profile (CIK, SIC, exchanges, fiscal year end), filtered 10-K/10-Q/8-K filings with direct EDGAR URLs and optional 8 MB-capped XBRL financial facts.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "10000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/vuln-audit",
+            "type": "http",
+            "method": "GET",
+            "description": "Deterministic package (npm, PyPI, Go, Maven, Packagist, crates.io, NuGet, RubyGems) or CVE/GHSA vulnerability audit crossing OSV.dev and CISA KEV with CLEAN to CRITICAL_KEV verdict.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/chain-telemetry",
+            "type": "http",
+            "method": "GET",
+            "description": "Real-time multi-chain RPC telemetry (block/slot, gas/priority fees, RPC latency) and DeFiLlama TVL across Base, Ethereum, Polygon, Arbitrum and Solana with graceful fallback.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "5000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        },
+        {
+            "resource": "https://grid402.online/api/v1/pass",
+            "type": "http",
+            "method": "GET",
+            "description": "Issue a sub-15ms x402 prepaid Session Pass (Starter 2 USDC = 400 credits, Pro 5 USDC = 1,200 credits, Fleet 20 USDC = 6,000 credits) with Spend Controls.",
+            "accepts": [
+                {
+                    "scheme": "exact",
+                    "network": "eip155:8453",
+                    "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                    "amount": "2000000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:137",
+                    "asset": "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359",
+                    "amount": "2000000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                },
+                {
+                    "scheme": "exact",
+                    "network": "eip155:42161",
+                    "asset": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
+                    "amount": "2000000",
+                    "payTo": "0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90",
+                    "maxTimeoutSeconds": 300,
+                    "extra": {
+                        "name": "USD Coin",
+                        "version": "2"
+                    }
+                }
+            ]
+        }
+    ],
+    "discoverable": true,
+    "protocol": "x402",
+    "scheme": "exact",
+    "settlement": "EIP-3009 + Permit2",
+    "updated": "2026-11-28"
+}

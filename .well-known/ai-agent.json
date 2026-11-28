@@ -1,0 +1,842 @@
+{
+  "name": "Grid402",
+  "description": "Global M2M verifiable public-data, SEC EDGAR, vulnerability audit, multi-chain telemetry, token safety, prediction markets, multi-service batch orchestration, KYB/compliance, web-to-Markdown, email verification and network-utility oracle hub for AI agents. Settled pay-per-call via gasless HTTP x402 v2 (USDC on Base, Polygon, Arbitrum) or sub-15ms Prepaid Session Passes, with ECDSA secp256k1 _oracle_proof signatures.",
+  "url": "https://grid402.online",
+  "version": "3.8.0",
+  "capabilities": [
+    {
+      "id": "summary",
+      "name": "grid402_summary",
+      "description": "Checks operational health, 30-day uptime and service catalog status across all 31 microservices (free).",
+      "url": "https://grid402.online/api/v1/summary",
+      "method": "GET",
+      "priceUsd": 0,
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string" },
+          "uptime_30d": { "type": "number" },
+          "services": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "forex",
+      "name": "grid402_forex",
+      "description": "Queries official real-time FX rates for USD, EUR and GBP against BRL (0.0050 USDC / 1 credit).",
+      "url": "https://grid402.online/api/v1/forex",
+      "method": "GET",
+      "priceUsd": 0.005,
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "service": { "type": "string" },
+          "rates": { "type": "object" },
+          "_meta": { "type": "object" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "crypto",
+      "name": "grid402_crypto",
+      "description": "Queries real-time spot prices for BTC, ETH, SOL, USDC and BASE in USD and BRL (0.0050 USDC / 1 credit).",
+      "url": "https://grid402.online/api/v1/crypto",
+      "method": "GET",
+      "priceUsd": 0.005,
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "service": { "type": "string" },
+          "tickers": { "type": "object" },
+          "_meta": { "type": "object" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "dns",
+      "name": "grid402_dns",
+      "description": "Resolves authoritative DNS records (A, AAAA, MX, TXT, NS, CNAME) for any domain (0.0050 USDC / 1 credit).",
+      "url": "https://grid402.online/api/v1/dns",
+      "method": "GET",
+      "priceUsd": 0.005,
+      "inputSchema": {
+        "type": "object",
+        "required": ["domain"],
+        "properties": {
+          "domain": { "type": "string", "description": "Target domain name (e.g. base.org)" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "domain": { "type": "string" },
+          "records": { "type": "object" },
+          "_meta": { "type": "object" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "ssl",
+      "name": "grid402_ssl",
+      "description": "Inspects port 443 TLS/SSL certificates, issuer, SANs and remaining validity days (0.0050 USDC / 1 credit).",
+      "url": "https://grid402.online/api/v1/ssl",
+      "method": "GET",
+      "priceUsd": 0.005,
+      "inputSchema": {
+        "type": "object",
+        "required": ["host"],
+        "properties": {
+          "host": { "type": "string", "description": "Hostname or IP for TLS audit (e.g. base.org)" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "host": { "type": "string" },
+          "valid": { "type": "boolean" },
+          "days_remaining": { "type": "integer" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "asn",
+      "name": "grid402_asn",
+      "description": "Resolves BGP routing intelligence, ASN number, CIDR block and country for an IP (0.0050 USDC / 1 credit).",
+      "url": "https://grid402.online/api/v1/asn",
+      "method": "GET",
+      "priceUsd": 0.005,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ip": { "type": "string", "description": "IPv4 or IPv6 address (e.g. 1.1.1.1)" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "ip": { "type": "string" },
+          "asn": { "type": "string" },
+          "organization": { "type": "string" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "domain-audit",
+      "name": "grid402_domain_audit",
+      "description": "Composite single-call domain infrastructure bundle (DNS + TLS/SSL + BGP/ASN) with risk score (0.0150 USDC / 3 credits).",
+      "url": "https://grid402.online/api/v1/domain-audit",
+      "method": "GET",
+      "priceUsd": 0.015,
+      "inputSchema": {
+        "type": "object",
+        "required": ["domain"],
+        "properties": {
+          "domain": { "type": "string", "description": "Domain name to audit" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "domain": { "type": "string" },
+          "risk_score": { "type": "integer" },
+          "dns": { "type": "object" },
+          "ssl": { "type": "object" },
+          "asn": { "type": "object" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "kyb-audit",
+      "name": "grid402_kyb_audit",
+      "description": "Composite global KYB audit: Receita Federal CNPJ + OFAC/UN sanctions + GLEIF LEI (0.0250 USDC / 5 credits).",
+      "url": "https://grid402.online/api/v1/kyb-audit",
+      "method": "GET",
+      "priceUsd": 0.025,
+      "inputSchema": {
+        "type": "object",
+        "required": ["cnpj"],
+        "properties": {
+          "cnpj": { "type": "string", "description": "14-digit Brazilian CNPJ" },
+          "name": { "type": "string", "description": "Optional legal entity name" },
+          "lei": { "type": "string", "description": "Optional 20-char ISO 17442 LEI code" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "cnpj": { "type": "object" },
+          "ofac": { "type": "object" },
+          "lei": { "type": "object" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "dossier",
+      "name": "grid402_get_dossier_360",
+      "description": "Premium KYB 360 Dossier with deterministic AI Verdict (APPROVED, FLAGGED, REJECTED), score 0-100, CNPJ, Simples/MEI and CGU CEIS/CNEP sanctions (0.0500 USDC / 10 credits).",
+      "url": "https://grid402.online/api/v1/dossier",
+      "method": "GET",
+      "priceUsd": 0.05,
+      "inputSchema": {
+        "type": "object",
+        "required": ["cnpj"],
+        "properties": {
+          "cnpj": { "type": "string", "description": "14-digit Brazilian CNPJ" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "verdict": { "type": "string" },
+          "score": { "type": "integer" },
+          "company": { "type": "object" },
+          "sanctions": { "type": "object" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "market-snapshot",
+      "name": "grid402_market_snapshot",
+      "description": "Composite single-call macro snapshot: PTAX FX + Spot Crypto + Selic/CDI/IPCA + ANBIMA calendar (0.0150 USDC / 3 credits).",
+      "url": "https://grid402.online/api/v1/market-snapshot",
+      "method": "GET",
+      "priceUsd": 0.015,
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "forex": { "type": "object" },
+          "crypto": { "type": "object" },
+          "indicators": { "type": "object" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "cep",
+      "name": "grid402_cep",
+      "description": "Queries official Brazilian postal address and municipal IBGE code by CEP (0.0050 USDC / 1 credit).",
+      "url": "https://grid402.online/api/v1/cep",
+      "method": "GET",
+      "priceUsd": 0.005,
+      "inputSchema": {
+        "type": "object",
+        "required": ["code"],
+        "properties": {
+          "code": { "type": "string", "description": "8-digit Brazilian CEP" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "cep": { "type": "string" },
+          "city": { "type": "string" },
+          "state": { "type": "string" },
+          "ibge": { "type": "string" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "cnpj",
+      "name": "grid402_cnpj",
+      "description": "Queries official Brazilian corporate registry data from Receita Federal without partner PII (0.0100 USDC / 2 credits).",
+      "url": "https://grid402.online/api/v1/cnpj",
+      "method": "GET",
+      "priceUsd": 0.01,
+      "inputSchema": {
+        "type": "object",
+        "required": ["cnpj"],
+        "properties": {
+          "cnpj": { "type": "string", "description": "14-digit Brazilian CNPJ" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "cnpj": { "type": "string" },
+          "legal_name": { "type": "string" },
+          "status": { "type": "string" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "indicators",
+      "name": "grid402_indicators",
+      "description": "Queries official Banco Central and IBGE economic indicators: Selic, CDI and IPCA inflation (0.0050 USDC / 1 credit).",
+      "url": "https://grid402.online/api/v1/indicators",
+      "method": "GET",
+      "priceUsd": 0.005,
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "selic": { "type": "object" },
+          "cdi": { "type": "object" },
+          "ipca": { "type": "object" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "holidays",
+      "name": "grid402_holidays",
+      "description": "Queries the official ANBIMA and Febraban banking holiday calendar for a given year (0.0050 USDC / 1 credit).",
+      "url": "https://grid402.online/api/v1/holidays",
+      "method": "GET",
+      "priceUsd": 0.005,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "year": { "type": "integer", "description": "4-digit calendar year" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "year": { "type": "integer" },
+          "holidays": { "type": "array" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "workdays",
+      "name": "grid402_workdays",
+      "description": "Calculates ANBIMA financial business days between dates or projects D+N maturity dates (0.0050 USDC / 1 credit).",
+      "url": "https://grid402.online/api/v1/workdays",
+      "method": "GET",
+      "priceUsd": 0.005,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "start_date": { "type": "string", "description": "YYYY-MM-DD" },
+          "end_date": { "type": "string", "description": "YYYY-MM-DD" },
+          "days": { "type": "integer", "description": "Business days offset" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "workdays": { "type": "integer" },
+          "projected_date": { "type": "string" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "sanctions",
+      "name": "grid402_sanctions",
+      "description": "Screens Brazilian federal administrative sanctions and debarment lists CEIS and CNEP from CGU (0.0100 USDC / 2 credits).",
+      "url": "https://grid402.online/api/v1/sanctions",
+      "method": "GET",
+      "priceUsd": 0.01,
+      "inputSchema": {
+        "type": "object",
+        "required": ["cnpj"],
+        "properties": {
+          "cnpj": { "type": "string", "description": "14-digit Brazilian CNPJ" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "cnpj": { "type": "string" },
+          "sanctioned": { "type": "boolean" },
+          "records": { "type": "array" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "simples",
+      "name": "grid402_simples",
+      "description": "Queries official Simples Nacional and MEI (SIMEI) tax regime status at Receita Federal (0.0100 USDC / 2 credits).",
+      "url": "https://grid402.online/api/v1/simples",
+      "method": "GET",
+      "priceUsd": 0.01,
+      "inputSchema": {
+        "type": "object",
+        "required": ["cnpj"],
+        "properties": {
+          "cnpj": { "type": "string", "description": "14-digit Brazilian CNPJ" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "cnpj": { "type": "string" },
+          "simples_optant": { "type": "boolean" },
+          "mei_optant": { "type": "boolean" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "compliance",
+      "name": "grid402_compliance",
+      "description": "Computes consolidated Compliance Score 360 (0-100) cross-referencing Receita Federal and CGU registries (0.0300 USDC / 6 credits).",
+      "url": "https://grid402.online/api/v1/compliance",
+      "method": "GET",
+      "priceUsd": 0.03,
+      "inputSchema": {
+        "type": "object",
+        "required": ["cnpj"],
+        "properties": {
+          "cnpj": { "type": "string", "description": "14-digit Brazilian CNPJ" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "cnpj": { "type": "string" },
+          "compliance_score": { "type": "integer" },
+          "risk_level": { "type": "string" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "lei",
+      "name": "grid402_lei",
+      "description": "Queries global ISO 17442 corporate identity across 200+ jurisdictions via GLEIF CC0 open data (0.0100 USDC / 2 credits).",
+      "url": "https://grid402.online/api/v1/lei",
+      "method": "GET",
+      "priceUsd": 0.01,
+      "inputSchema": {
+        "type": "object",
+        "required": ["lei"],
+        "properties": {
+          "lei": { "type": "string", "description": "20-character LEI code or entity name" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "lei": { "type": "string" },
+          "legal_name": { "type": "string" },
+          "jurisdiction": { "type": "string" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "ofac",
+      "name": "grid402_ofac",
+      "description": "Screens global OFAC SDN / UN sanctions and Base Mainnet Web3 AML telemetry for EVM wallets or entities (0.0200 USDC / 4 credits).",
+      "url": "https://grid402.online/api/v1/ofac",
+      "method": "GET",
+      "priceUsd": 0.02,
+      "inputSchema": {
+        "type": "object",
+        "required": ["target"],
+        "properties": {
+          "target": { "type": "string", "description": "EVM 0x address, LEI or entity name" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "target": { "type": "string" },
+          "match_found": { "type": "boolean" },
+          "aml_status": { "type": "string" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "notarize",
+      "name": "grid402_notarize",
+      "description": "Issues deterministic M2M UTC timestamp and SHA-256 existence proof signed with ECDSA secp256k1 (0.0050 USDC / 1 credit).",
+      "url": "https://grid402.online/api/v1/notarize",
+      "method": "GET",
+      "priceUsd": 0.005,
+      "inputSchema": {
+        "type": "object",
+        "required": ["content"],
+        "properties": {
+          "content": { "type": "string", "description": "Text payload or 64-char SHA-256 hex digest" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "sha256_digest": { "type": "string" },
+          "notarized_at": { "type": "string" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "global-markets",
+      "name": "grid402_global_markets",
+      "description": "Queries global exchange settlement calendar (US, EU, UK, BR) and 30+ ECB FX rates (0.0050 USDC / 1 credit).",
+      "url": "https://grid402.online/api/v1/global-markets",
+      "method": "GET",
+      "priceUsd": 0.005,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "market": { "type": "string", "description": "US, EU, UK or BR" },
+          "base": { "type": "string", "description": "Base currency (default USD)" },
+          "date": { "type": "string", "description": "Optional YYYY-MM-DD" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "market_calendar": { "type": "object" },
+          "ecb_fx_reference": { "type": "object" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "extract",
+      "name": "grid402_extract",
+      "description": "SSRF-hardened Web URL to LLM-ready clean Markdown extractor with metadata and absolute links (0.0050 USDC / 1 credit).",
+      "url": "https://grid402.online/api/v1/extract",
+      "method": "GET",
+      "priceUsd": 0.005,
+      "inputSchema": {
+        "type": "object",
+        "required": ["url"],
+        "properties": {
+          "url": { "type": "string", "description": "Public HTTP or HTTPS URL" },
+          "max_chars": { "type": "integer", "description": "Max characters (500 to 25000)" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "url": { "type": "string" },
+          "title": { "type": "string" },
+          "markdown": { "type": "string" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "email-verify",
+      "name": "grid402_email_verify",
+      "description": "Zero-PII B2B email deliverability audit: RFC syntax, DNS MX, SPF, DMARC, disposable domain and role-based score (0.0050 USDC / 1 credit).",
+      "url": "https://grid402.online/api/v1/email-verify",
+      "method": "GET",
+      "priceUsd": 0.005,
+      "inputSchema": {
+        "type": "object",
+        "required": ["email"],
+        "properties": {
+          "email": { "type": "string", "description": "Email address to audit without persisting PII" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "deliverable": { "type": "boolean" },
+          "score": { "type": "integer" },
+          "mx_valid": { "type": "boolean" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "token-safety",
+      "name": "grid402_token_safety",
+      "description": "Multi-Chain token security and DEX liquidity audit across Base, Ethereum, Polygon, Arbitrum and SPL networks via public GoPlus Security + DexScreener APIs returning score (0-100), verdict and signed proof (0.0150 USDC / 3 credits).",
+      "url": "https://grid402.online/api/v1/token-safety",
+      "method": "GET",
+      "priceUsd": 0.015,
+      "inputSchema": {
+        "type": "object",
+        "required": ["address"],
+        "properties": {
+          "address": { "type": "string", "description": "Token contract or mint address (EVM 0x... or SPL Base58)" },
+          "chain": { "type": "string", "description": "Optional chain slug (e.g. base, ethereum, polygon, arbitrum; auto-detected for SPL)" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "safety_score": { "type": "integer" },
+          "verdict": { "type": "string" },
+          "risk_flags": { "type": "object" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "prediction-markets",
+      "name": "grid402_prediction_markets",
+      "description": "Normalized public prediction market odds (0-100%), 24h volume and liquidity aggregated from Polymarket Gamma and Kalshi Public Trade API v2 with graceful degradation (0.0100 USDC / 2 credits).",
+      "url": "https://grid402.online/api/v1/prediction-markets",
+      "method": "GET",
+      "priceUsd": 0.01,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "q": { "type": "string", "description": "Optional search query" },
+          "source": { "type": "string", "description": "all, polymarket or kalshi" },
+          "status": { "type": "string", "description": "active or closed" },
+          "limit": { "type": "integer", "description": "Max markets (1 to 20)" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "markets": { "type": "array" },
+          "sources_status": { "type": "object" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "batch",
+      "name": "grid402_batch",
+      "description": "Execute 1 to 5 paid Grid402 data services in a single HTTP POST call (max 2 items in sandbox). Dynamically priced as the exact sum of item fees, with automatic Session Pass partial refund on sub-item failure.",
+      "url": "https://grid402.online/api/v1/batch",
+      "method": "POST",
+      "priceUsd": 0.005,
+      "inputSchema": {
+        "type": "object",
+        "required": ["items"],
+        "properties": {
+          "items": { "type": "array", "description": "1 to 5 sub-requests [{service, params}]" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "batch_summary": { "type": "object" },
+          "results": { "type": "array" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "sec-company",
+      "name": "grid402_sec_company",
+      "description": "Queries US SEC EDGAR company profile (CIK, SIC, exchanges), filtered 10-K/10-Q/8-K filings and optional bounded XBRL financial facts (0.0100 USDC / 2 credits).",
+      "url": "https://grid402.online/api/v1/sec-company",
+      "method": "GET",
+      "priceUsd": 0.01,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ticker": { "type": "string", "description": "US stock ticker symbol (e.g. AAPL)" },
+          "cik": { "type": "string", "description": "SEC 1-10 digit CIK identifier" },
+          "forms": { "type": "string", "description": "Optional CSV form types" },
+          "limit": { "type": "integer", "description": "Max filings (1-25)" },
+          "include_facts": { "type": "boolean", "description": "Optional US-GAAP XBRL summary" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "cik": { "type": "string" },
+          "company_name": { "type": "string" },
+          "filings": { "type": "array" },
+          "facts_status": { "type": "string" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "vuln-audit",
+      "name": "grid402_vuln_audit",
+      "description": "Deterministic package (npm, PyPI, Go, Maven, Packagist, crates.io) or CVE/GHSA vulnerability audit crossing OSV.dev and CISA KEV (0.0050 USDC / 1 credit).",
+      "url": "https://grid402.online/api/v1/vuln-audit",
+      "method": "GET",
+      "priceUsd": 0.005,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ecosystem": { "type": "string", "description": "Package ecosystem" },
+          "package": { "type": "string", "description": "Package name" },
+          "version": { "type": "string", "description": "Optional version" },
+          "id": { "type": "string", "description": "Direct CVE or GHSA identifier" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "verdict": { "type": "string" },
+          "vulnerability_count": { "type": "integer" },
+          "kev_match_count": { "type": "integer" },
+          "vulnerabilities": { "type": "array" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "chain-telemetry",
+      "name": "grid402_chain_telemetry",
+      "description": "Real-time RPC telemetry (block/slot, gas/priority fees, latency) and DeFiLlama TVL across Base, Ethereum, Polygon, Arbitrum and SPL networks (0.0050 USDC / 1 credit).",
+      "url": "https://grid402.online/api/v1/chain-telemetry",
+      "method": "GET",
+      "priceUsd": 0.005,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "chain": { "type": "string", "description": "Target network slug" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "chain": { "type": "string" },
+          "block_number": { "type": "integer" },
+          "tvl_usd": { "type": "number" },
+          "partial_data": { "type": "boolean" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "pass",
+      "name": "grid402_pass",
+      "description": "Issues a prepaid x402 Session Pass (Starter 2 USDC = 400 credits, Pro 5 USDC = 1,200 credits, Fleet 20 USDC = 6,000 credits) for sub-15ms M2M calls.",
+      "url": "https://grid402.online/api/v1/pass",
+      "method": "GET",
+      "priceUsd": 2,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "description": "Optional pass_g402_... token to inspect balance" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string" },
+          "session_pass": { "type": "string" },
+          "credits_remaining": { "type": "integer" },
+          "_oracle_proof": { "type": "object" }
+        }
+      }
+    },
+    {
+      "id": "pass-balance",
+      "name": "grid402_pass_balance",
+      "description": "Free real-time check of Session Pass remaining credits, expiry and Spend Controls (daily_credit_limit, allowed_endpoints).",
+      "url": "https://grid402.online/api/v1/pass/balance",
+      "method": "GET",
+      "priceUsd": 0,
+      "inputSchema": {
+        "type": "object",
+        "required": ["token"],
+        "properties": {
+          "token": { "type": "string", "description": "Session Pass token pass_g402_..." }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "remaining_credits": { "type": "integer" },
+          "daily_credit_limit": { "type": "integer" },
+          "allowed_endpoints": { "type": "array" }
+        }
+      }
+    },
+    {
+      "id": "verify",
+      "name": "grid402_verify",
+      "description": "Stateless mathematical verification of Grid402 ECDSA secp256k1 oracle signature (_oracle_proof) on any response (free).",
+      "url": "https://grid402.online/api/v1/verify",
+      "method": "POST",
+      "priceUsd": 0,
+      "inputSchema": {
+        "type": "object",
+        "required": ["payload"],
+        "properties": {
+          "payload": { "type": "object", "description": "JSON response containing _oracle_proof" }
+        }
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "valid": { "type": "boolean" },
+          "payload_hash": { "type": "string" },
+          "oracle_address": { "type": "string" }
+        }
+      }
+    }
+  ],
+  "pricing": {
+    "currency": "USD",
+    "payableByAgent": true,
+    "rail": "x402",
+    "url": "https://grid402.online/pricing.json",
+    "products": [
+      { "id": "summary", "price": 0, "unit": "call" },
+      { "id": "verify", "price": 0, "unit": "call" },
+      { "id": "pass-balance", "price": 0, "unit": "call" },
+      { "id": "standard-utility", "price": 0.005, "unit": "call" },
+      { "id": "registry-lookup", "price": 0.01, "unit": "call" },
+      { "id": "composite-bundle", "price": 0.015, "unit": "call" },
+      { "id": "ofac-aml", "price": 0.02, "unit": "call" },
+      { "id": "kyb-audit", "price": 0.025, "unit": "call" },
+      { "id": "compliance", "price": 0.03, "unit": "call" },
+      { "id": "dossier", "price": 0.05, "unit": "call" },
+      { "id": "pass-starter", "price": 2, "unit": "pack" },
+      { "id": "pass-pro", "price": 5, "unit": "pack" },
+      { "id": "pass-fleet", "price": 20, "unit": "pack" }
+    ]
+  },
+  "contact": {
+    "email": "contato@grid402.online",
+    "url": "https://grid402.online/contact",
+    "security": "https://grid402.online/.well-known/security.txt"
+  },
+  "auth": {
+    "type": "x402",
+    "schemes": ["x402", "session-pass", "none"],
+    "headers": ["PAYMENT-SIGNATURE", "X-Payment", "X-Session-Pass"],
+    "note": "No account or API key required. Pay per call via gasless HTTP x402 v2 (USDC on Base, Polygon, Arbitrum), use a prepaid Session Pass (X-Payment: pass_g402_...), claim 50 free credits with MCPTRY50 at https://grid402.online/pass?promo=MCPTRY50, or test free in Sandbox mode (X-Payment: demo, 3 req/day per IP). Discovery and verification endpoints are free."
+  },
+  "rateLimit": {
+    "sandbox": "3 requests per day per IP (X-Payment: demo, data endpoints only)",
+    "paid": "No fixed daily quota on x402 pay-per-call; optional per-pass daily_credit_limit and allowed_endpoints via POST /api/v1/pass/limits",
+    "mcp": "Stateless JSON-RPC 2.0 over streamable HTTP (256 KB max body)"
+  },
+  "mcp": {
+    "url": "https://grid402.online/mcp",
+    "transport": "streamable-http",
+    "manifest": "https://grid402.online/.well-known/mcp.json",
+    "serverCard": "https://grid402.online/.well-known/mcp/server-card.json"
+  },
+  "openapi": "https://grid402.online/openapi.json",
+  "agentCard": "https://grid402.online/.well-known/agent-card.json",
+  "llms": "https://grid402.online/llms.txt",
+  "x402": "https://grid402.online/.well-known/x402.json"
+}
