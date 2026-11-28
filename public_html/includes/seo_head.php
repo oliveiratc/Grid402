@@ -73,6 +73,15 @@ function grid402_render_seo_head(array $opts = []): void
         echo "    <link rel=\"canonical\" href=\"" . $esc($canonicalUrl) . "\">\n";
     }
 
+    // Integração Umami Analytics (Privacy-friendly / sem cookies / LGPD compliant)
+    $defaultUmamiId = '93057430-b8e7-42d9-a580-e15887181b5b';
+    $umamiId = getenv('GRID402_UMAMI_WEBSITE_ID') ?: (defined('GRID402_UMAMI_WEBSITE_ID') ? GRID402_UMAMI_WEBSITE_ID : $defaultUmamiId);
+    $umamiHost = getenv('GRID402_UMAMI_HOST_URL') ?: (defined('GRID402_UMAMI_HOST_URL') ? GRID402_UMAMI_HOST_URL : 'https://cloud.umami.is');
+    if (!empty($umamiId) && empty($opts['private'])) {
+        $cleanHost = rtrim((string)$umamiHost, '/');
+        echo "    <script defer src=\"{$cleanHost}/script.js\" data-website-id=\"" . $esc((string)$umamiId) . "\"></script>\n";
+    }
+
     echo "    <meta property=\"og:type\" content=\"website\">\n";
     echo "    <meta property=\"og:site_name\" content=\"Grid402\">\n";
     echo "    <meta property=\"og:locale\" content=\"" . $esc($locale) . "\">\n";
