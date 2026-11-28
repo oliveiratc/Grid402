@@ -142,7 +142,7 @@ try {
     );
     t_assert('Prefixos Zero-PII /24 IPv4 e /48 IPv6 sem IP bruto',
         grid402_geoip_ip_prefix('189.40.50.123') === '189.40.50.0/24'
-        && grid402_geoip_ip_prefix('2001:0db8:85a3:1111::7334') === '2001:0db8:85a3::/48'
+        && grid402_geoip_ip_prefix('2606:4700:4700:1111::1111') === '2606:4700:4700::/48'
         && grid402_geoip_ip_prefix('127.0.0.1') === null
     );
 
