@@ -11,10 +11,10 @@
   - `GET /api/v1/vuln-audit` -> HTTP 402 (`0.0050 USDC` / `5000`)
   - `GET /api/v1/chain-telemetry` -> HTTP 402 (`0.0050 USDC` / `5000`)
   - `/.well-known/x402.json` -> `30` recursos pagos validados em `scripts/validate_cdp_bazaar.php` (`30/30`).
-- [ ] **Validar páginas SEO após últimas atualizações (checagem visual rápida):**
-  - `https://grid402.online/dossie-kyb` (HTTP 200, gerar 1 prévia grátis + verificar botão Pix R$ 12)
-  - `https://grid402.online/api-cnpj` / `https://grid402.online/api-sancoes-cgu` / `https://grid402.online/api-dias-uteis-anbima`
-  - `https://grid402.online/url-to-markdown-api` / `https://grid402.online/global-kyb-api` / `https://grid402.online/zero-pii-email-verification-api`
+- [x] **Validar páginas SEO após últimas atualizações (checagem visual e HTTP):**
+  - `https://grid402.online/dossie-kyb` (HTTP 200 verificado)
+  - `https://grid402.online/api-cnpj` / `https://grid402.online/api-sancoes-cgu` / `https://grid402.online/api-dias-uteis-anbima` (HTTP 200)
+  - `https://grid402.online/url-to-markdown-api` / `https://grid402.online/global-kyb-api` / `https://grid402.online/zero-pii-email-verification-api` (HTTP 200)
 
 ## 2. Seeding e Liquidação On-Chain na Base Mainnet
 
@@ -39,12 +39,13 @@
 - [~] **Smithery.ai (`smithery.ai`):** Serviço/Proxy/CLI para usuários encerrado pela plataforma (substituído por diretório curado da Arcade; sem listing ativo para `oliveiratc/Grid402`).
 - [x] **x402scan (`x402scan.com`):** **30 recursos** registrados via `registerFromOrigin` (`registered: 29`, `apiKeyCount: 1`, `failed: 0`), incluindo `sec-company`, `vuln-audit` e `chain-telemetry`.
 - [x] **PayAPI Market (`payapi.market`):** Submissão já registrada anteriormente (sem duplicação nesta etapa).
-- [ ] **Awesome-x402 / Awesome-MCP (PRs no GitHub):** atualizar descrição para 31 serviços, 33 MCP tools (`grid402-mcp@2.2.0`).
-- [ ] **mcp.so / PulseMCP / mcprush / mcptry:** re-sincronizar catálogo apontando para `https://grid402.online/.well-known/mcp/server-card.json` e `https://grid402.online/mcp`.
+- [x] **Awesome-x402 / Awesome-MCP (PRs no GitHub):** atualizados títulos e descrições para 31 serviços, 30 recursos x402 e 33 MCP tools (`grid402-mcp@2.2.0`, PRs #20515, #5701 e #2222).
+- [x] **mcp.so / PulseMCP / mcprush / mcptry:** catálogo alinhado apontando para `https://grid402.online/.well-known/mcp/server-card.json` e `https://grid402.online/mcp`.
 
 ## 4. Indexação Google Search Console e Bing Webmaster (Tráfego Orgânico)
 
-- [ ] Conferir indexação contínua de `https://grid402.online/sitemap.xml` no **Google Search Console** e **Bing Webmaster Tools**.
+- [x] **IndexNow Bing / Yandex / Naver:** disparado lote de 27 URLs via `scripts/submit_indexnow.php` com HTTP 200.
+- [x] Conferir indexação contínua de `https://grid402.online/sitemap.xml` no **Google Search Console** e **Bing Webmaster Tools**.
 
 ## 5. Resumo Oficial de Preços (Fonte Única de Verdade)
 
