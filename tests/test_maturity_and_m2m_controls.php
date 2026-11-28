@@ -84,11 +84,11 @@ check('README.md documenta 400 / 1.200 / 6.000 créditos',
 );
 
 // -----------------------------------------------------------------
-// 3. Cobertura 28/28 UP, Proveniência e Uptime 30d
+// 3. Cobertura 31/31 UP, Proveniência e Uptime 30d
 // -----------------------------------------------------------------
-echo "\n[3/7] Cobertura 28/28 Serviços UP, Proveniência e Histórico Uptime 30d:\n";
+echo "\n[3/7] Cobertura 31/31 Serviços UP, Proveniência e Histórico Uptime 30d:\n";
 $servicesCatalog = grid402_get_utility_services();
-check('Catálogo possui exatamente 28 micro-serviços', count($servicesCatalog) === 28, 'Got: ' . count($servicesCatalog));
+check('Catálogo possui exatamente 31 micro-serviços', count($servicesCatalog) === 31, 'Got: ' . count($servicesCatalog));
 
 if (!is_file(GRID402_FILE_FREE)) {
     ob_start();
@@ -106,8 +106,8 @@ foreach ($servicesCatalog as $key => $meta) {
         $allHaveProvenance = false;
     }
 }
-check('Todos os 28 micro-serviços estão UP em summary_free.json', $allUp);
-check('Todos os 28 micro-serviços possuem upstream_source e cache_ttl_sec', $allHaveProvenance);
+check('Todos os 31 micro-serviços estão UP em summary_free.json', $allUp);
+check('Todos os 31 micro-serviços possuem upstream_source e cache_ttl_sec', $allHaveProvenance);
 $uptimeDays = $summaryFree['uptime_30d']['days'] ?? $summaryFree['uptime_30d'] ?? [];
 check('summary_free.json inclui uptime_30d de 30 dias', is_array($uptimeDays) && count($uptimeDays) === 30);
 

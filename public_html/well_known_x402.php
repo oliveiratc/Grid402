@@ -70,7 +70,7 @@ function grid402_build_well_known_x402_manifest(): array {
         'x402Version' => 2,
         'name' => 'Grid402 Network Utilities',
         'alias' => 'grid402',
-        'description' => "27 paid M2M open data, token safety, prediction markets, multi-service batch execution, web extraction, email verification, global sanctions screening, Brazilian KYB/compliance and network utility endpoints under HTTP 402 x402 v2 ({$descNetworks}) plus free cryptographic verification.",
+        'description' => "30 paid M2M open data, SEC EDGAR filings, package/CVE vulnerability audit, multi-chain telemetry, token safety, prediction markets, multi-service batch execution, web extraction, email verification, global sanctions screening, Brazilian KYB/compliance and network utility endpoints under HTTP 402 x402 v2 ({$descNetworks}) plus free cryptographic verification.",
         'website' => $canonicalBase,
         'network' => $primaryNet,
         'networks' => $networks,

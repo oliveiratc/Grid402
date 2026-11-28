@@ -23,8 +23,8 @@ async function runTests() {
   console.log('=== Testando Servidor MCP Grid402 ===\n');
 
   // 1. Validação de Schemas das Ferramentas
-  console.log('[1/7] Validando registro e schemas das 30 ferramentas MCP...');
-  assert.strictEqual(MCP_TOOLS_DEFINITIONS.length, 30, 'Deve conter exatamente 30 ferramentas registradas');
+  console.log('[1/7] Validando registro e schemas das 33 ferramentas MCP...');
+  assert.strictEqual(MCP_TOOLS_DEFINITIONS.length, 33, 'Deve conter exatamente 33 ferramentas registradas');
 
   const toolNames = MCP_TOOLS_DEFINITIONS.map(t => t.name);
   const expectedTools = [
@@ -54,6 +54,9 @@ async function runTests() {
     'grid402_email_verify',
     'grid402_token_safety',
     'grid402_prediction_markets',
+    'grid402_sec_company',
+    'grid402_vuln_audit',
+    'grid402_chain_telemetry',
     'grid402_batch',
     'grid402_pass',
     'grid402_pass_balance',
@@ -276,12 +279,12 @@ async function runTests() {
     }) + '\n');
   });
 
-  assert.strictEqual(rpcResult.init?.result?.serverInfo?.version, '2.1.0', 'Versao MCP initialize deve ser 2.1.0');
+  assert.strictEqual(rpcResult.init?.result?.serverInfo?.version, '2.2.0', 'Versao MCP initialize deve ser 2.2.0');
   assert.ok(typeof rpcResult.init?.result?.instructions === 'string' && rpcResult.init.result.instructions.includes('GRID402_SESSION_PASS'), 'Handshake initialize deve retornar instructions com orientacoes de Session Pass e sandbox');
   assert.ok(rpcResult.init.result.instructions.includes('GRID402_X402_GASLESS'), 'Instructions deve documentar GRID402_X402_GASLESS');
   assert.ok(rpcResult.init.result.instructions.includes('demo'), 'Instructions deve mencionar modo sandbox demo');
-  assert.strictEqual(rpcResult.list?.result?.tools?.length, 30, 'tools/list via stdio deve expor exatamente 30 ferramentas');
-  console.log('  ✓ Handshake stdio retornou version=2.1.0, instructions nativas e 30 ferramentas!');
+  assert.strictEqual(rpcResult.list?.result?.tools?.length, 33, 'tools/list via stdio deve expor exatamente 33 ferramentas');
+  console.log('  ✓ Handshake stdio retornou version=2.2.0, instructions nativas e 33 ferramentas!');
 
   console.log('\n=== Todos os testes do MCP Server Grid402 foram APROVADOS com 100% de sucesso! ===');
 }

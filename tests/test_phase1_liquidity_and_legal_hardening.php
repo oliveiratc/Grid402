@@ -125,7 +125,7 @@ try {
     // =========================================================================
     echo "\n[2/7] Testando validador CDP Bazaar (scripts/validate_cdp_bazaar.php):\n";
     $bazaarReport = grid402_validate_cdp_bazaar_catalog();
-    t_assert('Todos os 27 endpoints pagos passam na validacao estrutural CDP Bazaar v2', !empty($bazaarReport['ok']) && $bazaarReport['passed'] === 27 && $bazaarReport['failed'] === 0, json_encode($bazaarReport));
+    t_assert('Todos os 30 endpoints pagos passam na validacao estrutural CDP Bazaar v2', !empty($bazaarReport['ok']) && $bazaarReport['passed'] === 30 && $bazaarReport['failed'] === 0, json_encode($bazaarReport));
 
     $liveMockCalled = 0;
     $bazaarLiveMock = grid402_validate_cdp_bazaar_catalog('ofac', true, static function (string $url, string $body) use (&$liveMockCalled): array {
@@ -359,7 +359,7 @@ XML);
         $x402Code = (int) curl_getinfo($chX402, CURLINFO_HTTP_CODE);
         curl_close($chX402);
         $x402Decoded = json_decode($x402Body, true);
-        t_assert('HTTP GET /.well-known/x402.json dinamico retorna 200 com mapa facilitators e 27 recursos', $x402Code === 200 && is_array($x402Decoded['facilitators'] ?? null) && count($x402Decoded['resources'] ?? []) === 27);
+        t_assert('HTTP GET /.well-known/x402.json dinamico retorna 200 com mapa facilitators e 30 recursos', $x402Code === 200 && is_array($x402Decoded['facilitators'] ?? null) && count($x402Decoded['resources'] ?? []) === 30);
 
         $chSyncDeny = curl_init($server['base_url'] . '/sync_sanctions.php');
         curl_setopt_array($chSyncDeny, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 5]);
@@ -472,7 +472,7 @@ XML);
     require __DIR__ . '/../public_html/collector.php';
     ob_end_clean();
     $summaryData = json_decode((string) file_get_contents(GRID402_FILE_FREE), true);
-    t_assert('/status (summary_free.json) expoe bloco publico sanctions_index e 28/28 servicos', is_array($summaryData['sanctions_index'] ?? null) && count($summaryData['services'] ?? []) === 28);
+    t_assert('/status (summary_free.json) expoe bloco publico sanctions_index e 31/31 servicos', is_array($summaryData['sanctions_index'] ?? null) && count($summaryData['services'] ?? []) === 31);
 
     ob_start();
     require __DIR__ . '/../public_html/trust.php';

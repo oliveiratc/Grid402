@@ -47,6 +47,9 @@ require_once __DIR__ . '/services/extract.php';
 require_once __DIR__ . '/services/email_verify.php';
 require_once __DIR__ . '/services/token_safety.php';
 require_once __DIR__ . '/services/prediction_markets.php';
+require_once __DIR__ . '/services/sec_company.php';
+require_once __DIR__ . '/services/vuln_audit.php';
+require_once __DIR__ . '/services/chain_telemetry.php';
 require_once __DIR__ . '/services/batch.php';
 require_once __DIR__ . '/services/pass.php';
 require_once __DIR__ . '/services/oracle_signer.php';
@@ -54,7 +57,7 @@ require_once __DIR__ . '/services/oracle_signer.php';
 const MCP_PROTOCOL_VERSION = '2024-11-05';
 const MCP_SUPPORTED_PROTOCOL_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05'];
 const MCP_SERVER_NAME = 'grid402-mcp';
-const MCP_SERVER_VERSION = '2.1.0';
+const MCP_SERVER_VERSION = '2.2.0';
 const MCP_AUTO_TRIAL_DAILY_LIMIT = 1;
 const MCP_AUTO_TRIAL_WINDOW_SECONDS = 86400;
 
@@ -211,7 +214,7 @@ function mcp_tools_definitions(): array {
     $writeAnn = ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => true];
 
     return [
-        ['name' => 'grid402_summary', 'description' => 'Consolidated health and availability summary for all 28 Grid402 services (free).', 'inputSchema' => ['type' => 'object', 'properties' => (object) [], 'required' => []], 'annotations' => $localRoAnn],
+        ['name' => 'grid402_summary', 'description' => 'Consolidated health and availability summary for all 31 Grid402 services (free).', 'inputSchema' => ['type' => 'object', 'properties' => (object) [], 'required' => []], 'annotations' => $localRoAnn],
         ['name' => 'grid402_forex', 'description' => 'Official BCB PTAX fiat exchange rates USD, EUR, GBP to BRL (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['payment_tx_hash' => $payProp], 'required' => []], 'annotations' => $roAnn],
         ['name' => 'grid402_crypto', 'description' => 'Real-time spot prices for BTC, ETH, SOL, USDC, BASE in USD and BRL (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['payment_tx_hash' => $payProp], 'required' => []], 'annotations' => $roAnn],
         ['name' => 'grid402_dns', 'description' => 'Authoritative DNS A, AAAA, MX, TXT, NS, CNAME record lookup (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['domain' => ['type' => 'string', 'description' => 'Domain name to resolve (e.g. github.com).'], 'payment_tx_hash' => $payProp], 'required' => ['domain']], 'annotations' => $roAnn],
@@ -237,6 +240,9 @@ function mcp_tools_definitions(): array {
         ['name' => 'grid402_email_verify', 'description' => 'Zero-PII B2B email deliverability audit: RFC syntax, DNS MX, SPF, DMARC, disposable domain and role-based score (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['email' => ['type' => 'string', 'description' => 'Corporate or business email address to audit without persisting raw PII.'], 'payment_tx_hash' => $payProp], 'required' => ['email']], 'annotations' => $roAnn],
         ['name' => 'grid402_token_safety', 'description' => 'Multi-Chain token security & DEX liquidity audit across Base, Ethereum, Polygon, Arbitrum and Solana via public GoPlus Security + DexScreener APIs returning score (0-100), verdict and signed proof (0.0150 USDC / 3 credits).', 'inputSchema' => ['type' => 'object', 'properties' => ['address' => ['type' => 'string', 'description' => 'Token contract/mint address (EVM 0x... 40 hex chars or Solana Base58).'], 'chain' => ['type' => 'string', 'description' => 'Optional chain: base, ethereum, polygon, arbitrum or solana (auto-detected for Solana Base58).'], 'payment_tx_hash' => $payProp], 'required' => ['address']], 'annotations' => $roAnn],
         ['name' => 'grid402_prediction_markets', 'description' => 'Normalized public prediction market odds (0-100% probability), 24h volume and liquidity from Polymarket Gamma + Kalshi APIs with graceful degradation (0.0100 USDC / 2 credits).', 'inputSchema' => ['type' => 'object', 'properties' => ['q' => ['type' => 'string', 'description' => 'Optional keyword search query (e.g. bitcoin, fed).'], 'source' => ['type' => 'string', 'description' => 'Filter: all (default), polymarket or kalshi.'], 'status' => ['type' => 'string', 'description' => 'Filter: active (default) or closed.'], 'limit' => ['type' => 'integer', 'description' => 'Max markets (1-20, default 10).'], 'payment_tx_hash' => $payProp], 'required' => []], 'annotations' => $roAnn],
+        ['name' => 'grid402_sec_company', 'description' => 'Query US SEC EDGAR company profile (CIK, SIC, exchanges), filtered 10-K/10-Q/8-K filings and optional bounded XBRL financial facts (0.0100 USDC / 2 credits).', 'inputSchema' => ['type' => 'object', 'properties' => ['ticker' => ['type' => 'string', 'description' => 'US stock ticker symbol (e.g. AAPL).'], 'cik' => ['type' => 'string', 'description' => 'SEC 1-10 digit CIK identifier.'], 'forms' => ['type' => 'string', 'description' => 'Optional CSV SEC form filter (e.g. 10-K,10-Q,8-K).'], 'limit' => ['type' => 'integer', 'description' => 'Max filings (1-25, default 10).'], 'include_facts' => ['type' => 'boolean', 'description' => 'Optional US-GAAP XBRL metrics (8 MB cap).'], 'payment_tx_hash' => $payProp], 'required' => []], 'annotations' => $roAnn],
+        ['name' => 'grid402_vuln_audit', 'description' => 'Deterministic package (npm, PyPI, Go, Maven, Packagist, crates.io) or CVE/GHSA vulnerability audit crossing OSV.dev and CISA KEV (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['ecosystem' => ['type' => 'string', 'description' => 'Package ecosystem for package mode.'], 'package' => ['type' => 'string', 'description' => 'Package name for package mode.'], 'version' => ['type' => 'string', 'description' => 'Optional package version.'], 'id' => ['type' => 'string', 'description' => 'Direct CVE or GHSA identifier.'], 'payment_tx_hash' => $payProp], 'required' => []], 'annotations' => $roAnn],
+        ['name' => 'grid402_chain_telemetry', 'description' => 'Real-time blockchain RPC telemetry (block/slot, gas/priority fees, latency) and DeFiLlama TVL across Base, Ethereum, Polygon, Arbitrum and Solana (0.0050 USDC / 1 credit).', 'inputSchema' => ['type' => 'object', 'properties' => ['chain' => ['type' => 'string', 'description' => 'Network: base (default), ethereum, polygon, arbitrum or solana.'], 'payment_tx_hash' => $payProp], 'required' => []], 'annotations' => $roAnn],
         ['name' => 'grid402_batch', 'description' => 'Execute 1 to 5 paid Grid402 data calls in one POST request (max 2 items in sandbox), dynamically summed with automatic Session Pass partial refund on sub-item failure.', 'inputSchema' => ['type' => 'object', 'properties' => ['items' => ['type' => 'array', 'description' => '1 to 5 sub-requests [{"service":"dns","params":{"domain":"base.org"}}].', 'items' => ['type' => 'object', 'properties' => ['service' => ['type' => 'string'], 'params' => ['type' => 'object']], 'required' => ['service']]], 'payment_tx_hash' => $payProp], 'required' => ['items']], 'annotations' => $writeAnn],
         ['name' => 'grid402_pass', 'description' => 'x402 Prepaid Session Pass issuance (Starter 2 USDC = 400 credits/180d, Pro 5 USDC = 1,200 credits/180d, Fleet 20 USDC = 6,000 credits/365d; requires real USDC payment, demo/pass-for-pass not allowed) or status check.', 'inputSchema' => ['type' => 'object', 'properties' => ['status' => ['type' => 'string', 'description' => 'Optional existing pass_g402_... token to check status without issuing a new pass.'], 'payment_tx_hash' => $payPropPass], 'required' => []], 'annotations' => $writeAnn],
         ['name' => 'grid402_pass_balance', 'description' => 'Free Session Pass balance and Spend Controls telemetry (free).', 'inputSchema' => ['type' => 'object', 'properties' => ['token' => ['type' => 'string', 'description' => 'Session Pass token (pass_g402_...) to inspect.']], 'required' => ['token']], 'annotations' => $localRoAnn],
@@ -254,7 +260,7 @@ function mcp_accepts_unpaid(string $service, ?int $requiredRawUnits = null, ?str
         $service === 'kyb-audit' => '0.0250',
         $service === 'ofac' => '0.0200',
         in_array($service, ['domain-audit', 'market-snapshot', 'token-safety'], true) => '0.0150',
-        in_array($service, ['cnpj', 'lei', 'sanctions', 'simples', 'prediction-markets'], true) => '0.0100',
+        in_array($service, ['cnpj', 'lei', 'sanctions', 'simples', 'prediction-markets', 'sec-company'], true) => '0.0100',
         $service === 'compliance' => '0.0300',
         $service === 'pass' => '2.0000',
         $service === 'batch' && $requiredRawUnits !== null && $requiredRawUnits > 0 => number_format($requiredRawUnits / 1e6, 4, '.', ''),
@@ -482,6 +488,9 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
         'grid402_email_verify' => ['email-verify', 'email', 5000],
         'grid402_token_safety' => ['token-safety', 'address', 15000],
         'grid402_prediction_markets' => ['prediction-markets', null, 10000],
+        'grid402_sec_company' => ['sec-company', null, 10000],
+        'grid402_vuln_audit' => ['vuln-audit', null, 5000],
+        'grid402_chain_telemetry' => ['chain-telemetry', null, 5000],
         'grid402_batch' => ['batch', 'items', 5000],
         'grid402_pass' => ['pass', null, 2000000],
     ];
@@ -552,6 +561,35 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
         );
         if (!$pmCheck['ok']) {
             mcp_error($responseId, -32602, 'InvalidArguments', ['error' => $pmCheck['error'], 'message' => $pmCheck['message']]);
+        }
+    }
+    if ($service === 'sec-company') {
+        $secCheck = grid402_sec_company_validate_input(
+            (string) ($arguments['ticker'] ?? ''),
+            (string) ($arguments['cik'] ?? ''),
+            isset($arguments['limit']) ? (int) $arguments['limit'] : 10,
+            (string) ($arguments['forms'] ?? ''),
+            $arguments['include_facts'] ?? false
+        );
+        if (!$secCheck['ok']) {
+            mcp_error($responseId, -32602, 'InvalidArguments', ['error' => $secCheck['error'], 'message' => $secCheck['message']]);
+        }
+    }
+    if ($service === 'vuln-audit') {
+        $vaCheck = grid402_vuln_audit_validate_input(
+            (string) ($arguments['ecosystem'] ?? ''),
+            (string) ($arguments['package'] ?? ''),
+            (string) ($arguments['version'] ?? ''),
+            (string) ($arguments['id'] ?? '')
+        );
+        if (!$vaCheck['ok']) {
+            mcp_error($responseId, -32602, 'InvalidArguments', ['error' => $vaCheck['error'], 'message' => $vaCheck['message']]);
+        }
+    }
+    if ($service === 'chain-telemetry') {
+        $ctCheck = grid402_chain_telemetry_validate_input((string) ($arguments['chain'] ?? 'base'));
+        if (!$ctCheck['ok']) {
+            mcp_error($responseId, -32602, 'InvalidArguments', ['error' => $ctCheck['error'], 'message' => $ctCheck['message']]);
         }
     }
 
@@ -840,6 +878,20 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
             (string)($arguments['status'] ?? 'active'),
             isset($arguments['limit']) ? (int)$arguments['limit'] : 10
         ),
+        'sec-company' => grid402_service_sec_company(
+            (string)($arguments['ticker'] ?? ''),
+            (string)($arguments['cik'] ?? ''),
+            isset($arguments['limit']) ? (int)$arguments['limit'] : 10,
+            (string)($arguments['forms'] ?? ''),
+            $arguments['include_facts'] ?? false
+        ),
+        'vuln-audit' => grid402_service_vuln_audit(
+            (string)($arguments['ecosystem'] ?? ''),
+            (string)($arguments['package'] ?? ''),
+            (string)($arguments['version'] ?? ''),
+            (string)($arguments['id'] ?? '')
+        ),
+        'chain-telemetry' => grid402_service_chain_telemetry((string)($arguments['chain'] ?? 'base')),
         'batch' => grid402_batch_execute_items(
             is_array($batchPreCheck) ? $batchPreCheck : ['ok' => true, 'items' => []],
             static function (string $subSvc, array $subParams, bool $subSandbox): array {
@@ -869,6 +921,9 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
                     'email-verify' => grid402_service_email_verify((string)($subParams['email'] ?? 'contato@grid402.online')),
                     'token-safety' => grid402_service_token_safety((string)($subParams['address'] ?? $subParams['token'] ?? ''), (string)($subParams['chain'] ?? '')),
                     'prediction-markets' => grid402_service_prediction_markets((string)($subParams['q'] ?? ''), (string)($subParams['source'] ?? 'all'), (string)($subParams['status'] ?? 'active'), isset($subParams['limit']) ? (int)$subParams['limit'] : 10),
+                    'sec-company' => grid402_service_sec_company((string)($subParams['ticker'] ?? ''), (string)($subParams['cik'] ?? ''), isset($subParams['limit']) ? (int)$subParams['limit'] : 10, (string)($subParams['forms'] ?? ''), $subParams['include_facts'] ?? false),
+                    'vuln-audit' => grid402_service_vuln_audit((string)($subParams['ecosystem'] ?? ''), (string)($subParams['package'] ?? ''), (string)($subParams['version'] ?? ''), (string)($subParams['id'] ?? '')),
+                    'chain-telemetry' => grid402_service_chain_telemetry((string)($subParams['chain'] ?? 'base')),
                     default => ['code' => 400, 'error' => 'UnsupportedBatchService', 'message' => "Servico '{$subSvc}' nao suportado em lote."],
                 };
             },

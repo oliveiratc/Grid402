@@ -87,11 +87,11 @@ $formatDeltaBadge = static function (?float $pct): array {
     return ['text' => '0,0%', 'class' => 'delta-neutral'];
 };
 
-$servicesCatalogOrder = ['dossier', 'batch', 'token-safety', 'prediction-markets', 'extract', 'email-verify', 'lei', 'ofac', 'notarize', 'global-markets', 'pass', 'pass-emitir', 'compliance', 'sanctions', 'simples', 'workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'kyb-audit', 'domain-audit', 'market-snapshot', 'verify', 'summary'];
+$servicesCatalogOrder = ['dossier', 'batch', 'sec-company', 'vuln-audit', 'chain-telemetry', 'token-safety', 'prediction-markets', 'extract', 'email-verify', 'lei', 'ofac', 'notarize', 'global-markets', 'pass', 'pass-emitir', 'compliance', 'sanctions', 'simples', 'workdays', 'indicators', 'holidays', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'cep', 'cnpj', 'kyb-audit', 'domain-audit', 'market-snapshot', 'verify', 'summary'];
 $pricingLookup = [
     'dossier' => 0.0500, 'compliance' => 0.0300, 'kyb-audit' => 0.0250, 'ofac' => 0.0200, 'lei' => 0.0100,
     'cnpj' => 0.0100, 'domain-audit' => 0.0150, 'market-snapshot' => 0.0150, 'token-safety' => 0.0150,
-    'prediction-markets' => 0.0100, 'batch' => 0.0050, 'sanctions' => 0.0100,
+    'prediction-markets' => 0.0100, 'sec-company' => 0.0100, 'vuln-audit' => 0.0050, 'chain-telemetry' => 0.0050, 'batch' => 0.0050, 'sanctions' => 0.0100,
     'simples' => 0.0100, 'pass' => 2.0000, 'pass-emitir' => 2.0000, 'extract' => 0.0050, 'email-verify' => 0.0050, 'notarize' => 0.0050,
     'forex' => 0.0050, 'crypto' => 0.0050, 'indicators' => 0.0050, 'holidays' => 0.0050, 'workdays' => 0.0050,
     'global-markets' => 0.0050, 'dns' => 0.0050, 'ssl' => 0.0050, 'asn' => 0.0050, 'cep' => 0.0050, 'verify' => 0.0000, 'summary' => 0.0000,

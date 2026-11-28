@@ -919,6 +919,21 @@ function grid402_bazaar_service_metadata(?string $serviceName): array {
             'tags' => ['batch', 'orchestration', 'high-frequency', 'multi-service', 'x402'],
             'output_example' => ['service' => 'batch', 'batch_summary' => ['total_items' => 2, 'succeeded' => 2, 'failed' => 0, 'credits_charged' => 4], 'results' => [['index' => 0, 'service' => 'dns', 'ok' => true]], '_oracle_proof' => $oracleProofSample],
         ],
+        'sec-company' => [
+            'description' => 'US SEC EDGAR public company profile (CIK, SIC, exchanges, fiscal year end), filtered 10-K/10-Q/8-K filings with direct EDGAR URLs and optional 8 MB-capped XBRL financial facts.',
+            'tags' => ['sec-edgar', 'filings', '10-k', 'xbrl', 'corporate-data', 'finance', 'x402'],
+            'output_example' => ['cik' => '0000320193', 'ticker' => 'AAPL', 'company_name' => 'Apple Inc.', 'filings_count' => 5, 'facts_status' => 'not_requested', '_oracle_proof' => $oracleProofSample],
+        ],
+        'vuln-audit' => [
+            'description' => 'Deterministic package (npm, PyPI, Go, Maven, Packagist, crates.io, NuGet, RubyGems) or CVE/GHSA vulnerability audit crossing OSV.dev and CISA KEV with CLEAN to CRITICAL_KEV verdict.',
+            'tags' => ['security', 'cve', 'osv', 'cisa-kev', 'devsecops', 'sbom', 'x402'],
+            'output_example' => ['query_mode' => 'id', 'verdict' => 'CRITICAL_KEV', 'vulnerability_count' => 1, 'kev_match_count' => 1, '_oracle_proof' => $oracleProofSample],
+        ],
+        'chain-telemetry' => [
+            'description' => 'Real-time multi-chain RPC telemetry (block/slot, gas/priority fees, RPC latency) and DeFiLlama TVL across Base, Ethereum, Polygon, Arbitrum and Solana with graceful fallback.',
+            'tags' => ['chain-telemetry', 'rpc', 'gas', 'tvl', 'defillama', 'base', 'solana', 'x402'],
+            'output_example' => ['chain' => 'base', 'chain_id' => 8453, 'block_number' => 24000000, 'gas_gwei' => 0.012, 'tvl_usd' => 3500000000, 'partial_data' => false, '_oracle_proof' => $oracleProofSample],
+        ],
         'domain-audit' => [
             'description' => 'Consolidated domain security and infrastructure audit (authoritative DNS + TLS/SSL certificate + BGP/ASN routing) with risk score in one call.',
             'tags' => ['domain-audit', 'dns', 'ssl', 'asn', 'security', 'network', 'x402'],
@@ -1090,6 +1105,9 @@ function grid402_bazaar_default_query_params(?string $serviceName): array {
         'email-verify' => ['email' => 'contato@grid402.online'],
         'token-safety' => ['chain' => 'base', 'address' => '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'],
         'prediction-markets' => ['q' => 'bitcoin', 'limit' => '5'],
+        'sec-company' => ['ticker' => 'AAPL', 'forms' => '10-K,10-Q', 'limit' => '5'],
+        'vuln-audit' => ['id' => 'CVE-2021-44228'],
+        'chain-telemetry' => ['chain' => 'base'],
         default => [],
     };
 }
@@ -1324,7 +1342,7 @@ function grid402_respond_402(?string $serviceName = null, ?string $errorMessage 
             'description' => 'Test the full response schema for free by sending header X-Payment: demo, or claim 50 free credits with promo code MCPTRY50 at ' . $canonicalBase . '/pass?promo=MCPTRY50.',
         ];
     $actionRequiredText = $isPassEndpoint
-        ? "1) Session Pass via Pix (BRL) or Card (from R$ 4.90 Micro / R$ 12 Starter = 400 credits, <15ms): {$canonicalBase}/pass?tier=starter&method=pix. 2) Pay {$priceDisplay} USDC via x402 v2 PAYMENT-SIGNATURE (gasless via PayAI) or send USDC on-chain and activate via POST {$canonicalBase}/api/v1/pass-emitir {\"txHash\":\"0x...\",\"chain\":\"base\"}. 3) Send your issued token in header X-Payment: pass_g402_<token> across all 28 APIs (or GRID402_SESSION_PASS in grid402-mcp)."
+        ? "1) Session Pass via Pix (BRL) or Card (from R$ 4.90 Micro / R$ 12 Starter = 400 credits, <15ms): {$canonicalBase}/pass?tier=starter&method=pix. 2) Pay {$priceDisplay} USDC via x402 v2 PAYMENT-SIGNATURE (gasless via PayAI) or send USDC on-chain and activate via POST {$canonicalBase}/api/v1/pass-emitir {\"txHash\":\"0x...\",\"chain\":\"base\"}. 3) Send your issued token in header X-Payment: pass_g402_<token> across all 31 APIs (or GRID402_SESSION_PASS in grid402-mcp)."
         : "1) Claim 50 FREE credits (no wallet needed) with promo MCPTRY50 at {$canonicalBase}/pass?promo=MCPTRY50 -> X-Payment: pass_g402_<token>. 2) Sign x402 v2 PAYMENT-SIGNATURE (gasless via PayAI on " . ((function_exists('grid402_is_solana_x402_enabled') && grid402_is_solana_x402_enabled()) ? 'Base/Polygon/Arbitrum/Solana' : 'Base/Polygon/Arbitrum') . ") or send {$priceDisplay} USDC and retry with X-Payment: <tx_hash>. 3) Sub-15ms Session Pass (Pix from R$ 4.90 / Starter R$ 12 or USDC) at {$canonicalBase}/pass, or Credit Card (USD) on RapidAPI. 4) Free Sandbox (" . GRID402_SANDBOX_RATE_LIMIT . " req/day): X-Payment: demo.";
 
     $payload = [

@@ -6,6 +6,13 @@ Todas as mudanças relevantes de arquitetura, catálogo de serviços, segurança
 
 ## [Unreleased]
 
+### Adicionado (Onda 3A — `sec-company`, `vuln-audit` e `chain-telemetry`)
+- **Novos Micro-Serviços Globais Zero-API-Key (`31` serviços operantes / `30` pagos / `33` tools MCP `v2.2.0`):**
+  - `GET /api/v1/sec-company` (`0.0100 USDC` / `2 cr`): Consulta corporativa SEC EDGAR por `ticker` (mapa ticker-CIK em cache 24h) ou `cik`, retornando perfil, filings `10-K`/`10-Q`/`8-K` filtráveis com URLs EDGAR, cache Zero-DB de `3600s`, `include_facts=true` opcional protegido por cap rígido de `8 MB` (`facts_status`), `HTTP 404`/`503` estornável e assinatura `_meta` + `_oracle_proof`.
+  - `GET /api/v1/vuln-audit` (`0.0050 USDC` / `1 cr`): Auditoria determinística de pacotes (`npm`, `PyPI`, `Go`, `Maven`, `Packagist`, `crates.io`, `NuGet`, `RubyGems`) ou ID direto (`CVE-*`/`GHSA-*`) combinando **OSV.dev** e catálogo oficial **CISA KEV** (cache `6h` com fallback para última cópia íntegra), veredito (`CLEAN` a `CRITICAL_KEV`) e cache de `900s`.
+  - `GET /api/v1/chain-telemetry` (`0.0050 USDC` / `1 cr`): Telemetria ao vivo combinando RPCs públicos com fallback e TVL da **DeFiLlama** para Base, Ethereum, Polygon, Arbitrum e Solana (`60s` cache, degradação graciosa `partial_data`, HTTP `503` sem cobrança em falha total).
+  - **Paridade completa de catálogo, Batch, MCP e Descoberta:** Suporte nativo dos 3 endpoints em `POST /api/v1/batch`, `config.php`, `collector.php`, `index.php`, `i18n.js?v=3.8.0`, `catalog.php`, `trust.php`, `agents.php`, `admin.php`, `admin_cockpit_view.php`, `well_known_x402.php`, `.well-known/x402.json` (`30` recursos pagos), `mcp.php` + `mcp/` (`grid402-mcp@2.2.0`, `33 tools`), `.well-known/mcp*.json`, `.well-known/ai-agent.json`, `pricing.json`, `openapi.json`, `llms.txt`, `llms-full.txt`, `README.md`, `scripts/bazaar_seed.mjs` e specs OpenAPI 3.0.3 do RapidAPI Studio.
+
 ### Adicionado (Fase 2 — `token-safety`, `prediction-markets` e `POST /api/v1/batch`)
 - **Novos Micro-Serviços de Alto Valor M2M (`28` serviços operantes / `30` tools MCP `v2.1.0`):**
   - `GET /api/v1/token-safety` (`0.0150 USDC` / `3 cr`): Auditoria de segurança de contratos e liquidez DEX multi-chain (Base, Ethereum, Polygon, Arbitrum e Solana com auto-detecção Base58) via fontes 100% públicas GoPlus Security API + DexScreener API, cache Zero-DB de 300s, score determinístico `0..100`, veredito (`SAFE`, `CAUTION`, `HIGH_RISK`, `CRITICAL`), `legal_disclaimer` e assinatura `_meta` + `_oracle_proof`.

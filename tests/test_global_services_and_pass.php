@@ -38,10 +38,10 @@ function assert_true(bool $condition, string $label): void {
 
 echo "=== Iniciando Testes: Global M2M Infrastructure & Session Pass ===\n\n";
 
-// 0. Verifica catalogo de 28 servicos
+// 0. Verifica catalogo de 31 servicos
 $catalog = grid402_get_utility_services();
-assert_true(count($catalog) === 28, 'Catalogo global possui exatamente 28 micro-servicos configurados');
-assert_true(isset($catalog['lei'], $catalog['ofac'], $catalog['notarize'], $catalog['global-markets'], $catalog['extract'], $catalog['email-verify'], $catalog['token-safety'], $catalog['prediction-markets'], $catalog['batch'], $catalog['pass'], $catalog['dossier']), 'Todos os endpoints globais, extract, email-verify, token-safety, prediction-markets, batch e dossier constam no catalogo');
+assert_true(count($catalog) === 31, 'Catalogo global possui exatamente 31 micro-servicos configurados');
+assert_true(isset($catalog['lei'], $catalog['ofac'], $catalog['notarize'], $catalog['global-markets'], $catalog['extract'], $catalog['email-verify'], $catalog['token-safety'], $catalog['prediction-markets'], $catalog['batch'], $catalog['sec-company'], $catalog['vuln-audit'], $catalog['chain-telemetry'], $catalog['pass'], $catalog['dossier']), 'Todos os endpoints globais, extract, email-verify, token-safety, prediction-markets, batch, Fase 3A e dossier constam no catalogo');
 
 // 1. Teste GLEIF LEI (CC0 1.0)
 $leiRes = grid402_service_lei('5493006MHB84DD0ZWV18');

@@ -48,6 +48,9 @@ const QUERY_DEFAULTS = {
   'email-verify': { email: 'contato@grid402.online' },
   'token-safety': { chain: 'base', address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' },
   'prediction-markets': { q: 'bitcoin', limit: '5' },
+  'sec-company': { ticker: 'AAPL', forms: '10-K,10-Q', limit: '5' },
+  'vuln-audit': { id: 'CVE-2021-44228' },
+  'chain-telemetry': { chain: 'base' },
 };
 
 const POST_BODIES = {

@@ -40,6 +40,9 @@ require_once __DIR__ . '/services/extract.php';
 require_once __DIR__ . '/services/email_verify.php';
 require_once __DIR__ . '/services/token_safety.php';
 require_once __DIR__ . '/services/prediction_markets.php';
+require_once __DIR__ . '/services/sec_company.php';
+require_once __DIR__ . '/services/vuln_audit.php';
+require_once __DIR__ . '/services/chain_telemetry.php';
 require_once __DIR__ . '/services/batch.php';
 require_once __DIR__ . '/services/pass.php';
 require_once __DIR__ . '/services/pass_checkout.php';
@@ -389,7 +392,7 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
         </footer>
     </div>
     <script src="/assets/js/pass_storage.js?v=3.5.0"></script>
-    <script src="/assets/js/i18n.js?v=3.7.0"></script>
+    <script src="/assets/js/i18n.js?v=3.8.0"></script>
 </body>
 </html>
     <?php
@@ -744,7 +747,7 @@ if ($requestPath === '/api/v1/pass/promo-status' || $requestPath === '/api/v1/pa
 $isStatusRoute = ($requestPath === '/status' || $requestPath === '/api/v1/summary' || $requestPath === '/telemetry');
 $isHomeRoute = ($requestPath === '/' || $requestPath === '/index.php');
 $isVerifyRoute = ($requestPath === '/api/v1/verify' || $apiParam === 'verify');
-$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'domain-audit', 'kyb-audit', 'dossier', 'market-snapshot', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays', 'sanctions', 'simples', 'compliance', 'lei', 'ofac', 'notarize', 'global-markets', 'extract', 'email-verify', 'token-safety', 'prediction-markets', 'batch', 'pass', 'pass-emitir', 'pass-balance', 'pass-limits', 'pass-statement'];
+$validApiEndpoints = ['summary', 'forex', 'crypto', 'dns', 'ssl', 'asn', 'domain-audit', 'kyb-audit', 'dossier', 'market-snapshot', 'cep', 'cnpj', 'indicators', 'holidays', 'workdays', 'sanctions', 'simples', 'compliance', 'lei', 'ofac', 'notarize', 'global-markets', 'extract', 'email-verify', 'token-safety', 'prediction-markets', 'sec-company', 'vuln-audit', 'chain-telemetry', 'batch', 'pass', 'pass-emitir', 'pass-balance', 'pass-limits', 'pass-statement'];
 $isValidApiAction = in_array($apiParam, $validApiEndpoints, true);
 $isInstitutionalRoute = in_array($requestPath, ['/about', '/contact', '/terms', '/privacy', '/admin', '/dashboard', '/agents'], true);
 
@@ -786,6 +789,9 @@ if (!$isHomeRoute && !$isStatusRoute && !$isValidApiAction && !$isInstitutionalR
                 '/api/v1/email-verify',
                 '/api/v1/token-safety',
                 '/api/v1/prediction-markets',
+                '/api/v1/sec-company',
+                '/api/v1/vuln-audit',
+                '/api/v1/chain-telemetry',
                 '/api/v1/batch',
                 '/api/v1/dossier',
                 '/api/v1/pass',
@@ -1079,6 +1085,23 @@ function grid402_dispatch_data_service(string $slug, array $params = [], bool $i
                 (string) ($params['status'] ?? 'active'),
                 isset($params['limit']) ? (int) $params['limit'] : 10
             );
+        case 'sec-company':
+            return grid402_service_sec_company(
+                (string) ($params['ticker'] ?? ''),
+                (string) ($params['cik'] ?? ''),
+                isset($params['limit']) ? (int) $params['limit'] : 10,
+                (string) ($params['forms'] ?? ''),
+                $params['include_facts'] ?? false
+            );
+        case 'vuln-audit':
+            return grid402_service_vuln_audit(
+                (string) ($params['ecosystem'] ?? ''),
+                (string) ($params['package'] ?? ''),
+                (string) ($params['version'] ?? ''),
+                (string) ($params['id'] ?? '')
+            );
+        case 'chain-telemetry':
+            return grid402_service_chain_telemetry((string) ($params['chain'] ?? 'base'));
         default:
             return [
                 'success' => false,
@@ -1203,7 +1226,7 @@ if ($isValidApiAction) {
     $isKybAudit = ($apiParam === 'kyb-audit');
     $isOfac = ($apiParam === 'ofac');
     $isCompositeMedium = in_array($apiParam, ['domain-audit', 'market-snapshot', 'token-safety'], true);
-    $isTwoCreditTier = in_array($apiParam, ['cnpj', 'lei', 'sanctions', 'simples', 'prediction-markets'], true);
+    $isTwoCreditTier = in_array($apiParam, ['cnpj', 'lei', 'sanctions', 'simples', 'prediction-markets', 'sec-company'], true);
 
     $batchPreCheck = null;
     $reqMethodUpperApi = strtoupper((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'));
@@ -1417,6 +1440,58 @@ if ($isValidApiAction) {
                 exit;
             }
         }
+    } elseif ($apiParam === 'sec-company') {
+        $secCheck = grid402_sec_company_validate_input(
+            (string) ($_GET['ticker'] ?? ''),
+            (string) ($_GET['cik'] ?? ''),
+            isset($_GET['limit']) ? (int) $_GET['limit'] : 10,
+            (string) ($_GET['forms'] ?? ''),
+            $_GET['include_facts'] ?? false
+        );
+        if (!$secCheck['ok']) {
+            http_response_code((int) ($secCheck['code'] ?? 400));
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'success' => false,
+                'error' => $secCheck['error'],
+                'message' => $secCheck['message'],
+                'code' => (int) ($secCheck['code'] ?? 400),
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+    } elseif ($apiParam === 'vuln-audit') {
+        $vaCheck = grid402_vuln_audit_validate_input(
+            (string) ($_GET['ecosystem'] ?? ''),
+            (string) ($_GET['package'] ?? ''),
+            (string) ($_GET['version'] ?? ''),
+            (string) ($_GET['id'] ?? '')
+        );
+        if (!$vaCheck['ok']) {
+            http_response_code((int) ($vaCheck['code'] ?? 400));
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'success' => false,
+                'error' => $vaCheck['error'],
+                'message' => $vaCheck['message'],
+                'code' => (int) ($vaCheck['code'] ?? 400),
+            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+    } elseif ($apiParam === 'chain-telemetry') {
+        if (array_key_exists('chain', $_GET)) {
+            $ctCheck = grid402_chain_telemetry_validate_input((string) ($_GET['chain'] ?? ''));
+            if (!$ctCheck['ok']) {
+                http_response_code((int) ($ctCheck['code'] ?? 400));
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode([
+                    'success' => false,
+                    'error' => $ctCheck['error'],
+                    'message' => $ctCheck['message'],
+                    'code' => (int) ($ctCheck['code'] ?? 400),
+                ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+        }
     }
 
     // 2.3. Verificação de Pagamento x402 para Micro-serviços Técnicos com Teaser Preview
@@ -1612,6 +1687,29 @@ if ($isValidApiAction) {
             $pmStatusInput = (string) ($_GET['status'] ?? 'active');
             $pmLimitInput = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
             $teaser = grid402_service_prediction_markets_preview($pmQInput, $pmSourceInput, $pmStatusInput, $pmLimitInput);
+            $previewData = $teaser['preview'];
+            $lockedFields = $teaser['locked_fields'];
+        } elseif ($apiParam === 'sec-company') {
+            $teaser = grid402_service_sec_company_preview(
+                (string) ($_GET['ticker'] ?? ''),
+                (string) ($_GET['cik'] ?? ''),
+                isset($_GET['limit']) ? (int) $_GET['limit'] : 10,
+                (string) ($_GET['forms'] ?? ''),
+                $_GET['include_facts'] ?? false
+            );
+            $previewData = $teaser['preview'];
+            $lockedFields = $teaser['locked_fields'];
+        } elseif ($apiParam === 'vuln-audit') {
+            $teaser = grid402_service_vuln_audit_preview(
+                (string) ($_GET['ecosystem'] ?? ''),
+                (string) ($_GET['package'] ?? ''),
+                (string) ($_GET['version'] ?? ''),
+                (string) ($_GET['id'] ?? '')
+            );
+            $previewData = $teaser['preview'];
+            $lockedFields = $teaser['locked_fields'];
+        } elseif ($apiParam === 'chain-telemetry') {
+            $teaser = grid402_service_chain_telemetry_preview((string) ($_GET['chain'] ?? 'base'));
             $previewData = $teaser['preview'];
             $lockedFields = $teaser['locked_fields'];
         } elseif ($apiParam === 'batch') {
@@ -2185,6 +2283,26 @@ if ($isValidApiAction) {
             $pmStatusVal = (string) ($_GET['status'] ?? 'active');
             $pmLimitVal = isset($_GET['limit']) ? (int) $_GET['limit'] : 10;
             $result = grid402_service_prediction_markets($pmQVal, $pmSourceVal, $pmStatusVal, $pmLimitVal);
+            break;
+        case 'sec-company':
+            $result = grid402_service_sec_company(
+                (string) ($_GET['ticker'] ?? ''),
+                (string) ($_GET['cik'] ?? ''),
+                isset($_GET['limit']) ? (int) $_GET['limit'] : 10,
+                (string) ($_GET['forms'] ?? ''),
+                $_GET['include_facts'] ?? false
+            );
+            break;
+        case 'vuln-audit':
+            $result = grid402_service_vuln_audit(
+                (string) ($_GET['ecosystem'] ?? ''),
+                (string) ($_GET['package'] ?? ''),
+                (string) ($_GET['version'] ?? ''),
+                (string) ($_GET['id'] ?? '')
+            );
+            break;
+        case 'chain-telemetry':
+            $result = grid402_service_chain_telemetry((string) ($_GET['chain'] ?? 'base'));
             break;
         case 'batch':
             $validatedBatchPayload = is_array($batchPreCheck)
@@ -3996,12 +4114,12 @@ grid402_log_public_visit('/');
         <section class="hero">
             <div class="hero-tag" data-i18n="hero.tag">Global Microservices and M2M Oracle Hub for Autonomous AI Agents</div>
             <h1 data-i18n="hero.title">Grid402: Global Open-Data and Network Utilities Infrastructure for AI Agents</h1>
-            <p data-i18n="hero.desc">Access 28 global and regional endpoints: Multi-Chain Token Safety Audit (/token-safety), Normalized Prediction Markets (/prediction-markets), Multi-Service Batch Execution (POST /batch), 100% transient Web-to-Markdown Extractor (/extract), Zero-PII B2B Email Verifier (/email-verify), KYB 360 AI Dossier (APPROVED/FLAGGED/REJECTED), worldwide corporate identity (GLEIF LEI across 200+ countries), 4-block official sanctions (US OFAC SDN, UN, EU FSFi, UK OFSI) + multi-asset Web3 AML, ECDSA timestamp notarization, DNS/SSL/BGP audits, ECB FX, Compliance 360, CEP, and CNPJ in milliseconds with zero signup or API keys. Gasless HTTP x402 via Coinbase CDP / PayAI across Base, Polygon, Arbitrum, and Solana — or Prepaid Session Pass via Pix from R$ 4.90 / Credit Card USD on RapidAPI (&lt;15ms).</p>
+            <p data-i18n="hero.desc">Access 31 global and regional endpoints: SEC EDGAR Company Lookup (/sec-company), Package/CVE Vuln Audit (/vuln-audit), Multi-Chain Live Telemetry (/chain-telemetry), Token Safety (/token-safety), Prediction Markets (/prediction-markets), Multi-Service Batch (POST /batch), 100% transient Web-to-Markdown (/extract), Email Verifier (/email-verify), KYB 360 AI Dossier, GLEIF LEI, 4-block official sanctions (OFAC/UN/EU/UK), ECDSA notarization, DNS/SSL/BGP, ECB FX, Compliance 360, CEP, and CNPJ in milliseconds with zero signup or API keys. Gasless HTTP x402 via Coinbase CDP / PayAI across Base, Polygon, Arbitrum, and Solana — or Prepaid Session Pass via Pix from R$ 4.90 / RapidAPI USD (&lt;15ms).</p>
             <div class="cta-group">
                 <a href="/pass?tier=starter&amp;method=pix" class="btn btn-primary" style="background: linear-gradient(135deg, #059669 0%, #10B981 100%); color: #04120D; font-weight: 800; box-shadow: 0 4px 18px rgba(16, 185, 129, 0.35);" data-i18n="hero.btn.pix">⚡ Pix R$ 12 (400 créditos)</a>
                 <a href="/dossie-kyb" class="btn btn-primary" style="background: linear-gradient(135deg, #0052FF 0%, #00F0FF 100%); font-weight: 800; box-shadow: 0 4px 15px rgba(0, 82, 255, 0.4);" data-i18n="hero.btn.dossier">📄 Gerar Dossiê KYB</a>
                 <a href="#playground" class="btn btn-outline" style="border-color: var(--primary); color: var(--primary); font-weight: 700;" data-i18n="hero.btn.playground">⚡ Test Sandbox (3/day)</a>
-                <a href="/catalog" class="btn btn-outline" data-i18n="hero.btn.catalog">Pricing &amp; 28 Endpoints →</a>
+                <a href="/catalog" class="btn btn-outline" data-i18n="hero.btn.catalog">Pricing &amp; 31 Endpoints →</a>
                 <a href="/agents" class="btn btn-outline" data-i18n="hero.btn.agents">🤖 AI Agents Hub</a>
             </div>
             <p style="margin-top: .7rem; font-size: .82rem; color: var(--text-muted);" data-i18n-html="hero.subnote">
@@ -4578,6 +4696,9 @@ grid402_log_public_visit('/');
                     <button type="button" class="btn-sm" onclick="runConsole('email-verify')" data-i18n="console.act.email-verify" style="border-color: rgba(0, 240, 255, 0.4);">✉️ Email Verify (/api/v1/email-verify)</button>
                     <button type="button" class="btn-sm" onclick="runConsole('token-safety')" data-i18n="console.act.token-safety" style="border-color: rgba(0, 240, 255, 0.4);">🪙 Token Safety (/api/v1/token-safety)</button>
                     <button type="button" class="btn-sm" onclick="runConsole('prediction-markets')" data-i18n="console.act.prediction-markets" style="border-color: rgba(0, 240, 255, 0.4);">🔮 Predictions (/api/v1/prediction-markets)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('sec-company')" data-i18n="console.act.sec-company" style="border-color: rgba(0, 240, 255, 0.4);">🏛️ SEC EDGAR (/api/v1/sec-company)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('vuln-audit')" data-i18n="console.act.vuln-audit" style="border-color: rgba(0, 240, 255, 0.4);">🔍 Vuln Audit (/api/v1/vuln-audit)</button>
+                    <button type="button" class="btn-sm" onclick="runConsole('chain-telemetry')" data-i18n="console.act.chain-telemetry" style="border-color: rgba(0, 240, 255, 0.4);">📡 Chain Telemetry (/api/v1/chain-telemetry)</button>
                     <button type="button" class="btn-sm" onclick="runConsole('dossier')" data-i18n="console.act.dossier" style="border-color: rgba(0, 240, 255, 0.4);">🛡️ KYB 360 Dossier (/api/v1/dossier)</button>
                     <button type="button" class="btn-sm" onclick="runConsole('pass')" data-i18n="console.act.pass" style="border-color: rgba(16, 185, 129, 0.5);">⚡ Session Pass (/api/v1/pass)</button>
                 </div>
@@ -5153,6 +5274,37 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                     { key: 'q', label: 'Busca (opcional)', value: 'bitcoin' },
                     { key: 'source', label: 'Fonte (all, polymarket, kalshi)', value: 'all' },
                     { key: 'limit', label: 'Limite (1 a 20)', value: '5' }
+                ]
+            },
+            'sec-company': {
+                name: 'SEC EDGAR Corporativo',
+                icon: '🏛️',
+                endpoint: '/api/v1/sec-company',
+                desc: 'Perfil corporativo SEC EDGAR (CIK, SIC, exchanges), ultimos filings 10-K/10-Q/8-K e fatos XBRL opcionais.',
+                params: [
+                    { key: 'ticker', label: 'Ticker (ex.: AAPL)', value: 'AAPL' },
+                    { key: 'forms', label: 'Formularios CSV (opcional)', value: '10-K,10-Q' },
+                    { key: 'limit', label: 'Limite (1 a 25)', value: '5' }
+                ]
+            },
+            'vuln-audit': {
+                name: 'Auditoria de Vulnerabilidades (OSV + CISA KEV)',
+                icon: '🔍',
+                endpoint: '/api/v1/vuln-audit',
+                desc: 'Triagem deterministica de pacotes (npm, PyPI, Go, Maven, Packagist, crates.io) ou CVE/GHSA cruzada com CISA KEV.',
+                params: [
+                    { key: 'id', label: 'CVE ou GHSA (opcional)', value: 'CVE-2021-44228' },
+                    { key: 'ecosystem', label: 'Ecossistema (se modo pacote)', value: '' },
+                    { key: 'package', label: 'Pacote (se modo pacote)', value: '' }
+                ]
+            },
+            'chain-telemetry': {
+                name: 'Telemetria Multi-Chain (RPC + DeFiLlama)',
+                icon: '📡',
+                endpoint: '/api/v1/chain-telemetry',
+                desc: 'Bloco/slot atual, gas/priority fees, latencia RPC e TVL DeFiLlama em Base, Ethereum, Polygon, Arbitrum e Solana.',
+                params: [
+                    { key: 'chain', label: 'Rede (base, ethereum, polygon, arbitrum, solana)', value: 'base' }
                 ]
             },
             pass: {
@@ -6241,6 +6393,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             'market-snapshot': { amountRaw: 15000, priceUsdc: '0.0150' },
             'token-safety': { amountRaw: 15000, priceUsdc: '0.0150' },
             'prediction-markets': { amountRaw: 10000, priceUsdc: '0.0100' },
+            'sec-company': { amountRaw: 10000, priceUsdc: '0.0100' },
             'cnpj': { amountRaw: 10000, priceUsdc: '0.0100' },
             'lei': { amountRaw: 10000, priceUsdc: '0.0100' },
             'ofac': { amountRaw: 20000, priceUsdc: '0.0200' },
@@ -6593,6 +6746,9 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
             'email-verify': '/api/v1/email-verify?email=contato@grid402.online',
             'token-safety': '/api/v1/token-safety?chain=base' + String.fromCharCode(38) + 'address=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
             'prediction-markets': '/api/v1/prediction-markets?q=bitcoin' + String.fromCharCode(38) + 'limit=5',
+            'sec-company': '/api/v1/sec-company?ticker=AAPL' + String.fromCharCode(38) + 'forms=10-K,10-Q' + String.fromCharCode(38) + 'limit=5',
+            'vuln-audit': '/api/v1/vuln-audit?id=CVE-2021-44228',
+            'chain-telemetry': '/api/v1/chain-telemetry?chain=base',
             dossier: '/api/v1/dossier?cnpj=00000000000191',
             'domain-audit': '/api/v1/domain-audit?domain=base.org',
             'kyb-audit': '/api/v1/kyb-audit?cnpj=00000000000191',
@@ -7115,7 +7271,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 <h3>1. Objeto e Fornecimento AS-IS</h3>
                 <p>O <strong>Grid402</strong> é uma infraestrutura global de micro-serviços de dados públicos e utilitários M2M para agentes autônomos e desenvolvedores, fornecida "NO ESTADO EM QUE SE ENCONTRA" (AS-IS).</p>
                 <h3>2. Direito de Uso de Informações Públicas e Licenças Abertas</h3>
-                <p>Todas as 28 APIs operam estritamente sobre fontes públicas abertas e fatos não passíveis de reserva proprietária: <strong>GLEIF LEI</strong> (CC0 1.0 Universal), <strong>OFAC SDN / ONU</strong> (Domínio Público 17 U.S.C. § 105), <strong>BCE / BCB / IBGE</strong> (Diretiva UE 2019/1024, Lei nº 12.527/2011 - LAI e Decreto nº 8.777/2016), <strong>Fatos Econômicos e Algoritmos de Calendário</strong> (Lei nº 9.610/1998 Art. 8º, I, II e IV) e <strong>Protocolos IETF</strong> (DNS, TLS, BGP/ASN, SMTP/MX/SPF/DMARC, HTTP/HTTPS, RFC 8785).</p>
+                <p>Todas as 31 APIs operam estritamente sobre fontes públicas abertas e fatos não passíveis de reserva proprietária: <strong>GLEIF LEI</strong> (CC0 1.0 Universal), <strong>OFAC SDN / ONU</strong> (Domínio Público 17 U.S.C. § 105), <strong>SEC EDGAR / CISA KEV</strong> (Domínio Público Federal EUA), <strong>BCE / BCB / IBGE</strong> (Diretiva UE 2019/1024, Lei nº 12.527/2011 - LAI e Decreto nº 8.777/2016), <strong>Fatos Econômicos e Algoritmos de Calendário</strong> (Lei nº 9.610/1998 Art. 8º, I, II e IV) e <strong>Protocolos IETF</strong> (DNS, TLS, BGP/ASN, SMTP/MX/SPF/DMARC, HTTP/HTTPS, RFC 8785).</p>
                 <h3>3. Pagamentos x402 e Session Passes</h3>
                 <p>Os micropagamentos e passes pré-pagos em USDC Multi-Chain (Base, Arbitrum, Polygon, Optimism, Ethereum e Solana SPL) remuneram exclusivamente o processamento computacional e a assinatura criptográfica ECDSA do Oráculo, sendo definitivos e irreversíveis.</p>
                 <h3>4. Direitos Autorais e Propriedade Intelectual Reservados</h3>
@@ -7133,7 +7289,7 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
                 <h3>1. Purpose and "AS-IS" Provision</h3>
                 <p><strong>Grid402</strong> is a global open-data microservices and M2M network utility gateway for autonomous AI agents and developers, provided strictly "AS-IS".</p>
                 <h3>2. Open Data Legal Basis and Public Domain Rights</h3>
-                <p>All 28 endpoints process strictly public-domain and open-licensed records: <strong>GLEIF LEI</strong> (CC0 1.0 Universal), <strong>US Treasury OFAC SDN / UN</strong> (Public Domain under 17 U.S.C. § 105), <strong>ECB / Central Bank Indicators</strong> (EU Open Data Directive 2019/1024 & Brazilian Open Data Decree 8.777/2016), <strong>Market Facts & Statutory Calendars</strong> (17 U.S.C. § 102(b) & Law 9.610/1998 Art. 8), and <strong>IETF Standards</strong> (DNS, TLS, BGP/ASN, SMTP/MX/SPF/DMARC, HTTP/HTTPS, RFC 8785).</p>
+                <p>All 31 endpoints process strictly public-domain and open-licensed records: <strong>GLEIF LEI</strong> (CC0 1.0 Universal), <strong>US Treasury OFAC SDN / SEC EDGAR / CISA KEV / UN</strong> (Public Domain under 17 U.S.C. § 105), <strong>ECB / Central Bank Indicators</strong> (EU Open Data Directive 2019/1024 & Brazilian Open Data Decree 8.777/2016), <strong>Market Facts & Statutory Calendars</strong> (17 U.S.C. § 102(b) & Law 9.610/1998 Art. 8), and <strong>IETF Standards</strong> (DNS, TLS, BGP/ASN, SMTP/MX/SPF/DMARC, HTTP/HTTPS, RFC 8785).</p>
                 <h3>3. x402 Micropayments and Session Passes</h3>
                 <p>USDC micropayments and Session Passes settled across supported chains (Base, Arbitrum, Polygon, Optimism, Ethereum, and Solana SPL) compensate strictly for computational processing and ECDSA cryptographic attestation, with immediate on-chain finality.</p>
                 <h3>4. Copyright and All Rights Reserved</h3>
@@ -7436,6 +7592,6 @@ curl "https://www.grid402.online/api/v1/cnpj?cnpj=00000000000191" \
         }
     </script>
     <script src="/assets/js/pass_storage.js?v=3.5.0"></script>
-    <script src="/assets/js/i18n.js?v=3.7.0"></script>
+    <script src="/assets/js/i18n.js?v=3.8.0"></script>
 </body>
 </html>

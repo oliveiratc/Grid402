@@ -26,11 +26,11 @@ ksort($services);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Complete and live catalog of all 28 Grid402 microservices: pricing, limits, examples, and status.">
+    <meta name="description" content="Complete and live catalog of all 31 Grid402 microservices: pricing, limits, examples, and status.">
     <title>Grid402 // Complete Service Catalog</title>
 <?php require_once __DIR__ . '/includes/seo_head.php'; grid402_render_seo_head([
     'title' => 'Grid402 // Complete Service Catalog',
-    'description' => 'Complete and live catalog of all 28 Grid402 microservices: pricing, limits, examples, and status.',
+    'description' => 'Complete and live catalog of all 31 Grid402 microservices: pricing, limits, examples, and status.',
     'path' => '/catalog',
     'card' => 'global',
     'locale' => 'en_US',
@@ -99,7 +99,7 @@ ksort($services);
             <thead><tr><th data-i18n="catalog.th.service">Service &amp; Official Source</th><th data-i18n="catalog.th.category">Category</th><th data-i18n="catalog.th.price">Price USDC</th><th data-i18n="catalog.th.status">Status</th><th data-i18n="catalog.th.example">Example</th></tr></thead>
             <tbody>
             <?php foreach ($services as $id => $svc):
-                $price = isset($svc['price_usdc']) ? $svc['price_usdc'] : ($id === 'dossier' ? '0.0500' : (in_array($id, ['cnpj','lei','sanctions','simples','prediction-markets'], true) ? '0.0100' : ($id === 'ofac' ? '0.0200' : ($id === 'kyb-audit' ? '0.0250' : (in_array($id, ['domain-audit','market-snapshot','token-safety'], true) ? '0.0150' : ($id === 'compliance' ? '0.0300' : ($id === 'pass' ? '2.0000' : ($id === 'verify' ? 'Gratuito' : GRID402_PRICE_DISPLAY))))))));
+                $price = isset($svc['price_usdc']) ? $svc['price_usdc'] : ($id === 'dossier' ? '0.0500' : (in_array($id, ['cnpj','lei','sanctions','simples','prediction-markets','sec-company'], true) ? '0.0100' : ($id === 'ofac' ? '0.0200' : ($id === 'kyb-audit' ? '0.0250' : (in_array($id, ['domain-audit','market-snapshot','token-safety'], true) ? '0.0150' : ($id === 'compliance' ? '0.0300' : ($id === 'pass' ? '2.0000' : ($id === 'verify' ? 'Gratuito' : GRID402_PRICE_DISPLAY))))))));
                 $status = is_array($summaryServices[$id] ?? null) ? ($summaryServices[$id]['status'] ?? 'UP') : 'UP';
                 if ($status === '—' || $status === '') {
                     $status = 'UP';
@@ -125,6 +125,9 @@ ksort($services);
                 elseif ($id === 'email-verify') $example .= '?email=contato@grid402.online';
                 elseif ($id === 'token-safety') $example .= '?chain=base&address=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
                 elseif ($id === 'prediction-markets') $example .= '?q=bitcoin&limit=5';
+                elseif ($id === 'sec-company') $example .= '?ticker=AAPL&forms=10-K,10-Q&limit=5';
+                elseif ($id === 'vuln-audit') $example .= '?id=CVE-2021-44228';
+                elseif ($id === 'chain-telemetry') $example .= '?chain=base';
                 $priceDisplay = ($price === 'Gratuito') ? 'Free' : (string)$price;
                 if ($id === 'verify') {
                     $curlCmd = 'curl -X POST https://grid402.online/api/v1/verify -H "Content-Type: application/json" -d @oracle_response.json';
@@ -157,6 +160,6 @@ ksort($services);
 const input=document.getElementById('filter');
 input.addEventListener('input',()=>{const q=input.value.toLowerCase();document.querySelectorAll('#catalog tbody tr').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':'none');});
 </script>
-<script src="/assets/js/i18n.js?v=3.7.0"></script>
+<script src="/assets/js/i18n.js?v=3.8.0"></script>
 </body>
 </html>

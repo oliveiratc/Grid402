@@ -288,7 +288,25 @@ Resposta de verificacao:
 - Exemplo de corpo JSON: `{"items":[{"service":"dns","params":{"domain":"base.org"}},{"service":"token-safety","params":{"chain":"base","address":"0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"}}]}`
 - Descricao: Agrupa sub-requisicoes pagas em um unico POST. Bloqueia recursao e rotas administrativas (`batch`, `pass`, `pass-emitir`, `pass-balance`, `pass-limits`, `pass-statement`, `verify`, `summary`). Verifica `allowed_endpoints` de todos os sub-servicos antes de debitar Session Pass, suporta `Idempotency-Key` e realiza estorno automatico de creditos por cada sub-item que falhar.
 
-### 29. Session Pass Pre-Pago Multi-Chain (5 Redes EVM) e Spend Controls
+### 29. SEC EDGAR Corporativo e Filings (`/api/v1/sec-company`)
+- Rota: `GET /api/v1/sec-company` (parametros query: `ticker` ou `cik`, mais `forms`, `limit` de 1 a 25 e `include_facts=true|false`)
+- Tarifa: 0.0100 USDC (2 creditos)
+- Exemplo: `/api/v1/sec-company?ticker=AAPL` (opcionalmente filtrando `forms=10-K,10-Q` e `limit=5`)
+- Descricao: Consulta oficial SEC EDGAR (`sec.gov` e `data.sec.gov`, cache Zero-DB 3600s e mapa ticker-CIK 24h) retornando perfil corporativo, filings recentes com links diretos do EDGAR e fatos XBRL opcionais protegidos por teto rigido de 8 MB (`facts_status`).
+
+### 30. Auditoria de Vulnerabilidades OSV + CISA KEV (`/api/v1/vuln-audit`)
+- Rota: `GET /api/v1/vuln-audit` (parametros query: `ecosystem` + `package` + `version` opcional, OU `id` direto ex. `CVE-2021-44228`)
+- Tarifa: 0.0050 USDC (1 credito)
+- Exemplo: `/api/v1/vuln-audit?id=CVE-2021-44228`
+- Descricao: Auditoria deterministica de vulnerabilidades combinando OSV.dev e catalogo oficial CISA KEV (cache 6h com fallback para copia anterior integra em disco), retornando severidade, `actively_exploited_kev`, `fixed_in` e veredito (`CLEAN`, `LOW`, `MODERATE`, `HIGH`, `CRITICAL`, `CRITICAL_KEV`).
+
+### 31. Telemetria Multi-Chain RPC + DeFiLlama (`/api/v1/chain-telemetry`)
+- Rota: `GET /api/v1/chain-telemetry` (parametro query opcional `chain` = `base` padrao, `ethereum`, `polygon`, `arbitrum` ou rede SPL)
+- Tarifa: 0.0050 USDC (1 credito)
+- Exemplo: `/api/v1/chain-telemetry?chain=base`
+- Descricao: Telemetria em tempo real combinando RPCs publicos multi-fallback (altura de bloco/slot, taxas de gas/prioridade e latencia RPC) com TVL da DeFiLlama API (cache 60s), operando com degradacao graciosa (`partial_data`) e HTTP 503 sem cobranca apenas em falha total.
+
+### 32. Session Pass Pre-Pago Multi-Chain (5 Redes EVM) e Spend Controls
 - Emissao Multi-Chain: `POST /api/v1/pass-emitir` (`{"txHash": "...", "chain": "base|arbitrum|polygon|optimism|ethereum"}`) ou `GET /api/v1/pass` (Starter 2 USDC = 400 creditos/180d, Pro 5 USDC = 1.000 base + 200 bonus = 1.200 creditos/180d, Fleet 20 USDC = 4.000 base + 2.000 bonus = 6.000 creditos/365d).
 - Redes EVM (`0xa592625adbceb8e025ac383f1a3fd8ebb6a63f90`): Base (8453), Arbitrum One (42161), Polygon PoS (137), Optimism (10) e Ethereum Mainnet (1).
 - Consulta Gratuita de Saldo: `GET /api/v1/pass/balance?token=pass_g402_...` (0.0000 USDC)

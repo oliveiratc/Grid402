@@ -494,6 +494,88 @@ export const MCP_TOOLS_DEFINITIONS = [
     },
   },
   {
+    name: 'grid402_sec_company',
+    description: 'Query US SEC EDGAR public company profile (CIK, SIC, exchanges, fiscal year end), filtered 10-K/10-Q/8-K filings and optional bounded XBRL financial facts (0.0100 USDC / 2 credits).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        ticker: {
+          type: 'string',
+          description: 'US stock ticker symbol (e.g. "AAPL", "MSFT"). Provide ticker or cik.',
+        },
+        cik: {
+          type: 'string',
+          description: 'SEC Central Index Key (1 to 10 digits, e.g. "0000320193"). Provide ticker or cik.',
+        },
+        forms: {
+          type: 'string',
+          description: 'Optional comma-separated SEC form types to filter (e.g. "10-K,10-Q,8-K").',
+        },
+        limit: {
+          type: 'integer',
+          description: 'Maximum filings to return (1 to 25, default 10).',
+        },
+        include_facts: {
+          type: 'boolean',
+          description: 'Optional boolean to fetch US-GAAP XBRL metrics (subject to 8 MB response guard).',
+        },
+        payment_tx_hash: {
+          type: 'string',
+          description: 'Optional USDC tx hash, Session Pass token (pass_g402_...), or "demo".',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'grid402_vuln_audit',
+    description: 'Deterministic vulnerability and active-exploitation audit combining OSV.dev and CISA KEV by package (ecosystem + package + version) or CVE/GHSA ID (0.0050 USDC / 1 credit).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        ecosystem: {
+          type: 'string',
+          description: 'Package ecosystem (npm, PyPI, Go, Maven, Packagist, crates.io, NuGet, RubyGems) for package mode.',
+        },
+        package: {
+          type: 'string',
+          description: 'Package name to audit (e.g. "lodash", "requests").',
+        },
+        version: {
+          type: 'string',
+          description: 'Optional specific package version to narrow vulnerability matching.',
+        },
+        id: {
+          type: 'string',
+          description: 'Direct vulnerability ID (e.g. "CVE-2021-44228" or "GHSA-..."). Use id OR ecosystem + package.',
+        },
+        payment_tx_hash: {
+          type: 'string',
+          description: 'Optional USDC tx hash, Session Pass token (pass_g402_...), or "demo".',
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'grid402_chain_telemetry',
+    description: 'Real-time blockchain RPC telemetry (block/slot, gas/priority fees, RPC latency) combined with DeFiLlama TVL across Base, Ethereum, Polygon, Arbitrum and Solana (0.0050 USDC / 1 credit).',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        chain: {
+          type: 'string',
+          description: 'Target network: base (default), ethereum, polygon, arbitrum or solana.',
+        },
+        payment_tx_hash: {
+          type: 'string',
+          description: 'Optional USDC tx hash, Session Pass token (pass_g402_...), or "demo".',
+        },
+      },
+      required: [],
+    },
+  },
+  {
     name: 'grid402_batch',
     description: 'Execute 1 to 5 paid Grid402 data services in a single HTTP POST call (max 2 items in sandbox/demo). Dynamically priced as the exact sum of item fees, with automatic Session Pass partial refund on sub-item failures.',
     inputSchema: {
@@ -734,6 +816,28 @@ export async function executeGrid402Request(service, params = {}, options = {}) 
       if (params.source) queryParams.set('source', params.source);
       if (params.status) queryParams.set('status', params.status);
       if (params.limit !== undefined && params.limit !== null) queryParams.set('limit', String(params.limit));
+      break;
+    case 'sec-company':
+    case 'sec_company':
+      path = '/api/v1/sec-company';
+      if (params.ticker) queryParams.set('ticker', params.ticker);
+      if (params.cik) queryParams.set('cik', params.cik);
+      if (params.forms) queryParams.set('forms', params.forms);
+      if (params.limit !== undefined && params.limit !== null) queryParams.set('limit', String(params.limit));
+      if (params.include_facts !== undefined && params.include_facts !== null) queryParams.set('include_facts', String(params.include_facts));
+      break;
+    case 'vuln-audit':
+    case 'vuln_audit':
+      path = '/api/v1/vuln-audit';
+      if (params.ecosystem) queryParams.set('ecosystem', params.ecosystem);
+      if (params.package) queryParams.set('package', params.package);
+      if (params.version) queryParams.set('version', params.version);
+      if (params.id) queryParams.set('id', params.id);
+      break;
+    case 'chain-telemetry':
+    case 'chain_telemetry':
+      path = '/api/v1/chain-telemetry';
+      if (params.chain) queryParams.set('chain', params.chain);
       break;
     case 'batch':
       path = '/api/v1/batch';

@@ -22,7 +22,7 @@
 </p>
 
 <p align="center">
-  <strong>28 live public-data, token-safety, prediction-market, KYB compliance and network-intelligence APIs</strong> with cryptographic ECDSA <code>secp256k1</code> proofs (<code>_oracle_proof</code>), native <strong>HTTP x402 v2</strong> USDC micropayments (Base, Polygon, Arbitrum, Solana), sub-15ms <strong>Session Passes</strong> (USDC or Pix), and a <strong>30-tool MCP Server</strong>.
+  <strong>31 live public-data, SEC EDGAR, vuln-audit, chain-telemetry, token-safety, prediction-market, KYB compliance and network-intelligence APIs</strong> with cryptographic ECDSA <code>secp256k1</code> proofs (<code>_oracle_proof</code>), native <strong>HTTP x402 v2</strong> USDC micropayments (Base, Polygon, Arbitrum, Solana), sub-15ms <strong>Session Passes</strong> (USDC or Pix), and a <strong>33-tool MCP Server</strong>.
 </p>
 
 <p align="center">
@@ -67,7 +67,7 @@ Example signed response (truncated):
 }
 ```
 
-### Add All 30 Tools to Claude Desktop or Cursor (1 Command)
+### Add All 33 Tools to Claude Desktop or Cursor (1 Command)
 
 ```bash
 # Claude Desktop (via Smithery)
@@ -108,7 +108,7 @@ The MCP server runs 3 free Sandbox calls/day automatically. To unlock unlimited 
 | **B2B Lead + KYB 360 Enrichment (Email Verify + Dossier + Extract)** | n8n (1-click JSON import) | [`examples/n8n/grid402_b2b_lead_kyb_enrichment_workflow.json`](examples/n8n/grid402_b2b_lead_kyb_enrichment_workflow.json) |
 | **CNPJ Compliance 360 + CEP Automation** | n8n (no-code workflow) | [`examples/n8n/grid402_cnpj_compliance_workflow.json`](examples/n8n/grid402_cnpj_compliance_workflow.json) |
 | **CNPJ Compliance + Pix Session Pass** | n8n | [`examples/n8n_cnpj_compliance_pix.json`](examples/n8n_cnpj_compliance_pix.json) |
-| **Claude Desktop / Cursor MCP (30 tools)** | Node.js / MCP stdio + HTTP | [`mcp/README.md`](mcp/README.md) |
+| **Claude Desktop / Cursor MCP (33 tools)** | Node.js / MCP stdio + HTTP | [`mcp/README.md`](mcp/README.md) |
 | **LangChain and CrewAI Tools** | Python (`@tool` wrappers) | [`examples/langchain_quickstart.py`](examples/langchain_quickstart.py) |
 | **Coinbase CDP AgentKit Auto-Pay** | TypeScript and Python | [`integrations/agentkit/README.md`](integrations/agentkit/README.md) |
 | **ElizaOS Autonomous Character Plugin** | TypeScript (`grid402-plugin-elizaos`) | [`integrations/elizaos/README.md`](integrations/elizaos/README.md) |
@@ -126,16 +126,19 @@ The MCP server runs 3 free Sandbox calls/day automatically. To unlock unlimited 
 
 ---
 
-## API Catalog (28 Paid and Utility Services)
+## API Catalog (31 Paid and Utility Services)
 
 `1 credit = 0.0050 USDC` (`5,000 raw units` on Base Mainnet).
 
 | Service | Endpoint | Price (USDC / Credits) | Description |
 |---|---|---|---|
-| **Operational Status** | `GET /status` | Free | Live health, latencies, 30-day uptime and 28 active services |
+| **Operational Status** | `GET /status` | Free | Live health, latencies, 30-day uptime and 31 active services |
 | **Multi-Service Batch** | `POST /api/v1/batch` | Dynamic item sum (1-5 items) | Bundle multiple paid endpoints in one HTTP request with automatic Session Pass partial refund |
 | **Token Safety Audit** | `GET /api/v1/token-safety?address=...` | `0.0150` (3 cr) | Multi-chain GoPlus and DexScreener risk score (0–100), honeypot/tax flags and liquidity (Base/ETH/Polygon/Arbitrum/Solana) |
 | **Prediction Markets** | `GET /api/v1/prediction-markets?q=...` | `0.0100` (2 cr) | Normalized odds (0–100%), volume and liquidity from Polymarket Gamma and Kalshi Trade API v2 |
+| **SEC EDGAR Company** | `GET /api/v1/sec-company?ticker=...` | `0.0100` (2 cr) | US SEC EDGAR company profile (CIK, SIC, exchanges), filtered 10-K/10-Q/8-K filings and optional bounded XBRL facts |
+| **Vuln Audit (OSV + KEV)** | `GET /api/v1/vuln-audit?id=...` | `0.0050` (1 cr) | Deterministic package (npm, PyPI, Go, Maven, Packagist, crates.io) or CVE/GHSA audit combining OSV.dev and CISA KEV |
+| **Chain Telemetry** | `GET /api/v1/chain-telemetry?chain=...` | `0.0050` (1 cr) | Real-time RPC block/slot, gas/priority fees and DeFiLlama TVL across Base, Ethereum, Polygon, Arbitrum and Solana |
 | **KYB 360 Dossier + AI Verdict** | `GET /api/v1/dossier?cnpj=...` | `0.0500` (10 cr) | RFB CNPJ + Simples/MEI + CGU CEIS/CNEP + deterministic AI verdict (`APPROVED` / `FLAGGED` / `REJECTED`) |
 | **Compliance Score 360** | `GET /api/v1/compliance?cnpj=...` | `0.0300` (6 cr) | 0–100 corporate risk score cross-checking Federal Revenue and CGU |
 | **KYB Global Audit** | `GET /api/v1/kyb-audit?cnpj=...` | `0.0250` (5 cr) | Corporate audit combining Brazil CNPJ + OFAC/UN Sanctions + GLEIF LEI |
@@ -284,7 +287,7 @@ See [`examples/langchain_quickstart.py`](examples/langchain_quickstart.py).
 
 ```text
 ├── smithery.yaml            # Smithery.ai 1-click MCP manifest
-├── mcp/                     # Official MCP server package (grid402-mcp, 30 tools)
+├── mcp/                     # Official MCP server package (grid402-mcp, 33 tools)
 ├── sdk/                     # Official JavaScript/TypeScript SDK (npm: grid402)
 ├── python/                  # Official Python SDK (PyPI: grid402)
 ├── integrations/            # Coinbase CDP AgentKit and ElizaOS plugins

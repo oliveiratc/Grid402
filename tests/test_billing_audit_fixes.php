@@ -728,12 +728,12 @@ try {
         "code={$r402Dos['code']} preview=" . substr($dosPreviewJson, 0, 300)
     );
 
-    // V-14 + V-22: GET /status não vaza usd_brl/btc_usd e expõe 28/28 price_usdc com lei=0.0100
+    // V-14 + V-22: GET /status não vaza usd_brl/btc_usd e expõe 31/31 price_usdc com lei=0.0100
     $rStatus = $httpReq('GET', "{$baseUrl}/status", ['Accept: application/json']);
     $stSvcs = $rStatus['json']['services'] ?? [];
-    t_assert('V-14/V-22: GET /status não vaza usd_brl/btc_usd e expõe 28 serviços com lei=0.0100',
+    t_assert('V-14/V-22: GET /status não vaza usd_brl/btc_usd e expõe 31 serviços com lei=0.0100',
         $rStatus['code'] === 200 &&
-        count($stSvcs) === 28 &&
+        count($stSvcs) === 31 &&
         !isset($stSvcs['forex']['usd_brl'], $stSvcs['crypto']['btc_usd']) &&
         ($stSvcs['lei']['price_usdc'] ?? '') === '0.0100',
         "code={$rStatus['code']} svcs=" . count($stSvcs)

@@ -1,9 +1,9 @@
 {
   "$schema": "https://modelcontextprotocol.io/schemas/mcp.json",
   "name": "grid402-mcp",
-  "version": "2.1.0",
-  "description": "Official Grid402 MCP Server - Verifiable Data and HTTP x402 Payment Layer for Autonomous AI Agents across Base, Polygon, Arbitrum, Optimism and Ethereum (30 tools with ECDSA secp256k1 Oracle Proof).",
-  "instructions": "Use free tools first (grid402_summary, grid402_pass_balance, grid402_verify). Prefer composite bundles (grid402_batch, grid402_get_dossier_360, grid402_domain_audit, grid402_kyb_audit, grid402_market_snapshot) and global utilities (grid402_token_safety, grid402_prediction_markets, grid402_extract, grid402_email_verify) to minimize cost and roundtrips. Claim 50 free credits via promo code MCPTRY50 at https://grid402.online/pass?promo=MCPTRY50, set GRID402_SANDBOX=true (X-Payment: demo, 3 req/day/IP, max 2 items on grid402_batch) for testing, GRID402_SESSION_PASS for sub-15ms prepaid calls, or gasless x402 exact settlement via PayAI on Base, Polygon or Arbitrum.",
+  "version": "2.2.0",
+  "description": "Official Grid402 MCP Server - Verifiable Data and HTTP x402 Payment Layer for Autonomous AI Agents across Base, Polygon, Arbitrum, Optimism and Ethereum (33 tools with ECDSA secp256k1 Oracle Proof).",
+  "instructions": "Use free tools first (grid402_summary, grid402_pass_balance, grid402_verify). Prefer composite bundles (grid402_batch, grid402_get_dossier_360, grid402_domain_audit, grid402_kyb_audit, grid402_market_snapshot) and global utilities (grid402_sec_company, grid402_vuln_audit, grid402_chain_telemetry, grid402_token_safety, grid402_prediction_markets, grid402_extract, grid402_email_verify) to minimize cost and roundtrips. Claim 50 free credits via promo code MCPTRY50 at https://grid402.online/pass?promo=MCPTRY50, set GRID402_SANDBOX=true (X-Payment: demo, 3 req/day/IP, max 2 items on grid402_batch) for testing, GRID402_SESSION_PASS for sub-15ms prepaid calls, or gasless x402 exact settlement via PayAI on Base, Polygon or Arbitrum.",
   "homepage": "https://grid402.online",
   "repository": "https://github.com/oliveiratc/Grid402",
   "mcp": true,
@@ -27,7 +27,7 @@
   "tools": [
     {
       "name": "grid402_summary",
-      "description": "Checks operational health, 30-day uptime and service status across all 28 Grid402 microservices (free, no x402 charge).",
+      "description": "Checks operational health, 30-day uptime and service status across all 31 Grid402 microservices (free, no x402 charge).",
       "cost_usdc": "0.0000",
       "endpoint": "https://grid402.online/status",
       "inputSchema": {
@@ -451,6 +451,82 @@
           "limit": {
             "type": "integer",
             "description": "Max markets (1-20, default 10)"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "grid402_sec_company",
+      "description": "Queries US SEC EDGAR public company profile (CIK, SIC, exchanges, fiscal year end), filtered 10-K/10-Q/8-K filings and optional bounded XBRL financial facts (0.0100 USDC / 2 credits).",
+      "cost_usdc": "0.0100",
+      "endpoint": "https://grid402.online/api/v1/sec-company",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ticker": {
+            "type": "string",
+            "description": "US stock ticker symbol (e.g. AAPL, MSFT)"
+          },
+          "cik": {
+            "type": "string",
+            "description": "SEC Central Index Key (1 to 10 digits)"
+          },
+          "forms": {
+            "type": "string",
+            "description": "Optional CSV SEC form filter (e.g. 10-K,10-Q,8-K)"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum filings to return (1 to 25, default 10)"
+          },
+          "include_facts": {
+            "type": "boolean",
+            "description": "Optional flag to fetch US-GAAP XBRL metrics (8 MB cap)"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "grid402_vuln_audit",
+      "description": "Deterministic vulnerability audit combining OSV.dev and CISA KEV by package (ecosystem + package + version) or CVE/GHSA ID (0.0050 USDC / 1 credit).",
+      "cost_usdc": "0.0050",
+      "endpoint": "https://grid402.online/api/v1/vuln-audit",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ecosystem": {
+            "type": "string",
+            "description": "Package ecosystem (npm, PyPI, Go, Maven, Packagist, crates.io, NuGet, RubyGems)"
+          },
+          "package": {
+            "type": "string",
+            "description": "Package name (package mode)"
+          },
+          "version": {
+            "type": "string",
+            "description": "Optional package version"
+          },
+          "id": {
+            "type": "string",
+            "description": "Direct CVE or GHSA identifier"
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "grid402_chain_telemetry",
+      "description": "Real-time RPC telemetry (block/slot, gas/priority fees, latency) combined with DeFiLlama TVL across Base, Ethereum, Polygon, Arbitrum and SPL networks (0.0050 USDC / 1 credit).",
+      "cost_usdc": "0.0050",
+      "endpoint": "https://grid402.online/api/v1/chain-telemetry",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "chain": {
+            "type": "string",
+            "description": "Target chain slug (base, ethereum, polygon, arbitrum or SPL chain slug)"
           }
         },
         "required": []

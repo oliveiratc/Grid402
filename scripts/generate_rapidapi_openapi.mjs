@@ -38,6 +38,9 @@ export const PAYMENT_HEADER_NAMES = new Set([
 ]);
 
 export const GLOBAL_PATHS = [
+  "/api/v1/sec-company",
+  "/api/v1/vuln-audit",
+  "/api/v1/chain-telemetry",
   "/api/v1/token-safety",
   "/api/v1/prediction-markets",
   "/api/v1/batch",

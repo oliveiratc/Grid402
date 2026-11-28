@@ -207,6 +207,7 @@ $sanctionsSummary = function_exists('grid402_sanctions_index_summary') ? grid402
     <h2 data-i18n="trust.s5.title">5. Version and Pricing History (Public Changelog)</h2>
     <div class="card">
         <ul data-i18n-html="trust.s5.list">
+            <li><strong>v3.8.0 (2026-11):</strong> Phase 3A Launch — 31 services total &amp; 33 MCP tools (<code>grid402-mcp@2.2.0</code>): US SEC EDGAR Company &amp; Filings Lookup (<code>/api/v1/sec-company</code>, 0.0100 USDC, optional bounded XBRL facts), Deterministic Package &amp; CVE Vulnerability Audit (<code>/api/v1/vuln-audit</code>, 0.0050 USDC, OSV.dev + CISA KEV), and Multi-Chain Live Telemetry (<code>/api/v1/chain-telemetry</code>, 0.0050 USDC, Public RPC + DeFiLlama across Base/ETH/Polygon/Arbitrum/Solana).</li>
             <li><strong>v3.7.0 (2026-11):</strong> Phase 2 Launch — 28 services total &amp; 30 MCP tools (<code>grid402-mcp@2.1.0</code>): Multi-Chain Token Security Audit (<code>/api/v1/token-safety</code>, 0.0150 USDC, GoPlus + DexScreener across Base/ETH/Polygon/Arbitrum/Solana), Normalized Prediction Markets (<code>/api/v1/prediction-markets</code>, 0.0100 USDC, Polymarket + Kalshi probabilities), and Multi-Service Batch Execution (<code>POST /api/v1/batch</code>, 1-5 items summed dynamically with automatic Session Pass partial refund).</li>
             <li><strong>v3.4.0 (2026-11):</strong> Revenue Engine v4 — Gasless x402 v2 Multi-Chain PayAI settlement across 4 networks (Base, Polygon, Arbitrum, Solana), launch of global high-volume utilities <code>/api/v1/extract</code> (SSRF-hardened URL-to-Markdown) and <code>/api/v1/email-verify</code> (Zero-PII RFC/MX/SPF/DMARC audit), 27 MCP tools (<code>grid402-mcp@2.0.0</code>), self-service PT-BR KYB Dossier generator (<code>/dossie-kyb</code>), and Sandbox rate-limit tightened to <code>3 req/day</code> per IP.</li>
             <li><strong>v3.3.0 (2026-11):</strong> Launch of premium <code>/api/v1/dossier</code> (<code>0.0500 USDC</code> / 10 credits, AI Verdict <code>APPROVED</code>/<code>FLAGGED</code>/<code>REJECTED</code>), 25th MCP tool (<code>grid402_get_dossier_360</code>), Multi-Chain USDC payments across 6 networks (Base, Arbitrum, Polygon, Optimism, Ethereum, Solana SPL USDC), and Fleet Pass bonus math clarification (<code>4,000 base + 2,000 bonus = 6,000 credits</code>).</li>
@@ -234,6 +235,6 @@ $sanctionsSummary = function_exists('grid402_sanctions_index_summary') ? grid402
         </ul>
     </div>
 </div>
-<script src="/assets/js/i18n.js?v=3.7.0"></script>
+<script src="/assets/js/i18n.js?v=3.8.0"></script>
 </body>
 </html>

@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.oliveiratc/grid402",
   "title": "Grid402 — Brazil Public Data & Network Oracle",
-  "description": "30 MCP tools: Token Safety, Prediction Markets, Batch, Web-to-Markdown, Email Verify, KYB 360, CNPJ, CGU, ANBIMA, FX, LEI, OFAC and DNS/SSL via x402 USDC.",
-  "version": "2.1.0",
+  "description": "33 MCP tools: SEC EDGAR, Vuln Audit (OSV+CISA KEV), Chain Telemetry, Token Safety, Prediction Markets, Batch, Extract, Email Verify, KYB 360, LEI and OFAC via x402 USDC.",
+  "version": "2.2.0",
   "websiteUrl": "https://grid402.online",
   "icons": [
     {

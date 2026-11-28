@@ -486,15 +486,15 @@ try {
     );
 
     // -------------------------------------------------------------------------
-    // [5] Paridade Ecossistema (28 servicos, 30 MCP tools v2.1.0, Discovery)
+    // [5] Paridade Ecossistema (31 servicos, 33 MCP tools v2.2.0, Discovery)
     // -------------------------------------------------------------------------
-    echo "\n[5/5] Paridade de ecossistema (28 servicos, MCP v2.1.0 30 tools, llms.txt):\n";
+    echo "\n[5/5] Paridade de ecossistema (31 servicos, MCP v2.2.0 33 tools, llms.txt):\n";
 
     $rMcpInit = $httpReq('POST', "{$base}/mcp", ['Content-Type: application/json'], json_encode([
         'jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => [],
     ]));
-    t_assert('Hosted MCP /mcp retorna serverInfo.version = 2.1.0',
-        $rMcpInit['code'] === 200 && ($rMcpInit['json']['result']['serverInfo']['version'] ?? '') === '2.1.0'
+    t_assert('Hosted MCP /mcp retorna serverInfo.version = 2.2.0',
+        $rMcpInit['code'] === 200 && ($rMcpInit['json']['result']['serverInfo']['version'] ?? '') === '2.2.0'
     );
 
     $rMcpTools = $httpReq('POST', "{$base}/mcp", ['Content-Type: application/json'], json_encode([
@@ -502,8 +502,8 @@ try {
     ]));
     $toolsList = $rMcpTools['json']['result']['tools'] ?? [];
     $toolNames = array_column($toolsList, 'name');
-    t_assert('Hosted MCP tools/list expoe 30 ferramentas incluindo token_safety, prediction_markets e batch',
-        count($toolsList) === 30
+    t_assert('Hosted MCP tools/list expoe 33 ferramentas incluindo token_safety, prediction_markets e batch',
+        count($toolsList) === 33
         && in_array('grid402_token_safety', $toolNames, true)
         && in_array('grid402_prediction_markets', $toolNames, true)
         && in_array('grid402_batch', $toolNames, true)
@@ -518,16 +518,16 @@ try {
             break;
         }
     }
-    t_assert('/.well-known/x402.json lista 27 endpoints pagos com /api/v1/batch em method POST',
-        count($xResources) === 27 && is_array($batchResEntry) && ($batchResEntry['method'] ?? '') === 'POST'
+    t_assert('/.well-known/x402.json lista 30 endpoints pagos com /api/v1/batch em method POST',
+        count($xResources) === 30 && is_array($batchResEntry) && ($batchResEntry['method'] ?? '') === 'POST'
     );
 
     $llmsContent = (string) @file_get_contents(__DIR__ . '/../public_html/llms.txt');
-    t_assert('public_html/llms.txt nao contem & nem a palavra Solana e documenta 28 servicos / 30 tools',
+    t_assert('public_html/llms.txt nao contem & nem a palavra Solana e documenta 31 servicos / 33 tools',
         !str_contains($llmsContent, '&')
         && stripos($llmsContent, 'solana') === false
-        && str_contains($llmsContent, '28 Services')
-        && str_contains($llmsContent, '30 tools')
+        && str_contains($llmsContent, '31 Services')
+        && str_contains($llmsContent, '33 tools')
     );
 
 } finally {

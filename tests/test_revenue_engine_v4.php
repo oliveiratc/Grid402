@@ -399,15 +399,15 @@ try {
     );
 
     // -----------------------------------------------------------------
-    // 6. Hosted MCP POST /mcp (version 2.1.0 e 30 tools)
+    // 6. Hosted MCP POST /mcp (version 2.2.0 e 33 tools)
     // -----------------------------------------------------------------
-    echo "\n[6/7] Hosted MCP POST /mcp (version 2.1.0 e 30 tools):\n";
+    echo "\n[6/7] Hosted MCP POST /mcp (version 2.2.0 e 33 tools):\n";
     $rMcpInit = $httpCall("{$baseUrl}/mcp", ['Content-Type: application/json'], json_encode([
         'jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => [],
     ]));
     $jMcpInit = json_decode($rMcpInit['body'], true);
-    t_assert('POST /mcp initialize retorna version=2.1.0',
-        $rMcpInit['code'] === 200 && ($jMcpInit['result']['serverInfo']['version'] ?? '') === '2.1.0',
+    t_assert('POST /mcp initialize retorna version=2.2.0',
+        $rMcpInit['code'] === 200 && ($jMcpInit['result']['serverInfo']['version'] ?? '') === '2.2.0',
         $rMcpInit['body']
     );
 
@@ -417,13 +417,16 @@ try {
     $jMcpList = json_decode($rMcpList['body'], true);
     $mcpTools = $jMcpList['result']['tools'] ?? [];
     $mcpNames = array_column($mcpTools, 'name');
-    t_assert('POST /mcp tools/list expõe exatamente 30 ferramentas incluindo token_safety, prediction_markets e batch',
-        count($mcpTools) === 30 &&
+    t_assert('POST /mcp tools/list expõe exatamente 33 ferramentas incluindo token_safety, prediction_markets, batch e Fase 3A',
+        count($mcpTools) === 33 &&
         in_array('grid402_extract', $mcpNames, true) &&
         in_array('grid402_email_verify', $mcpNames, true) &&
         in_array('grid402_token_safety', $mcpNames, true) &&
         in_array('grid402_prediction_markets', $mcpNames, true) &&
-        in_array('grid402_batch', $mcpNames, true),
+        in_array('grid402_batch', $mcpNames, true) &&
+        in_array('grid402_sec_company', $mcpNames, true) &&
+        in_array('grid402_vuln_audit', $mcpNames, true) &&
+        in_array('grid402_chain_telemetry', $mcpNames, true),
         'Count: ' . count($mcpTools)
     );
 

@@ -23,5 +23,6 @@ grid402_storage/
 public_html/private_data/*.json
 public_html/private_data/*.jsonl*
 !public_html/private_data/.htaccess
+public_html/private_data/sanctions_index/
 scripts/bazaar_watch_state.json
 

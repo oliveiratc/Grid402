@@ -451,10 +451,10 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
     <div class="container">
 
         <section class="hero">
-            <div class="badge" data-i18n="agents.hero.badge">x402 Global Autonomous Agent Hub • 28 Services</div>
+            <div class="badge" data-i18n="agents.hero.badge">x402 Global Autonomous Agent Hub • 31 Services</div>
             <h1 data-i18n="agents.hero.title">Global Data and M2M Utility Infrastructure for AI Agents</h1>
             <p class="lead" data-i18n-html="agents.hero.lead">
-                Grid402 empowers autonomous AI agents (Claude, Cursor, LangChain, CrewAI, and Coinbase AgentKit) to query 28 global and Brazilian public-domain endpoints via <strong>gasless HTTP x402 (Base, Polygon, Arbitrum, Solana)</strong> or a <strong>Prepaid Session Pass (&lt;15ms)</strong>, settling USDC micropayments with <strong>ECDSA cryptographic proof</strong>.
+                Grid402 empowers autonomous AI agents (Claude, Cursor, LangChain, CrewAI, and Coinbase AgentKit) to query 31 global and Brazilian public-domain endpoints via <strong>gasless HTTP x402 (Base, Polygon, Arbitrum, Solana)</strong> or a <strong>Prepaid Session Pass (&lt;15ms)</strong>, settling USDC micropayments with <strong>ECDSA cryptographic proof</strong>.
             </p>
         </section>
 
@@ -483,7 +483,7 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
 
         <!-- 1. Model Context Protocol (MCP) -->
         <h2 class="section-title" data-i18n="agents.s1.title">1. Model Context Protocol (MCP) Integration</h2>
-        <p class="section-sub" data-i18n="agents.s1.sub">Add all 30 MCP tools (28 endpoints + summary + pass balance) to Claude Desktop or Cursor with 1 click.</p>
+        <p class="section-sub" data-i18n="agents.s1.sub">Add all 33 MCP tools (31 endpoints + summary + pass balance) to Claude Desktop or Cursor with 1 click.</p>
 
         <div class="code-box">
             <button class="copy-btn" onclick="copySnippet('code-mcp', this)" data-i18n="agents.btn.copy_json">Copy JSON</button>
@@ -579,7 +579,7 @@ curl -X POST "https://grid402.online/api/v1/verify" \
         </div>
 
         <!-- Tabela de Endpoints -->
-        <h2 class="section-title" data-i18n="agents.table.title">Catalog of All 28 Global Endpoints and Fees</h2>
+        <h2 class="section-title" data-i18n="agents.table.title">Catalog of All 31 Global Endpoints and Fees</h2>
         <p class="section-sub" data-i18n="agents.table.sub">Per-call pricing in USDC across 3 gasless PayAI x402 EVM chains (Base, Polygon, Arbitrum) or in Session Pass credits.</p>
 
         <div class="table-wrap">
@@ -738,6 +738,24 @@ curl -X POST "https://grid402.online/api/v1/verify" \
                     <td><span class="proof-yes" data-i18n="agents.yes">✓ Yes</span></td>
                 </tr>
                 <tr>
+                    <td><span class="endpoint-name">/api/v1/sec-company</span></td>
+                    <td data-i18n="svc.sec-company.desc">US SEC EDGAR corporate profile, CIK/ticker lookup, 10-K/10-Q/8-K filings, and optional bounded XBRL facts</td>
+                    <td><span class="tag-price">0.0100 USDC (2 cr)</span></td>
+                    <td><span class="proof-yes" data-i18n="agents.yes">✓ Yes</span></td>
+                </tr>
+                <tr>
+                    <td><span class="endpoint-name">/api/v1/vuln-audit</span></td>
+                    <td data-i18n="svc.vuln-audit.desc">Package and CVE vulnerability audit crossing OSV.dev and CISA KEV with deterministic verdict</td>
+                    <td><span class="tag-price">0.0050 USDC (1 cr)</span></td>
+                    <td><span class="proof-yes" data-i18n="agents.yes">✓ Yes</span></td>
+                </tr>
+                <tr>
+                    <td><span class="endpoint-name">/api/v1/chain-telemetry</span></td>
+                    <td data-i18n="svc.chain-telemetry.desc">Live RPC block/slot, gas/priority fees, and DeFiLlama TVL across Base, Ethereum, Polygon, Arbitrum, and Solana</td>
+                    <td><span class="tag-price">0.0050 USDC (1 cr)</span></td>
+                    <td><span class="proof-yes" data-i18n="agents.yes">✓ Yes</span></td>
+                </tr>
+                <tr>
                     <td><span class="endpoint-name">/api/v1/verify</span></td>
                     <td data-i18n="svc.verify.desc">Stateless mathematical-cryptographic oracle verification (&lt;1ms)</td>
                     <td><span class="tag-free" data-i18n="agents.free">Free</span></td>
@@ -804,7 +822,7 @@ curl -X POST "https://grid402.online/api/v1/verify" \
             });
         }
     </script>
-    <script src="/assets/js/i18n.js?v=3.4.3"></script>
+    <script src="/assets/js/i18n.js?v=3.8.0"></script>
 </body>
 </html>
 

@@ -317,8 +317,8 @@ if ($ready) {
     ]));
     g402_assert(
         ($initMcp['json']['result']['protocolVersion'] ?? '') === '2025-03-26'
-        && ($initMcp['json']['result']['serverInfo']['version'] ?? '') === '2.1.0',
-        '/mcp initialize negocia protocolVersion 2025-03-26 mantendo serverInfo 2.1.0'
+        && ($initMcp['json']['result']['serverInfo']['version'] ?? '') === '2.2.0',
+        '/mcp initialize negocia protocolVersion 2025-03-26 mantendo serverInfo 2.2.0'
     );
 
     // 5e) /mcp grid402_pass nunca recebe auto-trial (mesmo antes de usar trial de dados!)

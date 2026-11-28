@@ -2,7 +2,7 @@
   "openapi": "3.0.3",
   "info": {
     "title": "Grid402 Web-to-Markdown, Email Verify & Network Utilities",
-    "version": "3.7.0",
+    "version": "3.8.0",
     "description": "SSRF-hardened URL-to-Markdown extraction for LLMs, Zero-PII B2B Email Verifier (MX/SPF/DMARC), DNS/SSL/ASN & Domain Audits, GLEIF LEI, OFAC SDN screening, Market Snapshots, Forex/Crypto feeds and ECDSA secp256k1 Oracle Proof verification.\n\nNeed pay-per-call crypto settlement (Base, Polygon, Arbitrum, Solana USDC) or Pix (R$ 12 = 400 credits) with zero monthly retainer? Visit https://grid402.online/pass",
     "contact": {
       "name": "Grid402 Support",
@@ -71,6 +71,190 @@
     }
   ],
   "paths": {
+    "/api/v1/sec-company": {
+      "get": {
+        "summary": "US SEC EDGAR Company Profile and Filings",
+        "description": "Resolves US stock ticker or CIK (1-10 digits) via official US SEC EDGAR public APIs returning corporate profile (CIK, SIC, exchanges, fiscal year end), filtered 10-K/10-Q/8-K filings with direct EDGAR URLs, and optional US-GAAP XBRL facts protected by an 8 MB size cap (3600s Zero-DB cache). Price: 0.0100 USDC (2 credits).",
+        "tags": [
+          "Indicators"
+        ],
+        "parameters": [
+          {
+            "name": "ticker",
+            "in": "query",
+            "required": false,
+            "description": "US stock ticker symbol (e.g. AAPL, MSFT). Provide ticker or cik.",
+            "schema": {
+              "type": "string",
+              "example": "AAPL"
+            },
+            "example": "AAPL"
+          },
+          {
+            "name": "cik",
+            "in": "query",
+            "required": false,
+            "description": "SEC Central Index Key (1 to 10 digits, e.g. 0000320193).",
+            "schema": {
+              "type": "string",
+              "example": "0000320193"
+            },
+            "example": "0000320193"
+          },
+          {
+            "name": "forms",
+            "in": "query",
+            "required": false,
+            "description": "Optional comma-separated SEC form types (e.g. 10-K,10-Q,8-K).",
+            "schema": {
+              "type": "string",
+              "example": "10-K,10-Q"
+            },
+            "example": "10-K,10-Q"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum filings to return (1 to 25, default 10).",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 25,
+              "example": 5
+            },
+            "example": 5
+          },
+          {
+            "name": "include_facts",
+            "in": "query",
+            "required": false,
+            "description": "Optional boolean to include US-GAAP XBRL metrics (subject to 8 MB cap).",
+            "schema": {
+              "type": "boolean",
+              "example": false
+            },
+            "example": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SEC corporate profile, filings list, facts_status, legal_disclaimer, _meta and ECDSA _oracle_proof"
+          },
+          "400": {
+            "description": "MissingSecIdentifier, InvalidTickerParameter, InvalidCikParameter or InvalidFormsParameter"
+          },
+          "404": {
+            "description": "SecCompanyNotFound (pre-charge auto-refund)"
+          },
+          "503": {
+            "description": "SecUpstreamUnavailable (pre-charge auto-refund)"
+          }
+        }
+      }
+    },
+    "/api/v1/vuln-audit": {
+      "get": {
+        "summary": "Deterministic Package and CVE Vulnerability Audit",
+        "description": "Audits open-source packages (npm, PyPI, Go, Maven, Packagist, crates.io, NuGet, RubyGems) or CVE/GHSA identifiers crossing OSV.dev with the official CISA KEV catalog (6h resilient cache), returning severity counts, fixed versions, actively_exploited_kev flags, and deterministic CLEAN to CRITICAL_KEV verdict (900s Zero-DB cache). Price: 0.0050 USDC (1 credit).",
+        "tags": [
+          "SSL"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": false,
+            "description": "Direct vulnerability ID (e.g. CVE-2021-44228 or GHSA-...). Provide id or ecosystem+package.",
+            "schema": {
+              "type": "string",
+              "example": "CVE-2021-44228"
+            },
+            "example": "CVE-2021-44228"
+          },
+          {
+            "name": "ecosystem",
+            "in": "query",
+            "required": false,
+            "description": "Package ecosystem (npm, PyPI, Go, Maven, Packagist, crates.io, NuGet, RubyGems).",
+            "schema": {
+              "type": "string",
+              "example": "npm"
+            },
+            "example": "npm"
+          },
+          {
+            "name": "package",
+            "in": "query",
+            "required": false,
+            "description": "Package name (package mode).",
+            "schema": {
+              "type": "string",
+              "example": "lodash"
+            },
+            "example": "lodash"
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "description": "Optional specific package version (package mode).",
+            "schema": {
+              "type": "string",
+              "example": "4.17.20"
+            },
+            "example": "4.17.20"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deterministic verdict (CLEAN to CRITICAL_KEV), vulnerability_count, kev_match_count, severity_summary, fixed_in, _meta and _oracle_proof"
+          },
+          "400": {
+            "description": "MissingVulnAuditQuery, IncompletePackageQuery, UnsupportedEcosystem or InvalidVulnId"
+          },
+          "404": {
+            "description": "VulnerabilityNotFound (pre-charge auto-refund)"
+          },
+          "503": {
+            "description": "OsvUpstreamUnavailable (pre-charge auto-refund)"
+          }
+        }
+      }
+    },
+    "/api/v1/chain-telemetry": {
+      "get": {
+        "summary": "Real-Time Multi-Chain RPC Telemetry and DeFiLlama TVL",
+        "description": "Aggregates public network RPC metrics (block or slot height, gas and priority fees, measured RPC latency) with DeFiLlama chain TVL across Base, Ethereum, Polygon, Arbitrum and SPL networks with graceful partial degradation and 60s Zero-DB cache. Price: 0.0050 USDC (1 credit).",
+        "tags": [
+          "Crypto"
+        ],
+        "parameters": [
+          {
+            "name": "chain",
+            "in": "query",
+            "required": false,
+            "description": "Target network slug (base default, ethereum, polygon, arbitrum or SPL network slug).",
+            "schema": {
+              "type": "string",
+              "example": "base"
+            },
+            "example": "base"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Live block/slot height, gas/priority fees, RPC latency, DeFiLlama TVL, partial_data flag, sources_status, _meta and _oracle_proof"
+          },
+          "400": {
+            "description": "InvalidChainParameter"
+          },
+          "503": {
+            "description": "ChainTelemetryUnavailable (pre-charge auto-refund when both RPC and DeFiLlama fail)"
+          }
+        }
+      }
+    },
     "/api/v1/token-safety": {
       "get": {
         "summary": "Multi-Chain Token Security and DEX Liquidity Audit",
