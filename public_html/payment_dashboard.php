@@ -48,11 +48,16 @@ $jsonUrl = '/api/v1/pass/statement?' . http_build_query(array_merge($baseQuery, 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=2">
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=2">
     <title>Grid402 Payment Dashboard &amp; Session Pass Statement</title>
     <meta name="description" content="Track x402 Pay-per-Request volume and audit Session Pass balance, Spend Controls, and Zero-PII consumption statements in CSV or JSON.">
+<?php require_once __DIR__ . '/includes/seo_head.php'; grid402_render_seo_head([
+    'title' => 'Grid402 Payment Dashboard & Session Pass Statement',
+    'description' => 'Track x402 Pay-per-Request volume and audit Session Pass balance, Spend Controls, and Zero-PII consumption statements in CSV or JSON.',
+    'path' => '/payment-dashboard',
+    'card' => 'global',
+    'locale' => 'en_US',
+    'emit_canonical' => true,
+]); ?>
     <style>
         :root { --bg:#060B19; --surface:#0B132B; --border:#1E2C4F; --text:#F8FAFC; --muted:#94A3B8; --cyan:#00F0FF; --ok:#10B981; --warn:#F59E0B; --danger:#EF4444; }
         * { box-sizing:border-box; }

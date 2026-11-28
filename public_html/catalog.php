@@ -26,11 +26,16 @@ ksort($services);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=2">
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=2">
     <meta name="description" content="Complete and live catalog of all 28 Grid402 microservices: pricing, limits, examples, and status.">
     <title>Grid402 // Complete Service Catalog</title>
+<?php require_once __DIR__ . '/includes/seo_head.php'; grid402_render_seo_head([
+    'title' => 'Grid402 // Complete Service Catalog',
+    'description' => 'Complete and live catalog of all 28 Grid402 microservices: pricing, limits, examples, and status.',
+    'path' => '/catalog',
+    'card' => 'global',
+    'locale' => 'en_US',
+    'emit_canonical' => true,
+]); ?>
     <style>
         :root { --bg:#060B19; --surface:#0B132B; --border:#1E2C4F; --text:#F8FAFC; --muted:#94A3B8; --primary:#00F0FF; --ok:#10B981; }
         * { box-sizing:border-box; }

@@ -1,0 +1,23 @@
+{
+  "name": "Grid402 — M2M Data & Utilities Oracle",
+  "short_name": "Grid402",
+  "description": "28 M2M public data and network utility APIs settled via HTTP x402 v2, MCP 2.1, and Session Pass (Pix, Card, or USDC).",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060B19",
+  "theme_color": "#060B19",
+  "icons": [
+    {
+      "src": "/assets/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

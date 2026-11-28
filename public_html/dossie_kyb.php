@@ -40,9 +40,13 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
     <title>Gerar Dossiê 360º KYB de CNPJ com PDF e Pix (a partir de R$ 4,90) | Grid402</title>
     <meta name="description" content="Consulte qualquer CNPJ na Receita Federal, Simples Nacional/MEI e Sanções CGU (CEIS/CNEP) com Veredito de Risco e assinatura criptográfica. Veja um exemplo real em PDF e pague via Pix (R$ 4,90 = 5 dossiês ou R$ 12 = 40 dossiês).">
     <link rel="canonical" href="<?php echo htmlspecialchars($domain . '/dossie-kyb', ENT_QUOTES, 'UTF-8'); ?>">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=2">
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=2">
+<?php require_once __DIR__ . '/includes/seo_head.php'; grid402_render_seo_head([
+    'title' => 'Gerar Dossiê 360º KYB de CNPJ com PDF e Pix (a partir de R$ 4,90) | Grid402',
+    'description' => 'Consulte qualquer CNPJ na Receita Federal, Simples Nacional/MEI e Sanções CGU (CEIS/CNEP) com Veredito de Risco e assinatura criptográfica. Veja um exemplo real em PDF e pague via Pix (R$ 4,90 = 5 dossiês ou R$ 12 = 40 dossiês).',
+    'path' => '/dossie-kyb',
+    'card' => 'dossie-kyb',
+    'locale' => 'pt_BR',
+]); ?>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">

@@ -2,6 +2,10 @@
 Options -Indexes
 ServerSignature Off
 
+<IfModule mod_mime.c>
+    AddType application/manifest+json .webmanifest
+</IfModule>
+
 # Proteção de arquivos sensíveis e módulos internos PHP
 <FilesMatch "^\.(env|git)|^(config|x402|facilitator|metrics|logger)\.php$|\.(json|log|sh|sql|bak|tmp)$">
     <IfModule mod_authz_core.c>

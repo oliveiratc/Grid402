@@ -23,10 +23,15 @@ header('Link: </llms.txt>; rel="help"; type="text/markdown", </.well-known/mcp.j
     <link rel="canonical" href="https://grid402.online/agents">
     <link rel="help" type="text/markdown" href="/llms.txt">
     <link rel="service-meta" type="application/json" href="/.well-known/mcp.json">
+    <link rel="mcp" type="application/json" href="/.well-known/mcp.json">
     <link rel="service-desc" type="application/vnd.oai.openapi+json" href="/openapi.json">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=2">
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=2">
+<?php if (!defined('GRID402_EXEC')) { define('GRID402_EXEC', true); } require_once __DIR__ . '/includes/seo_head.php'; grid402_render_seo_head([
+    'title' => 'AI Agents and MCP Hub - Grid402',
+    'description' => 'Official Grid402 integration for autonomous AI agents, MCP servers (Claude Desktop and Cursor), and Coinbase AgentKit over HTTP 402 on Base.',
+    'path' => '/agents',
+    'card' => 'global',
+    'locale' => 'en_US',
+]); ?>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">

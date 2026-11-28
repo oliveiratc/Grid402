@@ -53,11 +53,16 @@ $sanctionsSummary = function_exists('grid402_sanctions_index_summary') ? grid402
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=2">
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=2">
     <meta name="description" content="Grid402 Trust Center: Institutional identity, technical SLA, 30-day availability history, public source provenance, and M2M governance.">
     <title>Grid402 // Trust Center, Governance &amp; Provenance</title>
+<?php require_once __DIR__ . '/includes/seo_head.php'; grid402_render_seo_head([
+    'title' => 'Grid402 // Trust Center, Governance & Provenance',
+    'description' => 'Grid402 Trust Center: Institutional identity, technical SLA, 30-day availability history, public source provenance, and M2M governance.',
+    'path' => '/trust',
+    'card' => 'global',
+    'locale' => 'en_US',
+    'emit_canonical' => true,
+]); ?>
     <style>
         :root { --bg:#060B19; --surface:#0B132B; --border:#1E2C4F; --text:#F8FAFC; --muted:#94A3B8; --ok:#10B981; --primary:#00F0FF; --warn:#F59E0B; }
         * { box-sizing:border-box; }

@@ -321,9 +321,13 @@ $jsonLd = [
     <title><?php echo htmlspecialchars($page['title'], ENT_QUOTES, 'UTF-8'); ?></title>
     <meta name="description" content="<?php echo htmlspecialchars($page['description'], ENT_QUOTES, 'UTF-8'); ?>">
     <link rel="canonical" href="<?php echo htmlspecialchars($domain . $page['path'], ENT_QUOTES, 'UTF-8'); ?>">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=2">
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=2">
+<?php require_once __DIR__ . '/includes/seo_head.php'; grid402_render_seo_head([
+    'title' => (string) $page['title'],
+    'description' => (string) $page['description'],
+    'path' => (string) $page['path'],
+    'card' => $isEn ? 'global' : 'dossie-kyb',
+    'locale' => $isEn ? 'en_US' : 'pt_BR',
+]); ?>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@600;700;800&display=swap" rel="stylesheet">

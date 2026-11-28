@@ -301,9 +301,13 @@ function grid402_render_page_html(string $title, string $metaDesc, string $canon
       ]
     }
     </script>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=2">
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=2">
+<?php require_once __DIR__ . '/includes/seo_head.php'; grid402_render_seo_head([
+    'title' => $title,
+    'description' => $metaDesc,
+    'path' => $canonicalPath,
+    'card' => 'global',
+    'locale' => 'en_US',
+]); ?>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -749,7 +753,7 @@ if (!$isHomeRoute && !$isStatusRoute && !$isValidApiAction && !$isInstitutionalR
     http_response_code(404);
     if (str_contains($acceptHeader, 'text/html') && !str_starts_with($userAgent, 'curl/')) {
         header('Content-Type: text/html; charset=utf-8');
-        echo '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><link rel="icon" type="image/x-icon" href="/favicon.ico"><title>404 - Pagina Nao Encontrada | Grid402</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet"><style>body{background:#060B19;color:#F8FAFC;font-family:\'Inter\',sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column;text-align:center;padding:1rem}h1{font-family:\'Space Grotesk\',sans-serif;font-size:4rem;margin:0.5rem 0 0.25rem;color:#00F0FF;letter-spacing:-1px}p{color:#94A3B8;font-size:1.1rem;margin:0.5rem 0 1.5rem}a{background:#0052FF;color:#FFF;padding:0.75rem 1.5rem;border-radius:8px;text-decoration:none;font-weight:600;transition:opacity 0.2s}a:hover{opacity:0.9}</style></head><body><img src="/assets/logo-icon-transparent.png" alt="Grid402" width="64" height="64"><h1>404</h1><p>A pagina ou rota solicitada nao existe no Grid402.</p><p><a href="/">Voltar a pagina inicial</a></p></body></html>';
+        echo '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="theme-color" content="#060B19"><link rel="icon" href="/favicon.ico?v=3" sizes="any"><link rel="icon" type="image/svg+xml" href="/favicon.svg?v=3"><link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=3"><link rel="manifest" href="/site.webmanifest?v=3"><title>404 - Pagina Nao Encontrada | Grid402</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet"><style>body{background:#060B19;color:#F8FAFC;font-family:\'Inter\',sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column;text-align:center;padding:1rem}h1{font-family:\'Space Grotesk\',sans-serif;font-size:4rem;margin:0.5rem 0 0.25rem;color:#00F0FF;letter-spacing:-1px}p{color:#94A3B8;font-size:1.1rem;margin:0.5rem 0 1.5rem}a{background:#0052FF;color:#FFF;padding:0.75rem 1.5rem;border-radius:8px;text-decoration:none;font-weight:600;transition:opacity 0.2s}a:hover{opacity:0.9}</style></head><body><img src="/assets/favicon.svg?v=3" alt="Grid402" width="64" height="64"><h1>404</h1><p>A pagina ou rota solicitada nao existe no Grid402.</p><p><a href="/">Voltar a pagina inicial</a></p></body></html>';
     } else {
         header('Content-Type: application/json; charset=utf-8');
         grid402_log_request(['service' => 'not_found', 'status' => 404, 'payment_source' => 'none', 'error' => 'NotFound']);
@@ -2651,9 +2655,13 @@ grid402_log_public_visit('/');
       ]
     }
     </script>
-    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=2">
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=2">
+<?php require_once __DIR__ . '/includes/seo_head.php'; grid402_render_seo_head([
+    'title' => 'Grid402 - Global Open-Data & Network Utilities M2M Hub (HTTP x402 on Base)',
+    'description' => 'Grid402: Global M2M public data and network utilities oracle (GLEIF LEI, OFAC SDN, Web3 AML, CNPJ, CEP, Forex, Crypto, DNS, SSL, ASN) for AI agents and developers, settled via HTTP x402 in USDC on Base.',
+    'path' => '/',
+    'card' => 'global',
+    'locale' => 'en_US',
+]); ?>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">

@@ -32,10 +32,16 @@ $promoCampaign = (is_array($promoStatus) && !empty($promoStatus['ok'])) ? $promo
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="icon" type="image/x-icon" href="/favicon.ico?v=2">
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png?v=2">
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png?v=2">
     <title>Grid402 // Buy Session Pass (Pix, Card or USDC)</title>
+<?php require_once __DIR__ . '/includes/seo_head.php'; grid402_render_seo_head([
+    'title' => 'Grid402 // Buy Session Pass (Pix, Card or USDC)',
+    'description' => 'Buy a prepaid Grid402 Session Pass via Pix (from R$ 4.90), Card, or USDC across Base, Polygon, Arbitrum, Optimism & Ethereum for sub-15ms gasless M2M API calls.',
+    'path' => '/pass',
+    'card' => 'global',
+    'locale' => 'en_US',
+    'emit_canonical' => true,
+    'emit_description' => true,
+]); ?>
     <style>
         :root { --bg:#060B19; --surface:#0B132B; --border:#1E2C4F; --text:#F8FAFC; --muted:#94A3B8; --cyan:#00F0FF; --blue:#0052FF; --green:#10B981; --warn:#F59E0B; }
         * { box-sizing:border-box; }
