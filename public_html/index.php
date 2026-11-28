@@ -2232,9 +2232,14 @@ if ($isValidApiAction) {
                 }
             }
             $result = grid402_emitir_passe_por_tx($txParam, $chainParam !== '' ? $chainParam : null);
+            $passEmitirCountry = null;
             if (!empty($result['ok']) && empty($result['idempotent'])) {
                 $deposited = ((int)($result['raw_usdc_units'] ?? 0)) / 1000000;
                 $passNetSlug = (string) ($result['network_slug'] ?? 'base');
+                $passClientIp = function_exists('grid402_get_trusted_client_ip') ? grid402_get_trusted_client_ip() : (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+                $passEmitirCountry = function_exists('grid402_resolve_client_country')
+                    ? grid402_resolve_client_country($passClientIp, true)
+                    : null;
                 grid402_growth_event('pass_purchase', [
                     'service' => 'pass',
                     'network' => $passNetSlug,
@@ -2243,7 +2248,7 @@ if ($isValidApiAction) {
                     'proof' => (string)($result['tx_hash'] ?? ''),
                 ]);
                 if (function_exists('grid402_notify_telegram_purchase') && !empty($result['tx_hash'])) {
-                    grid402_notify_telegram_purchase('pass', $deposited, (string)$result['tx_hash'], false, $passNetSlug);
+                    grid402_notify_telegram_purchase('pass', $deposited, (string)$result['tx_hash'], false, $passNetSlug, $passEmitirCountry);
                 }
             }
             break;
@@ -2363,6 +2368,9 @@ if ($isValidApiAction) {
         $deposited = $isIdempotentTopup ? 0.0 : (((int) ($result['raw_usdc_units'] ?? 0)) / 1000000.0);
         $settlementTx = (string) ($result['tx_hash'] ?? '');
         $revenueUsdcToRecord = $deposited;
+        $billingCountry = $passEmitirCountry ?? (function_exists('grid402_resolve_client_country')
+            ? grid402_resolve_client_country(null, !$isIdempotentTopup)
+            : null);
         if (!$isIdempotentTopup) {
             grid402_record_telemetry(
                 $apiParam,
@@ -2372,7 +2380,7 @@ if ($isValidApiAction) {
                 null,
                 $revenueUsdcToRecord,
                 null,
-                ['payment_source' => 'web3_topup', 'settlement_tx' => $settlementTx, 'defer_latency_sample' => true]
+                ['payment_source' => 'web3_topup', 'settlement_tx' => $settlementTx, 'country_code' => $billingCountry, 'defer_latency_sample' => true]
             );
         }
     } else {
@@ -2380,6 +2388,10 @@ if ($isValidApiAction) {
             ? (((int) $validation['raw_amount']) / 1000000.0)
             : (float) $servicePriceDisplay;
         $revenueUsdcToRecord = ($isSandbox || $isVerifyOnly || $paymentSourceVal === 'pass' || $paymentSourceVal === 'rapidapi') ? 0.0 : $actualPaidUsdc;
+        $reqClientIp = function_exists('grid402_get_trusted_client_ip') ? grid402_get_trusted_client_ip() : (string) ($_SERVER['REMOTE_ADDR'] ?? '');
+        $billingCountry = function_exists('grid402_resolve_client_country')
+            ? grid402_resolve_client_country($reqClientIp, $isRealPayment)
+            : null;
 
         if ($isRealPayment) {
             grid402_growth_event('paid_request', [
@@ -2408,6 +2420,7 @@ if ($isValidApiAction) {
                 'payment_source' => $telemetryPaymentSource ?? ($validation['source'] ?? null),
                 'channel' => $isMcpClient ? 'mcp' : null,
                 'settlement_source' => $validation['source'] ?? null,
+                'country_code' => $billingCountry,
                 'defer_latency_sample' => true,
             ]
         );
@@ -2419,7 +2432,7 @@ if ($isValidApiAction) {
         $isValidNotifTx = (preg_match('/^0x[a-f0-9]{64}$/i', $txForNotification) === 1)
             || ($validatedNetSlug === 'solana' && function_exists('grid402_is_valid_solana_signature') && grid402_is_valid_solana_signature($txForNotification));
         if (!$isSandbox && !$isVerifyOnly && $paymentSourceVal !== 'pass' && $isValidNotifTx) {
-            grid402_notify_telegram_purchase($apiParam, (float) $actualPaidUsdc, $txForNotification, false, $validatedNetSlug);
+            grid402_notify_telegram_purchase($apiParam, (float) $actualPaidUsdc, $txForNotification, false, $validatedNetSlug, $billingCountry);
         }
     }
 
@@ -2543,6 +2556,7 @@ if ($isValidApiAction) {
         'status' => 200,
         'latency_ms' => $finalLatencyMs,
         'payment_source' => (string) ($telemetryPaymentSource ?? ($validation['source'] ?? 'unknown')),
+        'country_code' => $billingCountry ?? null,
         'idempotent_replay' => ($isPassEmitir && !empty($result['idempotent'])),
     ]);
 

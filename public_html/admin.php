@@ -16,6 +16,9 @@ require_once __DIR__ . '/metrics.php';
 require_once __DIR__ . '/growth.php';
 require_once __DIR__ . '/facilitator.php';
 require_once __DIR__ . '/x402.php';
+if (is_file(__DIR__ . '/services/geoip.php')) {
+    require_once __DIR__ . '/services/geoip.php';
+}
 require_once __DIR__ . '/services/forex.php';
 require_once __DIR__ . '/services/mercadopago.php';
 require_once __DIR__ . '/services/sanctions_index.php';
@@ -724,7 +727,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(['success' => false, 'error' => 'Token CSRF de seguranca ausente ou invalido.']);
             exit;
         }
-        $sent = grid402_notify_telegram_purchase('cnpj', 0.0100, '0x' . str_repeat('a', 64), true);
+        $adminTestCountry = function_exists('grid402_resolve_client_country')
+            ? grid402_resolve_client_country(null, true)
+            : null;
+        $sent = grid402_notify_telegram_purchase('cnpj', 0.0100, '0x' . str_repeat('a', 64), true, 'base', $adminTestCountry);
         $tgStatus = grid402_telegram_runtime_status();
         $errDetail = (string) ($tgStatus['last_status']['error'] ?? '');
         echo json_encode([
@@ -780,7 +786,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $skipTest = ((string)($_POST['skip_test'] ?? '') === '1');
-        $sent = $skipTest ? false : grid402_notify_telegram_purchase('cnpj', 0.0100, '0x' . str_repeat('a', 64), true);
+        $adminSaveCountry = function_exists('grid402_resolve_client_country')
+            ? grid402_resolve_client_country(null, true)
+            : null;
+        $sent = $skipTest ? false : grid402_notify_telegram_purchase('cnpj', 0.0100, '0x' . str_repeat('a', 64), true, 'base', $adminSaveCountry);
         $tgStatus = grid402_telegram_runtime_status();
         $errDetail = (string) ($tgStatus['last_status']['error'] ?? '');
 
@@ -1510,6 +1519,7 @@ if ($apiParam === 'export_csv') {
                     'failure_category' => '',
                     'settlement_tx' => '',
                     'ip_masked' => (string) ($row['ip_hmac'] ?? ''),
+                    'country_code' => (string) ($row['country_code'] ?? ''),
                 ];
             }
         }
@@ -1538,7 +1548,8 @@ if ($apiParam === 'export_csv') {
             'Origem do Pagamento',
             'Falha',
             'Hash Liquidacao',
-            'IP Mascarado'
+            'IP Mascarado',
+            'Pais'
         ], ';');
 
         foreach ($events as $ev) {
@@ -1558,7 +1569,8 @@ if ($apiParam === 'export_csv') {
                 $ev['payment_source'] ?? '',
                 $ev['failure_category'] ?? '',
                 $ev['settlement_tx'] ?? '',
-                $ev['ip_masked'] ?? ''
+                $ev['ip_masked'] ?? '',
+                $ev['country_code'] ?? ''
             ], ';');
         }
 
@@ -1684,6 +1696,7 @@ if ($apiParam === 'stats') {
         'daily_history_14d' => $analytics['daily_history_14d'] ?? [],
         'top_consumers' => $analytics['top_consumers'] ?? [],
         'service_revenue' => $analytics['service_revenue'] ?? [],
+        'country_revenue' => $analytics['country_revenue'] ?? [],
         'recent_pulse' => grid402_admin_recent_pulse($metrics),
         'recent_events' => $metrics['recent_events'] ?? [],
         'recent_payment_failures' => function_exists('grid402_read_recent_payment_failures') ? grid402_read_recent_payment_failures(25) : [],
@@ -1980,6 +1993,7 @@ $passesStats = $analytics['passes_stats'] ?? ['active_passes' => 0, 'remaining_c
 $dailyHistory14d = $analytics['daily_history_14d'] ?? [];
 $topConsumers = $analytics['top_consumers'] ?? [];
 $serviceRevenue = $analytics['service_revenue'] ?? [];
+$countryRevenue = $analytics['country_revenue'] ?? [];
 $recentPulse = grid402_admin_recent_pulse($metrics);
 $recentPaymentFailures = function_exists('grid402_read_recent_payment_failures') ? grid402_read_recent_payment_failures(25) : [];
 

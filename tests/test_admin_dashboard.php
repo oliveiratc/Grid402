@@ -423,6 +423,7 @@ try {
     assert(isset($statsJson['daily_history_14d']) && count($statsJson['daily_history_14d']) === 14, 'API deve conter daily_history_14d com 14 dias');
     assert(isset($statsJson['top_consumers']) && is_array($statsJson['top_consumers']), 'API deve conter top_consumers');
     assert(isset($statsJson['service_revenue']) && is_array($statsJson['service_revenue']), 'API deve conter service_revenue');
+    assert(isset($statsJson['country_revenue']) && is_array($statsJson['country_revenue']), 'API deve conter country_revenue');
     assert(isset($statsJson['passes_stats']), 'API deve conter passes_stats');
     assert(isset($statsJson['facilitator_status']['mode'], $statsJson['facilitator_status']['auth_mode'], $statsJson['facilitator_status']['host']), 'API deve conter facilitator_status sem segredos');
     if (defined('GRID402_X402_NETWORK') && GRID402_X402_NETWORK === 'base') {
@@ -461,12 +462,13 @@ try {
     assert(str_contains($csvResp['body'], 'Origem do Pagamento'), 'CSV deve conter coluna Origem do Pagamento');
     assert(str_contains($csvResp['body'], 'Falha'), 'CSV deve conter coluna Falha');
     assert(str_contains($csvResp['body'], 'Hash Liquidacao'), 'CSV deve conter coluna Hash Liquidacao');
+    assert(str_contains($csvResp['body'], 'Pais'), 'CSV deve conter coluna Pais');
 
-    // Valida a contagem exata de colunas do cabecalho (12 colunas)
+    // Valida a contagem exata de colunas do cabecalho (13 colunas)
     $csvLines = preg_split('/\r?\n/', ltrim($csvResp['body'], "\xEF\xBB\xBF"));
     $csvHeader = str_getcsv($csvLines[0] ?? '', ';');
-    assert(count($csvHeader) === 12, 'CSV deve conter exatamente 12 colunas (Recebeu: ' . count($csvHeader) . ')');
-    echo "     ✓ Relatório CSV com BOM UTF-8 e 12 colunas validado com sucesso!\n";
+    assert(count($csvHeader) === 13, 'CSV deve conter exatamente 13 colunas (Recebeu: ' . count($csvHeader) . ')');
+    echo "     ✓ Relatório CSV com BOM UTF-8 e 13 colunas validado com sucesso!\n";
 
     // 4.6. Acessar Dashboard HTML com sessão autenticada e extrair CSRF
     echo "  -> Acessando Dashboard HTML autenticado e validando token CSRF...\n";
@@ -490,7 +492,9 @@ try {
     assert(str_contains($dashResp['body'], 'Saldo On-Chain (Base)'), 'Deve conter card de Saldo On-Chain');
     assert(str_contains($dashResp['body'], 'password-modal-overlay'), 'Deve conter modal de alteração de senha');
     assert(str_contains($dashResp['body'], 'Origem dos Pagamentos'), 'Deve conter painel de Origem dos Pagamentos');
+    assert(str_contains($dashResp['body'], 'Faturamento por País'), 'Deve conter painel de Faturamento por País');
     assert(str_contains($dashResp['body'], 'Falhas de Pagamento por Categoria'), 'Deve conter painel de Falhas de Pagamento');
+    assert(str_contains($dashResp['body'], '<th>País</th>'), 'Deve conter coluna País no feed');
     assert(str_contains($dashResp['body'], 'Origem / Falha'), 'Deve conter coluna Origem / Falha no feed');
     assert(str_contains($dashResp['body'], 'payment-source-bars-container'), 'Deve conter container das barras de origem');
     assert(str_contains($dashResp['body'], 'failure-bars-container'), 'Deve conter container das barras de falha');

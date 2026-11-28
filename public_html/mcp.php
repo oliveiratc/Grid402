@@ -962,6 +962,9 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
     $revenueUsdc = ($isSandbox || $isVerifyOnly || $paymentSourceVal === 'pass')
         ? 0.0
         : (float) number_format(($service === 'pass' && $actualRawPaid > 0 ? $actualRawPaid : $rawCost) / 1e6, 4, '.', '');
+    $mcpCountry = function_exists('grid402_resolve_client_country')
+        ? grid402_resolve_client_country($clientIp, $isRealPayment)
+        : null;
 
     grid402_record_telemetry(
         $service,
@@ -975,6 +978,7 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
             'payment_source' => $telemetryPaymentSource,
             'channel' => 'mcp',
             'settlement_source' => $paymentSourceVal !== '' ? $paymentSourceVal : null,
+            'country_code' => $mcpCountry,
         ]
     );
 
@@ -984,9 +988,23 @@ function mcp_tool_call($responseId, string $tool, array $arguments, array $param
             'status' => 200,
             'payment_source' => $isRealPayment ? 'mcp' : ($paymentSourceVal !== '' ? $paymentSourceVal : 'unknown'),
             'price_usdc' => $revenueUsdc,
+            'country_code' => $mcpCountry,
             'method' => 'POST',
             'ip' => $clientIp,
         ]);
+    }
+
+    if ($isRealPayment && $paymentSourceVal !== 'pass' && function_exists('grid402_notify_telegram_purchase')) {
+        $mcpNotifTx = (string) ($settlementTx ?? '');
+        $rawMcpNet = (string) ($validation['network'] ?? 'base');
+        $mcpNetSlug = function_exists('grid402_normalize_network_slug')
+            ? (grid402_normalize_network_slug($rawMcpNet) ?? 'base')
+            : strtolower($rawMcpNet);
+        $isValidMcpTx = (preg_match('/^0x[a-f0-9]{64}$/i', $mcpNotifTx) === 1)
+            || ($mcpNetSlug === 'solana' && function_exists('grid402_is_valid_solana_signature') && grid402_is_valid_solana_signature($mcpNotifTx));
+        if ($isValidMcpTx) {
+            grid402_notify_telegram_purchase($service, (float) $revenueUsdc, $mcpNotifTx, false, $mcpNetSlug, $mcpCountry);
+        }
     }
 
     if (function_exists('grid402_growth_event')) {

@@ -17,6 +17,9 @@ if (!defined('GRID402_EXEC')) {
     define('GRID402_EXEC', true);
 }
 require_once __DIR__ . '/config.php';
+if (is_file(__DIR__ . '/services/geoip.php')) {
+    require_once __DIR__ . '/services/geoip.php';
+}
 
 /**
  * Data do dia no fuso de Brasilia (America/Sao_Paulo) para os buckets
@@ -122,6 +125,7 @@ function grid402_default_metrics(): array {
         ],
         'service_paid_counts' => [],
         'service_revenue_usdc' => [],
+        'country_revenue' => [],
         'payment_sources' => [
             'tx_hash' => 0,
             'pass' => 0,
@@ -179,6 +183,20 @@ function grid402_normalize_metrics(array $metrics): array {
     }
     if (!isset($metrics['service_revenue_usdc']) || !is_array($metrics['service_revenue_usdc'])) {
         $metrics['service_revenue_usdc'] = [];
+    }
+    if (!isset($metrics['country_revenue']) || !is_array($metrics['country_revenue'])) {
+        $metrics['country_revenue'] = [];
+    } else {
+        foreach ($metrics['country_revenue'] as $ccKey => $ccStats) {
+            if (!is_array($ccStats)) {
+                $ccStats = [];
+            }
+            $metrics['country_revenue'][(string) $ccKey] = [
+                'paid' => (int) ($ccStats['paid'] ?? 0),
+                'usdc' => round((float) ($ccStats['usdc'] ?? 0.0), 4),
+                'last_seen' => (string) ($ccStats['last_seen'] ?? ''),
+            ];
+        }
     }
     if (!isset($metrics['payment_sources']) || !is_array($metrics['payment_sources'])) {
         $metrics['payment_sources'] = [];
@@ -254,6 +272,34 @@ function grid402_record_telemetry(
     if (!is_dir($dir)) {
         @mkdir($dir, 0755, true);
     }
+
+    // Resolve IP bruto e país de origem ANTES de adquirir flock(LOCK_EX)
+    $rawIpForGeo = ($ip !== null && trim($ip) !== '')
+        ? trim($ip)
+        : (function_exists('grid402_get_trusted_client_ip')
+            ? grid402_get_trusted_client_ip()
+            : (string) ($_SERVER['REMOTE_ADDR'] ?? ''));
+
+    $cleanTxPre = strtolower(trim((string) $txHash));
+    $metaSrcPre = (isset($meta['payment_source']) && is_string($meta['payment_source']))
+        ? strtolower(trim($meta['payment_source']))
+        : null;
+    if ($metaSrcPre === '') {
+        $metaSrcPre = null;
+    }
+    $isPromoPre = ($metaSrcPre === 'promo_pass')
+        || ($metaSrcPre !== null && str_starts_with($metaSrcPre, 'promo_'))
+        || !empty($meta['is_promo'])
+        || str_starts_with($cleanTxPre, 'promo:')
+        || (isset($meta['tier']) && is_string($meta['tier']) && str_starts_with(strtolower(trim($meta['tier'])), 'promo_'));
+    $isBillablePre = $isPaid && !$isPromoPre && !in_array($metaSrcPre, ['sandbox', 'mcp_sandbox', 'facilitator_verify_only', 'promo_pass'], true);
+
+    $explicitCountry = function_exists('grid402_normalize_country_code')
+        ? grid402_normalize_country_code((string) ($meta['country_code'] ?? $meta['country'] ?? ''))
+        : null;
+    $eventCountryCode = $explicitCountry ?? (function_exists('grid402_resolve_client_country')
+        ? grid402_resolve_client_country($rawIpForGeo, $isBillablePre, ($metaSrcPre === 'mercadopago' ? 'BR' : null))
+        : null);
 
     $fp = fopen($file, 'c+');
     if (!$fp) {
@@ -441,6 +487,16 @@ function grid402_record_telemetry(
             if ($effectivePrice > 0.0) {
                 $metrics['service_revenue_usdc'][$svc] = round(((float)($metrics['service_revenue_usdc'][$svc] ?? 0.0)) + $effectivePrice, 4);
             }
+            if (!isset($metrics['country_revenue']) || !is_array($metrics['country_revenue'])) {
+                $metrics['country_revenue'] = [];
+            }
+            $ccKey = $eventCountryCode ?? 'UNKNOWN';
+            if (!isset($metrics['country_revenue'][$ccKey]) || !is_array($metrics['country_revenue'][$ccKey])) {
+                $metrics['country_revenue'][$ccKey] = ['paid' => 0, 'usdc' => 0.0, 'last_seen' => ''];
+            }
+            $metrics['country_revenue'][$ccKey]['paid'] = ((int) ($metrics['country_revenue'][$ccKey]['paid'] ?? 0)) + 1;
+            $metrics['country_revenue'][$ccKey]['usdc'] = round(((float) ($metrics['country_revenue'][$ccKey]['usdc'] ?? 0.0)) + $effectivePrice, 4);
+            $metrics['country_revenue'][$ccKey]['last_seen'] = $now;
         }
 
         // 2.1 Contadores de origem do pagamento e de falhas por categoria
@@ -478,7 +534,7 @@ function grid402_record_telemetry(
             $metrics['recent_events'] = [];
         }
 
-        $maskedIp = grid402_mask_ip($ip ?? (string)($_SERVER['REMOTE_ADDR'] ?? ''));
+        $maskedIp = grid402_mask_ip($rawIpForGeo);
 
         $event = [
             'timestamp' => $now,
@@ -492,6 +548,7 @@ function grid402_record_telemetry(
             'payment_source' => $paymentSource,
             'failure_category' => $failureCategory,
             'is_crawler' => $isCrawlerApiReq,
+            'country_code' => $eventCountryCode,
             'ip_masked' => $maskedIp,
         ];
 
@@ -983,6 +1040,7 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
         if (!isset($ipAggregates[$maskedIp])) {
             $ipAggregates[$maskedIp] = [
                 'ip_masked' => $maskedIp,
+                'country_code' => null,
                 'total' => 0,
                 'paid' => 0,
                 'sandbox' => 0,
@@ -991,6 +1049,14 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
                 'services' => [],
                 'last_seen' => (string)($ev['timestamp'] ?? ''),
             ];
+        }
+        if ($ipAggregates[$maskedIp]['country_code'] === null && !empty($ev['country_code'])) {
+            $evCc = function_exists('grid402_normalize_country_code')
+                ? grid402_normalize_country_code((string) $ev['country_code'])
+                : strtoupper(trim((string) $ev['country_code']));
+            if ($evCc !== null && $evCc !== '') {
+                $ipAggregates[$maskedIp]['country_code'] = $evCc;
+            }
         }
         $ipAggregates[$maskedIp]['total']++;
         $evType = (string)($ev['type'] ?? '');
@@ -1033,6 +1099,7 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
         $topConsumers[] = [
             'rank' => $rank++,
             'ip_masked' => $data['ip_masked'],
+            'country_code' => $data['country_code'],
             'total' => $data['total'],
             'paid' => $data['paid'],
             'sandbox' => $data['sandbox'],
@@ -1114,6 +1181,77 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
     $latencyP50 = grid402_calculate_percentile($latencySamples, 50.0);
     $latencyP95 = grid402_calculate_percentile($latencySamples, 95.0);
 
+    // 7. Faturamento Acumulado por País (country_revenue)
+    $rawCountryRev = is_array($metrics['country_revenue'] ?? null) ? $metrics['country_revenue'] : [];
+    $countryTotalUsdc = 0.0;
+    $countryTotalPaid = 0;
+    foreach ($rawCountryRev as $cRow) {
+        if (!is_array($cRow)) {
+            continue;
+        }
+        $countryTotalUsdc += (float) ($cRow['usdc'] ?? 0.0);
+        $countryTotalPaid += (int) ($cRow['paid'] ?? 0);
+    }
+    $countryRevenueList = [];
+    foreach ($rawCountryRev as $ccKey => $cRow) {
+        if (!is_array($cRow)) {
+            continue;
+        }
+        $paidCnt = (int) ($cRow['paid'] ?? 0);
+        $revUsdc = round((float) ($cRow['usdc'] ?? 0.0), 4);
+        if ($paidCnt <= 0 && $revUsdc <= 0.0) {
+            continue;
+        }
+        $rawKey = strtoupper(trim((string) $ccKey));
+        $normCc = function_exists('grid402_normalize_country_code')
+            ? grid402_normalize_country_code($rawKey === 'UNKNOWN' ? null : $rawKey)
+            : (($rawKey !== 'UNKNOWN' && preg_match('/^[A-Z]{2}$/', $rawKey) === 1) ? $rawKey : null);
+        $ccFinal = $normCc ?? 'UNKNOWN';
+        $cFmt = function_exists('grid402_format_country')
+            ? grid402_format_country($normCc)
+            : [
+                'code' => $normCc ?? '',
+                'name' => $normCc ?? 'Não identificado',
+                'flag' => $normCc !== null ? '' : '🌐',
+                'label' => $normCc ?? '🌐 Não identificado',
+            ];
+        if ($countryTotalUsdc > 0.0) {
+            $sharePct = round(($revUsdc / $countryTotalUsdc) * 100, 1);
+        } elseif ($countryTotalPaid > 0) {
+            $sharePct = round(($paidCnt / $countryTotalPaid) * 100, 1);
+        } else {
+            $sharePct = 0.0;
+        }
+        $countryRevenueList[] = [
+            'code' => $ccFinal,
+            'name' => $cFmt['name'],
+            'flag' => $cFmt['flag'],
+            'label' => $cFmt['label'],
+            'paid_count' => $paidCnt,
+            'revenue_usdc' => $revUsdc,
+            'revenue_brl' => round($revUsdc * $usdRate, 2),
+            'share_pct' => $sharePct,
+            'last_seen' => (string) ($cRow['last_seen'] ?? ''),
+        ];
+    }
+    usort($countryRevenueList, static function (array $a, array $b): int {
+        $cmpRev = $b['revenue_usdc'] <=> $a['revenue_usdc'];
+        if ($cmpRev !== 0) {
+            return $cmpRev;
+        }
+        $cmpPaid = $b['paid_count'] <=> $a['paid_count'];
+        if ($cmpPaid !== 0) {
+            return $cmpPaid;
+        }
+        if ($a['code'] === 'UNKNOWN' && $b['code'] !== 'UNKNOWN') {
+            return 1;
+        }
+        if ($b['code'] === 'UNKNOWN' && $a['code'] !== 'UNKNOWN') {
+            return -1;
+        }
+        return strcmp($a['code'], $b['code']);
+    });
+
     return [
         'arpu_usdc' => $arpuUsdc,
         'arpu_brl' => $arpuBrl,
@@ -1134,6 +1272,7 @@ function grid402_compute_admin_analytics(array $metrics, float $usdRate = 5.50):
         'service_paid_counts' => $servicePaidCounts,
         'service_revenue_usdc' => $serviceRevenueUsdc,
         'service_revenue' => array_values($serviceRevenue),
+        'country_revenue' => $countryRevenueList,
         'passes_stats' => grid402_get_passes_stats(),
     ];
 }

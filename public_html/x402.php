@@ -1770,7 +1770,7 @@ function grid402_notify_telegram_admin_password_reset(string $username, string $
  * Notificacao em tempo real de micropagamentos x402 no Telegram
  * Disparo nao-bloqueante (IPv4 forcado, timeout curto) com registro de diagnostico sem segredos.
  */
-function grid402_notify_telegram_purchase(string $service, float $priceUsdc, string $txHash, bool $isTest = false, string $network = 'base'): bool {
+function grid402_notify_telegram_purchase(string $service, float $priceUsdc, string $txHash, bool $isTest = false, string $network = 'base', ?string $countryCode = null): bool {
     $cleanSvc = strtolower(trim($service));
     if ((string) grid402_env('GRID402_DISABLE_TELEGRAM', '') === '1') {
         return false;
@@ -1780,7 +1780,10 @@ function grid402_notify_telegram_purchase(string $service, float $priceUsdc, str
     $token = $creds['token'];
     $chatId = $creds['chat_id'];
 
-    if ($token === '' or $chatId === '') {
+    $tgTransport = $GLOBALS['grid402_telegram_http_transport'] ?? null;
+    $hasCustomTransport = is_callable($tgTransport);
+
+    if (!$hasCustomTransport and ($token === '' or $chatId === '')) {
         grid402_record_telegram_status(false, 0, 'Credenciais GRID402_TELEGRAM_BOT_TOKEN / GRID402_TELEGRAM_CHAT_ID ausentes neste servidor.', $cleanSvc, $isTest);
         return false;
     }
@@ -1825,12 +1828,28 @@ function grid402_notify_telegram_purchase(string $service, float $priceUsdc, str
         'market-snapshot' => 'Snapshot Consolidado de Mercado (Forex + Crypto + Indicadores)',
         'token-safety' => 'Auditoria Token Safety (EVM + Solana)',
         'prediction-markets' => 'Mercados de Previsao (Polymarket + Kalshi)',
+        'extract' => 'Extracao Estruturada de Dados (URL para JSON)',
+        'email-verify' => 'Verificacao de E-mail (MX e Descartaveis)',
         'batch' => 'Execucao Multi-Servico em Lote (POST /batch)',
     ];
 
     $displayName = $serviceNames[$cleanSvc] ?? ('Servico ' . strtoupper($service));
     $displayPrice = number_format($priceUsdc, 4, '.', '') . ' USDC';
     $nowUtc = gmdate('Y-m-d H:i:s') . ' UTC';
+
+    if (!function_exists('grid402_format_country') and is_file(__DIR__ . '/services/geoip.php')) {
+        require_once __DIR__ . '/services/geoip.php';
+    }
+    $resolvedCountry = function_exists('grid402_normalize_country_code')
+        ? grid402_normalize_country_code($countryCode)
+        : null;
+    if ($resolvedCountry === null and function_exists('grid402_resolve_client_country')) {
+        $resolvedCountry = grid402_resolve_client_country(null, !$isTest, $isPixOrderRef ? 'BR' : null);
+    }
+    $countryInfo = function_exists('grid402_format_country')
+        ? grid402_format_country($resolvedCountry)
+        : ['label' => '🌐 Não identificado'];
+    $countryLabel = (string) ($countryInfo['label'] ?? '🌐 Não identificado');
 
     $isTestTx = $isTest || ($isOnChainHash and preg_match('/^0x(a{64}|0{64}|f{64}|1{64}|demo)$/i', $cleanTx) === 1);
     $titleHeader = $isTestTx ? "🧪 *TESTE DO SISTEMA: Simulação de Compra no Grid402*" : "💰 *Nova Compra no Grid402!*";
@@ -1858,18 +1877,34 @@ function grid402_notify_telegram_purchase(string $service, float $priceUsdc, str
     $text = $titleHeader . "\n\n"
           . "📦 *Servico:* " . $displayName . "\n"
           . "💵 *Valor:* " . $displayPrice . "\n"
+          . "🌍 *Pais:* " . $countryLabel . "\n"
           . "🌐 *Rede:* " . $netLabel . "\n"
           . "🕒 *Data:* " . $nowUtc . "\n"
           . ($isTestTx ? "ℹ️ *Nota:* Disparo originado por teste automatizado.\n" : "")
           . $proofLine;
 
     $apiUrl = 'https://api.telegram.org/bot' . $token . '/sendMessage';
-    $payloadJson = json_encode([
+    $payloadArr = [
         'chat_id' => $chatId,
         'text' => $text,
         'parse_mode' => 'Markdown',
         'disable_web_page_preview' => false,
-    ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    ];
+    $payloadJson = json_encode($payloadArr, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+    if ($hasCustomTransport) {
+        try {
+            $tRes = $tgTransport($apiUrl, $payloadArr, (string) $payloadJson);
+            $tOk = is_array($tRes) ? !empty($tRes['ok']) : (bool) $tRes;
+            $tCode = is_array($tRes) ? (int) ($tRes['http_code'] ?? ($tOk ? 200 : 500)) : ($tOk ? 200 : 500);
+            $tErr = is_array($tRes) ? (string) ($tRes['error'] ?? '') : '';
+            grid402_record_telegram_status($tOk, $tCode, $tErr, $cleanSvc, $isTestTx);
+            return $tOk;
+        } catch (Throwable $e) {
+            grid402_record_telegram_status(false, 0, $e->getMessage(), $cleanSvc, $isTestTx);
+            return false;
+        }
+    }
 
     $ch = @curl_init($apiUrl);
     if (!$ch) {

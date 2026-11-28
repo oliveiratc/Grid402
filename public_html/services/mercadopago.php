@@ -20,6 +20,9 @@ if (is_file(dirname(__DIR__) . '/logger.php')) {
     require_once dirname(__DIR__) . '/logger.php';
 }
 require_once __DIR__ . '/pass.php';
+if (is_file(__DIR__ . '/geoip.php')) {
+    require_once __DIR__ . '/geoip.php';
+}
 
 /**
  * Tabela oficial de pacotes em BRL vinculados aos Session Passes.
@@ -333,6 +336,10 @@ function grid402_mp_create_pix(string $tier, string $email = ''): array {
         $mpPaymentId = (string) $resp['data']['id'];
     }
 
+    $payerCountry = function_exists('grid402_resolve_client_country')
+        ? grid402_resolve_client_country(null, true, 'BR')
+        : 'BR';
+
     $orderRecord = [
         'order_id' => $orderId,
         'tier' => $pkg['tier'],
@@ -344,9 +351,10 @@ function grid402_mp_create_pix(string $tier, string $email = ''): array {
         'method' => 'pix',
         'status' => 'pending',
         'sandbox' => $sandbox,
-        'mp_payment_id' => $mpPaymentId,
+        'mp_payment_id' => null,
         'mp_preference_id' => null,
         'pass_token' => null,
+        'payer_country_code' => $payerCountry,
         'created_at' => $now,
         'updated_at' => $now,
     ];
@@ -439,6 +447,10 @@ function grid402_mp_create_checkout_pro(string $tier, string $email = ''): array
         $checkoutUrl = (string) ($sandbox ? ($resp['data']['sandbox_init_point'] ?? $resp['data']['init_point'] ?? '') : ($resp['data']['init_point'] ?? $resp['data']['sandbox_init_point'] ?? ''));
     }
 
+    $payerCountry = function_exists('grid402_resolve_client_country')
+        ? grid402_resolve_client_country(null, true, null)
+        : null;
+
     $orderRecord = [
         'order_id' => $orderId,
         'tier' => $pkg['tier'],
@@ -453,6 +465,7 @@ function grid402_mp_create_checkout_pro(string $tier, string $email = ''): array
         'mp_payment_id' => null,
         'mp_preference_id' => $prefId,
         'pass_token' => null,
+        'payer_country_code' => $payerCountry,
         'created_at' => $now,
         'updated_at' => $now,
     ];
@@ -636,6 +649,8 @@ function grid402_mp_finalize_approved_order(string $orderId, string $mpPaymentId
             'ttl_days' => $order['ttl_days'],
             'expires_at' => $issued['expires_at'] ?? null,
             'sandbox' => (bool) ($order['sandbox'] ?? $isSandbox),
+            'method' => (string) ($order['method'] ?? 'pix'),
+            'payer_country_code' => $order['payer_country_code'] ?? null,
             'idempotent' => false,
         ], true];
     });
@@ -646,6 +661,12 @@ function grid402_mp_finalize_approved_order(string $orderId, string $mpPaymentId
         $priceUsdcStr = $isOrderSandbox ? '0.0000' : number_format($usdcEquivalent, 4, '.', '');
         $res['price_usdc'] = $priceUsdcStr;
         $proofId = 'mp_pay_' . ($mpPaymentId !== '' ? $mpPaymentId : $orderId);
+        $orderCountry = function_exists('grid402_normalize_country_code')
+            ? grid402_normalize_country_code((string) ($res['payer_country_code'] ?? ''))
+            : null;
+        if ($orderCountry === null && (($res['method'] ?? '') === 'pix')) {
+            $orderCountry = 'BR';
+        }
         if (function_exists('grid402_record_telemetry')) {
             grid402_record_telemetry(
                 'pass',
@@ -655,7 +676,7 @@ function grid402_mp_finalize_approved_order(string $orderId, string $mpPaymentId
                 null,
                 $isOrderSandbox ? 0.0 : $usdcEquivalent,
                 $isOrderSandbox ? 'sandbox' : 'paid',
-                ['payment_source' => $isOrderSandbox ? 'sandbox' : 'mercadopago']
+                ['payment_source' => $isOrderSandbox ? 'sandbox' : 'mercadopago', 'country_code' => $orderCountry]
             );
         }
         if (function_exists('grid402_log_request')) {
@@ -664,6 +685,7 @@ function grid402_mp_finalize_approved_order(string $orderId, string $mpPaymentId
                 'status' => 200,
                 'payment_source' => $isOrderSandbox ? 'sandbox' : 'mercadopago',
                 'price_usdc' => $priceUsdcStr,
+                'country_code' => $orderCountry,
                 'method' => (string) ($_SERVER['REQUEST_METHOD'] ?? 'POST'),
             ]);
             $res['logged_paid_request'] = true;
@@ -677,7 +699,7 @@ function grid402_mp_finalize_approved_order(string $orderId, string $mpPaymentId
             ]);
         }
         if (!$isOrderSandbox && function_exists('grid402_notify_telegram_purchase')) {
-            grid402_notify_telegram_purchase('pass (' . ($res['tier'] ?? 'starter') . ' Pix/MP)', $usdcEquivalent, $proofId);
+            grid402_notify_telegram_purchase('pass (' . ($res['tier'] ?? 'starter') . ' Pix/MP)', $usdcEquivalent, $proofId, false, 'base', $orderCountry);
         }
     }
 

@@ -143,7 +143,7 @@ t_assert('CAIP-2 Solana normalizado para slug solana', grid402_normalize_network
 t_assert('Assinatura Base58 Solana validada corretamente', grid402_is_valid_solana_signature($solSig1) === true);
 $indexSrc = (string) file_get_contents(__DIR__ . '/../public_html/index.php');
 t_assert('index.php normaliza $validatedNetSlug antes da notificacao Telegram', str_contains($indexSrc, 'grid402_normalize_network_slug($rawValidatedNet)'));
-t_assert('index.php passa $actualPaidUsdc para grid402_notify_telegram_purchase', str_contains($indexSrc, 'grid402_notify_telegram_purchase($apiParam, (float) $actualPaidUsdc, $txForNotification, false, $validatedNetSlug)'));
+t_assert('index.php passa $actualPaidUsdc e $billingCountry para grid402_notify_telegram_purchase', str_contains($indexSrc, 'grid402_notify_telegram_purchase($apiParam, (float) $actualPaidUsdc, $txForNotification, false, $validatedNetSlug, $billingCountry)'));
 
 // -------------------------------------------------------------------------
 // [6] Bug #6: Mercado Pago Checkout Pro fallback external_reference
@@ -348,7 +348,7 @@ try {
     t_assert('CSV historico ?scope=paid retorna HTTP 200 com BOM UTF-8', $csvCode === 200 && str_starts_with($csvBody, "\xEF\xBB\xBF"));
     $csvLines = array_values(array_filter(explode("\n", trim(substr($csvBody, 3))), static fn($l) => trim($l) !== ''));
     $headerCols = str_getcsv($csvLines[0] ?? '', ';');
-    t_assert('CSV historico mantem contrato de 12 colunas', count($headerCols) === 12);
+    t_assert('CSV historico mantem contrato de 13 colunas incluindo Pais', count($headerCols) === 13 && in_array('Pais', $headerCols, true));
     t_assert('CSV historico exporta exatamente as 3 transacoes pagas ignorando 130 eventos 402', count($csvLines) === 4);
     t_assert('CSV historico contem req_hist_1, req_hist_2 e req_hist_3', str_contains($csvBody, 'req_hist_1') && str_contains($csvBody, 'req_hist_2') && str_contains($csvBody, 'req_hist_3'));
 } finally {

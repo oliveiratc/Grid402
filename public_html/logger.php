@@ -19,6 +19,9 @@ if (!defined('GRID402_EXEC')) {
     define('GRID402_EXEC', true);
 }
 require_once __DIR__ . '/config.php';
+if (is_file(__DIR__ . '/services/geoip.php')) {
+    require_once __DIR__ . '/services/geoip.php';
+}
 
 if (!isset($GLOBALS['GRID402_REQ_START'])) {
     $GLOBALS['GRID402_REQ_START'] = microtime(true);
@@ -256,6 +259,16 @@ function grid402_log_request(array $event): bool {
     ];
     if (isset($event['price_usdc']) && is_numeric($event['price_usdc'])) {
         $entry['price_usdc'] = round((float) $event['price_usdc'], 6);
+    }
+    $logCountry = null;
+    if (function_exists('grid402_normalize_country_code')) {
+        $logCountry = grid402_normalize_country_code((string) ($event['country_code'] ?? $event['country'] ?? ''));
+        if ($logCountry === null && function_exists('grid402_resolve_client_country')) {
+            $logCountry = grid402_resolve_client_country($rawIp, false);
+        }
+    }
+    if ($logCountry !== null) {
+        $entry['country_code'] = $logCountry;
     }
     if (!empty($event['proof_diag']) && is_string($event['proof_diag'])) {
         $sanitizedDiag = grid402_sanitize_log_text($event['proof_diag'], 180);

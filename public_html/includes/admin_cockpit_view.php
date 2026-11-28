@@ -26,6 +26,9 @@ $serviceRevenueUsdcMap = is_array($metrics['service_revenue_usdc'] ?? null)
     : (is_array($analytics['service_revenue_usdc'] ?? null) ? $analytics['service_revenue_usdc'] : []);
 $totalBotViews = (int) ($metrics['total_bot_views'] ?? ($analytics['total_bot_views'] ?? 0));
 $totalChallenges402 = (int) ($metrics['status_counts']['402'] ?? ($analytics['challenge_402_count'] ?? 0));
+$countryRevenueList = is_array($countryRevenue ?? null)
+    ? $countryRevenue
+    : (is_array($analytics['country_revenue'] ?? null) ? $analytics['country_revenue'] : []);
 
 $rapidCount = (int) ($rapidStatus['count'] ?? 0);
 $rapidOk = !empty($rapidStatus['configured']);
@@ -875,10 +878,13 @@ $pricingLookup = [
                                         elseif ($c['sandbox'] > 0) $pCls = 'profile-sandbox';
                                         elseif ($c['challenges'] > 5) $pCls = 'profile-402';
                                         $rkCls = ($c['rank'] <= 3) ? 'top-' . $c['rank'] : '';
+                                        $cCountryFmt = !empty($c['country_code']) && function_exists('grid402_format_country')
+                                            ? grid402_format_country((string) $c['country_code'])
+                                            : null;
                                     ?>
                                     <tr>
                                         <td><span class="rank-badge <?php echo $rkCls; ?>"><?php echo (int) $c['rank']; ?></span></td>
-                                        <td><code><?php echo htmlspecialchars((string) $c['ip_masked'], ENT_QUOTES, 'UTF-8'); ?></code></td>
+                                        <td><?php if ($cCountryFmt !== null && $cCountryFmt['code'] !== ''): ?><span title="<?php echo htmlspecialchars($cCountryFmt['name'] . ' (' . $cCountryFmt['code'] . ')', ENT_QUOTES, 'UTF-8'); ?>" style="margin-right: 0.35rem;"><?php echo htmlspecialchars($cCountryFmt['flag'], ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?><code><?php echo htmlspecialchars((string) $c['ip_masked'], ENT_QUOTES, 'UTF-8'); ?></code></td>
                                         <td><strong><?php echo (int) $c['total']; ?></strong> <span style="font-size: 0.7rem; color: var(--text-muted);">(<?php echo (int) $c['paid']; ?>p)</span></td>
                                         <td><span class="tag-profile <?php echo $pCls; ?>"><?php echo htmlspecialchars((string) $c['profile'], ENT_QUOTES, 'UTF-8'); ?></span></td>
                                         <td><code style="color: var(--accent);"><?php echo htmlspecialchars((string) $c['favorite_service'], ENT_QUOTES, 'UTF-8'); ?></code></td>
@@ -1030,6 +1036,47 @@ $pricingLookup = [
                         endif;
                         ?>
                     </div>
+                </div>
+            </div>
+
+            <div id="country-revenue-panel" class="panel" style="margin-top: 1rem;">
+                <div class="panel-title">
+                    <span>Faturamento por País</span>
+                    <span class="panel-subtitle">Pagamentos reais acumulados · geolocalização Zero-PII por origem de rede</span>
+                </div>
+                <div id="country-revenue-bars-container">
+                    <?php
+                    $maxCountryRev = 0.0001;
+                    foreach ($countryRevenueList as $cr) {
+                        $v = (float) ($cr['revenue_usdc'] ?? 0.0);
+                        if ($v > $maxCountryRev) $maxCountryRev = $v;
+                    }
+                    if (empty($countryRevenueList)):
+                    ?>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); padding: 0.65rem 0;">
+                        Nenhum faturamento por país registrado até o momento (novas compras Pix, x402 e Web3 passam a contabilizar o país de origem).
+                    </div>
+                    <?php
+                    else:
+                        foreach (array_slice($countryRevenueList, 0, 15) as $cr):
+                            $cCode = (string) ($cr['code'] ?? 'UNKNOWN');
+                            $cFlag = (string) ($cr['flag'] ?? '🌐');
+                            $cName = (string) ($cr['name'] ?? 'Não identificado');
+                            $cPaid = (int) ($cr['paid_count'] ?? 0);
+                            $cRev = (float) ($cr['revenue_usdc'] ?? 0.0);
+                            $cShare = (float) ($cr['share_pct'] ?? 0.0);
+                            $cBarPct = $cRev > 0.0 ? max(3, (int) round(($cRev / $maxCountryRev) * 100)) : ($cPaid > 0 ? 5 : 0);
+                            $cDisplayLabel = $cCode !== 'UNKNOWN' ? ($cFlag . ' ' . $cName . ' (' . $cCode . ')') : ($cFlag . ' ' . $cName);
+                    ?>
+                    <div class="bar-row" data-country-code="<?php echo htmlspecialchars($cCode, ENT_QUOTES, 'UTF-8'); ?>">
+                        <span class="bar-label wide"><?php echo htmlspecialchars($cDisplayLabel, ENT_QUOTES, 'UTF-8'); ?> <small style="color: var(--text-muted);">(<?php echo $cPaid; ?> pagas)</small></span>
+                        <div class="bar-track"><div class="bar-fill" style="width: <?php echo $cBarPct; ?>%; background: linear-gradient(90deg, #38BDF8, #10B981);"></div></div>
+                        <span class="bar-count">$<?php echo number_format($cRev, 4); ?> (<?php echo number_format($cShare, 1, ',', '.'); ?>%)</span>
+                    </div>
+                    <?php
+                        endforeach;
+                    endif;
+                    ?>
                 </div>
             </div>
         </section>
@@ -1278,7 +1325,7 @@ $pricingLookup = [
                         <button type="button" class="filter-btn" id="filter-btn-blocked" onclick="setFeedFilter('blocked_403')">🔴 Bloqueados 403 (<span id="count-blocked">0</span>)</button>
                     </div>
                     <div class="search-wrap">
-                        <input type="text" id="feed-search-input" class="search-input" placeholder="Buscar por serviço, IP ou hash..." aria-label="Buscar no feed de consultas" oninput="applyFeedSearch()">
+                        <input type="text" id="feed-search-input" class="search-input" placeholder="Buscar por serviço, país, IP ou hash..." aria-label="Buscar no feed de consultas" oninput="applyFeedSearch()">
                         <span id="feed-visible-count" style="font-size: 0.74rem; color: var(--text-muted); white-space: nowrap;">Mostrando 0 de 0</span>
                     </div>
                 </div>
@@ -1294,6 +1341,7 @@ $pricingLookup = [
                                 <th>Origem / Falha</th>
                                 <th>Valor (USDC)</th>
                                 <th>Transação On-Chain</th>
+                                <th>País</th>
                                 <th>IP Requisitante (LGPD)</th>
                             </tr>
                         </thead>
@@ -1303,7 +1351,7 @@ $pricingLookup = [
                             if (empty($events)):
                             ?>
                             <tr id="no-events-row">
-                                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">Nenhuma consulta registrada até o momento.</td>
+                                <td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">Nenhuma consulta registrada até o momento.</td>
                             </tr>
                             <?php else: ?>
                                 <?php foreach ($events as $ev):
@@ -1369,6 +1417,19 @@ $pricingLookup = [
                                             <?php else: ?>
                                                 <span style="color: var(--text-muted);"><?php echo htmlspecialchars(substr($evTx, 0, 14), ENT_QUOTES, 'UTF-8'); ?></span>
                                             <?php endif; ?>
+                                        <?php else: ?>
+                                            <span style="color: var(--text-muted);">-</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td style="white-space: nowrap;">
+                                        <?php
+                                        $evCcRaw = isset($ev['country_code']) ? (string) $ev['country_code'] : '';
+                                        $evCountryFmt = ($evCcRaw !== '' && function_exists('grid402_format_country'))
+                                            ? grid402_format_country($evCcRaw)
+                                            : null;
+                                        if ($evCountryFmt !== null && $evCountryFmt['code'] !== ''):
+                                        ?>
+                                            <span title="<?php echo htmlspecialchars($evCountryFmt['name'], ENT_QUOTES, 'UTF-8'); ?>" style="font-family: var(--font-mono); font-size: 0.76rem; color: #E2E8F0;"><?php echo htmlspecialchars($evCountryFmt['short'], ENT_QUOTES, 'UTF-8'); ?></span>
                                         <?php else: ?>
                                             <span style="color: var(--text-muted);">-</span>
                                         <?php endif; ?>
@@ -1864,6 +1925,23 @@ $pricingLookup = [
             el.innerHTML = html;
         }
 
+        function formatCountryMetaJs(rawCc) {
+            const cc = String(rawCc || '').trim().toUpperCase();
+            if (!/^[A-Z]{2}$/.test(cc) || ['XX', 'T1', 'A1', 'A2', 'O1', 'ZZ', 'GL'].includes(cc)) {
+                return { code: '', flag: '🌐', name: 'Não identificado', short: '' };
+            }
+            const flag = String.fromCodePoint(0x1F1E6 + cc.charCodeAt(0) - 65, 0x1F1E6 + cc.charCodeAt(1) - 65);
+            let name = cc;
+            try {
+                if (typeof Intl !== 'undefined' && typeof Intl.DisplayNames === 'function') {
+                    const dn = new Intl.DisplayNames(['pt-BR'], { type: 'region' });
+                    const resolved = dn.of(cc);
+                    if (resolved) name = resolved;
+                }
+            } catch (e) {}
+            return { code: cc, flag, name, short: `${flag} ${cc}` };
+        }
+
         function renderTopConsumers(consumers) {
             const tbody = document.getElementById('top-consumers-tbody');
             if (!tbody) return;
@@ -1878,15 +1956,45 @@ $pricingLookup = [
                 else if (c.sandbox > 0) pCls = 'profile-sandbox';
                 else if (c.challenges > 5) pCls = 'profile-402';
                 const rkCls = (c.rank <= 3) ? 'top-' + c.rank : '';
+                const cm = formatCountryMetaJs(c.country_code);
+                const flagPrefix = cm.code ? `<span title="${safeHtmlText(cm.name + ' (' + cm.code + ')')}" style="margin-right: 0.35rem;">${safeHtmlText(cm.flag)}</span>` : '';
                 html += `<tr>
                     <td><span class="rank-badge ${rkCls}">${c.rank}</span></td>
-                    <td><code>${safeHtmlText(c.ip_masked)}</code></td>
+                    <td>${flagPrefix}<code>${safeHtmlText(c.ip_masked)}</code></td>
                     <td><strong>${c.total}</strong> <span style="font-size: 0.7rem; color: var(--text-muted);">(${c.paid}p)</span></td>
                     <td><span class="tag-profile ${pCls}">${safeHtmlText(c.profile)}</span></td>
                     <td><code style="color: var(--accent);">${safeHtmlText(c.favorite_service)}</code></td>
                 </tr>`;
             });
             tbody.innerHTML = html;
+        }
+
+        function renderCountryRevenue(countries) {
+            const el = document.getElementById('country-revenue-bars-container');
+            if (!el || !Array.isArray(countries)) return;
+            if (countries.length === 0) {
+                el.innerHTML = '<div style="font-size: 0.8rem; color: var(--text-muted); padding: 0.65rem 0;">Nenhum faturamento por país registrado até o momento (novas compras Pix, x402 e Web3 passam a contabilizar o país de origem).</div>';
+                return;
+            }
+            const top15 = countries.slice(0, 15);
+            const maxVal = Math.max(0.0001, ...top15.map(c => Number(c.revenue_usdc || 0)));
+            let html = '';
+            top15.forEach(c => {
+                const code = String(c.code || 'UNKNOWN');
+                const flag = String(c.flag || '🌐');
+                const name = String(c.name || 'Não identificado');
+                const paidCnt = Number(c.paid_count || 0);
+                const rev = Number(c.revenue_usdc || 0);
+                const share = Number(c.share_pct || 0);
+                const pct = rev > 0 ? Math.max(3, Math.round((rev / maxVal) * 100)) : (paidCnt > 0 ? 5 : 0);
+                const disp = code !== 'UNKNOWN' ? `${flag} ${name} (${code})` : `${flag} ${name}`;
+                html += `<div class="bar-row" data-country-code="${safeHtmlText(code)}">
+                    <span class="bar-label wide">${safeHtmlText(disp)} <small style="color: var(--text-muted);">(${paidCnt} pagas)</small></span>
+                    <div class="bar-track"><div class="bar-fill" style="width: ${pct}%; background: linear-gradient(90deg, #38BDF8, #10B981);"></div></div>
+                    <span class="bar-count">$${rev.toFixed(4)} (${share.toFixed(1).replace('.', ',')}%)</span>
+                </div>`;
+            });
+            el.innerHTML = html;
         }
 
         function renderServiceRevenue(services) {
@@ -2161,6 +2269,7 @@ $pricingLookup = [
                 if (data.daily_history_14d) renderDailyChart14d(data.daily_history_14d);
                 if (data.top_consumers) renderTopConsumers(data.top_consumers);
                 if (data.service_revenue) renderServiceRevenue(data.service_revenue);
+                if (Array.isArray(data.country_revenue)) renderCountryRevenue(data.country_revenue);
                 if (data.recent_pulse) renderRecentPulse(data.recent_pulse);
                 if (data.service_counts) {
                     renderPaidVsTotalServices(data.paid_requests_per_service || {}, data.service_counts, data.service_paid_counts || {}, data.service_revenue_usdc || {});
@@ -2186,7 +2295,7 @@ $pricingLookup = [
                 const failureLabels = data.failure_category_labels || {};
                 if (tbody) {
                     if (events.length === 0) {
-                        tbody.innerHTML = '<tr id="no-events-row"><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">Nenhuma consulta registrada até o momento.</td></tr>';
+                        tbody.innerHTML = '<tr id="no-events-row"><td colspan="9" style="text-align: center; color: var(--text-muted); padding: 2rem;">Nenhuma consulta registrada até o momento.</td></tr>';
                     } else {
                         tbody.innerHTML = events.map(ev => {
                             const dualTs = formatBrtUtcTimestamp(ev.timestamp || '', true);
@@ -2217,6 +2326,11 @@ $pricingLookup = [
                                 ? `<a href="${expBase}${encodeURIComponent(rawTx)}" target="_blank" rel="noopener" class="tx-link">${safeHtmlText(rawTx.substr(0, 8))}...${safeHtmlText(rawTx.substr(-6))} ↗</a>`
                                 : '<span style="color: var(--text-muted);">-</span>';
 
+                            const cmEv = formatCountryMetaJs(ev.country_code);
+                            const countryHtml = cmEv.code
+                                ? `<span title="${safeHtmlText(cmEv.name)}" style="font-family: var(--font-mono); font-size: 0.76rem; color: #E2E8F0;">${safeHtmlText(cmEv.short)}</span>`
+                                : '<span style="color: var(--text-muted);">-</span>';
+
                             return `<tr class="event-row" data-type="${safeHtmlText(rawType)}">
                                 <td style="white-space: nowrap;"><div>${safeHtmlText(dualTs.brt)}</div>${dualTs.utc ? `<div style="font-size: 0.7rem; color: var(--text-muted);">${safeHtmlText(dualTs.utc)}</div>` : ''}</td>
                                 <td><strong>${safeHtmlText(ev.service || '')}</strong></td>
@@ -2225,6 +2339,7 @@ $pricingLookup = [
                                 <td>${orig}</td>
                                 <td>${ev.is_paid ? '$' + safeHtmlText(ev.price_usdc) : '-'}</td>
                                 <td>${txHtml}</td>
+                                <td style="white-space: nowrap;">${countryHtml}</td>
                                 <td style="color: var(--text-muted);">${safeHtmlText(ev.ip_masked || 'xxx.xxx.xxx.xxx')}</td>
                             </tr>`;
                         }).join('');
