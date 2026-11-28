@@ -577,6 +577,13 @@ function showPanel(title, msg, isOk = false) {
 }
 
 function showIssuedPass(data) {
+    if (window.umami) {
+        window.umami.track('purchase_completed', { 
+            order_id: data.order_id || null,
+            tier: data.tier || null,
+            credits: data.credits || null
+        });
+    }
     if (mpPollTimer) { clearInterval(mpPollTimer); mpPollTimer = null; }
     lastIssuedPassToken = data.pass_token || '';
     const testResultEl = document.getElementById('mp-test-result');
@@ -718,6 +725,9 @@ function startPolling(orderId) {
 }
 
 async function startMpPix(tier, btn) {
+    if (window.umami) {
+        window.umami.track('checkout_pix_start', { tier });
+    }
     const emailInput = document.getElementById('mp-email');
     const email = emailInput ? emailInput.value.trim() : '';
     const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -766,6 +776,9 @@ async function startMpCheckoutPro(tier, btn) {
     const orig = btn.textContent;
     btn.disabled = true;
     btn.textContent = 'Opening Mercado Pago...';
+    if (window.umami) {
+        window.umami.track('checkout_card_start', { tier });
+    }
     try {
         const email = document.getElementById('mp-email').value.trim();
         const res = await fetch('/api/v1/pass/mp-checkout', {

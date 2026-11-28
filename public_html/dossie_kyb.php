@@ -569,6 +569,9 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
     }
 
     async function loadPreview(cnpjDigits) {
+        if (window.umami) {
+            window.umami.track('dossie_search_cnpj', { cnpj: cnpjDigits });
+        }
         hideAlert();
         openRealSampleDossier();
         const activeTok = getActiveToken();
@@ -692,6 +695,9 @@ $initialCnpj = preg_replace('/\D/', '', (string) ($_GET['cnpj'] ?? ''));
     }
 
     async function generatePixSelected() {
+        if (window.umami) {
+            window.umami.track('dossie_pix_start', { tier: activePixTier });
+        }
         hideAlert();
         const emailInput = $('pix-email');
         const email = (emailInput ? emailInput.value : '').trim();
